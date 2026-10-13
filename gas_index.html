@@ -13,6 +13,9 @@
       document.write('<script src="https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
     }
   </script>
+  <!-- Firebase Cloud Database SDK (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <!-- Custom Tailwind Config -->
   <script>
     tailwind.config = {
@@ -92,6 +95,64 @@
       </div>
     </div>
   </header>
+
+  <!-- ================= ACADEMIC YEAR & GRADE NAVIGATION BAR ================= -->
+  <nav class="bg-slate-100/95 border-b border-slate-200 px-4 sm:px-6 py-2.5 shadow-2xs sticky top-20 z-30 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Left: Academic Year Tabs & Grade Tabs -->
+      <div class="flex items-center gap-3 sm:gap-4 overflow-x-auto py-0.5">
+        
+        <!-- 1. 학년도 선택 영역 (기본: 2027학년도) -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <div class="flex items-center gap-1 text-xs font-bold text-slate-700 mr-1 shrink-0">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>학년도:</span>
+          </div>
+          <!-- 학년도 탭 컨테이너 (JS 동적 렌더링 - 2027학년도 기본) -->
+          <div id="academicYearTabs" class="flex items-center gap-1.5 shrink-0">
+            <!-- 2027학년도, 2026학년도 버튼 동적 생성 -->
+          </div>
+          <!-- 새 학년도 추가 버튼 -->
+          <button id="btnAddYear" type="button" class="px-2 py-1.5 text-xs font-bold rounded-lg bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-400 shadow-2xs transition flex items-center gap-1 shrink-0" title="새 학년도 탭 추가">
+            <span class="text-blue-600 font-extrabold">+</span> <span>추가</span>
+          </button>
+        </div>
+
+        <div class="h-5 w-px bg-slate-300 shrink-0"></div>
+
+        <!-- 2. 대상 학년 탭 (2학년 / 3학년 독립 작업) -->
+        <div class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
+          <div class="flex items-center gap-1 px-1.5 text-xs font-black text-indigo-900 shrink-0">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+            <span>대상 학년:</span>
+          </div>
+          <!-- 학년 탭 컨테이너 (2학년 / 3학년 동적 버튼) -->
+          <div id="academicGradeTabs" class="flex items-center gap-1 shrink-0">
+            <!-- 2학년, 3학년 탭 버튼 동적 렌더링 -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: Current Active Context Badge & Cloud DB Status Badge -->
+      <div class="flex items-center gap-2.5 text-xs shrink-0">
+        <!-- Backend / Cloud Status Badge (Click to open settings) -->
+        <button id="btnCloudStatus" type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 transition shadow-2xs" title="클라우드 DB 및 데이터 백업/복원 관리">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="cloudStatusText">데이터 자동 보존 중</span>
+          <span class="text-[10px] text-emerald-700 bg-white/70 px-1 py-0.2 rounded-sm">설정</span>
+        </button>
+
+        <!-- Current Active Work Environment Badge -->
+        <span id="currentWorkBadge" class="px-3 py-1 rounded-full font-extrabold bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs flex items-center gap-1.5">
+          <span>✨</span>
+          <span id="currentWorkText">2027학년도 2학년</span>
+        </span>
+      </div>
+
+    </div>
+  </nav>
 
   <!-- ================= MAIN CONTAINER ================= -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -1184,6 +1245,7 @@
       }
 
       alert(`✅ 사전 데이터가 등록되었습니다!\n(학생: ${studentList.length}명, 과목 이수 기록: ${totalCourseRecords}건)`);
+      saveAllState();
     }
 
     function clearPriorData() {
@@ -1197,9 +1259,12 @@
       if (AppState.students && AppState.students.length > 0) {
         renderStep1TableOnly();
       }
+      saveAllState();
     }
 
     function loadSamplePriorData(showAlert = true) {
+      const activeG = MultiState.activeGrade || '2학년';
+      const activeY = MultiState.activeYear || '2027';
       const sampleList = [
         { c: '1', n: '17', name: '정수민', s: ['공통국어1(3)', '공통수학1(3)', '물리학(3)'] }, // 중복 '물리학' 발생 유도
         { c: '1', n: '24', name: '김석현', s: ['공통영어1(3)', '미디어 영어(3)'] }, // 중복 '미디어 영어' 발생 유도
@@ -1228,7 +1293,7 @@
         });
         studentsMap.set(key, {
           key,
-          grade: '1학년',
+          grade: activeG,
           classNum: st.c,
           studentNum: st.n,
           name: st.name,
@@ -1238,7 +1303,7 @@
       });
 
       AppState.priorData = {
-        fileName: '2026학년도_1학년_교육과정_편성학생_사전데이터.xlsx',
+        fileName: `${activeY}학년도_${activeG}_교육과정_편성학생_사전데이터.xlsx`,
         students: Array.from(studentsMap.values()),
         byKey: studentsMap,
         totalRecords
@@ -1258,6 +1323,8 @@
         runCrossCheckAnalysis();
         renderStep1TableOnly();
       }
+
+      saveAllState();
 
       if (showAlert) {
         alert(`💡 샘플 사전 데이터(12명, 과목 기록 24건)가 등록되었습니다!\n미신청 학생 2명과 기이수 중복신청 학생 2명이 자동 감지됩니다.`);
@@ -1889,6 +1956,7 @@
       renderStep1();
       initStep2Controls();
       runOptimization(); // Run initial grouping
+      saveAllState();
     }
 
     // ==========================================
@@ -1899,9 +1967,11 @@
     });
 
     function loadSampleHighSchoolData() {
-      AppState.detectedGrade = '1학년';
-      AppState.fileName = '2026학년도_1학년_2차_선택과목_수강신청.xlsx';
-      gradeBadge.textContent = '🎯 1학년 감지됨';
+      const activeG = MultiState.activeGrade || '2학년';
+      const activeY = MultiState.activeYear || '2027';
+      AppState.detectedGrade = activeG;
+      AppState.fileName = `${activeY}학년도_${activeG}_2차_선택과목_수강신청.xlsx`;
+      gradeBadge.textContent = `🎯 ${activeG} 감지됨`;
       gradeBadge.classList.remove('hidden');
       restoredBadge.classList.add('hidden');
       btnResetAll.classList.remove('hidden');
@@ -1955,11 +2025,14 @@
       renderStep1();
       initStep2Controls();
       runOptimization();
+      saveAllState();
     }
 
     btnResetAll.addEventListener('click', () => {
-      if (confirm('모든 데이터를 초기화하시겠습니까?')) {
-        location.reload();
+      if (confirm(`현재 [${MultiState.activeYear}학년도 ${MultiState.activeGrade}]의 분석 데이터를 초기화하시겠습니까?`)) {
+        MultiState.data[MultiState.activeYear][MultiState.activeGrade] = createEmptyGradeState(MultiState.activeGrade);
+        switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
+        saveAllState();
       }
     });
 
@@ -2025,6 +2098,7 @@
       sem1TabBtn.className = 'px-4 py-2 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
       sem2TabBtn.className = 'px-4 py-2 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
       renderStep1();
+      saveAllState();
     });
 
     sem2TabBtn.addEventListener('click', () => {
@@ -2032,11 +2106,13 @@
       sem2TabBtn.className = 'px-4 py-2 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
       sem1TabBtn.className = 'px-4 py-2 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
       renderStep1();
+      saveAllState();
     });
 
     thresholdInput.addEventListener('input', (e) => {
       AppState.step1Threshold = parseInt(e.target.value, 10) || 0;
       renderStep1();
+      saveAllState();
     });
 
     studentSearchInput.addEventListener('input', () => {
@@ -2688,6 +2764,7 @@
             delete AppState.splitSubjects[sem][subj];
           }
           runOptimization();
+          saveAllState();
         });
       });
 
@@ -2720,6 +2797,7 @@
             delete AppState.pinnedSubjects[sem][subj];
           }
           runOptimization();
+          saveAllState();
         });
       });
 
@@ -3490,6 +3568,7 @@
 
       AppState.savedPlans.push(newSavedPlan);
       renderSavedPlansList();
+      saveAllState();
       alert(`⭐ [${planName}]이 저장되었습니다!\n아래 '저장된 그룹핑 후보안 목록'에서 개별 다운로드 및 시간표 확인이 가능합니다.`);
     });
 
@@ -3576,6 +3655,7 @@
       if (confirm('이 저장안을 삭제하시겠습니까?')) {
         AppState.savedPlans = AppState.savedPlans.filter(p => p.id !== planId);
         renderSavedPlansList();
+        saveAllState();
       }
     };
 
@@ -4160,14 +4240,650 @@
         .saveGroupingResultsToSheets(payload);
     });
 
+    // =========================================================================
+    // MULTI-YEAR, MULTI-GRADE & CLOUD DATABASE PERSISTENCE ENGINE
+    // =========================================================================
+
+    function createEmptyGradeState(grade = '2학년') {
+      return {
+        detectedGrade: grade,
+        fileName: '',
+        students: [],
+        sem1Subjects: [],
+        sem2Subjects: [],
+        currentSemester: 1,
+        step1Threshold: 3,
+        sem1GroupCount: 5,
+        sem2GroupCount: 7,
+        splitSubjects: { 1: {}, 2: {} },
+        pinnedSubjects: { 1: {}, 2: {} },
+        studentPins: [],
+        currentPlan: {
+          semester: 1,
+          groups: [],
+          conflicts: [],
+          timestamp: null
+        },
+        priorData: null,
+        crossCheckResult: {
+          missingStudents: [],
+          duplicateEnrollments: []
+        },
+        savedPlans: [],
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    const MultiState = {
+      activeYear: '2027', // 기본 2027학년도
+      activeGrade: '2학년', // 기본 2학년
+      yearsList: ['2027', '2026'],
+      data: {
+        '2027': {
+          '2학년': null,
+          '3학년': null
+        },
+        '2026': {
+          '2학년': null,
+          '3학년': null
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+
+    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V2';
+    const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
+
+    // Cloud Sync Manager
+    class CourseCloudSync {
+      constructor() {
+        this.firebaseApp = null;
+        this.firestoreDb = null;
+        this.isSyncing = false;
+        this.status = 'local';
+      }
+
+      async init() {
+        // 1. Firebase 체크
+        try {
+          const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
+          if (savedConfig && window.firebase) {
+            const config = JSON.parse(savedConfig);
+            if (config.apiKey && config.projectId) {
+              if (!firebase.apps.length) {
+                this.firebaseApp = firebase.initializeApp(config);
+              } else {
+                this.firebaseApp = firebase.app();
+              }
+              this.firestoreDb = firebase.firestore();
+              this.status = 'firebase';
+              this.updateUiBadge('firebase');
+              this.subscribeRemote();
+              console.log('✅ Firebase Firestore 클라우드 DB 연결됨:', config.projectId);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Firebase init error:', e);
+        }
+
+        // 2. Node.js 백엔드 서버 체크
+        try {
+          const res = await fetch('/api/course-data', { method: 'GET', signal: AbortSignal.timeout(1000) });
+          if (res.ok) {
+            this.status = 'server';
+            this.updateUiBadge('server');
+            return;
+          }
+        } catch (e) {}
+
+        this.status = 'local';
+        this.updateUiBadge('local');
+      }
+
+      updateUiBadge(mode) {
+        const btn = document.getElementById('btnCloudStatus');
+        const modalStatus = document.getElementById('modalStorageStatus');
+        if (!btn) return;
+
+        if (mode === 'firebase') {
+          btn.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-sky-100 text-sky-800 border border-sky-300 hover:bg-sky-200 transition shadow-2xs cursor-pointer';
+          btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span> <span id="cloudStatusText">클라우드 DB 동기화됨</span> <span class="text-[10px] text-sky-700 bg-white/70 px-1 py-0.2 rounded-sm">설정</span>`;
+          if (modalStatus) {
+            modalStatus.className = 'px-2.5 py-0.5 rounded-full font-bold bg-sky-100 text-sky-800 border border-sky-200';
+            modalStatus.textContent = 'Firebase Cloud Firestore 실시간 연동 활성';
+          }
+        } else if (mode === 'server') {
+          btn.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 transition shadow-2xs cursor-pointer';
+          btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> <span id="cloudStatusText">서버 DB 연결됨</span> <span class="text-[10px] text-emerald-700 bg-white/70 px-1 py-0.2 rounded-sm">설정</span>`;
+          if (modalStatus) {
+            modalStatus.className = 'px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
+            modalStatus.textContent = '로컬 백엔드 서버 DB 연동 활성';
+          }
+        } else {
+          btn.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition shadow-2xs cursor-pointer';
+          btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> <span id="cloudStatusText">브라우저 자동 보존 중</span> <span class="text-[10px] text-emerald-700 bg-white/70 px-1 py-0.2 rounded-sm">설정</span>`;
+          if (modalStatus) {
+            modalStatus.className = 'px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
+            modalStatus.textContent = '로컬 브라우저 자동 저장 활성 (안전 보존)';
+          }
+        }
+      }
+
+      async save(multiState) {
+        if (this.isSyncing) return;
+        this.isSyncing = true;
+
+        if (this.firestoreDb) {
+          try {
+            await this.firestoreDb.collection('course_registrations').doc('sangji_high_school').set({
+              multiState: multiState,
+              lastUpdated: new Date().toISOString()
+            });
+          } catch (e) {
+            console.warn('Firestore save error:', e);
+          }
+        }
+
+        if (this.status === 'server') {
+          try {
+            await fetch('/api/course-data', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(multiState)
+            });
+          } catch (e) {}
+        }
+
+        setTimeout(() => { this.isSyncing = false; }, 300);
+      }
+
+      subscribeRemote() {
+        if (!this.firestoreDb) return;
+        try {
+          this.firestoreDb.collection('course_registrations').doc('sangji_high_school')
+            .onSnapshot(doc => {
+              if (doc.exists && !this.isSyncing) {
+                const data = doc.data();
+                if (data && data.multiState && data.lastUpdated) {
+                  const localRaw = localStorage.getItem(STORAGE_KEY);
+                  const local = localRaw ? JSON.parse(localRaw) : null;
+                  const localTime = local?.lastUpdated || 0;
+                  if (new Date(data.lastUpdated) > new Date(localTime)) {
+                    console.log('🔄 원격 클라우드 DB로부터 최신 작업 상태를 반영합니다.');
+                    applyExternalMultiState(data.multiState, false);
+                  }
+                }
+              }
+            }, err => console.warn('Firestore listener err:', err));
+        } catch (e) {
+          console.warn('Firestore subscription error:', e);
+        }
+      }
+    }
+
+    const cloudSync = new CourseCloudSync();
+
+    function syncCurrentToMulti() {
+      const y = MultiState.activeYear;
+      const g = MultiState.activeGrade;
+      if (!MultiState.data[y]) MultiState.data[y] = {};
+      
+      MultiState.data[y][g] = {
+        detectedGrade: AppState.detectedGrade || g,
+        fileName: AppState.fileName || '',
+        students: JSON.parse(JSON.stringify(AppState.students || [])),
+        sem1Subjects: [...(AppState.sem1Subjects || [])],
+        sem2Subjects: [...(AppState.sem2Subjects || [])],
+        currentSemester: AppState.currentSemester || 1,
+        step1Threshold: AppState.step1Threshold || 3,
+        sem1GroupCount: AppState.sem1GroupCount || 5,
+        sem2GroupCount: AppState.sem2GroupCount || 7,
+        splitSubjects: JSON.parse(JSON.stringify(AppState.splitSubjects || { 1: {}, 2: {} })),
+        pinnedSubjects: JSON.parse(JSON.stringify(AppState.pinnedSubjects || { 1: {}, 2: {} })),
+        studentPins: JSON.parse(JSON.stringify(AppState.studentPins || [])),
+        currentPlan: AppState.currentPlan ? JSON.parse(JSON.stringify(AppState.currentPlan)) : null,
+        priorData: AppState.priorData ? JSON.parse(JSON.stringify(AppState.priorData)) : null,
+        crossCheckResult: AppState.crossCheckResult ? JSON.parse(JSON.stringify(AppState.crossCheckResult)) : null,
+        savedPlans: JSON.parse(JSON.stringify(AppState.savedPlans || [])),
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    function saveAllState() {
+      try {
+        syncCurrentToMulti();
+        MultiState.lastUpdated = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(MultiState));
+        cloudSync.save(MultiState);
+        renderYearGradeNav();
+        updateModalStats();
+      } catch (e) {
+        console.error('saveAllState error:', e);
+      }
+    }
+
+    function switchAcademicContext(targetYear, targetGrade, shouldSave = true) {
+      if (shouldSave) {
+        syncCurrentToMulti();
+      }
+
+      MultiState.activeYear = targetYear;
+      MultiState.activeGrade = targetGrade;
+
+      if (!MultiState.yearsList.includes(targetYear)) {
+        MultiState.yearsList.push(targetYear);
+      }
+
+      if (!MultiState.data[targetYear]) {
+        MultiState.data[targetYear] = {};
+      }
+      if (!MultiState.data[targetYear]['2학년']) {
+        MultiState.data[targetYear]['2학년'] = createEmptyGradeState('2학년');
+      }
+      if (!MultiState.data[targetYear]['3학년']) {
+        MultiState.data[targetYear]['3학년'] = createEmptyGradeState('3학년');
+      }
+      if (!MultiState.data[targetYear][targetGrade]) {
+        MultiState.data[targetYear][targetGrade] = createEmptyGradeState(targetGrade);
+      }
+
+      const targetData = MultiState.data[targetYear][targetGrade];
+      
+      // Clone targetData into AppState
+      Object.assign(AppState, JSON.parse(JSON.stringify(targetData)));
+      AppState.detectedGrade = targetGrade;
+
+      // Update UI Elements
+      const currentWorkText = document.getElementById('currentWorkText');
+      if (currentWorkText) {
+        currentWorkText.textContent = `${targetYear}학년도 ${targetGrade}`;
+      }
+
+      if (gradeBadge) {
+        gradeBadge.textContent = `🎯 ${targetGrade} 작업 환경`;
+        gradeBadge.classList.remove('hidden');
+      }
+
+      // Update Prior Data Display
+      const priorLoadedInfo = document.getElementById('priorLoadedInfo');
+      const priorLoadedSummary = document.getElementById('priorLoadedSummary');
+      const priorLoadedFileName = document.getElementById('priorLoadedFileName');
+      const priorStatusBadge = document.getElementById('priorStatusBadge');
+
+      if (AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0) {
+        if (priorLoadedInfo) priorLoadedInfo.classList.remove('hidden');
+        if (priorStatusBadge) priorStatusBadge.classList.remove('hidden');
+        if (priorLoadedSummary) {
+          priorLoadedSummary.textContent = `사전 등록 학생: ${AppState.priorData.students.length}명 | 이수 과목: ${AppState.priorData.enrollments ? AppState.priorData.enrollments.length : 0}건`;
+        }
+        if (priorLoadedFileName) {
+          priorLoadedFileName.textContent = AppState.priorData.fileName || '사전_데이터.xlsx';
+        }
+      } else {
+        if (priorLoadedInfo) priorLoadedInfo.classList.add('hidden');
+        if (priorStatusBadge) priorStatusBadge.classList.add('hidden');
+      }
+
+      // Update Survey / Students Display
+      if (AppState.students && AppState.students.length > 0) {
+        appBody.classList.remove('hidden');
+        btnResetAll.classList.remove('hidden');
+        if (thresholdInput) thresholdInput.value = AppState.step1Threshold || 3;
+        renderStep1();
+        renderStep2UI();
+      } else {
+        appBody.classList.add('hidden');
+        btnResetAll.classList.add('hidden');
+      }
+
+      renderYearGradeNav();
+      updateModalStats();
+    }
+
+    function renderYearGradeNav() {
+      const yearContainer = document.getElementById('academicYearTabs');
+      const gradeContainer = document.getElementById('academicGradeTabs');
+      const currentWorkText = document.getElementById('currentWorkText');
+
+      if (currentWorkText) {
+        currentWorkText.textContent = `${MultiState.activeYear}학년도 ${MultiState.activeGrade}`;
+      }
+
+      // Render Year Tabs
+      if (yearContainer) {
+        yearContainer.innerHTML = MultiState.yearsList.map(y => {
+          const isActive = y === MultiState.activeYear;
+          const yData = MultiState.data[y] || {};
+          let totalStudents = 0;
+          ['2학년', '3학년'].forEach(g => {
+            if (yData[g] && yData[g].students) {
+              totalStudents += yData[g].students.length;
+            }
+          });
+
+          return `
+            <div class="inline-flex items-center rounded-lg transition-all ${
+              isActive 
+                ? 'bg-blue-600 text-white shadow-xs font-bold ring-2 ring-blue-400/40' 
+                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
+            }">
+              <button type="button" 
+                      onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
+                      class="px-3 py-1.5 text-xs flex items-center gap-1.5 focus:outline-hidden"
+                      title="${y}학년도 작업으로 전환">
+                <span>${y}학년도</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  isActive ? 'bg-white text-blue-700 shadow-2xs' : 'bg-slate-100 text-slate-500'
+                }">
+                  ${totalStudents}명
+                </span>
+              </button>
+              ${!['2027', '2026'].includes(y) ? `
+                <button type="button" 
+                        onclick="window.handleDeleteAcademicYear('${y}', event)"
+                        class="pr-2 pl-0.5 py-1.5 text-xs opacity-60 hover:opacity-100 hover:text-rose-300 transition"
+                        title="${y}학년도 삭제">
+                  ✕
+                </button>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Grade Tabs (2학년 / 3학년)
+      if (gradeContainer) {
+        gradeContainer.innerHTML = ['2학년', '3학년'].map(g => {
+          const isActive = g === MultiState.activeGrade;
+          const yData = MultiState.data[MultiState.activeYear] || {};
+          const gData = yData[g] || {};
+          const count = (gData.students && Array.isArray(gData.students)) ? gData.students.length : 0;
+
+          return `
+            <button type="button" 
+                    onclick="window.switchAcademicContext('${MultiState.activeYear}', '${g}')"
+                    class="px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                    }"
+                    title="${MultiState.activeYear}학년도 ${g} 작업 환경으로 전환">
+              <span>${g}</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
+              }">
+                ${count}명
+              </span>
+            </button>
+          `;
+        }).join('');
+      }
+    }
+
+    window.switchAcademicContext = switchAcademicContext;
+    window.handleDeleteAcademicYear = function(year, event) {
+      if (event) event.stopPropagation();
+      if (!confirm(`[${year}학년도]의 모든 학년 데이터가 삭제됩니다. 계속하시겠습니까?`)) return;
+      MultiState.yearsList = MultiState.yearsList.filter(y => y !== year);
+      delete MultiState.data[year];
+      const nextYear = MultiState.yearsList[0] || '2027';
+      switchAcademicContext(nextYear, MultiState.activeGrade);
+      saveAllState();
+    };
+
+    function updateModalStats() {
+      const detail = document.getElementById('modalStorageDetail');
+      if (!detail) return;
+      const counts = [];
+      MultiState.yearsList.forEach(y => {
+        const yData = MultiState.data[y] || {};
+        const c2 = (yData['2학년'] && yData['2학년'].students) ? yData['2학년'].students.length : 0;
+        const c3 = (yData['3학년'] && yData['3학년'].students) ? yData['3학년'].students.length : 0;
+        counts.push(`${y}학년도: 2학년(${c2}명) · 3학년(${c3}명)`);
+      });
+      detail.textContent = counts.join(' | ');
+    }
+
+    function applyExternalMultiState(externalData, showSuccessMsg = true) {
+      if (!externalData || !externalData.data) return;
+      Object.assign(MultiState, externalData);
+      if (!MultiState.yearsList.includes('2027')) MultiState.yearsList.unshift('2027');
+      if (!MultiState.yearsList.includes('2026')) MultiState.yearsList.push('2026');
+      switchAcademicContext(MultiState.activeYear || '2027', MultiState.activeGrade || '2학년', false);
+      saveAllState();
+      if (showSuccessMsg) {
+        alert('🎉 최신 데이터가 성공적으로 반영되었습니다!');
+      }
+    }
+
+    // Modal Event Bindings
+    function openCloudModal() {
+      updateModalStats();
+      const cfgInput = document.getElementById('inputFirebaseConfig');
+      if (cfgInput) {
+        cfgInput.value = localStorage.getItem(FIREBASE_CONFIG_KEY) || '';
+      }
+      document.getElementById('cloudSettingsModal')?.classList.remove('hidden');
+    }
+
+    function closeCloudModal() {
+      document.getElementById('cloudSettingsModal')?.classList.add('hidden');
+    }
+
+    document.getElementById('btnCloudStatus')?.addEventListener('click', openCloudModal);
+    document.getElementById('btnCloseCloudModal')?.addEventListener('click', closeCloudModal);
+    document.getElementById('btnDismissCloudModal')?.addEventListener('click', closeCloudModal);
+
+    // Save Firebase Config
+    document.getElementById('btnSaveFirebaseConfig')?.addEventListener('click', () => {
+      const val = document.getElementById('inputFirebaseConfig')?.value.trim();
+      if (!val) {
+        alert('Firebase 설정을 입력해주세요.');
+        return;
+      }
+      try {
+        const clean = val.replace(/^[^{]*{/, '{').replace(/}[^}]*$/, '}');
+        const cfg = JSON.parse(clean);
+        if (!cfg.apiKey || !cfg.projectId) {
+          throw new Error('apiKey와 projectId가 필요합니다.');
+        }
+        localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(cfg));
+        cloudSync.init();
+        alert('🎉 Firebase 클라우드 DB 연결 설정이 저장되었습니다!');
+        saveAllState();
+      } catch (err) {
+        alert('Firebase 설정 파싱 오류: ' + err.message);
+      }
+    });
+
+    document.getElementById('btnClearFirebaseConfig')?.addEventListener('click', () => {
+      localStorage.removeItem(FIREBASE_CONFIG_KEY);
+      cloudSync.firestoreDb = null;
+      cloudSync.firebaseApp = null;
+      cloudSync.status = 'local';
+      cloudSync.updateUiBadge('local');
+      alert('Firebase 클라우드 연동이 해제되었습니다. 로컬 자동 저장 모드로 전환됩니다.');
+    });
+
+    // Add Academic Year button
+    document.getElementById('btnAddYear')?.addEventListener('click', () => {
+      const nextYear = String(Math.max(...MultiState.yearsList.map(Number)) + 1);
+      const input = prompt('추가할 학년도를 4자리 숫자로 입력하세요 (예: 2028):', nextYear);
+      if (!input) return;
+      const y = input.trim();
+      if (!/^\d{4}$/.test(y)) {
+        alert('올바른 4자리 연도를 입력해주세요.');
+        return;
+      }
+      if (!MultiState.yearsList.includes(y)) {
+        MultiState.yearsList.unshift(y);
+      }
+      switchAcademicContext(y, MultiState.activeGrade);
+      saveAllState();
+    });
+
+    // Full JSON Export
+    document.getElementById('btnExportFullBackupJson')?.addEventListener('click', () => {
+      syncCurrentToMulti();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(MultiState, null, 2));
+      const now = new Date();
+      const dateTag = String(now.getFullYear()).slice(2) + String(now.getMonth()+1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `상지대관령고_수강신청_전체데이터_${MultiState.activeYear}_${dateTag}.json`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+    });
+
+    // Restore from JSON
+    document.getElementById('inputRestoreBackupJson')?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const json = JSON.parse(event.target.result);
+          if (json && (json.data || json.yearsList)) {
+            applyExternalMultiState(json, true);
+            closeCloudModal();
+          } else {
+            alert('올바른 백업 JSON 파일 형식이 아닙니다.');
+          }
+        } catch (err) {
+          alert('백업 파일 파싱 실패: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // Reset active grade only
+    document.getElementById('btnResetActiveGradeOnly')?.addEventListener('click', () => {
+      if (!confirm(`현재 [${MultiState.activeYear}학년도 ${MultiState.activeGrade}]의 학생 명단, 선택과목 매트릭스, 그룹핑 결과를 모두 초기화하시겠습니까?`)) return;
+      MultiState.data[MultiState.activeYear][MultiState.activeGrade] = createEmptyGradeState(MultiState.activeGrade);
+      switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
+      saveAllState();
+      closeCloudModal();
+      alert(`[${MultiState.activeYear}학년도 ${MultiState.activeGrade}] 데이터가 초기화되었습니다.`);
+    });
+
+    // Initialize MultiState & Load on Startup
+    function loadAllState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.data) {
+            Object.assign(MultiState, parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('loadAllState error:', e);
+      }
+
+      if (!MultiState.yearsList.includes('2027')) MultiState.yearsList.unshift('2027');
+      if (!MultiState.yearsList.includes('2026')) MultiState.yearsList.push('2026');
+
+      if (!MultiState.activeYear || !MultiState.yearsList.includes(MultiState.activeYear)) {
+        MultiState.activeYear = '2027';
+      }
+      if (!MultiState.activeGrade || !['2학년', '3학년'].includes(MultiState.activeGrade)) {
+        MultiState.activeGrade = '2학년';
+      }
+
+      MultiState.yearsList.forEach(y => {
+        if (!MultiState.data[y]) MultiState.data[y] = {};
+        if (!MultiState.data[y]['2학년']) MultiState.data[y]['2학년'] = createEmptyGradeState('2학년');
+        if (!MultiState.data[y]['3학년']) MultiState.data[y]['3학년'] = createEmptyGradeState('3학년');
+      });
+
+      switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
+      cloudSync.init();
+    }
+
+    // Run Startup Initialization
+    loadAllState();
   </script>
 
-  <!-- Loading Spinner Overlay -->
-  <div id="loadingOverlay" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center">
-    <div class="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center space-y-3 max-w-sm text-center">
-      <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      <h4 class="text-sm font-bold text-slate-800">엑셀 데이터 분석 중...</h4>
-      <p id="loadingMsg" class="text-xs text-slate-500">학생 선택과목 추출 및 최적 매트릭스를 생성하고 있습니다.</p>
+  <!-- Cloud & Database Settings Modal -->
+  <div id="cloudSettingsModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl shadow-xs">
+            ☁️
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">클라우드 DB 및 데이터 백업·복원</h3>
+            <p class="text-xs text-slate-500">작업한 시간표 및 학생 선택과목 데이터를 안전하게 보존합니다.</p>
+          </div>
+        </div>
+        <button id="btnCloseCloudModal" type="button" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Current Status Card -->
+      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-xs">
+        <div class="flex items-center justify-between font-bold text-slate-800">
+          <span>💾 데이터 보존 상태:</span>
+          <span id="modalStorageStatus" class="px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">로컬 브라우저 자동 저장 활성</span>
+        </div>
+        <p id="modalStorageDetail" class="text-slate-500 text-[11px]">2027학년도 2학년, 3학년 및 모든 학년도 데이터가 브라우저에 안전하게 보존됩니다.</p>
+      </div>
+
+      <!-- Quick Action 1: JSON Export & Import (Universal Backup) -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+          <span>📦 간편 파일 백업 및 복원</span>
+          <span class="text-[10px] font-extrabold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">추천</span>
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button id="btnExportFullBackupJson" type="button" class="p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 flex items-center justify-center space-x-2 text-xs font-bold transition shadow-xs">
+            <span>📥</span>
+            <span>전체 데이터 백업 다운로드 (.json)</span>
+          </button>
+          
+          <label class="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-300 flex items-center justify-center space-x-2 text-xs font-bold transition shadow-xs cursor-pointer">
+            <span>📤</span>
+            <span>백업 파일에서 복원하기 (.json)</span>
+            <input type="file" id="inputRestoreBackupJson" accept=".json" class="hidden" />
+          </label>
+        </div>
+        <p class="text-[11px] text-slate-400">다른 PC나 브라우저에서 작업할 때 백업 파일을 다운로드한 후 업로드하여 그대로 이어할 수 있습니다.</p>
+      </div>
+
+      <!-- Quick Action 2: Firebase Cloud Firestore Sync -->
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+          <span>🔥 Firebase Cloud Firestore 실시간 연동 (선택)</span>
+        </h4>
+        <p class="text-[11px] text-slate-500">Firebase 웹 프로젝트 설정을 입력하면 인터넷이 연결된 모든 기기에서 실시간으로 작업 환경이 동기화됩니다.</p>
+        <textarea id="inputFirebaseConfig" rows="3" placeholder='Firebase 설정 붙여넣기 (예: { "apiKey": "...", "projectId": "..." })' class="w-full text-xs font-mono p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none bg-slate-50/50"></textarea>
+        <div class="flex items-center gap-2">
+          <button id="btnSaveFirebaseConfig" type="button" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
+            클라우드 DB 연결 시작
+          </button>
+          <button id="btnClearFirebaseConfig" type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition">
+            연결 해제
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Action 3: Reset Active Grade Data -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <button id="btnResetActiveGradeOnly" type="button" class="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline flex items-center gap-1">
+          <span>🗑️ 현재 [선택된 학년] 데이터만 초기화</span>
+        </button>
+        <button id="btnDismissCloudModal" type="button" class="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-bold transition shadow-sm">
+          닫기
+        </button>
+      </div>
+
     </div>
   </div>
 </body>
