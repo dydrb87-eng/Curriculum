@@ -190,8 +190,8 @@
                 <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm shadow-xs">1</span>
                 <div>
                   <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <span>사전 데이터 등록</span>
-                    <span class="text-[10px] font-extrabold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">학생 명부 & 기이수 과목</span>
+                    <span id="priorCardTitle">[2학년] 사전 데이터 등록</span>
+                    <span id="priorCardGradeBadge" class="text-[10px] font-extrabold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">2학년 명부 & 기이수 과목</span>
                   </h3>
                   <p class="text-[11px] text-slate-500 mt-0.5">나이스(NEIS) 개설과목/편성학생 엑셀 파일 (.xlsx, .xls)</p>
                 </div>
@@ -258,8 +258,8 @@
                 <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm shadow-xs">2</span>
                 <div>
                   <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <span>수강신청 조사 엑셀 파일</span>
-                    <span class="text-[10px] font-extrabold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">구글 폼 설문 결과</span>
+                    <span id="surveyCardTitle">[2학년] 수강신청 조사 엑셀 파일</span>
+                    <span id="surveyCardGradeBadge" class="text-[10px] font-extrabold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">2학년 설문 결과</span>
                   </h3>
                   <p class="text-[11px] text-slate-500 mt-0.5">학생들이 응답한 선택과목 신청 결과 엑셀 파일</p>
                 </div>
@@ -1109,6 +1109,53 @@
       reader.readAsArrayBuffer(file);
     }
 
+    function updatePriorDataUI() {
+      const priorStatusBadge = document.getElementById('priorStatusBadge');
+      const priorUploadZone = document.getElementById('priorUploadZone');
+      const priorLoadedInfo = document.getElementById('priorLoadedInfo');
+      const priorLoadedSummary = document.getElementById('priorLoadedSummary');
+      const priorLoadedFileName = document.getElementById('priorLoadedFileName');
+      const priorCardTitle = document.getElementById('priorCardTitle');
+      const priorCardGradeBadge = document.getElementById('priorCardGradeBadge');
+      const surveyCardTitle = document.getElementById('surveyCardTitle');
+      const surveyCardGradeBadge = document.getElementById('surveyCardGradeBadge');
+      const priorFileInput = document.getElementById('priorFileInput');
+
+      const activeG = MultiState.activeGrade || '2학년';
+
+      if (priorCardTitle) priorCardTitle.textContent = `[${activeG}] 사전 데이터 등록`;
+      if (priorCardGradeBadge) priorCardGradeBadge.textContent = `${activeG} 명부 & 기이수 과목`;
+      if (surveyCardTitle) surveyCardTitle.textContent = `[${activeG}] 수강신청 조사 엑셀 파일`;
+      if (surveyCardGradeBadge) surveyCardGradeBadge.textContent = `${activeG} 설문 결과`;
+
+      if (AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0) {
+        if (priorStatusBadge) priorStatusBadge.classList.remove('hidden');
+        if (priorUploadZone) priorUploadZone.classList.add('hidden');
+        if (priorLoadedInfo) priorLoadedInfo.classList.remove('hidden');
+        if (priorLoadedSummary) {
+          const stCount = AppState.priorData.students.length;
+          const recCount = AppState.priorData.totalRecords || (AppState.priorData.enrollments ? AppState.priorData.enrollments.length : 0);
+          priorLoadedSummary.textContent = `[${activeG}] 등록 학생: ${stCount}명 | 과목 이수 기록: ${recCount}건`;
+        }
+        if (priorLoadedFileName) {
+          priorLoadedFileName.textContent = AppState.priorData.fileName || `${activeG}_사전데이터.xlsx`;
+        }
+      } else {
+        if (priorStatusBadge) priorStatusBadge.classList.add('hidden');
+        if (priorUploadZone) priorUploadZone.classList.remove('hidden');
+        if (priorLoadedInfo) priorLoadedInfo.classList.add('hidden');
+        if (priorFileInput) priorFileInput.value = '';
+      }
+
+      if (AppState.students && AppState.students.length > 0 && AppState.priorData) {
+        runCrossCheckAnalysis();
+      } else {
+        const crossCheckAlertPanel = document.getElementById('crossCheckAlertPanel');
+        if (crossCheckAlertPanel) crossCheckAlertPanel.classList.add('hidden');
+      }
+    }
+    window.updatePriorDataUI = updatePriorDataUI;
+
     function parsePriorWorkbook(workbook, fileName) {
       let targetSheet = null;
       let rawRows = null;
@@ -1173,89 +1220,157 @@
         return;
       }
 
-      const studentsMap = new Map();
-      let totalCourseRecords = 0;
+      const activeG = MultiState.activeGrade || '2학년';
+      const activeYear = MultiState.activeYear || '2027';
+
+      // Maps to hold students per grade: '2학년', '3학년', and fallback to active tab
+      const gradeStudentsMap = {
+        '2학년': new Map(),
+        '3학년': new Map(),
+        'default': new Map()
+      };
+      const gradeRecordsCount = {
+        '2학년': 0,
+        '3학년': 0,
+        'default': 0
+      };
+
+      let detectedAnyGrade = false;
 
       dataRows.forEach((row) => {
         if (!row || row.length === 0) return;
         const nameVal = colName !== -1 ? String(row[colName] || '').trim() : '';
         if (!nameVal || /성명|이름|합계|소계|평균/.test(nameVal)) return;
 
-        const classVal = colClass !== -1 ? String(row[colClass] || '').replace(/[^0-9]/g, '') : '';
+        let classVal = colClass !== -1 ? String(row[colClass] || '').replace(/[^0-9]/g, '') : '';
         const numVal = colNum !== -1 ? String(row[colNum] || '').replace(/[^0-9]/g, '') : '';
         let gradeVal = colGrade !== -1 ? String(row[colGrade] || '').replace(/[^0-9]/g, '') : '';
         if (!gradeVal && colGradeDept !== -1) {
           gradeVal = String(row[colGradeDept] || '').replace(/[^0-9]/g, '');
         }
 
+        // If classVal is 3 digits like 201 or 302 and gradeVal is empty
+        if (!gradeVal && classVal.length === 3) {
+          gradeVal = classVal.charAt(0);
+          classVal = String(parseInt(classVal.slice(1), 10));
+        }
+
+        let targetGradeKey = 'default';
+        if (gradeVal === '2') {
+          targetGradeKey = '2학년';
+          detectedAnyGrade = true;
+        } else if (gradeVal === '3') {
+          targetGradeKey = '3학년';
+          detectedAnyGrade = true;
+        } else if (gradeVal) {
+          detectedAnyGrade = true;
+          return; // Ignore other grades (e.g. 1학년)
+        }
+
         const subjectVal = colSubject !== -1 ? String(row[colSubject] || '').trim() : '';
         const key = `${classVal}_${numVal}_${nameVal}`;
 
-        if (!studentsMap.has(key)) {
-          studentsMap.set(key, {
+        const mapToUse = gradeStudentsMap[targetGradeKey];
+        if (!mapToUse.has(key)) {
+          mapToUse.set(key, {
             key,
-            grade: gradeVal ? `${gradeVal}학년` : '',
+            grade: targetGradeKey !== 'default' ? targetGradeKey : activeG,
             classNum: classVal,
             studentNum: numVal,
             name: nameVal,
-            subjects: new Set(),
+            subjects: [], // JSON-safe array
             rawSubjects: []
           });
         }
 
-        const stObj = studentsMap.get(key);
+        const stObj = mapToUse.get(key);
         if (subjectVal) {
-          totalCourseRecords++;
+          gradeRecordsCount[targetGradeKey]++;
           const normSubj = normalizeSubject(subjectVal);
-          if (normSubj) {
-            stObj.subjects.add(normSubj);
-            stObj.rawSubjects.push(subjectVal);
+          if (normSubj && !stObj.subjects.includes(normSubj)) {
+            stObj.subjects.push(normSubj);
           }
+          stObj.rawSubjects.push(subjectVal);
         }
       });
 
-      const studentList = Array.from(studentsMap.values());
-      if (studentList.length === 0) {
-        alert('사전 엑셀 파일에서 학생 정보를 읽어오지 못했습니다.');
+      function createPriorObj(stMap, totalRecs, gName) {
+        const studentList = Array.from(stMap.values());
+        return {
+          fileName: `${activeYear}학년도_${gName}_${fileName}`,
+          students: studentList,
+          totalRecords: totalRecs
+        };
+      }
+
+      const g2Count = gradeStudentsMap['2학년'].size;
+      const g3Count = gradeStudentsMap['3학년'].size;
+      const defCount = gradeStudentsMap['default'].size;
+
+      if (g2Count === 0 && g3Count === 0 && defCount === 0) {
+        alert('사전 엑셀 파일에서 유효한 2·3학년 학생 정보를 읽어오지 못했습니다.');
         return;
       }
 
-      AppState.priorData = {
-        fileName,
-        students: studentList,
-        byKey: studentsMap,
-        totalRecords: totalCourseRecords
-      };
+      if (!MultiState.data[activeYear]) MultiState.data[activeYear] = {};
+      if (!MultiState.data[activeYear]['2학년']) MultiState.data[activeYear]['2학년'] = createEmptyGradeState('2학년');
+      if (!MultiState.data[activeYear]['3학년']) MultiState.data[activeYear]['3학년'] = createEmptyGradeState('3학년');
 
-      // UI 상태 갱신
-      priorStatusBadge?.classList.remove('hidden');
-      priorUploadZone?.classList.add('hidden');
-      priorLoadedInfo?.classList.remove('hidden');
-      if (priorLoadedSummary) {
-        priorLoadedSummary.textContent = `사전 등록 학생: ${studentList.length}명 | 이수 과목: ${totalCourseRecords}건`;
-      }
-      if (priorLoadedFileName) {
-        priorLoadedFileName.textContent = fileName;
+      let alertMsg = '';
+
+      if (detectedAnyGrade && (g2Count > 0 || g3Count > 0)) {
+        if (g2Count > 0) {
+          const g2Prior = createPriorObj(gradeStudentsMap['2학년'], gradeRecordsCount['2학년'], '2학년');
+          MultiState.data[activeYear]['2학년'].priorData = g2Prior;
+          if (activeG === '2학년') {
+            AppState.priorData = g2Prior;
+          }
+        }
+        if (g3Count > 0) {
+          const g3Prior = createPriorObj(gradeStudentsMap['3학년'], gradeRecordsCount['3학년'], '3학년');
+          MultiState.data[activeYear]['3학년'].priorData = g3Prior;
+          if (activeG === '3학년') {
+            AppState.priorData = g3Prior;
+          }
+        }
+
+        if (g2Count > 0 && g3Count > 0) {
+          alertMsg = `✅ [2학년 ${g2Count}명] 및 [3학년 ${g3Count}명] 사전 데이터가 각 학년 탭에 독립적으로 분리 등록되었습니다!`;
+        } else if (g2Count > 0) {
+          alertMsg = `✅ [2학년] 사전 데이터가 등록되었습니다!\n(학생: ${g2Count}명, 과목 이수 기록: ${gradeRecordsCount['2학년']}건)`;
+        } else {
+          alertMsg = `✅ [3학년] 사전 데이터가 등록되었습니다!\n(학생: ${g3Count}명, 과목 이수 기록: ${gradeRecordsCount['3학년']}건)`;
+        }
+      } else {
+        // No grade columns in file -> assign to active grade
+        const defPrior = createPriorObj(gradeStudentsMap['default'], gradeRecordsCount['default'], activeG);
+        MultiState.data[activeYear][activeG].priorData = defPrior;
+        AppState.priorData = defPrior;
+        alertMsg = `✅ [${activeG}] 사전 데이터가 등록되었습니다!\n(학생: ${defCount}명, 과목 이수 기록: ${gradeRecordsCount['default']}건)`;
       }
 
-      // 수강신청 조사 데이터가 이미 로드되어 있다면 즉시 대조 분석 실행
+      updatePriorDataUI();
       if (AppState.students && AppState.students.length > 0) {
-        runCrossCheckAnalysis();
         renderStep1TableOnly();
       }
-
-      alert(`✅ 사전 데이터가 등록되었습니다!\n(학생: ${studentList.length}명, 과목 이수 기록: ${totalCourseRecords}건)`);
       saveAllState();
+      alert(alertMsg);
     }
 
     function clearPriorData() {
+      const activeG = MultiState.activeGrade || '2학년';
+      const activeY = MultiState.activeYear || '2027';
+
       AppState.priorData = null;
       AppState.crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
-      priorStatusBadge?.classList.add('hidden');
-      priorUploadZone?.classList.remove('hidden');
-      priorLoadedInfo?.classList.add('hidden');
-      crossCheckAlertPanel?.classList.add('hidden');
-      if (priorFileInput) priorFileInput.value = '';
+
+      if (MultiState.data[activeY] && MultiState.data[activeY][activeG]) {
+        MultiState.data[activeY][activeG].priorData = null;
+        MultiState.data[activeY][activeG].crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
+      }
+
+      updatePriorDataUI();
+
       if (AppState.students && AppState.students.length > 0) {
         renderStep1TableOnly();
       }
@@ -1266,8 +1381,8 @@
       const activeG = MultiState.activeGrade || '2학년';
       const activeY = MultiState.activeYear || '2027';
       const sampleList = [
-        { c: '1', n: '17', name: '정수민', s: ['공통국어1(3)', '공통수학1(3)', '물리학(3)'] }, // 중복 '물리학' 발생 유도
-        { c: '1', n: '24', name: '김석현', s: ['공통영어1(3)', '미디어 영어(3)'] }, // 중복 '미디어 영어' 발생 유도
+        { c: '1', n: '17', name: '정수민', s: ['공통국어1(3)', '공통수학1(3)', '물리학(3)'] },
+        { c: '1', n: '24', name: '김석현', s: ['공통영어1(3)', '미디어 영어(3)'] },
         { c: '1', n: '2', name: '강민채', s: ['공통국어1(3)', '한국사1(3)'] },
         { c: '2', n: '25', name: '곽효민', s: ['공통국어1(3)', '공통수학1(3)'] },
         { c: '2', n: '15', name: '이지효', s: ['공통국어1(3)', '통합사회1(3)'] },
@@ -1276,48 +1391,40 @@
         { c: '1', n: '5', name: '김민진', s: ['공통국어1(3)', '한국사1(3)'] },
         { c: '1', n: '15', name: '장시우', s: ['공통수학1(3)', '기술가정(2)'] },
         { c: '1', n: '9', name: '박재윤', s: ['공통영어1(3)', '정보(2)'] },
-        // 수강신청을 제출하지 않은 미신청 학생 2명:
         { c: '1', n: '30', name: '홍길동', s: ['공통국어1(3)', '공통수학1(3)'] },
         { c: '2', n: '29', name: '이순신', s: ['공통국어1(3)', '공통영어1(3)'] }
       ];
 
-      const studentsMap = new Map();
       let totalRecords = 0;
-
-      sampleList.forEach(st => {
-        const key = `${st.c}_${st.n}_${st.name}`;
-        const subjSet = new Set();
+      const studentList = sampleList.map(st => {
+        const normSubjects = [];
         st.s.forEach(subj => {
           totalRecords++;
-          subjSet.add(normalizeSubject(subj));
+          const norm = normalizeSubject(subj);
+          if (norm && !normSubjects.includes(norm)) normSubjects.push(norm);
         });
-        studentsMap.set(key, {
-          key,
+        return {
+          key: `${st.c}_${st.n}_${st.name}`,
           grade: activeG,
           classNum: st.c,
           studentNum: st.n,
           name: st.name,
-          subjects: subjSet,
+          subjects: normSubjects,
           rawSubjects: st.s
-        });
+        };
       });
 
       AppState.priorData = {
         fileName: `${activeY}학년도_${activeG}_교육과정_편성학생_사전데이터.xlsx`,
-        students: Array.from(studentsMap.values()),
-        byKey: studentsMap,
+        students: studentList,
         totalRecords
       };
 
-      priorStatusBadge?.classList.remove('hidden');
-      priorUploadZone?.classList.add('hidden');
-      priorLoadedInfo?.classList.remove('hidden');
-      if (priorLoadedSummary) {
-        priorLoadedSummary.textContent = `사전 등록 학생: ${sampleList.length}명 | 이수 과목: ${totalRecords}건`;
-      }
-      if (priorLoadedFileName) {
-        priorLoadedFileName.textContent = AppState.priorData.fileName;
-      }
+      if (!MultiState.data[activeY]) MultiState.data[activeY] = {};
+      if (!MultiState.data[activeY][activeG]) MultiState.data[activeY][activeG] = createEmptyGradeState(activeG);
+      MultiState.data[activeY][activeG].priorData = AppState.priorData;
+
+      updatePriorDataUI();
 
       if (AppState.students && AppState.students.length > 0) {
         runCrossCheckAnalysis();
@@ -1327,7 +1434,7 @@
       saveAllState();
 
       if (showAlert) {
-        alert(`💡 샘플 사전 데이터(12명, 과목 기록 24건)가 등록되었습니다!\n미신청 학생 2명과 기이수 중복신청 학생 2명이 자동 감지됩니다.`);
+        alert(`💡 [${activeG}] 샘플 사전 데이터(12명, 과목 기록 24건)가 등록되었습니다!\n미신청 학생 2명과 기이수 중복신청 학생 2명이 자동 감지됩니다.`);
       }
     }
 
@@ -1337,7 +1444,7 @@
         return;
       }
 
-      const targetGrade = AppState.detectedGrade || '1학년';
+      const targetGrade = MultiState.activeGrade || AppState.detectedGrade || '2학년';
       const targetGradeNum = targetGrade.replace(/[^0-9]/g, '');
 
       // 1. Missing Students Analysis (사전 명부에는 있으나 수강신청 하지 않은 학생)
@@ -1378,7 +1485,7 @@
         const cNum = String(st.classNum).replace(/[^0-9]/g, '');
         const sNum = String(st.studentNum).replace(/[^0-9]/g, '');
         const sName = st.name.trim();
-        const stGradeNum = (st.grade ? String(st.grade).replace(/[^0-9]/g, '') : '') || targetGradeNum || '1';
+        const stGradeNum = (st.grade ? String(st.grade).replace(/[^0-9]/g, '') : '') || targetGradeNum || '2';
 
         const priorSt = AppState.priorData.students.find(p => {
           const cMatch = p.classNum === cNum;
@@ -1389,16 +1496,26 @@
 
         if (priorSt) {
           const dupList = [];
-          (st.sem1 || []).forEach(subj => {
+          const priorHas = (subj) => {
             const norm = normalizeSubject(subj);
-            if (priorSt.subjects.has(norm)) {
-              dupList.push({ subject: subj, normalized: norm, gradeNum: stGradeNum, semester: 1 });
+            if (!norm) return false;
+            if (Array.isArray(priorSt.subjects)) {
+              return priorSt.subjects.includes(norm);
+            }
+            if (priorSt.subjects && typeof priorSt.subjects.has === 'function') {
+              return priorSt.subjects.has(norm);
+            }
+            return false;
+          };
+
+          (st.sem1 || []).forEach(subj => {
+            if (priorHas(subj)) {
+              dupList.push({ subject: subj, normalized: normalizeSubject(subj), gradeNum: stGradeNum, semester: 1 });
             }
           });
           (st.sem2 || []).forEach(subj => {
-            const norm = normalizeSubject(subj);
-            if (priorSt.subjects.has(norm)) {
-              dupList.push({ subject: subj, normalized: norm, gradeNum: stGradeNum, semester: 2 });
+            if (priorHas(subj)) {
+              dupList.push({ subject: subj, normalized: normalizeSubject(subj), gradeNum: stGradeNum, semester: 2 });
             }
           });
 
@@ -1617,7 +1734,7 @@
     });
 
     btnClearPrior?.addEventListener('click', () => {
-      if (confirm('등록된 사전 데이터를 삭제하시겠습니까?')) {
+      if (confirm(`현재 [${MultiState.activeGrade}]의 사전 데이터를 삭제하시겠습니까?`)) {
         clearPriorData();
       }
     });
@@ -4506,24 +4623,7 @@
       }
 
       // Update Prior Data Display
-      const priorLoadedInfo = document.getElementById('priorLoadedInfo');
-      const priorLoadedSummary = document.getElementById('priorLoadedSummary');
-      const priorLoadedFileName = document.getElementById('priorLoadedFileName');
-      const priorStatusBadge = document.getElementById('priorStatusBadge');
-
-      if (AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0) {
-        if (priorLoadedInfo) priorLoadedInfo.classList.remove('hidden');
-        if (priorStatusBadge) priorStatusBadge.classList.remove('hidden');
-        if (priorLoadedSummary) {
-          priorLoadedSummary.textContent = `사전 등록 학생: ${AppState.priorData.students.length}명 | 이수 과목: ${AppState.priorData.enrollments ? AppState.priorData.enrollments.length : 0}건`;
-        }
-        if (priorLoadedFileName) {
-          priorLoadedFileName.textContent = AppState.priorData.fileName || '사전_데이터.xlsx';
-        }
-      } else {
-        if (priorLoadedInfo) priorLoadedInfo.classList.add('hidden');
-        if (priorStatusBadge) priorStatusBadge.classList.add('hidden');
-      }
+      updatePriorDataUI();
 
       // Update Survey / Students Display
       if (AppState.students && AppState.students.length > 0) {
@@ -4599,6 +4699,8 @@
           const yData = MultiState.data[MultiState.activeYear] || {};
           const gData = yData[g] || {};
           const count = (gData.students && Array.isArray(gData.students)) ? gData.students.length : 0;
+          const hasPrior = (gData.priorData && gData.priorData.students && gData.priorData.students.length > 0);
+          const priorCount = hasPrior ? gData.priorData.students.length : 0;
 
           return `
             <button type="button" 
@@ -4613,8 +4715,15 @@
               <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                 isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
               }">
-                ${count}명
+                설문 ${count}명
               </span>
+              ${hasPrior ? `
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  isActive ? 'bg-emerald-400 text-slate-900 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
+                }" title="사전 명부 ${priorCount}명 등록됨">
+                  명부✓
+                </span>
+              ` : ''}
             </button>
           `;
         }).join('');
