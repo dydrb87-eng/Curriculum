@@ -61,7 +61,7 @@
 
   <!-- ================= TOP HEADER ================= -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <div class="w-full px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       <!-- School Logo & Title -->
       <div class="flex items-center space-x-4">
         <div class="w-14 h-14 rounded-full overflow-hidden border border-slate-200 shadow-sm bg-white flex items-center justify-center flex-shrink-0">
@@ -97,8 +97,8 @@
   </header>
 
   <!-- ================= ACADEMIC YEAR & GRADE NAVIGATION BAR ================= -->
-  <nav class="bg-slate-100/95 border-b border-slate-200 px-4 sm:px-6 py-2.5 shadow-2xs sticky top-20 z-30 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+  <nav class="bg-slate-100/95 border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-2.5 shadow-2xs sticky top-20 z-30 backdrop-blur-md">
+    <div class="w-full flex flex-wrap items-center justify-between gap-3">
       
       <!-- Left: Academic Year Tabs & Grade Tabs -->
       <div class="flex items-center gap-3 sm:gap-4 overflow-x-auto py-0.5">
@@ -155,7 +155,7 @@
   </nav>
 
   <!-- ================= MAIN CONTAINER ================= -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5">
 
     <!-- UPLOAD SECTION -->
     <section id="uploadSection" class="mb-8 space-y-4">
@@ -732,7 +732,7 @@
             </h4>
             <span class="text-xs text-slate-500">각 그룹(교시) 내에서 학생은 1개 과목만 수강합니다.</span>
           </div>
-          <div id="groupCardsContainer" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div id="groupCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-3.5">
             <!-- Group 1..N Cards -->
           </div>
         </div>
@@ -773,8 +773,8 @@
             </div>
           </div>
 
-          <div class="overflow-x-auto max-h-[520px] custom-scrollbar border border-slate-200 rounded-lg">
-            <table id="studentScheduleTable" class="w-full text-xs text-left border-collapse select-none">
+          <div class="overflow-x-auto max-h-[660px] custom-scrollbar border border-slate-300 rounded-2xl shadow-sm bg-white">
+            <table id="studentScheduleTable" class="w-full text-xs text-left border-collapse select-none border-spacing-0">
               <!-- Dynamically Populated -->
             </table>
           </div>
@@ -817,7 +817,7 @@
 
   <!-- ================= FOOTER ================= -->
   <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-auto">
-    <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
+    <div class="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
       <span>상지대관령고등학교 선택과목 그룹핑 자동화 시스템</span>
       <span>데이터는 안전하게 사용자 브라우저 내부에서만 처리됩니다 (무서버 보안 보장)</span>
     </div>
@@ -3713,57 +3713,74 @@
         return ' <span class="text-slate-400 font-normal text-[10px]">⇅</span>';
       };
 
+      const groupThemes = [
+        { headerBg: 'bg-blue-100/90 text-blue-950 border-blue-300', numBg: 'bg-blue-600 text-white', thSubjBg: 'bg-blue-50/70 text-blue-900', badgeCls: 'bg-blue-100 text-blue-900 border-blue-300', cellChosenBg: 'bg-blue-50/50' },
+        { headerBg: 'bg-emerald-100/90 text-emerald-950 border-emerald-300', numBg: 'bg-emerald-600 text-white', thSubjBg: 'bg-emerald-50/70 text-emerald-900', badgeCls: 'bg-emerald-100 text-emerald-900 border-emerald-300', cellChosenBg: 'bg-emerald-50/50' },
+        { headerBg: 'bg-purple-100/90 text-purple-950 border-purple-300', numBg: 'bg-purple-600 text-white', thSubjBg: 'bg-purple-50/70 text-purple-900', badgeCls: 'bg-purple-100 text-purple-900 border-purple-300', cellChosenBg: 'bg-purple-50/50' },
+        { headerBg: 'bg-amber-100/90 text-amber-950 border-amber-300', numBg: 'bg-amber-600 text-white', thSubjBg: 'bg-amber-50/70 text-amber-900', badgeCls: 'bg-amber-100 text-amber-900 border-amber-300', cellChosenBg: 'bg-amber-50/50' },
+        { headerBg: 'bg-sky-100/90 text-sky-950 border-sky-300', numBg: 'bg-sky-600 text-white', thSubjBg: 'bg-sky-50/70 text-sky-900', badgeCls: 'bg-sky-100 text-sky-900 border-sky-300', cellChosenBg: 'bg-sky-50/50' },
+        { headerBg: 'bg-rose-100/90 text-rose-950 border-rose-300', numBg: 'bg-rose-600 text-white', thSubjBg: 'bg-rose-50/70 text-rose-900', badgeCls: 'bg-rose-100 text-rose-900 border-rose-300', cellChosenBg: 'bg-rose-50/50' },
+        { headerBg: 'bg-teal-100/90 text-teal-950 border-teal-300', numBg: 'bg-teal-600 text-white', thSubjBg: 'bg-teal-50/70 text-teal-900', badgeCls: 'bg-teal-100 text-teal-900 border-teal-300', cellChosenBg: 'bg-teal-50/50' }
+      ];
+
       // Header Row 1: Groups with colspans and conflict badges
-      let h1 = '<tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-20">';
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('classNum')" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 w-12 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 반 순서 정렬">반${getColSortIcon('classNum')}</th>`;
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('studentNum')" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 w-12 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 번호 순서 정렬">번호${getColSortIcon('studentNum')}</th>`;
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('name')" class="p-2.5 text-left border-r border-slate-300 bg-slate-100 w-24 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 이름 순서 정렬">이름${getColSortIcon('name')}</th>`;
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('career')" class="p-2.5 text-left border-r-4 border-slate-500 bg-slate-100 w-28 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 진로 순서 정렬">진로·관심${getColSortIcon('career')}</th>`;
+      let h1 = '<tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-30">';
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('classNum')" style="position: sticky; left: 0px; min-width: 44px; max-width: 44px; z-index: 40;" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[1px_0_0_0_#cbd5e1]" title="클릭하여 반 순서 정렬">반${getColSortIcon('classNum')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('studentNum')" style="position: sticky; left: 44px; min-width: 44px; max-width: 44px; z-index: 40;" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[1px_0_0_0_#cbd5e1]" title="클릭하여 번호 순서 정렬">번호${getColSortIcon('studentNum')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('name')" style="position: sticky; left: 88px; min-width: 82px; max-width: 82px; z-index: 40;" class="p-2.5 text-left border-r-2 border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]" title="클릭하여 이름 순서 정렬">이름${getColSortIcon('name')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('career')" class="p-2.5 text-left border-r-4 border-slate-400 bg-slate-100 min-w-[130px] max-w-[170px] cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 진로 순서 정렬">진로·관심${getColSortIcon('career')}</th>`;
 
       plan.groups.forEach((groupSubjs, gIdx) => {
         const colCount = Math.max(groupSubjs.length, 1);
         const gConf = groupCounts[gIdx];
+        const theme = groupThemes[gIdx % groupThemes.length];
         const confBadge = gConf === 0
-          ? '<span class="ml-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded-full border border-emerald-200">중복 0</span>'
-          : `<span class="ml-1 text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded-full border border-rose-300">중복 ${gConf}명</span>`;
-        const grpBg = gIdx % 2 === 0 ? 'bg-blue-50/70 text-blue-950' : 'bg-slate-100 text-slate-900';
+          ? '<span class="ml-1.5 text-[10px] font-semibold text-emerald-800 bg-white/95 px-1.5 py-0.2 rounded-full border border-emerald-300 shadow-2xs">중복 0</span>'
+          : `<span class="ml-1.5 text-[10px] font-black text-rose-800 bg-white/95 px-1.5 py-0.2 rounded-full border border-rose-300 shadow-2xs animate-pulse">중복 ${gConf}명</span>`;
 
-        h1 += `<th colspan="${colCount}" class="p-2 text-center border-r-4 border-slate-500 font-black ${grpBg}">
-          ${gIdx + 1}그룹 ${confBadge}
+        h1 += `<th colspan="${colCount}" class="p-2.5 text-center border-r-4 border-slate-400 font-extrabold ${theme.headerBg}">
+          <div class="flex items-center justify-center gap-1.5">
+            <span class="w-5 h-5 rounded-md ${theme.numBg} text-[11px] font-black flex items-center justify-center shadow-2xs">${gIdx + 1}</span>
+            <span class="text-xs font-black tracking-wide">${gIdx + 1}그룹</span>
+            ${confBadge}
+          </div>
         </th>`;
       });
 
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('status')" class="p-2.5 text-center bg-slate-100 w-32 border-l-4 border-slate-500 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 충돌/정상 상태 정렬">
-        선택 상태 & 작업${getColSortIcon('status')}
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('status')" class="p-2.5 text-center bg-slate-100 w-36 border-l-4 border-slate-400 cursor-pointer hover:bg-slate-200 transition select-none font-bold" title="클릭하여 충돌/정상 상태 정렬">
+        선택 상태 & 배정수정${getColSortIcon('status')}
       </th>`;
       h1 += '</tr>';
 
       // Header Row 2: Subjects under each group (clickable for Excel-style sort)
-      let h2 = '<tr class="bg-slate-50 text-slate-700 font-semibold border-b-2 border-slate-400 sticky top-9 z-10 text-[11px]">';
+      let h2 = '<tr class="bg-slate-50 text-slate-800 font-bold border-b-2 border-slate-400 sticky top-10 z-20 text-[11px]">';
       plan.groups.forEach((groupSubjs, gIdx) => {
+        const theme = groupThemes[gIdx % groupThemes.length];
         if (groupSubjs.length === 0) {
-          h2 += '<th class="p-2 text-center border-r-4 border-slate-500 text-slate-400 italic">과목 없음</th>';
+          h2 += `<th class="p-2 text-center border-r-4 border-slate-400 text-slate-400 italic ${theme.thSubjBg}">과목 없음</th>`;
         } else {
           groupSubjs.forEach((sName, sIdx) => {
             const isLastInGroup = sIdx === groupSubjs.length - 1;
-            const borderCls = isLastInGroup ? 'border-r-4 border-slate-500' : 'border-r border-slate-300';
+            const borderCls = isLastInGroup ? 'border-r-4 border-slate-400' : 'border-r border-slate-300';
             const isSorted = scheduleTableFilterState.sortCol === sName;
-            let sortIndicator = '<span class="text-slate-400 font-normal text-[10px] ml-0.5">⇅</span>';
-            let thBg = gIdx % 2 === 0 ? 'bg-blue-50/30' : 'bg-white';
+            let sortIndicator = '<span class="text-slate-400 font-normal text-[10px] ml-0.5 opacity-60 hover:opacity-100">⇅</span>';
+            let thBg = theme.thSubjBg;
 
             if (isSorted) {
               if (scheduleTableFilterState.sortDir === 'asc') {
-                sortIndicator = '<span class="ml-1 px-1 py-0.2 rounded bg-blue-600 text-white font-extrabold text-[10px] shadow-2xs">▲선택</span>';
+                sortIndicator = '<span class="ml-1 px-1.5 py-0.2 rounded-md bg-blue-600 text-white font-extrabold text-[10px] shadow-2xs">▲선택</span>';
               } else {
-                sortIndicator = '<span class="ml-1 px-1 py-0.2 rounded bg-indigo-600 text-white font-extrabold text-[10px] shadow-2xs">▼미선택</span>';
+                sortIndicator = '<span class="ml-1 px-1.5 py-0.2 rounded-md bg-indigo-600 text-white font-extrabold text-[10px] shadow-2xs">▼미선택</span>';
               }
-              thBg = 'bg-blue-100 text-blue-900 ring-2 ring-inset ring-blue-500 font-extrabold';
+              thBg = 'bg-blue-100 text-blue-950 ring-2 ring-inset ring-blue-500 font-black';
             }
 
             h2 += `<th onclick="window.handleSubjectHeaderClick('${sName}')" 
-                      class="p-2 text-center ${borderCls} ${thBg} whitespace-nowrap min-w-[76px] cursor-pointer hover:bg-blue-100/80 transition-colors select-none" 
+                      class="p-2 text-center ${borderCls} ${thBg} whitespace-nowrap min-w-[78px] cursor-pointer hover:bg-blue-100 transition-colors select-none" 
                       title="클릭: [${sName}] 선택자 우선 ▲ → 미선택자 우선 ▼ → 기본 순서 ⇅">
-              <span>${sName}</span>${sortIndicator}
+              <div class="flex items-center justify-center gap-0.5">
+                <span class="font-bold">${sName}</span>${sortIndicator}
+              </div>
             </th>`;
           });
         }
@@ -3781,7 +3798,7 @@
         </td></tr>`;
       } else {
         filteredAssignments.forEach((asgn, idx) => {
-          const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
+          const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
           const overlaps = asgn.groupSubjects || {};
           let hasAnyConflict = false;
           const conflictGroups = [];
@@ -3793,54 +3810,65 @@
             }
           });
 
-          tbody += `<tr class="${rowBg} hover:bg-blue-50/50 transition-colors">`;
-          tbody += `<td class="p-2 text-center border-r border-slate-200 font-medium">${asgn.classNum}</td>`;
-          tbody += `<td class="p-2 text-center border-r border-slate-200 font-medium">${asgn.studentNum}</td>`;
-          tbody += `<td class="p-2 font-bold text-slate-900 border-r border-slate-200 whitespace-nowrap">${asgn.name}</td>`;
-          tbody += `<td class="p-2 text-slate-500 border-r-4 border-slate-500 text-[11px] truncate max-w-[110px]" title="${asgn.career}">${asgn.career}</td>`;
+          tbody += `<tr class="${rowBg} hover:bg-indigo-50/50 transition-colors">`;
+          tbody += `<td style="position: sticky; left: 0px; min-width: 44px; max-width: 44px; z-index: 10;" class="p-2 text-center border-r border-slate-200 font-medium ${rowBg} shadow-[1px_0_0_0_#e2e8f0]">${asgn.classNum}</td>`;
+          tbody += `<td style="position: sticky; left: 44px; min-width: 44px; max-width: 44px; z-index: 10;" class="p-2 text-center border-r border-slate-200 font-medium ${rowBg} shadow-[1px_0_0_0_#e2e8f0]">${asgn.studentNum}</td>`;
+          tbody += `<td style="position: sticky; left: 88px; min-width: 82px; max-width: 82px; z-index: 10;" class="p-2 font-bold text-slate-900 border-r-2 border-slate-300 whitespace-nowrap ${rowBg} shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]">${asgn.name}</td>`;
+          tbody += `<td class="p-2 text-slate-600 border-r-4 border-slate-400 text-[11px] truncate min-w-[130px] max-w-[170px]" title="${asgn.career}">${asgn.career}</td>`;
 
           // Render cells under each group and subject
           plan.groups.forEach((groupSubjs, gIdx) => {
+            const theme = groupThemes[gIdx % groupThemes.length];
             const chosenInGrp = overlaps[gIdx] || [];
             const isGroupConflicted = chosenInGrp.length > 1;
 
             if (groupSubjs.length === 0) {
-              tbody += '<td class="p-2 text-center border-r-4 border-slate-500 text-slate-300">-</td>';
+              tbody += '<td class="p-2 text-center border-r-4 border-slate-400 text-slate-300">-</td>';
             } else {
               groupSubjs.forEach((sName, sIdx) => {
                 const isLast = sIdx === groupSubjs.length - 1;
-                const borderCls = isLast ? 'border-r-4 border-slate-500' : 'border-r border-slate-300';
+                const borderCls = isLast ? 'border-r-4 border-slate-400' : 'border-r border-slate-300';
                 const isChosen = chosenInGrp.includes(sName);
 
                 if (isChosen) {
                   if (isGroupConflicted) {
-                    tbody += `<td class="p-2 text-center ${borderCls} bg-rose-50">
-                      <span class="inline-block px-1.5 py-0.5 rounded font-black text-[11px] bg-rose-100 text-rose-800 border border-rose-300">선택</span>
+                    tbody += `<td class="p-1.5 text-center ${borderCls} bg-rose-50">
+                      <div class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[105px]" title="동일 그룹 중복 충돌: ${sName}">
+                        <span>⚠️ ${sName}</span>
+                      </div>
                     </td>`;
                   } else {
-                    tbody += `<td class="p-2 text-center ${borderCls} bg-blue-50/40">
-                      <span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-blue-100 text-blue-800 border border-blue-300">선택</span>
+                    tbody += `<td class="p-1.5 text-center ${borderCls} ${theme.cellChosenBg}">
+                      <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 transition-transform truncate max-w-[105px]" title="${sName} 배정">
+                        <span>${sName}</span>
+                      </div>
                     </td>`;
                   }
                 } else {
-                  tbody += `<td class="p-2 text-center ${borderCls} text-slate-300">-</td>`;
+                  tbody += `<td class="p-1.5 text-center ${borderCls}">
+                    <span class="text-slate-300 text-xs font-bold select-none">·</span>
+                  </td>`;
                 }
               });
             }
           });
 
           // Status & Action cell
-          tbody += `<td class="p-1.5 text-center text-[11px] border-l-4 border-slate-500 whitespace-nowrap">`;
+          tbody += `<td class="p-1.5 text-center text-[11px] border-l-4 border-slate-400 whitespace-nowrap">`;
           tbody += `<div class="flex items-center justify-center gap-1.5 flex-wrap">`;
           if (hasAnyConflict || asgn.hasConflict) {
-            tbody += `<span class="px-2 py-0.5 rounded font-bold text-rose-700 bg-rose-100 border border-rose-200">중복 (${conflictGroups.join(', ')})</span>`;
+            tbody += `<span class="px-2 py-0.5 rounded-lg font-extrabold text-rose-800 bg-rose-100 border border-rose-300 shadow-2xs flex items-center gap-1">
+              <span>⚠️ 중복</span><span class="text-[10px] font-semibold text-rose-700">(${conflictGroups.join(', ')})</span>
+            </span>`;
           } else {
-            tbody += `<span class="px-2 py-0.5 rounded font-bold text-emerald-700 bg-emerald-100 border border-emerald-200">정상</span>`;
+            tbody += `<span class="px-2.5 py-0.5 rounded-lg font-bold text-emerald-800 bg-emerald-100/90 border border-emerald-300 shadow-2xs">✅ 정상</span>`;
           }
           if (asgn.isManual) {
-            tbody += `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="수동 직접 조정됨">수동</span>`;
+            tbody += `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs" title="사용자 직접 수동 배정됨">✏️수동</span>`;
           }
-          tbody += `<button type="button" onclick="window.openStudentScheduleEditModal('${asgn.id}')" class="px-2 py-0.5 bg-slate-100 hover:bg-indigo-100 hover:text-indigo-800 text-slate-700 rounded font-bold border border-slate-300 transition text-[11px]" title="이 학생의 그룹/분반 배정 수동 변경">✏️수정</button>`;
+          tbody += `<button type="button" onclick="window.openStudentScheduleEditModal('${asgn.id}')" class="px-2.5 py-1 bg-white hover:bg-indigo-600 hover:text-white text-indigo-700 rounded-lg font-bold border border-indigo-300 shadow-2xs transition flex items-center gap-1" title="이 학생의 그룹/분반 배정 수동 변경">
+            <span>✏️ 배정수정</span>
+          </button>`;
           tbody += `</div></td>`;
 
           tbody += '</tr>';
@@ -3867,54 +3895,59 @@
       });
 
       // Spacer Row (1행 띄움)
-      tbody += '<tr class="h-4 bg-slate-100/70"><td colspan="100%" class="border-y-2 border-slate-300"></td></tr>';
+      tbody += '<tr class="h-4 bg-slate-100/80"><td colspan="100%" class="border-y-2 border-slate-300"></td></tr>';
 
       // 1. Subject Totals Row (과목별 학생수 합계: N명)
-      tbody += '<tr class="bg-blue-50/40 font-bold text-slate-800 border-b border-slate-200">';
-      tbody += '<td class="p-2 border-r border-slate-200"></td>';
-      tbody += '<td class="p-2 border-r border-slate-200"></td>';
-      tbody += '<td class="p-2 border-r border-slate-200"></td>';
-      tbody += '<td class="p-2 border-r-4 border-slate-500"></td>';
+      tbody += '<tr class="bg-blue-50/60 font-bold text-slate-800 border-b border-slate-300">';
+      tbody += `<td style="position: sticky; left: 0px; z-index: 10;" class="p-2 border-r border-slate-200 bg-blue-50/90"></td>`;
+      tbody += `<td style="position: sticky; left: 44px; z-index: 10;" class="p-2 border-r border-slate-200 bg-blue-50/90"></td>`;
+      tbody += `<td style="position: sticky; left: 88px; z-index: 10;" class="p-2 border-r-2 border-slate-300 font-extrabold text-blue-950 bg-blue-50/95 whitespace-nowrap shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]">과목별 합계</td>`;
+      tbody += '<td class="p-2 border-r-4 border-slate-400 text-slate-500 font-normal text-[11px] bg-blue-50/60">선택 학생수</td>';
 
       plan.groups.forEach((groupSubjs, gIdx) => {
+        const theme = groupThemes[gIdx % groupThemes.length];
         if (groupSubjs.length === 0) {
-          tbody += '<td class="p-2 text-center border-r-4 border-slate-500 font-bold text-slate-400">-</td>';
+          tbody += '<td class="p-2 text-center border-r-4 border-slate-400 font-bold text-slate-400">-</td>';
         } else {
           groupSubjs.forEach((sName, sIdx) => {
             const isLast = sIdx === groupSubjs.length - 1;
-            const borderCls = isLast ? 'border-r-4 border-slate-500' : 'border-r border-slate-300';
+            const borderCls = isLast ? 'border-r-4 border-slate-400' : 'border-r border-slate-300';
             const count = subjCounts[sName] || 0;
-            tbody += `<td class="p-2 text-center ${borderCls} font-bold text-blue-900 bg-blue-50/80 text-[11px]">${count}명</td>`;
+            tbody += `<td class="p-2 text-center ${borderCls} ${theme.thSubjBg}">
+              <span class="inline-block px-2 py-0.5 rounded-md font-extrabold text-blue-900 bg-white border border-blue-200 shadow-2xs text-[11px]">${count}명</span>
+            </td>`;
           });
         }
       });
-      tbody += '<td class="p-2 border-l-4 border-slate-500 bg-slate-50"></td>';
+      tbody += '<td class="p-2 border-l-4 border-slate-400 bg-blue-50/60"></td>';
       tbody += '</tr>';
 
       // 2. Group Totals Row (그룹별 학생수 합계: 각 그룹의 첫 번째 과목 위치에 N명)
-      tbody += '<tr class="bg-indigo-50/50 font-black text-slate-900 border-b-2 border-slate-300">';
-      tbody += '<td class="p-2 border-r border-slate-200"></td>';
-      tbody += '<td class="p-2 border-r border-slate-200"></td>';
-      tbody += '<td class="p-2 border-r-4 border-slate-500"></td>';
-      tbody += '<td class="p-2 border-r-4 border-slate-500"></td>';
+      tbody += '<tr class="bg-indigo-50/70 font-black text-slate-900 border-b-2 border-slate-400">';
+      tbody += `<td style="position: sticky; left: 0px; z-index: 10;" class="p-2.5 border-r border-slate-200 bg-indigo-50/90"></td>`;
+      tbody += `<td style="position: sticky; left: 44px; z-index: 10;" class="p-2.5 border-r border-slate-200 bg-indigo-50/90"></td>`;
+      tbody += `<td style="position: sticky; left: 88px; z-index: 10;" class="p-2.5 border-r-2 border-slate-300 font-black text-indigo-950 bg-indigo-50/95 whitespace-nowrap shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]">그룹별 총원</td>`;
+      tbody += '<td class="p-2.5 border-r-4 border-slate-400 text-slate-600 font-bold text-[11px] bg-indigo-50/70">교시별 총수강</td>';
 
       plan.groups.forEach((groupSubjs, gIdx) => {
         const groupTotal = groupSubjs.reduce((acc, sName) => acc + (subjCounts[sName] || 0), 0);
         if (groupSubjs.length === 0) {
-          tbody += `<td class="p-2 text-center border-r-4 border-slate-500 font-black text-indigo-900 bg-indigo-100/70 text-[12px]">${groupTotal}명</td>`;
+          tbody += `<td class="p-2.5 text-center border-r-4 border-slate-400 font-black text-indigo-900 bg-indigo-100 text-[12px]"><span class="px-2 py-0.5 rounded bg-indigo-600 text-white shadow-2xs">총 ${groupTotal}명</span></td>`;
         } else {
           groupSubjs.forEach((sName, sIdx) => {
             const isLast = sIdx === groupSubjs.length - 1;
-            const borderCls = isLast ? 'border-r-4 border-slate-500' : 'border-r border-slate-300';
+            const borderCls = isLast ? 'border-r-4 border-slate-400' : 'border-r border-slate-300';
             if (sIdx === 0) {
-              tbody += `<td class="p-2 text-center ${borderCls} font-black text-indigo-900 bg-indigo-100/70 text-[12px]">${groupTotal}명</td>`;
+              tbody += `<td class="p-2.5 text-center ${borderCls} font-black bg-indigo-100/80 text-[12px]">
+                <span class="inline-block px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white shadow-2xs font-extrabold whitespace-nowrap">총 ${groupTotal}명</span>
+              </td>`;
             } else {
-              tbody += `<td class="p-2 text-center ${borderCls} bg-white"></td>`;
+              tbody += `<td class="p-2.5 text-center ${borderCls} bg-indigo-50/30"></td>`;
             }
           });
         }
       });
-      tbody += '<td class="p-2 border-l-4 border-slate-500 bg-slate-50"></td>';
+      tbody += '<td class="p-2.5 border-l-4 border-slate-400 bg-indigo-50/70"></td>';
       tbody += '</tr>';
 
       tbody += '</tbody>';
