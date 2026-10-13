@@ -739,24 +739,61 @@
 
         <!-- Student Individual Timetable Schedule View -->
         <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
-              <h4 class="text-sm font-bold text-slate-900">
-                👤 학생별 그룹 배정 시간표 (개인별 이동수업 시간표)
+              <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                <span>👤 학생별 그룹 배정 시간표 (개인별 이동수업 시간표)</span>
+                <span id="scheduleTableSortBadge" class="hidden text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs"></span>
               </h4>
-              <p class="text-xs text-slate-500 mt-0.5">각 학생이 그룹(교시)별로 어떤 과목에 배정되었는지 실시간으로 확인합니다.</p>
+              <p class="text-xs text-slate-500 mt-0.5">과목 헤더를 클릭하여 엑셀처럼 정렬/필터링하고, 학생별 [✏️ 배정수정] 버튼으로 분반과 그룹을 직접 조정할 수 있습니다.</p>
             </div>
-            <div class="relative">
-              <input type="text" id="step2StudentSearchInput" placeholder="학생 검색 (이름/반/번호)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-48">
-              <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Quick Status Filter -->
+              <select id="step2StatusFilterSelect" class="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer">
+                <option value="all">전체 학생 보기</option>
+                <option value="conflict">⚠️ 충돌(중복) 학생만 보기</option>
+                <option value="normal">✅ 정상 배정 학생만 보기</option>
+                <option value="manual">✏️ 수동 수정된 학생만 보기</option>
+              </select>
+              <!-- Reset Filter/Sort Button -->
+              <button id="btnResetTableFilterSort" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 shadow-2xs transition" title="필터 및 정렬 초기화">
+                필터/정렬 초기화 ✕
+              </button>
+              <!-- Student Search Input -->
+              <div class="relative">
+                <input type="text" id="step2StudentSearchInput" placeholder="학생 검색 (이름/반/번호/진로)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-44 shadow-2xs">
+                <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+              </div>
+              <!-- Save Edits Button -->
+              <button id="btnSaveScheduleEdits" type="button" class="px-3 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs flex items-center gap-1.5 transition">
+                <span>💾 수정사항 저장</span>
+              </button>
             </div>
           </div>
-          <div class="overflow-x-auto max-h-[500px] custom-scrollbar">
-            <table id="studentScheduleTable" class="w-full text-xs text-left border-collapse">
+
+          <div class="overflow-x-auto max-h-[520px] custom-scrollbar border border-slate-200 rounded-lg">
+            <table id="studentScheduleTable" class="w-full text-xs text-left border-collapse select-none">
               <!-- Dynamically Populated -->
             </table>
+          </div>
+
+          <!-- Bottom Memo / Notes Card -->
+          <div class="mt-4 pt-4 border-t border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <label for="planWorkMemo" class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <span>📝 시간표 작업 메모 및 특이사항</span>
+                <span class="text-[10px] text-slate-400 font-normal">(저장 시 함께 보존되며 엑셀 다운로드에도 포함됩니다)</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <span id="planMemoSavedHint" class="text-[11px] text-emerald-600 font-bold hidden">✓ 메모 저장됨</span>
+                <button id="btnSavePlanMemo" type="button" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-bold transition border border-slate-200">
+                  메모 즉시 저장
+                </button>
+              </div>
+            </div>
+            <textarea id="planWorkMemo" rows="3" class="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 font-sans leading-relaxed resize-y bg-slate-50/50 hover:bg-white focus:bg-white transition" placeholder="시간표 편성 관련 협의 내용, 특정 학생 이동 내역, 교사 배치 참고 사항 등을 자유롭게 기록하세요."></textarea>
           </div>
         </div>
 
@@ -3123,6 +3160,8 @@
         groups: bestGroups.map(g => g.map(t => t.name)),
         conflictCount: 0,
         conflicts: [],
+        customAssignments: {},
+        memo: '',
         timestamp: new Date().toLocaleTimeString()
       };
 
@@ -3140,6 +3179,7 @@
       const groups = plan.groups;
       const m = groups.length;
       const studentPinsForSem = AppState.studentPins.filter(p => p.semester === sem);
+      if (!plan.customAssignments) plan.customAssignments = {};
 
       // Section enrollment counter to balance sections across groups (e.g. Japanese-A vs Japanese-B)
       const tokenEnrollmentCounts = {};
@@ -3242,13 +3282,54 @@
         return bestResult;
       }
 
-      // Process each student in Fisher-Yates shuffled order
+      // Process each student
       for (const stIdx of randomizedIndices) {
         const st = studentsList[stIdx];
         const choices = sem === 1 ? st.sem1 : st.sem2;
         const n = choices.length;
-        const relevantPins = studentPinsForSem.filter(p => p.studentId === st.id);
 
+        // 1) If user has manually edited this student's schedule, honor it 100%
+        if (plan.customAssignments && plan.customAssignments[st.id]) {
+          const customMap = plan.customAssignments[st.id];
+          const groupSubjects = {};
+          let customAssignedCount = 0;
+          let hasOverlapInGroup = false;
+
+          for (let g = 0; g < m; g++) {
+            groupSubjects[g] = (customMap[g] || []).slice();
+            customAssignedCount += groupSubjects[g].length;
+            if (groupSubjects[g].length > 1) {
+              hasOverlapInGroup = true;
+            }
+            groupSubjects[g].forEach(tName => {
+              tokenEnrollmentCounts[tName] = (tokenEnrollmentCounts[tName] || 0) + 1;
+            });
+          }
+
+          const hasConflict = hasOverlapInGroup || (customAssignedCount < n);
+          const schedule = Array(m).fill('');
+          for (let g = 0; g < m; g++) {
+            if (groupSubjects[g].length > 0) {
+              schedule[g] = groupSubjects[g].join(' & ');
+            }
+          }
+
+          assignmentResults[stIdx] = {
+            id: st.id,
+            classNum: st.classNum,
+            studentNum: st.studentNum,
+            name: st.name,
+            career: st.career,
+            schedule,
+            groupSubjects,
+            hasConflict,
+            isManual: true
+          };
+          continue;
+        }
+
+        // 2) Standard optimal assignment
+        const relevantPins = studentPinsForSem.filter(p => p.studentId === st.id);
         const candidatesPerChoice = [];
         for (let i = 0; i < n; i++) {
           const parentSubj = choices[i];
@@ -3310,7 +3391,8 @@
           career: st.career,
           schedule,
           groupSubjects,
-          hasConflict
+          hasConflict,
+          isManual: false
         };
       }
 
@@ -3467,28 +3549,176 @@
       renderStudentScheduleTable();
     }
 
-    // Render Student Schedule Table (2-tier Group & Subject Matrix)
+    // ==========================================
+    // 5. STUDENT SCHEDULE TABLE: EXCEL-STYLE FILTERING, SORTING & MANUAL EDITING
+    // ==========================================
+
+    // Filter and Sort state for Student Schedule Table
+    const scheduleTableFilterState = {
+      search: '',
+      statusFilter: 'all', // 'all' | 'conflict' | 'normal' | 'manual'
+      sortCol: 'default',   // 'default' | 'classNum' | 'studentNum' | 'name' | 'career' | 'status' | subject token name
+      sortDir: 'asc'        // 'asc' | 'desc'
+    };
+
+    window.handleSubjectHeaderClick = function(sName) {
+      if (scheduleTableFilterState.sortCol !== sName) {
+        scheduleTableFilterState.sortCol = sName;
+        scheduleTableFilterState.sortDir = 'asc'; // 1st click: 선택자 우선 ▲
+      } else if (scheduleTableFilterState.sortDir === 'asc') {
+        scheduleTableFilterState.sortDir = 'desc'; // 2nd click: 미선택자 우선 ▼
+      } else {
+        scheduleTableFilterState.sortCol = 'default'; // 3rd click: 기본 순서 ⇅
+        scheduleTableFilterState.sortDir = 'asc';
+      }
+      renderStudentScheduleTable();
+    };
+
+    window.handleColHeaderClick = function(colKey) {
+      if (scheduleTableFilterState.sortCol !== colKey) {
+        scheduleTableFilterState.sortCol = colKey;
+        scheduleTableFilterState.sortDir = 'asc';
+      } else if (scheduleTableFilterState.sortDir === 'asc') {
+        scheduleTableFilterState.sortDir = 'desc';
+      } else {
+        scheduleTableFilterState.sortCol = 'default';
+        scheduleTableFilterState.sortDir = 'asc';
+      }
+      renderStudentScheduleTable();
+    };
+
+    window.resetScheduleTableFilterSort = function() {
+      scheduleTableFilterState.search = '';
+      scheduleTableFilterState.statusFilter = 'all';
+      scheduleTableFilterState.sortCol = 'default';
+      scheduleTableFilterState.sortDir = 'asc';
+      const searchInput = document.getElementById('step2StudentSearchInput');
+      if (searchInput) searchInput.value = '';
+      const filterSelect = document.getElementById('step2StatusFilterSelect');
+      if (filterSelect) filterSelect.value = 'all';
+      renderStudentScheduleTable();
+    };
+
+    // Render Student Schedule Table (2-tier Group & Subject Matrix with 100% synchronized row sorting/filtering)
     function renderStudentScheduleTable() {
       const plan = AppState.currentPlan;
       if (!plan) return;
 
-      const { groupCounts, studentGroupOverlaps } = analyzeGroupConflicts(plan);
+      const { groupCounts, studentAssignments } = analyzeGroupConflicts(plan);
       const searchVal = (document.getElementById('step2StudentSearchInput')?.value || '').trim().toLowerCase();
+      const statusVal = document.getElementById('step2StatusFilterSelect')?.value || 'all';
+      scheduleTableFilterState.search = searchVal;
+      scheduleTableFilterState.statusFilter = statusVal;
 
-      const filteredStudents = AppState.students.filter(st => {
-        if (!searchVal) return true;
-        return st.name.toLowerCase().includes(searchVal) ||
-               st.classNum.includes(searchVal) ||
-               st.studentNum.includes(searchVal) ||
-               st.career.toLowerCase().includes(searchVal);
+      // 1. Filter assignments (entire student row stays intact)
+      let filteredAssignments = (studentAssignments || []).filter(asgn => {
+        if (searchVal) {
+          const matchSearch = String(asgn.name || '').toLowerCase().includes(searchVal) ||
+                              String(asgn.classNum || '').includes(searchVal) ||
+                              String(asgn.studentNum || '').includes(searchVal) ||
+                              String(asgn.career || '').toLowerCase().includes(searchVal);
+          if (!matchSearch) return false;
+        }
+
+        if (statusVal === 'conflict' && !asgn.hasConflict) return false;
+        if (statusVal === 'normal' && asgn.hasConflict) return false;
+        if (statusVal === 'manual' && !asgn.isManual) return false;
+
+        return true;
       });
+
+      // 2. Sort filtered assignments (all columns move in 100% synchronization)
+      filteredAssignments.sort((a, b) => {
+        const cA = parseInt(String(a.classNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const cB = parseInt(String(b.classNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const nA = parseInt(String(a.studentNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const nB = parseInt(String(b.studentNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const fallback = (cA !== cB) ? (cA - cB) : (nA - nB);
+
+        const col = scheduleTableFilterState.sortCol;
+        const dir = scheduleTableFilterState.sortDir;
+
+        if (col === 'default') {
+          return fallback;
+        } else if (col === 'classNum') {
+          const diff = (cA - cB);
+          return dir === 'asc' ? (diff !== 0 ? diff : fallback) : (diff !== 0 ? -diff : fallback);
+        } else if (col === 'studentNum') {
+          const diff = (nA - nB);
+          return dir === 'asc' ? (diff !== 0 ? diff : fallback) : (diff !== 0 ? -diff : fallback);
+        } else if (col === 'name') {
+          const diff = String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+          return dir === 'asc' ? (diff !== 0 ? diff : fallback) : (diff !== 0 ? -diff : fallback);
+        } else if (col === 'career') {
+          const diff = String(a.career || '').localeCompare(String(b.career || ''), 'ko');
+          return dir === 'asc' ? (diff !== 0 ? diff : fallback) : (diff !== 0 ? -diff : fallback);
+        } else if (col === 'status') {
+          const diff = (b.hasConflict ? 1 : 0) - (a.hasConflict ? 1 : 0);
+          return dir === 'asc' ? (diff !== 0 ? diff : fallback) : (diff !== 0 ? -diff : fallback);
+        } else {
+          // Subject column sort: col is the subject token name
+          const aChosen = Object.values(a.groupSubjects || {}).some(arr => arr.includes(col));
+          const bChosen = Object.values(b.groupSubjects || {}).some(arr => arr.includes(col));
+
+          if (aChosen !== bChosen) {
+            // dir === 'asc': 선택자 우선 (Chosen first)
+            // dir === 'desc': 미선택자 우선 (Unchosen first)
+            return dir === 'asc' ? (aChosen ? -1 : 1) : (aChosen ? 1 : -1);
+          }
+          return fallback;
+        }
+      });
+
+      // Update Toolbar Sort Badge and Reset Button
+      const isFilteredOrSorted = (scheduleTableFilterState.sortCol !== 'default') || 
+                                 (scheduleTableFilterState.statusFilter !== 'all') || 
+                                 (scheduleTableFilterState.search !== '');
+      const badge = document.getElementById('scheduleTableSortBadge');
+      const resetBtn = document.getElementById('btnResetTableFilterSort');
+
+      if (badge) {
+        if (scheduleTableFilterState.sortCol !== 'default') {
+          let colLabel = scheduleTableFilterState.sortCol;
+          if (colLabel === 'classNum') colLabel = '반';
+          else if (colLabel === 'studentNum') colLabel = '번호';
+          else if (colLabel === 'name') colLabel = '이름';
+          else if (colLabel === 'career') colLabel = '진로';
+          else if (colLabel === 'status') colLabel = '상태';
+          const dirLabel = scheduleTableFilterState.sortDir === 'asc' ? '선택자/오름차순 ▲' : '미선택자/내림차순 ▼';
+          badge.textContent = `정렬: ${colLabel} (${dirLabel})`;
+          badge.classList.remove('hidden');
+        } else if (scheduleTableFilterState.statusFilter !== 'all') {
+          const filterLabels = { conflict: '충돌 학생만', normal: '정상 학생만', manual: '수동 수정 학생만' };
+          badge.textContent = `필터: ${filterLabels[scheduleTableFilterState.statusFilter] || ''}`;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+
+      if (resetBtn) {
+        if (isFilteredOrSorted) {
+          resetBtn.classList.remove('hidden');
+        } else {
+          resetBtn.classList.add('hidden');
+        }
+      }
+
+      const getColSortIcon = (colKey) => {
+        if (scheduleTableFilterState.sortCol === colKey) {
+          return scheduleTableFilterState.sortDir === 'asc' 
+            ? ' <span class="text-blue-600 font-black">▲</span>' 
+            : ' <span class="text-indigo-600 font-black">▼</span>';
+        }
+        return ' <span class="text-slate-400 font-normal text-[10px]">⇅</span>';
+      };
 
       // Header Row 1: Groups with colspans and conflict badges
       let h1 = '<tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-20">';
-      h1 += '<th rowspan="2" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 w-12">반</th>';
-      h1 += '<th rowspan="2" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 w-12">번호</th>';
-      h1 += '<th rowspan="2" class="p-2.5 text-left border-r border-slate-300 bg-slate-100 w-24">이름</th>';
-      h1 += '<th rowspan="2" class="p-2.5 text-left border-r-4 border-slate-500 bg-slate-100 w-28">진로·관심</th>';
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('classNum')" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 w-12 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 반 순서 정렬">반${getColSortIcon('classNum')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('studentNum')" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 w-12 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 번호 순서 정렬">번호${getColSortIcon('studentNum')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('name')" class="p-2.5 text-left border-r border-slate-300 bg-slate-100 w-24 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 이름 순서 정렬">이름${getColSortIcon('name')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('career')" class="p-2.5 text-left border-r-4 border-slate-500 bg-slate-100 w-28 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 진로 순서 정렬">진로·관심${getColSortIcon('career')}</th>`;
 
       plan.groups.forEach((groupSubjs, gIdx) => {
         const colCount = Math.max(groupSubjs.length, 1);
@@ -3503,10 +3733,12 @@
         </th>`;
       });
 
-      h1 += '<th rowspan="2" class="p-2.5 text-center bg-slate-100 w-24 border-l-4 border-slate-500">선택 상태</th>';
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('status')" class="p-2.5 text-center bg-slate-100 w-32 border-l-4 border-slate-500 cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 충돌/정상 상태 정렬">
+        선택 상태 & 작업${getColSortIcon('status')}
+      </th>`;
       h1 += '</tr>';
 
-      // Header Row 2: Subjects under each group
+      // Header Row 2: Subjects under each group (clickable for Excel-style sort)
       let h2 = '<tr class="bg-slate-50 text-slate-700 font-semibold border-b-2 border-slate-400 sticky top-9 z-10 text-[11px]">';
       plan.groups.forEach((groupSubjs, gIdx) => {
         if (groupSubjs.length === 0) {
@@ -3515,8 +3747,24 @@
           groupSubjs.forEach((sName, sIdx) => {
             const isLastInGroup = sIdx === groupSubjs.length - 1;
             const borderCls = isLastInGroup ? 'border-r-4 border-slate-500' : 'border-r border-slate-300';
-            const bgSub = gIdx % 2 === 0 ? 'bg-blue-50/30' : 'bg-white';
-            h2 += `<th class="p-2 text-center ${borderCls} ${bgSub} whitespace-nowrap min-w-[70px]">${sName}</th>`;
+            const isSorted = scheduleTableFilterState.sortCol === sName;
+            let sortIndicator = '<span class="text-slate-400 font-normal text-[10px] ml-0.5">⇅</span>';
+            let thBg = gIdx % 2 === 0 ? 'bg-blue-50/30' : 'bg-white';
+
+            if (isSorted) {
+              if (scheduleTableFilterState.sortDir === 'asc') {
+                sortIndicator = '<span class="ml-1 px-1 py-0.2 rounded bg-blue-600 text-white font-extrabold text-[10px] shadow-2xs">▲선택</span>';
+              } else {
+                sortIndicator = '<span class="ml-1 px-1 py-0.2 rounded bg-indigo-600 text-white font-extrabold text-[10px] shadow-2xs">▼미선택</span>';
+              }
+              thBg = 'bg-blue-100 text-blue-900 ring-2 ring-inset ring-blue-500 font-extrabold';
+            }
+
+            h2 += `<th onclick="window.handleSubjectHeaderClick('${sName}')" 
+                      class="p-2 text-center ${borderCls} ${thBg} whitespace-nowrap min-w-[76px] cursor-pointer hover:bg-blue-100/80 transition-colors select-none" 
+                      title="클릭: [${sName}] 선택자 우선 ▲ → 미선택자 우선 ▼ → 기본 순서 ⇅">
+              <span>${sName}</span>${sortIndicator}
+            </th>`;
           });
         }
       });
@@ -3526,76 +3774,88 @@
 
       // Table Body Rows
       let tbody = '<tbody class="divide-y divide-slate-200 text-slate-700">';
-      filteredStudents.forEach((st, idx) => {
-        const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
-        const overlaps = studentGroupOverlaps[st.id] || {};
-        let hasAnyConflict = false;
-        const conflictGroups = [];
 
-        plan.groups.forEach((_, gIdx) => {
-          if ((overlaps[gIdx] || []).length > 1) {
-            hasAnyConflict = true;
-            conflictGroups.push(`${gIdx + 1}그룹`);
-          }
-        });
+      if (filteredAssignments.length === 0) {
+        tbody += `<tr><td colspan="100%" class="p-8 text-center text-slate-400 italic bg-white">
+          일치하는 학생이 없습니다. 검색어 또는 필터 조건을 확인해보세요.
+        </td></tr>`;
+      } else {
+        filteredAssignments.forEach((asgn, idx) => {
+          const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
+          const overlaps = asgn.groupSubjects || {};
+          let hasAnyConflict = false;
+          const conflictGroups = [];
 
-        tbody += `<tr class="${rowBg} hover:bg-blue-50/50 transition-colors">`;
-        tbody += `<td class="p-2 text-center border-r border-slate-200 font-medium">${st.classNum}</td>`;
-        tbody += `<td class="p-2 text-center border-r border-slate-200 font-medium">${st.studentNum}</td>`;
-        tbody += `<td class="p-2 font-bold text-slate-900 border-r border-slate-200">${st.name}</td>`;
-        tbody += `<td class="p-2 text-slate-500 border-r-4 border-slate-500 text-[11px] truncate max-w-[110px]">${st.career}</td>`;
+          plan.groups.forEach((_, gIdx) => {
+            if ((overlaps[gIdx] || []).length > 1) {
+              hasAnyConflict = true;
+              conflictGroups.push(`${gIdx + 1}그룹`);
+            }
+          });
 
-        // Render cells under each group and subject
-        plan.groups.forEach((groupSubjs, gIdx) => {
-          const chosenInGrp = overlaps[gIdx] || [];
-          const isGroupConflicted = chosenInGrp.length > 1;
+          tbody += `<tr class="${rowBg} hover:bg-blue-50/50 transition-colors">`;
+          tbody += `<td class="p-2 text-center border-r border-slate-200 font-medium">${asgn.classNum}</td>`;
+          tbody += `<td class="p-2 text-center border-r border-slate-200 font-medium">${asgn.studentNum}</td>`;
+          tbody += `<td class="p-2 font-bold text-slate-900 border-r border-slate-200 whitespace-nowrap">${asgn.name}</td>`;
+          tbody += `<td class="p-2 text-slate-500 border-r-4 border-slate-500 text-[11px] truncate max-w-[110px]" title="${asgn.career}">${asgn.career}</td>`;
 
-          if (groupSubjs.length === 0) {
-            tbody += '<td class="p-2 text-center border-r-4 border-slate-500 text-slate-300">-</td>';
-          } else {
-            groupSubjs.forEach((sName, sIdx) => {
-              const isLast = sIdx === groupSubjs.length - 1;
-              const borderCls = isLast ? 'border-r-4 border-slate-500' : 'border-r border-slate-300';
-              const isChosen = chosenInGrp.includes(sName);
+          // Render cells under each group and subject
+          plan.groups.forEach((groupSubjs, gIdx) => {
+            const chosenInGrp = overlaps[gIdx] || [];
+            const isGroupConflicted = chosenInGrp.length > 1;
 
-              if (isChosen) {
-                if (isGroupConflicted) {
-                  tbody += `<td class="p-2 text-center ${borderCls} bg-rose-50">
-                    <span class="inline-block px-1.5 py-0.5 rounded font-black text-[11px] bg-rose-100 text-rose-800 border border-rose-300">선택</span>
-                  </td>`;
+            if (groupSubjs.length === 0) {
+              tbody += '<td class="p-2 text-center border-r-4 border-slate-500 text-slate-300">-</td>';
+            } else {
+              groupSubjs.forEach((sName, sIdx) => {
+                const isLast = sIdx === groupSubjs.length - 1;
+                const borderCls = isLast ? 'border-r-4 border-slate-500' : 'border-r border-slate-300';
+                const isChosen = chosenInGrp.includes(sName);
+
+                if (isChosen) {
+                  if (isGroupConflicted) {
+                    tbody += `<td class="p-2 text-center ${borderCls} bg-rose-50">
+                      <span class="inline-block px-1.5 py-0.5 rounded font-black text-[11px] bg-rose-100 text-rose-800 border border-rose-300">선택</span>
+                    </td>`;
+                  } else {
+                    tbody += `<td class="p-2 text-center ${borderCls} bg-blue-50/40">
+                      <span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-blue-100 text-blue-800 border border-blue-300">선택</span>
+                    </td>`;
+                  }
                 } else {
-                  tbody += `<td class="p-2 text-center ${borderCls} bg-blue-50/40">
-                    <span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-blue-100 text-blue-800 border border-blue-300">선택</span>
-                  </td>`;
+                  tbody += `<td class="p-2 text-center ${borderCls} text-slate-300">-</td>`;
                 }
-              } else {
-                tbody += `<td class="p-2 text-center ${borderCls} text-slate-300">-</td>`;
-              }
-            });
+              });
+            }
+          });
+
+          // Status & Action cell
+          tbody += `<td class="p-1.5 text-center text-[11px] border-l-4 border-slate-500 whitespace-nowrap">`;
+          tbody += `<div class="flex items-center justify-center gap-1.5 flex-wrap">`;
+          if (hasAnyConflict || asgn.hasConflict) {
+            tbody += `<span class="px-2 py-0.5 rounded font-bold text-rose-700 bg-rose-100 border border-rose-200">중복 (${conflictGroups.join(', ')})</span>`;
+          } else {
+            tbody += `<span class="px-2 py-0.5 rounded font-bold text-emerald-700 bg-emerald-100 border border-emerald-200">정상</span>`;
           }
+          if (asgn.isManual) {
+            tbody += `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="수동 직접 조정됨">수동</span>`;
+          }
+          tbody += `<button type="button" onclick="window.openStudentScheduleEditModal('${asgn.id}')" class="px-2 py-0.5 bg-slate-100 hover:bg-indigo-100 hover:text-indigo-800 text-slate-700 rounded font-bold border border-slate-300 transition text-[11px]" title="이 학생의 그룹/분반 배정 수동 변경">✏️수정</button>`;
+          tbody += `</div></td>`;
+
+          tbody += '</tr>';
         });
+      }
 
-        // Status cell
-        if (hasAnyConflict) {
-          tbody += `<td class="p-2 text-center font-bold text-rose-700 bg-rose-50 text-[11px] border-l-4 border-slate-500">
-            중복 (${conflictGroups.join(', ')})
-          </td>`;
-        } else {
-          tbody += `<td class="p-2 text-center font-bold text-emerald-600 bg-emerald-50/50 text-[11px] border-l-4 border-slate-500">정상</td>`;
-        }
-
-        tbody += '</tr>';
-      });
-
-      // Compute subject counts for this plan
+      // Compute subject counts across all students in current plan
       const subjCounts = {};
       plan.groups.forEach(groupSubjs => {
         groupSubjs.forEach(sName => {
           subjCounts[sName] = 0;
         });
       });
-      AppState.students.forEach(st => {
-        const overlaps = studentGroupOverlaps[st.id] || {};
+      (studentAssignments || []).forEach(asgn => {
+        const overlaps = asgn.groupSubjects || {};
         plan.groups.forEach((groupSubjs, gIdx) => {
           const inGrp = overlaps[gIdx] || [];
           inGrp.forEach(sName => {
@@ -3661,9 +3921,251 @@
 
       const tbl = document.getElementById('studentScheduleTable');
       if (tbl) tbl.innerHTML = thead + tbody;
+
+      // Sync Bottom Work Memo
+      const memoTextarea = document.getElementById('planWorkMemo');
+      if (memoTextarea) {
+        memoTextarea.value = plan.memo || '';
+      }
     }
 
+    // ==========================================
+    // MANUAL STUDENT SCHEDULE EDIT MODAL LOGIC
+    // ==========================================
+    let currentEditingStudentId = null;
+
+    window.openStudentScheduleEditModal = function(stId) {
+      if (!AppState.currentPlan) return;
+      const st = AppState.students.find(s => s.id === stId);
+      if (!st) return;
+
+      currentEditingStudentId = stId;
+      const modal = document.getElementById('studentScheduleEditModal');
+      const titleEl = document.getElementById('editModalStudentTitle');
+      const subEl = document.getElementById('editModalStudentSub');
+      const bodyEl = document.getElementById('editModalBody');
+
+      if (titleEl) titleEl.textContent = `[${st.classNum}반 ${st.studentNum}번 ${st.name}] 시간표 배정 수정`;
+      if (subEl) subEl.textContent = `진로/관심: ${st.career || '미지정'} | 각 선택과목의 배정 그룹 및 분반을 직접 지정합니다.`;
+
+      const sem = AppState.currentPlan.semester;
+      const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
+      const planGroups = AppState.currentPlan.groups;
+
+      // Get current assignment for this student
+      let currentMap = {};
+      if (AppState.currentPlan.customAssignments && AppState.currentPlan.customAssignments[stId]) {
+        currentMap = AppState.currentPlan.customAssignments[stId];
+      } else {
+        const asgns = computeStudentAssignments(AppState.currentPlan);
+        const match = asgns.find(a => a.id === stId);
+        currentMap = match ? match.groupSubjects : {};
+      }
+
+      let bodyHtml = '';
+      choices.forEach((parentSubj, cIdx) => {
+        // Find which groups/tokens offer parentSubj
+        const candidateSlots = [];
+        planGroups.forEach((gTokens, gIdx) => {
+          gTokens.forEach(tName => {
+            if (tName === parentSubj || tName.startsWith(parentSubj + '-')) {
+              candidateSlots.push({ gIdx, tokenName: tName });
+            }
+          });
+        });
+
+        // Determine currently active selection for this subject
+        let activeSlot = null;
+        for (const slot of candidateSlots) {
+          if (currentMap[slot.gIdx] && currentMap[slot.gIdx].includes(slot.tokenName)) {
+            activeSlot = slot;
+            break;
+          }
+        }
+        if (!activeSlot && candidateSlots.length > 0) {
+          activeSlot = candidateSlots[0];
+        }
+
+        bodyHtml += `
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-extrabold">${cIdx + 1}</span>
+                <span>${parentSubj}</span>
+              </span>
+              <span class="text-[11px] text-slate-500 font-medium">개설 분반/그룹: ${candidateSlots.length}개</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+        `;
+
+        if (candidateSlots.length === 0) {
+          bodyHtml += `<div class="col-span-2 text-rose-500 font-bold text-xs p-2 bg-rose-50 rounded-xl border border-rose-200">
+            ⚠️ 이 과목은 현재 어떤 그룹에도 배치되어 있지 않습니다.
+          </div>`;
+        } else {
+          candidateSlots.forEach(slot => {
+            const isChecked = activeSlot && (activeSlot.gIdx === slot.gIdx && activeSlot.tokenName === slot.tokenName);
+            const radioId = `edit_radio_${stId}_${cIdx}_${slot.gIdx}_${slot.tokenName.replace(/[^a-zA-Z0-9가-힣]/g, '_')}`;
+            bodyHtml += `
+              <label for="${radioId}" class="flex items-center space-x-2.5 p-2 bg-white border border-slate-200 rounded-xl hover:border-indigo-400 cursor-pointer shadow-2xs transition">
+                <input type="radio" id="${radioId}" name="editSubjectRadio_${cIdx}" value="${slot.gIdx}:${slot.tokenName}" ${isChecked ? 'checked' : ''} onchange="window.updateEditModalConflictPreview()" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                <div class="text-xs">
+                  <span class="font-bold text-slate-800">${slot.gIdx + 1}그룹</span>
+                  <span class="text-indigo-600 font-semibold ml-1">(${slot.tokenName})</span>
+                </div>
+              </label>
+            `;
+          });
+        }
+
+        bodyHtml += `
+            </div>
+          </div>
+        `;
+      });
+
+      if (bodyEl) bodyEl.innerHTML = bodyHtml;
+      window.updateEditModalConflictPreview();
+      if (modal) modal.classList.remove('hidden');
+    };
+
+    window.closeStudentScheduleEditModal = function() {
+      const modal = document.getElementById('studentScheduleEditModal');
+      if (modal) modal.classList.add('hidden');
+      currentEditingStudentId = null;
+    };
+
+    window.updateEditModalConflictPreview = function() {
+      if (!currentEditingStudentId || !AppState.currentPlan) return;
+      const st = AppState.students.find(s => s.id === currentEditingStudentId);
+      if (!st) return;
+
+      const sem = AppState.currentPlan.semester;
+      const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
+      const previewDiv = document.getElementById('editModalConflictPreview');
+      if (!previewDiv) return;
+
+      const groupAssignments = {}; // gIdx -> [tokenNames]
+      let selectedCount = 0;
+
+      choices.forEach((_, cIdx) => {
+        const checked = document.querySelector(`input[name="editSubjectRadio_${cIdx}"]:checked`);
+        if (checked) {
+          selectedCount++;
+          const [gStr, tokenName] = checked.value.split(':');
+          const gIdx = parseInt(gStr, 10);
+          if (!groupAssignments[gIdx]) groupAssignments[gIdx] = [];
+          groupAssignments[gIdx].push(tokenName);
+        }
+      });
+
+      // Find any group with > 1 token
+      const conflictGroups = [];
+      Object.keys(groupAssignments).forEach(gIdx => {
+        if (groupAssignments[gIdx].length > 1) {
+          conflictGroups.push({
+            group: parseInt(gIdx, 10) + 1,
+            subjects: groupAssignments[gIdx].join(' & ')
+          });
+        }
+      });
+
+      if (conflictGroups.length > 0) {
+        const details = conflictGroups.map(cg => `${cg.group}그룹 [${cg.subjects}]`).join(', ');
+        previewDiv.className = 'p-3 rounded-xl border border-rose-300 bg-rose-50 text-rose-800 text-xs font-bold leading-relaxed';
+        previewDiv.innerHTML = `⚠️ <strong>동일 그룹 중복 충돌 경고:</strong> ${details}<br><span class="text-[11px] font-normal text-rose-600">한 학생이 같은 그룹에 둘 이상의 과목을 들을 수 없습니다. 서로 다른 그룹의 분반을 선택하세요.</span>`;
+      } else if (selectedCount < choices.length) {
+        previewDiv.className = 'p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold';
+        previewDiv.innerHTML = `ℹ️ 아직 미선택된 과목이 있습니다 (${selectedCount}/${choices.length}개 완료).`;
+      } else {
+        previewDiv.className = 'p-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-bold';
+        previewDiv.innerHTML = `✅ <strong>정상 배정:</strong> 모든 선택과목(${choices.length}개)이 서로 다른 그룹(교시)에 중복 없이 분배되었습니다!`;
+      }
+    };
+
+    // Apply modal edits
+    document.getElementById('btnApplyStudentScheduleEdit')?.addEventListener('click', () => {
+      if (!currentEditingStudentId || !AppState.currentPlan) return;
+      const st = AppState.students.find(s => s.id === currentEditingStudentId);
+      if (!st) return;
+
+      const sem = AppState.currentPlan.semester;
+      const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
+      const m = AppState.currentPlan.groups.length;
+
+      const customMap = {};
+      for (let g = 0; g < m; g++) customMap[g] = [];
+
+      choices.forEach((_, cIdx) => {
+        const checked = document.querySelector(`input[name="editSubjectRadio_${cIdx}"]:checked`);
+        if (checked) {
+          const [gStr, tokenName] = checked.value.split(':');
+          const gIdx = parseInt(gStr, 10);
+          customMap[gIdx].push(tokenName);
+        }
+      });
+
+      if (!AppState.currentPlan.customAssignments) {
+        AppState.currentPlan.customAssignments = {};
+      }
+      AppState.currentPlan.customAssignments[currentEditingStudentId] = customMap;
+
+      // Re-analyze conflicts
+      const analysis = analyzeGroupConflicts(AppState.currentPlan);
+      AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
+      AppState.currentPlan.conflicts = analysis.conflictDetails;
+
+      window.closeStudentScheduleEditModal();
+      renderStep2Results();
+      saveAllState();
+    });
+
+    // Reset student to auto
+    document.getElementById('btnResetStudentToAuto')?.addEventListener('click', () => {
+      if (!currentEditingStudentId || !AppState.currentPlan) return;
+      if (AppState.currentPlan.customAssignments && AppState.currentPlan.customAssignments[currentEditingStudentId]) {
+        delete AppState.currentPlan.customAssignments[currentEditingStudentId];
+      }
+      const analysis = analyzeGroupConflicts(AppState.currentPlan);
+      AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
+      AppState.currentPlan.conflicts = analysis.conflictDetails;
+
+      window.closeStudentScheduleEditModal();
+      renderStep2Results();
+      saveAllState();
+    });
+
+    // Toolbar & Filter Event Listeners
     document.getElementById('step2StudentSearchInput')?.addEventListener('input', renderStudentScheduleTable);
+    document.getElementById('step2StatusFilterSelect')?.addEventListener('change', renderStudentScheduleTable);
+    document.getElementById('btnResetTableFilterSort')?.addEventListener('click', window.resetScheduleTableFilterSort);
+    document.getElementById('btnSaveScheduleEdits')?.addEventListener('click', () => {
+      saveAllState();
+      alert('💾 현재 학생별 시간표 배정 및 수동 조정 내역이 성공적으로 저장되었습니다!');
+    });
+
+    // Bottom Work Memo Event Listeners
+    const memoTextarea = document.getElementById('planWorkMemo');
+    const btnSaveMemo = document.getElementById('btnSavePlanMemo');
+    const memoSavedHint = document.getElementById('planMemoSavedHint');
+
+    function saveCurrentWorkMemo() {
+      if (!AppState.currentPlan) return;
+      AppState.currentPlan.memo = memoTextarea ? memoTextarea.value : '';
+      saveAllState();
+      if (memoSavedHint) {
+        memoSavedHint.classList.remove('hidden');
+        setTimeout(() => memoSavedHint.classList.add('hidden'), 2500);
+      }
+    }
+
+    memoTextarea?.addEventListener('input', () => {
+      if (AppState.currentPlan && memoTextarea) {
+        AppState.currentPlan.memo = memoTextarea.value;
+      }
+    });
+    memoTextarea?.addEventListener('blur', saveCurrentWorkMemo);
+    btnSaveMemo?.addEventListener('click', saveCurrentWorkMemo);
 
     // ==========================================
     // 6. SAVING PLANS & COMBINED EXCEL DOWNLOAD
@@ -3687,6 +4189,8 @@
         conflicts: JSON.parse(JSON.stringify(AppState.currentPlan.conflicts)),
         groupCounts: JSON.parse(JSON.stringify(groupCounts)),
         studentGroupOverlaps: JSON.parse(JSON.stringify(studentGroupOverlaps)),
+        customAssignments: JSON.parse(JSON.stringify(AppState.currentPlan.customAssignments || {})),
+        memo: AppState.currentPlan.memo || '',
         splitConfig: JSON.parse(JSON.stringify(AppState.splitSubjects[sem] || {})),
         pinnedConfig: JSON.parse(JSON.stringify(AppState.pinnedSubjects[sem] || {})),
         timestamp: new Date().toLocaleTimeString()
@@ -3763,6 +4267,8 @@
         groups: JSON.parse(JSON.stringify(plan.groups)),
         conflictCount: plan.conflictCount,
         conflicts: JSON.parse(JSON.stringify(plan.conflicts)),
+        customAssignments: JSON.parse(JSON.stringify(plan.customAssignments || {})),
+        memo: plan.memo || '',
         timestamp: plan.timestamp
       };
 
@@ -3935,6 +4441,24 @@
       grpSumRow.push(''); // for status col
       ttRows.push(grpSumRow);
 
+      let memoHRIdx = -1;
+      let memoCRIdx = -1;
+      if (plan.memo && plan.memo.trim()) {
+        ttRows.push(new Array(totalCols).fill('')); // Empty spacer row
+
+        const memoHRow = ['📝 [시간표 작업 메모 및 특이사항]'];
+        for (let c = 1; c < totalCols; c++) memoHRow.push('');
+        memoHRIdx = ttRows.length;
+        ttRows.push(memoHRow);
+        merges.push({ s: { r: memoHRIdx, c: 0 }, e: { r: memoHRIdx, c: totalCols - 1 } });
+
+        const memoCRow = [plan.memo.trim()];
+        for (let c = 1; c < totalCols; c++) memoCRow.push('');
+        memoCRIdx = ttRows.length;
+        ttRows.push(memoCRow);
+        merges.push({ s: { r: memoCRIdx, c: 0 }, e: { r: memoCRIdx, c: totalCols - 1 } });
+      }
+
       const wsTT = XLSX.utils.aoa_to_sheet(ttRows);
       merges.unshift(
         { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
@@ -4076,6 +4600,26 @@
       });
       ExcelStyler.setCell(wsTT, grpSumR, grpColIdx, ExcelStyler.dataCenter(false, true, true));
 
+      if (memoHRIdx !== -1 && memoCRIdx !== -1) {
+        const memoLines = (plan.memo || '').trim().split('\n');
+        rowHeights.push({ hpt: 10 }); // Spacer row
+        rowHeights.push({ hpt: 24 }); // Memo header row
+        rowHeights.push({ hpt: Math.min(160, Math.max(40, memoLines.length * 18)) }); // Memo content row
+
+        ExcelStyler.setRange(wsTT, memoHRIdx, 0, memoHRIdx, totalCols - 1, {
+          font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '1E3A8A' } },
+          fill: { fgColor: { rgb: 'EFF6FF' } },
+          alignment: { vertical: 'center', horizontal: 'left' },
+          border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+        });
+        ExcelStyler.setRange(wsTT, memoCRIdx, 0, memoCRIdx, totalCols - 1, {
+          font: { name: '맑은 고딕', sz: 10, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: 'F8FAFC' } },
+          alignment: { vertical: 'top', horizontal: 'left', wrapText: true },
+          border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+        });
+      }
+
       wsTT['!rows'] = rowHeights;
       XLSX.utils.book_append_sheet(wb, wsTT, ttSheetName);
 
@@ -4191,6 +4735,8 @@
           conflicts: JSON.parse(JSON.stringify(AppState.currentPlan.conflicts)),
           groupCounts: JSON.parse(JSON.stringify(groupCounts)),
           studentGroupOverlaps: JSON.parse(JSON.stringify(studentGroupOverlaps)),
+          customAssignments: JSON.parse(JSON.stringify(AppState.currentPlan.customAssignments || {})),
+          memo: AppState.currentPlan.memo || '',
           splitConfig: JSON.parse(JSON.stringify(AppState.splitSubjects[sem] || {})),
           pinnedConfig: JSON.parse(JSON.stringify(AppState.pinnedSubjects[sem] || {})),
           timestamp: new Date().toLocaleTimeString()
@@ -4324,6 +4870,8 @@
           groups: JSON.parse(JSON.stringify(AppState.currentPlan.groups)),
           conflictCount: AppState.currentPlan.conflictCount,
           conflicts: JSON.parse(JSON.stringify(AppState.currentPlan.conflicts)),
+          customAssignments: JSON.parse(JSON.stringify(AppState.currentPlan.customAssignments || {})),
+          memo: AppState.currentPlan.memo || '',
           splitConfig: JSON.parse(JSON.stringify(AppState.splitSubjects[sem] || {})),
           pinnedConfig: JSON.parse(JSON.stringify(AppState.pinnedSubjects[sem] || {})),
           timestamp: new Date().toLocaleTimeString()
@@ -5000,6 +5548,52 @@
         <button id="btnDismissCloudModal" type="button" class="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-bold transition shadow-sm">
           닫기
         </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Student Schedule Manual Edit Modal -->
+  <div id="studentScheduleEditModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl shadow-xs">
+            ✏️
+          </div>
+          <div>
+            <h3 id="editModalStudentTitle" class="text-base font-bold text-slate-900">학생 시간표 배정 수동 수정</h3>
+            <p id="editModalStudentSub" class="text-xs text-slate-500">선택과목별 배정 그룹(교시) 또는 분반을 직접 조정합니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeStudentScheduleEditModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition font-bold">
+          ✕
+        </button>
+      </div>
+
+      <!-- Choices & Group Radio List -->
+      <div id="editModalBody" class="space-y-3 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
+        <!-- Dynamically injected per choice -->
+      </div>
+
+      <!-- Live Conflict Preview Alert -->
+      <div id="editModalConflictPreview" class="p-3 rounded-xl border text-xs font-bold transition-all"></div>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+        <button type="button" id="btnResetStudentToAuto" class="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline">
+          ↺ 자동 배정으로 초기화
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.closeStudentScheduleEditModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
+            취소
+          </button>
+          <button type="button" id="btnApplyStudentScheduleEdit" class="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs transition">
+            수정사항 적용
+          </button>
+        </div>
       </div>
 
     </div>
