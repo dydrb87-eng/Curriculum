@@ -1,0 +1,10 @@
+# 학생 개인정보 및 실제 응답 데이터 보호
+*.xlsx
+*.xls
+*.csv
+
+# 로컬 임시 파일 및 OS 생성 파일
+Thumbs.db
+.DS_Store
+*.log
+scratch/
