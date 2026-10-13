@@ -3108,6 +3108,11 @@
           if (bestStudentConflictCount === 0 && bestConflicts === 0) {
             break; // Optimal zero-conflict solution found!
           }
+        } else if (conflictedStudentCount === bestStudentConflictCount && totalConflicts === bestConflicts) {
+          // Reservoir sampling with 30% replacement probability so every refresh produces varied optimal solutions
+          if (Math.random() < 0.3) {
+            bestGroups = currentGroups;
+          }
         }
       }
 
@@ -3129,7 +3134,7 @@
       renderStep2Results();
     }
 
-    // 4) Accurate, Split-Aware Individual Student Schedule Assignment
+    // 4) Accurate, Split-Aware Individual Student Schedule Assignment (2-Phase Conflict Avoidance + Load Balance)
     function computeStudentAssignments(plan) {
       const sem = plan.semester;
       const groups = plan.groups;
@@ -3144,57 +3149,126 @@
         });
       });
 
-      return AppState.students.map(st => {
+      // Fisher-Yates shuffle the student processing order to completely eliminate front-number bias
+      const studentsList = AppState.students.slice();
+      const randomizedIndices = shuffleArray([...Array(studentsList.length).keys()]);
+
+      const assignmentResults = Array(studentsList.length);
+
+      // Solve optimal bipartite assignment for a single student across all choices & split section combinations
+      function solveStudentMatching(candidatesPerChoice) {
+        const n = candidatesPerChoice.length;
+        if (n === 0) return { matchedCount: 0, match: Array(m).fill(null), assignedChoices: new Set(), combo: [] };
+
+        // Cartesian product of candidate choices across split sections (typically 1, 2, or 4 combinations)
+        let combinations = [[]];
+        for (let i = 0; i < n; i++) {
+          const options = candidatesPerChoice[i];
+          if (options.length === 0) {
+            combinations = combinations.map(combo => [...combo, null]);
+          } else {
+            const nextCombos = [];
+            for (const combo of combinations) {
+              for (const opt of options) {
+                nextCombos.push([...combo, opt]);
+              }
+            }
+            combinations = nextCombos;
+          }
+        }
+
+        // Shuffle combinations for unbiased tie-breaking
+        shuffleArray(combinations);
+
+        let bestResult = null;
+        let maxMatched = -1;
+        let bestLoadScore = 99999999;
+
+        for (const combo of combinations) {
+          const adj = [];
+          for (let i = 0; i < n; i++) {
+            adj[i] = combo[i] ? [combo[i].gIdx] : [];
+          }
+
+          const match = Array(m).fill(null); // g -> { choiceIdx, tokenName }
+          function dfs(u, visited) {
+            for (const v of adj[u]) {
+              if (!visited[v]) {
+                visited[v] = true;
+                if (!match[v] || dfs(match[v].choiceIdx, visited)) {
+                  match[v] = { choiceIdx: u, tokenName: combo[u].tokenName };
+                  return true;
+                }
+              }
+            }
+            return false;
+          }
+
+          let matched = 0;
+          const assignedSet = new Set();
+          for (let u = 0; u < n; u++) {
+            const visited = Array(m).fill(false);
+            if (dfs(u, visited)) {
+              matched++;
+              assignedSet.add(u);
+            }
+          }
+
+          // Calculate section enrollment load for fair balancing
+          let currentLoad = 0;
+          for (const opt of combo) {
+            if (opt && opt.tokenName) {
+              currentLoad += (tokenEnrollmentCounts[opt.tokenName] || 0);
+            }
+          }
+
+          // 1순위: 매칭 과목 수 극대화 (충돌 회피 최우선)
+          // 2순위: 분반 인원 균등화 (이미 배정된 인원이 적은 분반 우선)
+          if (matched > maxMatched || (matched === maxMatched && currentLoad < bestLoadScore)) {
+            maxMatched = matched;
+            bestLoadScore = currentLoad;
+            bestResult = {
+              matchedCount: matched,
+              match,
+              assignedChoices: assignedSet,
+              combo
+            };
+            if (maxMatched === n && currentLoad === 0) {
+              break;
+            }
+          }
+        }
+
+        return bestResult;
+      }
+
+      // Process each student in Fisher-Yates shuffled order
+      for (const stIdx of randomizedIndices) {
+        const st = studentsList[stIdx];
         const choices = sem === 1 ? st.sem1 : st.sem2;
         const n = choices.length;
         const relevantPins = studentPinsForSem.filter(p => p.studentId === st.id);
 
-        // Build adjacency for bipartite matching: choiceIdx -> list of { gIdx, tokenName }
-        const adj = [];
+        const candidatesPerChoice = [];
         for (let i = 0; i < n; i++) {
-          adj[i] = [];
           const parentSubj = choices[i];
+          const options = [];
           for (let g = 0; g < m; g++) {
             const specificPin = relevantPins.find(p => p.subject === parentSubj);
             if (specificPin && (g + 1) !== specificPin.group) continue;
 
             const matchedToken = groups[g].find(s => s === parentSubj || s.startsWith(parentSubj + '-'));
             if (matchedToken) {
-              adj[i].push({ gIdx: g, tokenName: matchedToken });
+              options.push({ gIdx: g, tokenName: matchedToken });
             }
           }
-
-          // Balance split section loads: prefer section with fewer current enrollments
-          adj[i].sort((a, b) => (tokenEnrollmentCounts[a.tokenName] || 0) - (tokenEnrollmentCounts[b.tokenName] || 0));
+          candidatesPerChoice.push(options);
         }
 
-        // Bipartite matching (DFS)
-        const match = Array(m).fill(null); // g -> { choiceIdx, tokenName }
-        function dfs(u, visited) {
-          for (const edge of adj[u]) {
-            const v = edge.gIdx;
-            if (!visited[v]) {
-              visited[v] = true;
-              if (!match[v] || dfs(match[v].choiceIdx, visited)) {
-                match[v] = { choiceIdx: u, tokenName: edge.tokenName };
-                return true;
-              }
-            }
-          }
-          return false;
-        }
+        const matchResult = solveStudentMatching(candidatesPerChoice);
+        const { matchedCount, match, assignedChoices } = matchResult;
 
-        let assignedCount = 0;
-        const assignedChoices = new Set();
-        for (let u = 0; u < n; u++) {
-          const visited = Array(m).fill(false);
-          if (dfs(u, visited)) {
-            assignedCount++;
-            assignedChoices.add(u);
-          }
-        }
-
-        // Initialize groupSubjects: gIdx -> array of assigned token names
+        // Group subjects: gIdx -> array of assigned token names
         const groupSubjects = {};
         for (let g = 0; g < m; g++) {
           groupSubjects[g] = [];
@@ -3207,15 +3281,15 @@
           }
         }
 
-        // If any choices could not be matched, determine colliding groups
-        const hasConflict = assignedCount < n;
+        // If any choices could not be matched, record the colliding group
+        const hasConflict = matchedCount < n;
         if (hasConflict) {
           for (let u = 0; u < n; u++) {
             if (!assignedChoices.has(u)) {
-              const availableGroups = adj[u];
-              if (availableGroups.length > 0) {
-                const targetG = availableGroups[0].gIdx;
-                groupSubjects[targetG].push(availableGroups[0].tokenName);
+              const availableOpts = candidatesPerChoice[u];
+              if (availableOpts && availableOpts.length > 0) {
+                const targetOpt = availableOpts[0];
+                groupSubjects[targetOpt.gIdx].push(targetOpt.tokenName);
               }
             }
           }
@@ -3228,7 +3302,7 @@
           }
         }
 
-        return {
+        assignmentResults[stIdx] = {
           id: st.id,
           classNum: st.classNum,
           studentNum: st.studentNum,
@@ -3238,6 +3312,16 @@
           groupSubjects,
           hasConflict
         };
+      }
+
+      // Output display is always sorted by class and student number (1반 1번, 1반 2번...)
+      return assignmentResults.sort((a, b) => {
+        const cA = parseInt(String(a.classNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const cB = parseInt(String(b.classNum).replace(/[^0-9]/g, ''), 10) || 0;
+        if (cA !== cB) return cA - cB;
+        const nA = parseInt(String(a.studentNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const nB = parseInt(String(b.studentNum).replace(/[^0-9]/g, ''), 10) || 0;
+        return nA - nB;
       });
     }
 
