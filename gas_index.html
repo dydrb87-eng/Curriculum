@@ -1223,19 +1223,8 @@
       const activeG = MultiState.activeGrade || '2학년';
       const activeYear = MultiState.activeYear || '2027';
 
-      // Maps to hold students per grade: '2학년', '3학년', and fallback to active tab
-      const gradeStudentsMap = {
-        '2학년': new Map(),
-        '3학년': new Map(),
-        'default': new Map()
-      };
-      const gradeRecordsCount = {
-        '2학년': 0,
-        '3학년': 0,
-        'default': 0
-      };
-
-      let detectedAnyGrade = false;
+      const studentsMap = new Map();
+      let totalCourseRecords = 0;
 
       dataRows.forEach((row) => {
         if (!row || row.length === 0) return;
@@ -1244,48 +1233,31 @@
 
         let classVal = colClass !== -1 ? String(row[colClass] || '').replace(/[^0-9]/g, '') : '';
         const numVal = colNum !== -1 ? String(row[colNum] || '').replace(/[^0-9]/g, '') : '';
-        let gradeVal = colGrade !== -1 ? String(row[colGrade] || '').replace(/[^0-9]/g, '') : '';
-        if (!gradeVal && colGradeDept !== -1) {
-          gradeVal = String(row[colGradeDept] || '').replace(/[^0-9]/g, '');
-        }
+        if (!classVal && !numVal) return;
 
-        // If classVal is 3 digits like 201 or 302 and gradeVal is empty
-        if (!gradeVal && classVal.length === 3) {
-          gradeVal = classVal.charAt(0);
+        // If classVal is 3 digits like 201 or 302
+        if (classVal.length === 3) {
           classVal = String(parseInt(classVal.slice(1), 10));
-        }
-
-        let targetGradeKey = 'default';
-        if (gradeVal === '2') {
-          targetGradeKey = '2학년';
-          detectedAnyGrade = true;
-        } else if (gradeVal === '3') {
-          targetGradeKey = '3학년';
-          detectedAnyGrade = true;
-        } else if (gradeVal) {
-          detectedAnyGrade = true;
-          return; // Ignore other grades (e.g. 1학년)
         }
 
         const subjectVal = colSubject !== -1 ? String(row[colSubject] || '').trim() : '';
         const key = `${classVal}_${numVal}_${nameVal}`;
 
-        const mapToUse = gradeStudentsMap[targetGradeKey];
-        if (!mapToUse.has(key)) {
-          mapToUse.set(key, {
+        if (!studentsMap.has(key)) {
+          studentsMap.set(key, {
             key,
-            grade: targetGradeKey !== 'default' ? targetGradeKey : activeG,
+            grade: activeG, // 사용자가 작업 중인 현재 탭 학년에 직접 할당
             classNum: classVal,
             studentNum: numVal,
             name: nameVal,
-            subjects: [], // JSON-safe array
+            subjects: [], // JSON 직렬화에 안전한 Array
             rawSubjects: []
           });
         }
 
-        const stObj = mapToUse.get(key);
+        const stObj = studentsMap.get(key);
         if (subjectVal) {
-          gradeRecordsCount[targetGradeKey]++;
+          totalCourseRecords++;
           const normSubj = normalizeSubject(subjectVal);
           if (normSubj && !stObj.subjects.includes(normSubj)) {
             stObj.subjects.push(normSubj);
@@ -1294,67 +1266,29 @@
         }
       });
 
-      function createPriorObj(stMap, totalRecs, gName) {
-        const studentList = Array.from(stMap.values());
-        return {
-          fileName: `${activeYear}학년도_${gName}_${fileName}`,
-          students: studentList,
-          totalRecords: totalRecs
-        };
-      }
-
-      const g2Count = gradeStudentsMap['2학년'].size;
-      const g3Count = gradeStudentsMap['3학년'].size;
-      const defCount = gradeStudentsMap['default'].size;
-
-      if (g2Count === 0 && g3Count === 0 && defCount === 0) {
-        alert('사전 엑셀 파일에서 유효한 2·3학년 학생 정보를 읽어오지 못했습니다.');
+      const studentList = Array.from(studentsMap.values());
+      if (studentList.length === 0) {
+        alert('사전 엑셀 파일에서 학생 정보를 읽어오지 못했습니다. [성명], [개설과목] 열을 확인해주세요.');
         return;
       }
 
+      const priorDataObj = {
+        fileName: `${activeYear}학년도_${activeG}_${fileName}`,
+        students: studentList,
+        totalRecords: totalCourseRecords
+      };
+
       if (!MultiState.data[activeYear]) MultiState.data[activeYear] = {};
-      if (!MultiState.data[activeYear]['2학년']) MultiState.data[activeYear]['2학년'] = createEmptyGradeState('2학년');
-      if (!MultiState.data[activeYear]['3학년']) MultiState.data[activeYear]['3학년'] = createEmptyGradeState('3학년');
-
-      let alertMsg = '';
-
-      if (detectedAnyGrade && (g2Count > 0 || g3Count > 0)) {
-        if (g2Count > 0) {
-          const g2Prior = createPriorObj(gradeStudentsMap['2학년'], gradeRecordsCount['2학년'], '2학년');
-          MultiState.data[activeYear]['2학년'].priorData = g2Prior;
-          if (activeG === '2학년') {
-            AppState.priorData = g2Prior;
-          }
-        }
-        if (g3Count > 0) {
-          const g3Prior = createPriorObj(gradeStudentsMap['3학년'], gradeRecordsCount['3학년'], '3학년');
-          MultiState.data[activeYear]['3학년'].priorData = g3Prior;
-          if (activeG === '3학년') {
-            AppState.priorData = g3Prior;
-          }
-        }
-
-        if (g2Count > 0 && g3Count > 0) {
-          alertMsg = `✅ [2학년 ${g2Count}명] 및 [3학년 ${g3Count}명] 사전 데이터가 각 학년 탭에 독립적으로 분리 등록되었습니다!`;
-        } else if (g2Count > 0) {
-          alertMsg = `✅ [2학년] 사전 데이터가 등록되었습니다!\n(학생: ${g2Count}명, 과목 이수 기록: ${gradeRecordsCount['2학년']}건)`;
-        } else {
-          alertMsg = `✅ [3학년] 사전 데이터가 등록되었습니다!\n(학생: ${g3Count}명, 과목 이수 기록: ${gradeRecordsCount['3학년']}건)`;
-        }
-      } else {
-        // No grade columns in file -> assign to active grade
-        const defPrior = createPriorObj(gradeStudentsMap['default'], gradeRecordsCount['default'], activeG);
-        MultiState.data[activeYear][activeG].priorData = defPrior;
-        AppState.priorData = defPrior;
-        alertMsg = `✅ [${activeG}] 사전 데이터가 등록되었습니다!\n(학생: ${defCount}명, 과목 이수 기록: ${gradeRecordsCount['default']}건)`;
-      }
+      if (!MultiState.data[activeYear][activeG]) MultiState.data[activeYear][activeG] = createEmptyGradeState(activeG);
+      MultiState.data[activeYear][activeG].priorData = priorDataObj;
+      AppState.priorData = priorDataObj;
 
       updatePriorDataUI();
       if (AppState.students && AppState.students.length > 0) {
         renderStep1TableOnly();
       }
       saveAllState();
-      alert(alertMsg);
+      alert(`✅ [${activeG}] 사전 데이터가 등록되었습니다!\n(등록 학생: ${studentList.length}명, 과목 이수 기록: ${totalCourseRecords}건)`);
     }
 
     function clearPriorData() {
@@ -1448,11 +1382,8 @@
       const targetGradeNum = targetGrade.replace(/[^0-9]/g, '');
 
       // 1. Missing Students Analysis (사전 명부에는 있으나 수강신청 하지 않은 학생)
-      const relevantPrior = AppState.priorData.students.filter(p => {
-        if (!p.grade) return true;
-        const pGradeNum = p.grade.replace(/[^0-9]/g, '');
-        return !targetGradeNum || pGradeNum === targetGradeNum;
-      });
+      // 현재 탭에 등록된 전체 사전 명부 학생을 대상으로 대조 검사 수행 (기능상 학년 필터링 제외)
+      const relevantPrior = AppState.priorData.students || [];
 
       const missing = [];
       relevantPrior.forEach(priorSt => {
@@ -1997,17 +1928,6 @@
         // Exclude bottom summary/footer rows
         const rowStr = row.join(' ');
         if (/202\d학년도.*[1-3]학년/.test(rowStr) || /회색 과목.*개설/.test(rowStr)) {
-          // Detect grade from footer text if present
-          if (/1학년/.test(rowStr)) {
-            AppState.detectedGrade = '1학년';
-            gradeBadge.textContent = '🎯 1학년 감지됨';
-          } else if (/2학년/.test(rowStr)) {
-            AppState.detectedGrade = '2학년';
-            gradeBadge.textContent = '🎯 2학년 감지됨';
-          } else if (/3학년/.test(rowStr)) {
-            AppState.detectedGrade = '3학년';
-            gradeBadge.textContent = '🎯 3학년 감지됨';
-          }
           return;
         }
 
@@ -2063,6 +1983,11 @@
       AppState.savedPlans = [];
 
       // Show UI
+      AppState.detectedGrade = MultiState.activeGrade || '2학년';
+      if (gradeBadge) {
+        gradeBadge.textContent = `🎯 ${AppState.detectedGrade} 작업 환경`;
+        gradeBadge.classList.remove('hidden');
+      }
       appBody.classList.remove('hidden');
       btnResetAll.classList.remove('hidden');
 
