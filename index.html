@@ -773,6 +773,14 @@
                 <option value="conflict">⚠️ 충돌(중복) 학생만 보기</option>
                 <option value="normal">✅ 정상 배정 학생만 보기</option>
               </select>
+              <!-- Subject Swap Mode Toggle Button -->
+              <button id="btnToggleSubjectSwap" type="button" class="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="과목과 과목의 위치 및 그룹 배정을 맞교환합니다">
+                <span>🔀 과목 위치 맞교환</span>
+              </button>
+              <!-- Undo Last Swap Button -->
+              <button id="btnUndoSubjectSwap" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="방금 수행한 과목 맞교환을 되돌립니다">
+                <span>↩️ 교환 취소</span>
+              </button>
               <!-- Reset Filter/Sort Button -->
               <button id="btnResetTableFilterSort" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 shadow-2xs transition" title="필터 및 정렬 초기화">
                 필터/정렬 초기화 ✕
@@ -784,6 +792,24 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
               </div>
+            </div>
+          </div>
+
+          <!-- Subject Swap Mode Status Banner (Hidden by default) -->
+          <div id="subjectSwapBanner" class="hidden bg-amber-50 border-2 border-amber-300 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-xs transition-all">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl shrink-0">🔀</span>
+              <div>
+                <p id="subjectSwapBannerText" class="text-xs font-bold text-amber-950">
+                  [과목 맞교환 모드] 자리를 바꿀 첫 번째 과목(A)의 헤더를 클릭하세요.
+                </p>
+                <p class="text-[11px] text-amber-700 mt-0.5">과목 A를 클릭한 후 다른 과목 B를 클릭하면 두 과목의 그룹 및 시간표 위치가 맞교환됩니다.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btnExitSwapMode" type="button" class="px-2.5 py-1 text-xs font-bold bg-white text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-300 shadow-2xs transition">
+                교환 모드 종료 ✕
+              </button>
             </div>
           </div>
 
@@ -3835,8 +3861,203 @@
     }
 
     // ==========================================
-    // 5. STUDENT SCHEDULE TABLE: EXCEL-STYLE FILTERING, SORTING & MANUAL EDITING
+    // 5. STUDENT SCHEDULE TABLE: EXCEL-STYLE FILTERING, SORTING & MANUAL SUBJECT SWAP
     // ==========================================
+
+    // Subject Swap (과목 위치 맞교환) State
+    const subjectSwapState = {
+      active: false,
+      selectedSubject: null,
+      selectedGroupIdx: null,
+      undoStack: []
+    };
+
+    window.toggleSubjectSwapMode = function(forceState) {
+      if (forceState !== undefined) {
+        subjectSwapState.active = forceState;
+      } else {
+        subjectSwapState.active = !subjectSwapState.active;
+      }
+      if (!subjectSwapState.active) {
+        subjectSwapState.selectedSubject = null;
+        subjectSwapState.selectedGroupIdx = null;
+      }
+      updateSubjectSwapUI();
+      renderStudentScheduleTable();
+    };
+
+    window.startSubjectSwap = function(sName, gIdx) {
+      subjectSwapState.active = true;
+      subjectSwapState.selectedSubject = sName;
+      subjectSwapState.selectedGroupIdx = gIdx;
+      updateSubjectSwapUI();
+      renderStudentScheduleTable();
+    };
+
+    function updateSubjectSwapUI(customMsg) {
+      const banner = document.getElementById('subjectSwapBanner');
+      const bannerText = document.getElementById('subjectSwapBannerText');
+      const toggleBtn = document.getElementById('btnToggleSubjectSwap');
+      const undoBtn = document.getElementById('btnUndoSubjectSwap');
+
+      if (undoBtn) {
+        if (subjectSwapState.undoStack.length > 0) {
+          undoBtn.classList.remove('hidden');
+          const last = subjectSwapState.undoStack[subjectSwapState.undoStack.length - 1];
+          undoBtn.title = `[${last.subjA}] ⇄ [${last.subjB}] 맞교환 되돌리기`;
+        } else {
+          undoBtn.classList.add('hidden');
+        }
+      }
+
+      if (!toggleBtn) return;
+
+      if (subjectSwapState.active) {
+        toggleBtn.className = 'px-3 py-1.5 text-xs font-black text-amber-950 bg-amber-200 hover:bg-amber-300 border-2 border-amber-400 rounded-lg shadow-xs transition flex items-center gap-1.5 ring-2 ring-amber-300 cursor-pointer';
+        toggleBtn.innerHTML = '<span>🔀 과목 맞교환 모드 ON</span>';
+        if (banner) banner.classList.remove('hidden');
+
+        if (bannerText) {
+          if (customMsg) {
+            bannerText.innerHTML = customMsg;
+          } else if (subjectSwapState.selectedSubject) {
+            const gName = (subjectSwapState.selectedGroupIdx !== null && subjectSwapState.selectedGroupIdx !== undefined) 
+              ? `${subjectSwapState.selectedGroupIdx + 1}그룹` : '';
+            bannerText.innerHTML = `👉 <strong>1차 선택: [${subjectSwapState.selectedSubject}]</strong> (${gName}) &nbsp;→&nbsp; 자리를 바꿀 <strong>두 번째 과목(B)</strong>을 클릭하세요.`;
+          } else {
+            bannerText.innerHTML = `<strong>[과목 맞교환 모드]</strong> 자리를 바꿀 첫 번째 <strong>과목(A)</strong>의 헤더를 클릭하세요.`;
+          }
+        }
+      } else {
+        toggleBtn.className = 'px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer';
+        toggleBtn.innerHTML = '<span>🔀 과목 위치 맞교환</span>';
+        if (banner) banner.classList.add('hidden');
+      }
+    }
+
+    function handleSubjectSwapClick(sName, gIdx) {
+      const plan = AppState.currentPlan;
+      if (!plan) return;
+
+      if (!subjectSwapState.selectedSubject) {
+        subjectSwapState.selectedSubject = sName;
+        subjectSwapState.selectedGroupIdx = gIdx;
+        updateSubjectSwapUI();
+        renderStudentScheduleTable();
+        return;
+      }
+
+      if (subjectSwapState.selectedSubject === sName) {
+        const prev = subjectSwapState.selectedSubject;
+        subjectSwapState.selectedSubject = null;
+        subjectSwapState.selectedGroupIdx = null;
+        updateSubjectSwapUI(`[${prev}] 선택이 취소되었습니다. 교환할 첫 번째 과목을 다시 클릭하세요.`);
+        renderStudentScheduleTable();
+        return;
+      }
+
+      const subjA = subjectSwapState.selectedSubject;
+      const subjB = sName;
+
+      let gA = -1, sA = -1;
+      let gB = -1, sB = -1;
+
+      plan.groups.forEach((groupSubjs, gi) => {
+        groupSubjs.forEach((sn, si) => {
+          if (sn === subjA) { gA = gi; sA = si; }
+          if (sn === subjB) { gB = gi; sB = si; }
+        });
+      });
+
+      if (gA === -1 || gB === -1) {
+        alert('과목 위치를 찾을 수 없습니다.');
+        subjectSwapState.selectedSubject = null;
+        subjectSwapState.selectedGroupIdx = null;
+        updateSubjectSwapUI();
+        renderStudentScheduleTable();
+        return;
+      }
+
+      // Record in undo stack
+      subjectSwapState.undoStack.push({
+        planBefore: JSON.parse(JSON.stringify(plan.groups)),
+        subjA,
+        subjB,
+        gA: gA + 1,
+        gB: gB + 1
+      });
+
+      // Perform swap
+      plan.groups[gA][sA] = subjB;
+      plan.groups[gB][sB] = subjA;
+
+      // Recalculate conflicts
+      const analysis = analyzeGroupConflicts(plan);
+      plan.conflictCount = analysis.conflictStudentCount;
+      plan.conflicts = analysis.conflictDetails;
+
+      // Sync with saved plan if linked
+      const match = AppState.savedPlans.find(p => p.id === plan.id);
+      if (match) {
+        match.groups = JSON.parse(JSON.stringify(plan.groups));
+        match.conflictCount = plan.conflictCount;
+        match.conflicts = JSON.parse(JSON.stringify(plan.conflicts));
+        match.groupCounts = JSON.parse(JSON.stringify(analysis.groupCounts));
+        match.studentGroupOverlaps = JSON.parse(JSON.stringify(analysis.studentGroupOverlaps));
+      }
+
+      // Check historical best minimum
+      const sem = plan.semester;
+      if (!AppState.simulationHistory) AppState.simulationHistory = { 1: { runCount: 1, minConflictEver: null }, 2: { runCount: 1, minConflictEver: null } };
+      if (!AppState.simulationHistory[sem]) AppState.simulationHistory[sem] = { runCount: 1, minConflictEver: null };
+      if (AppState.simulationHistory[sem].minConflictEver === null || plan.conflictCount < AppState.simulationHistory[sem].minConflictEver) {
+        AppState.simulationHistory[sem].minConflictEver = plan.conflictCount;
+        AppState.simulationHistory[sem].minConflictPlan = JSON.parse(JSON.stringify(plan));
+      }
+
+      // Clear selection
+      subjectSwapState.selectedSubject = null;
+      subjectSwapState.selectedGroupIdx = null;
+
+      renderStep2Results();
+      renderSavedPlansList();
+      saveAllState();
+
+      const msg = `✅ <strong>[${subjA}]</strong> (${gA + 1}그룹) ⇄ <strong>[${subjB}]</strong> (${gB + 1}그룹) 맞교환 완료! (현재 수강 충돌: <strong>${plan.conflictCount}명</strong>)`;
+      updateSubjectSwapUI(msg);
+    }
+
+    window.undoSubjectSwap = function() {
+      if (subjectSwapState.undoStack.length === 0) return;
+      const last = subjectSwapState.undoStack.pop();
+      AppState.currentPlan.groups = last.planBefore;
+
+      const analysis = analyzeGroupConflicts(AppState.currentPlan);
+      AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
+      AppState.currentPlan.conflicts = analysis.conflictDetails;
+
+      const match = AppState.savedPlans.find(p => p.id === AppState.currentPlan.id);
+      if (match) {
+        match.groups = JSON.parse(JSON.stringify(AppState.currentPlan.groups));
+        match.conflictCount = AppState.currentPlan.conflictCount;
+        match.conflicts = JSON.parse(JSON.stringify(AppState.currentPlan.conflicts));
+        match.groupCounts = JSON.parse(JSON.stringify(analysis.groupCounts));
+        match.studentGroupOverlaps = JSON.parse(JSON.stringify(analysis.studentGroupOverlaps));
+      }
+
+      subjectSwapState.selectedSubject = null;
+      subjectSwapState.selectedGroupIdx = null;
+
+      renderStep2Results();
+      renderSavedPlansList();
+      saveAllState();
+
+      const bannerText = document.getElementById('subjectSwapBannerText');
+      if (bannerText) {
+        bannerText.innerHTML = `↩️ <strong>[${last.subjA}]</strong> ⇄ <strong>[${last.subjB}]</strong> 맞교환이 이전 상태로 되돌려졌습니다. (충돌: <strong>${analysis.conflictStudentCount}명</strong>)`;
+      }
+      updateSubjectSwapUI();
+    };
 
     // Filter and Sort state for Student Schedule Table
     const scheduleTableFilterState = {
@@ -3846,7 +4067,12 @@
       sortDir: 'asc'        // 'asc' | 'desc'
     };
 
-    window.handleSubjectHeaderClick = function(sName) {
+    window.handleSubjectHeaderClick = function(sName, gIdx) {
+      if (subjectSwapState.active) {
+        handleSubjectSwapClick(sName, gIdx);
+        return;
+      }
+
       if (scheduleTableFilterState.sortCol !== sName) {
         scheduleTableFilterState.sortCol = sName;
         scheduleTableFilterState.sortDir = 'asc'; // 1st click: 선택자 우선 ▲
@@ -4048,23 +4274,46 @@
             const isLastInGroup = sIdx === groupSubjs.length - 1;
             const borderCls = isLastInGroup ? 'border-r-4 border-slate-400' : 'border-r border-slate-300';
             const isSorted = scheduleTableFilterState.sortCol === sName;
+            const isSelectedForSwap = subjectSwapState.active && subjectSwapState.selectedSubject === sName;
+
             let sortIndicator = '<span class="text-slate-400 font-normal text-[10px] ml-0.5 opacity-60 hover:opacity-100">⇅</span>';
             let thBg = theme.thSubjBg;
+            let thTitle = '';
 
-            if (isSorted) {
+            if (isSelectedForSwap) {
+              thBg = 'bg-amber-200 text-amber-950 ring-4 ring-amber-400 font-black shadow-md z-30 animate-pulse';
+              thTitle = `[${sName}] 1차 선택됨 (다시 클릭 시 취소, 다른 과목 클릭 시 맞교환)`;
+            } else if (subjectSwapState.active) {
+              thBg += ' hover:bg-amber-100 hover:ring-2 hover:ring-amber-400 cursor-pointer';
+              thTitle = subjectSwapState.selectedSubject 
+                ? `클릭 시 [${subjectSwapState.selectedSubject}] 과(와) [${sName}] 위치 맞교환`
+                : `클릭하여 [${sName}] 1차 선택`;
+            } else if (isSorted) {
               if (scheduleTableFilterState.sortDir === 'asc') {
                 sortIndicator = '<span class="ml-1 px-1.5 py-0.2 rounded-md bg-blue-600 text-white font-extrabold text-[10px] shadow-2xs">▲선택</span>';
               } else {
                 sortIndicator = '<span class="ml-1 px-1.5 py-0.2 rounded-md bg-indigo-600 text-white font-extrabold text-[10px] shadow-2xs">▼미선택</span>';
               }
               thBg = 'bg-blue-100 text-blue-950 ring-2 ring-inset ring-blue-500 font-black';
+              thTitle = `클릭: [${sName}] 선택자 우선 ▲ → 미선택자 우선 ▼ → 기본 순서 ⇅`;
+            } else {
+              thTitle = `클릭: [${sName}] 선택 학생 정렬 (우측 ⇄ 클릭 시 위치 맞교환)`;
             }
 
-            h2 += `<th onclick="window.handleSubjectHeaderClick('${sName}')" 
-                      class="p-2 text-center ${borderCls} ${thBg} whitespace-nowrap min-w-[78px] cursor-pointer hover:bg-blue-100 transition-colors select-none" 
-                      title="클릭: [${sName}] 선택자 우선 ▲ → 미선택자 우선 ▼ → 기본 순서 ⇅">
+            const swapBtnHtml = `<button type="button" onclick="event.stopPropagation(); window.startSubjectSwap('${sName}', ${gIdx});" class="p-0.5 px-1 rounded text-[10px] font-black text-slate-400 hover:text-amber-900 hover:bg-amber-200/90 transition ml-1" title="[${sName}] 위치 맞교환 선택">⇄</button>`;
+
+            const selectedBadge = isSelectedForSwap 
+              ? '<span class="bg-amber-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-black animate-bounce mr-1">1차선택</span>' 
+              : '';
+
+            h2 += `<th onclick="window.handleSubjectHeaderClick('${sName}', ${gIdx})" 
+                      class="p-2 text-center ${borderCls} ${thBg} whitespace-nowrap min-w-[82px] cursor-pointer select-none transition-all" 
+                      title="${thTitle}">
               <div class="flex items-center justify-center gap-0.5">
-                <span class="font-bold">${sName}</span>${sortIndicator}
+                ${selectedBadge}
+                <span class="font-bold">${sName}</span>
+                ${sortIndicator}
+                ${swapBtnHtml}
               </div>
             </th>`;
           });
@@ -4114,23 +4363,25 @@
                 const isLast = sIdx === groupSubjs.length - 1;
                 const borderCls = isLast ? 'border-r-4 border-slate-400' : 'border-r border-slate-300';
                 const isChosen = chosenInGrp.includes(sName);
+                const isColSelectedForSwap = subjectSwapState.active && subjectSwapState.selectedSubject === sName;
+                const swapColBg = isColSelectedForSwap ? 'bg-amber-100/40' : '';
 
                 if (isChosen) {
                   if (isGroupConflicted) {
-                    tbody += `<td class="p-1.5 text-center ${borderCls} bg-rose-50">
+                    tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/80' : 'bg-rose-50'}">
                       <div class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[105px]" title="동일 그룹 중복 충돌: ${sName}">
                         <span>⚠️ ${sName}</span>
                       </div>
                     </td>`;
                   } else {
-                    tbody += `<td class="p-1.5 text-center ${borderCls} ${theme.cellChosenBg}">
+                    tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/60' : theme.cellChosenBg}">
                       <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 transition-transform truncate max-w-[105px]" title="${sName} 배정">
                         <span>${sName}</span>
                       </div>
                     </td>`;
                   }
                 } else {
-                  tbody += `<td class="p-1.5 text-center ${borderCls}">
+                  tbody += `<td class="p-1.5 text-center ${borderCls} ${swapColBg}">
                     <span class="text-slate-300 text-xs font-bold select-none">·</span>
                   </td>`;
                 }
@@ -4256,6 +4507,9 @@
     document.getElementById('step2StudentSearchInput')?.addEventListener('input', renderStudentScheduleTable);
     document.getElementById('step2StatusFilterSelect')?.addEventListener('change', renderStudentScheduleTable);
     document.getElementById('btnResetTableFilterSort')?.addEventListener('click', window.resetScheduleTableFilterSort);
+    document.getElementById('btnToggleSubjectSwap')?.addEventListener('click', () => window.toggleSubjectSwapMode());
+    document.getElementById('btnExitSwapMode')?.addEventListener('click', () => window.toggleSubjectSwapMode(false));
+    document.getElementById('btnUndoSubjectSwap')?.addEventListener('click', () => window.undoSubjectSwap());
 
     // Bottom Work Memo Event Listeners
     const memoTextarea = document.getElementById('planWorkMemo');
