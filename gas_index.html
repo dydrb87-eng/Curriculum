@@ -772,12 +772,12 @@
           <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <!-- Semester Toggle for Step 2 -->
             <div class="flex items-center space-x-3">
-              <div class="inline-flex p-1 bg-slate-100 rounded-lg border border-slate-200">
-                <button id="step2Sem1Btn" class="px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all">
-                  1학기 그룹핑
+              <div class="inline-flex p-1.5 bg-slate-200/90 rounded-xl border border-slate-300 shadow-inner gap-2">
+                <button id="step2Sem1Btn" class="px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-black rounded-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-300 transition-all cursor-pointer flex items-center gap-2">
+                  <span>📅 1학기 그룹핑</span>
                 </button>
-                <button id="step2Sem2Btn" class="px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all">
-                  2학기 그룹핑
+                <button id="step2Sem2Btn" class="px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-bold rounded-lg text-slate-600 hover:text-blue-700 hover:bg-white/80 transition-all cursor-pointer flex items-center gap-2">
+                  <span>📅 2학기 그룹핑</span>
                 </button>
               </div>
               <span class="text-xs text-slate-500 font-medium" id="groupCountInfo"></span>
@@ -957,8 +957,8 @@
             </div>
           </div>
 
-          <!-- Right (50%): Conflicted Students Alert Section -->
-          <div id="conflictAlertBox" class="hidden bg-rose-50/90 border border-rose-200 rounded-xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-all">
+          <!-- Bottom (Full Width): Conflicted Students Alert Section -->
+          <div id="conflictAlertBox" class="hidden lg:col-span-2 w-full bg-rose-50/90 border border-rose-200 rounded-xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-all">
             <div>
               <div class="flex items-center justify-between border-b border-rose-200 pb-3 mb-2">
                 <h5 class="text-sm font-bold text-rose-900 flex items-center space-x-2">
@@ -1071,10 +1071,24 @@
 
         <!-- Saved Plans Drawer / Carousel -->
         <div id="savedPlansSection" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-            <h4 class="text-sm font-bold text-slate-900 flex items-center space-x-1.5">
-              <span>⭐ 저장된 그룹핑 후보안 목록</span>
-            </h4>
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
+            <div class="flex flex-wrap items-center gap-3">
+              <h4 class="text-sm font-bold text-slate-900 flex items-center space-x-1.5 shrink-0">
+                <span>⭐ 저장된 그룹핑 후보안 목록</span>
+              </h4>
+              <!-- 1학기 / 2학기 탭 버튼 -->
+              <div class="inline-flex p-1 bg-slate-100 rounded-lg space-x-1 border border-slate-200">
+                <button type="button" id="savedPlansSem1Btn" onclick="window.switchSavedPlansTab(1)" class="px-3 py-1 text-xs font-bold rounded-md bg-white text-blue-700 shadow-2xs transition-all cursor-pointer">
+                  1학기 <span id="savedPlansSem1Count" class="text-[10px] ml-0.5 px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-700">0</span>
+                </button>
+                <button type="button" id="savedPlansSem2Btn" onclick="window.switchSavedPlansTab(2)" class="px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all cursor-pointer">
+                  2학기 <span id="savedPlansSem2Count" class="text-[10px] ml-0.5 px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-600">0</span>
+                </button>
+                <button type="button" id="savedPlansAllBtn" onclick="window.switchSavedPlansTab('all')" class="px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all cursor-pointer">
+                  전체 <span id="savedPlansAllCount" class="text-[10px] ml-0.5 px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-600">0</span>
+                </button>
+              </div>
+            </div>
             <span class="text-xs text-slate-500">저장된 안을 클릭하여 다시 확인하거나 불러올 수 있습니다.</span>
           </div>
           <div id="savedPlansList" class="flex flex-wrap gap-2 pt-1">
@@ -3211,18 +3225,28 @@
     // 4. STEP 2: GROUPING / OPTIMIZATION ENGINE
     // ==========================================
 
+    function updateStep2SemesterTabs(sem) {
+      const activeCls = 'px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-black rounded-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-300 transition-all cursor-pointer flex items-center gap-2';
+      const inactiveCls = 'px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-bold rounded-lg text-slate-600 hover:text-blue-700 hover:bg-white/80 transition-all cursor-pointer flex items-center gap-2';
+      if (sem === 1) {
+        step2Sem1Btn.className = activeCls;
+        step2Sem2Btn.className = inactiveCls;
+      } else {
+        step2Sem2Btn.className = activeCls;
+        step2Sem1Btn.className = inactiveCls;
+      }
+    }
+
     step2Sem1Btn.addEventListener('click', () => {
       AppState.currentSemester = 1;
-      step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
-      step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      updateStep2SemesterTabs(1);
       initStep2Controls();
       runOptimization();
     });
 
     step2Sem2Btn.addEventListener('click', () => {
       AppState.currentSemester = 2;
-      step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
-      step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      updateStep2SemesterTabs(2);
       initStep2Controls();
       runOptimization();
     });
@@ -3233,13 +3257,7 @@
 
     function initStep2Controls() {
       const sem = AppState.currentSemester;
-      if (sem === 1) {
-        step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
-        step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
-      } else {
-        step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
-        step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
-      }
+      updateStep2SemesterTabs(sem);
 
       const rawSubjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
       const closedList = AppState.closedSubjects?.[sem] || [];
@@ -3305,6 +3323,9 @@
         const currentTarget = AppState.targetConflictN[sem];
         targetConflictNInput.value = (currentTarget !== null && currentTarget !== undefined && currentTarget !== '') ? currentTarget : '';
       }
+
+      savedPlansActiveTab = sem;
+      renderSavedPlansList();
     }
 
     // Target Conflict N Event Listeners
@@ -4254,7 +4275,7 @@
         }
       } else {
         if (groupCardsSection) {
-          groupCardsSection.className = 'bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all';
+          groupCardsSection.className = 'lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all';
         }
         if (isTargetN && plan.conflictCount === targetN) {
           conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200';
@@ -4266,6 +4287,7 @@
           conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200';
           conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 발생 (최적 탐색)`;
         }
+        conflictAlertBox.className = 'lg:col-span-2 w-full bg-rose-50/90 border border-rose-200 rounded-xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-all';
         conflictAlertBox.classList.remove('hidden');
       }
 
@@ -4300,12 +4322,13 @@
 
       const numGroups = plan.groups.length;
       if (groupCardsContainer) {
-        if (plan.conflictCount === 0) {
-          groupCardsContainer.style.gridTemplateColumns = `repeat(${Math.min(numGroups, 7)}, minmax(0, 1fr))`;
+        if (numGroups <= 4) {
+          groupCardsContainer.style.gridTemplateColumns = `repeat(${numGroups}, minmax(0, 1fr))`;
+        } else if (numGroups === 5) {
+          groupCardsContainer.style.gridTemplateColumns = `repeat(auto-fit, minmax(200px, 1fr))`;
         } else {
-          groupCardsContainer.style.gridTemplateColumns = numGroups <= 4 
-            ? `repeat(${numGroups}, minmax(0, 1fr))` 
-            : `repeat(auto-fit, minmax(130px, 1fr))`;
+          // 6, 7, 8 groups (e.g. 3학년 2학기)
+          groupCardsContainer.style.gridTemplateColumns = `repeat(auto-fit, minmax(210px, 1fr))`;
         }
       }
 
@@ -4374,15 +4397,15 @@
 
           const cardsHtmlSubj = `
             <div onclick="window.handleSubjectSwapClick('${sName}', ${gIdx});" 
-                 class="group/card flex items-center justify-between p-2 rounded-lg border shadow-2xs transition-all select-none ${cardBgCls}" 
+                 class="group/card flex items-center justify-between p-2.5 rounded-lg border shadow-2xs transition-all select-none ${cardBgCls}" 
                  title="${cardTitle}">
-              <div class="flex items-center min-w-0 mr-1.5 gap-1 overflow-hidden">
+              <div class="flex items-center min-w-0 flex-1 mr-2 gap-1.5">
                 ${swapBadgeHtml}
-                <span class="text-xs font-bold ${isSelectedForSwap ? 'text-amber-950 font-black' : (isSubjPinned ? 'text-blue-900 font-black' : 'text-slate-800')} truncate group-hover/card:text-amber-900" title="${sName}">${sName}</span>
+                <span class="text-xs font-bold leading-snug break-keep ${isSelectedForSwap ? 'text-amber-950 font-black' : (isSubjPinned ? 'text-blue-900 font-black' : 'text-slate-800')} group-hover/card:text-amber-900" title="${sName}">${sName}</span>
                 ${pinBtnHtml}
-                <span class="text-[10px] text-slate-400 opacity-0 group-hover/card:opacity-100 transition-opacity ml-0.5 select-none" title="과목 위치 맞교환">⇄</span>
+                <span class="text-[10px] text-slate-400 opacity-0 group-hover/card:opacity-100 transition-opacity ml-0.5 select-none shrink-0" title="과목 위치 맞교환">⇄</span>
               </div>
-              <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0 whitespace-nowrap">${count}명</span>
+              <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0 whitespace-nowrap ml-1">${count}명</span>
             </div>
           `;
           subjectsListHtml += cardsHtmlSubj;
@@ -5286,6 +5309,7 @@
 
       AppState.savedPlans.push(newSavedPlan);
       AppState.currentPlan.id = newSavedPlan.id; // Link active plan to this saved plan
+      savedPlansActiveTab = sem;
       renderSavedPlansList();
       saveAllState();
       alert(`⭐ [${planName}]이 저장되었습니다!\n아래 '저장된 그룹핑 후보안 목록'에서 개별 메모 작성, 다운로드 및 시간표 확인이 가능합니다.`);
@@ -5300,17 +5324,61 @@
       }
     };
 
+    // Saved Plans Tab State (1, 2, or 'all')
+    let savedPlansActiveTab = 1;
+
+    window.switchSavedPlansTab = function(tab) {
+      savedPlansActiveTab = tab;
+      renderSavedPlansList();
+    };
+
     function renderSavedPlansList() {
+      const allPlans = AppState.savedPlans || [];
+      const sem1Plans = allPlans.filter(p => p.semester === 1);
+      const sem2Plans = allPlans.filter(p => p.semester === 2);
+
+      // Update badge counts
+      const c1 = document.getElementById('savedPlansSem1Count');
+      const c2 = document.getElementById('savedPlansSem2Count');
+      const cAll = document.getElementById('savedPlansAllCount');
+      if (c1) c1.textContent = sem1Plans.length;
+      if (c2) c2.textContent = sem2Plans.length;
+      if (cAll) cAll.textContent = allPlans.length;
+
       if (statSavedPlansCount) {
-        statSavedPlansCount.textContent = `${AppState.savedPlans.length}개`;
+        statSavedPlansCount.textContent = `${allPlans.length}개`;
       }
 
-      if (AppState.savedPlans.length === 0) {
-        savedPlansList.innerHTML = '<p class="text-xs text-slate-400 italic">아직 저장된 안이 없습니다. 상단의 "현재 배치 저장" 버튼을 눌러보세요.</p>';
+      // Update tab button styles
+      const btn1 = document.getElementById('savedPlansSem1Btn');
+      const btn2 = document.getElementById('savedPlansSem2Btn');
+      const btnAll = document.getElementById('savedPlansAllBtn');
+
+      const activeBtnCls = 'px-3 py-1 text-xs font-bold rounded-md bg-white text-blue-700 shadow-2xs transition-all cursor-pointer';
+      const inactiveBtnCls = 'px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all cursor-pointer';
+
+      if (btn1) btn1.className = (savedPlansActiveTab === 1 || savedPlansActiveTab === '1') ? activeBtnCls : inactiveBtnCls;
+      if (btn2) btn2.className = (savedPlansActiveTab === 2 || savedPlansActiveTab === '2') ? activeBtnCls : inactiveBtnCls;
+      if (btnAll) btnAll.className = (savedPlansActiveTab === 'all') ? activeBtnCls : inactiveBtnCls;
+
+      // Filter plans by active tab
+      let displayPlans = allPlans;
+      let emptyMsg = '아직 저장된 안이 없습니다. 상단의 "현재 배치 저장" 버튼을 눌러보세요.';
+
+      if (savedPlansActiveTab === 1 || savedPlansActiveTab === '1') {
+        displayPlans = sem1Plans;
+        emptyMsg = '1학기에 저장된 안이 없습니다. 상단의 "현재 배치 저장" 버튼을 눌러보세요.';
+      } else if (savedPlansActiveTab === 2 || savedPlansActiveTab === '2') {
+        displayPlans = sem2Plans;
+        emptyMsg = '2학기에 저장된 안이 없습니다. 상단의 "현재 배치 저장" 버튼을 눌러보세요.';
+      }
+
+      if (displayPlans.length === 0) {
+        savedPlansList.innerHTML = `<p class="text-xs text-slate-400 italic py-2">${emptyMsg}</p>`;
         return;
       }
 
-      savedPlansList.innerHTML = AppState.savedPlans.map((plan, idx) => {
+      savedPlansList.innerHTML = displayPlans.map((plan, idx) => {
         const isConfirmed = Boolean(plan.confirmed);
         const cardStyle = isConfirmed 
           ? 'w-full bg-amber-50/85 border-2 border-amber-400 ring-2 ring-amber-300/50 rounded-xl p-4 shadow-md space-y-3 transition-all'
@@ -5404,6 +5472,7 @@
       }
 
       AppState.currentSemester = plan.semester;
+      savedPlansActiveTab = plan.semester;
       AppState.currentPlan = {
         id: plan.id,
         name: plan.name,
@@ -5417,13 +5486,7 @@
       };
 
       // Restore toggles UI without re-running optimization
-      if (plan.semester === 1) {
-        step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
-        step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
-      } else {
-        step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
-        step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
-      }
+      updateStep2SemesterTabs(plan.semester);
 
       if (plan.togetherConfig) {
         AppState.togetherPairs[plan.semester] = JSON.parse(JSON.stringify(plan.togetherConfig));
