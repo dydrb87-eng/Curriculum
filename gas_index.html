@@ -958,16 +958,24 @@
           </div>
 
           <!-- Bottom (Full Width): Conflicted Students Alert Section -->
-          <div id="conflictAlertBox" class="hidden lg:col-span-2 w-full bg-rose-50/90 border border-rose-200 rounded-xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-all">
+          <div id="conflictAlertBox" class="hidden lg:col-span-2 w-full bg-rose-50/90 border border-rose-200 rounded-xl p-4 shadow-sm space-y-2 flex flex-col justify-between transition-all">
             <div>
-              <div class="flex items-center justify-between border-b border-rose-200 pb-3 mb-2">
-                <h5 class="text-sm font-bold text-rose-900 flex items-center space-x-2">
-                  <span>⚠️ 충돌 발생 학생 세부 명단</span>
-                  <span id="conflictDetailCount" class="bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full text-xs font-bold"></span>
-                </h5>
-                <span class="text-xs text-rose-700">동일 그룹에 2개 이상의 과목이 배정된 학생입니다.</span>
+              <div onclick="window.toggleConflictTable();" class="flex flex-wrap items-center justify-between border-b border-rose-200/80 pb-2.5 gap-2 cursor-pointer select-none" title="클릭하여 명단을 펼치거나 접습니다">
+                <div class="flex items-center space-x-2">
+                  <h5 class="text-sm font-bold text-rose-900 flex items-center space-x-2">
+                    <span>⚠️ 충돌 발생 학생 세부 명단</span>
+                    <span id="conflictDetailCount" class="bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full text-xs font-bold"></span>
+                  </h5>
+                  <span class="text-xs text-rose-700 hidden sm:inline">(동일 그룹에 2개 이상의 과목이 배정된 학생)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-rose-600 font-medium hidden md:inline">클릭하여 명단 확인/접기</span>
+                  <button id="btnToggleConflictTable" type="button" onclick="event.stopPropagation(); window.toggleConflictTable();" class="px-3 py-1.5 text-xs font-bold text-rose-700 bg-white hover:bg-rose-100 border border-rose-300 rounded-lg shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer" title="세부 명단 펼치기">
+                    <span>명단 펼치기 ▼</span>
+                  </button>
+                </div>
               </div>
-              <div class="max-h-80 overflow-y-auto custom-scrollbar border border-rose-200/80 rounded-lg bg-white shadow-2xs">
+              <div id="conflictTableWrapper" class="hidden mt-3 max-h-80 overflow-y-auto custom-scrollbar border border-rose-200/80 rounded-lg bg-white shadow-2xs">
                 <table class="w-full text-xs text-left border-collapse">
                   <thead class="sticky top-0 bg-rose-100/90 text-rose-900 font-bold border-b border-rose-200 z-10">
                     <tr>
@@ -990,36 +998,77 @@
 
         <!-- Student Individual Timetable Schedule View -->
         <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
-            <div>
-              <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
-                <span>👤 학생별 그룹 배정 시간표 (개인별 이동수업 시간표)</span>
-                <span id="scheduleTableSortBadge" class="hidden text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs"></span>
-              </h4>
-              <p class="text-xs text-slate-500 mt-0.5">과목 헤더를 클릭하여 엑셀처럼 특정 과목 선택 학생을 상단/하단으로 정렬하거나 필터링할 수 있습니다.</p>
+          <div class="border-b border-slate-100 pb-3 space-y-3">
+            <!-- Row 1: Title & Optimization / Save Controls -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                  <span>👤 학생별 그룹 배정 시간표 (개인별 이동수업 시간표)</span>
+                  <span id="scheduleTableSortBadge" class="hidden text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs"></span>
+                </h4>
+                <p class="text-xs text-slate-500 mt-0.5">과목 헤더를 클릭하여 엑셀처럼 특정 과목 선택 학생을 상단/하단으로 정렬하거나 필터링할 수 있습니다.</p>
+              </div>
+
+              <!-- Replicated Control Toolbar requested by user -->
+              <div class="flex flex-wrap items-center gap-1.5">
+                <!-- 충돌 목표 설정 -->
+                <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 shadow-2xs mr-1">
+                  <span class="text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0">
+                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    <span>충돌 목표 설정:</span>
+                  </span>
+                  <div class="flex items-center gap-0.5">
+                    <input type="number" id="targetConflictNInput2" min="0" max="100" placeholder="최적" class="w-14 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="특정 충돌 인원 수 (비워두면 0명/최저 충돌 탐색)">
+                    <span class="text-xs text-slate-600 font-bold mr-0.5">명</span>
+                  </div>
+                  <button id="btnApplyTargetN2" type="button" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-xs font-bold transition shadow-2xs" title="입력한 N명 충돌에 해당하는 다양한 경우의 수 탐색">
+                    N명 탐색
+                  </button>
+                  <button id="btnResetConflictTarget2" type="button" class="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md text-xs font-bold transition shadow-2xs" title="목표 초기화 (최적 인원 탐색 모드)">
+                    초기화
+                  </button>
+                </div>
+                <button id="btnRegroup2" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="설정한 조건 및 충돌 목표에 맞춰 새로운 조합을 탐색합니다">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  <span>🔄 새로고침</span>
+                </button>
+                <button id="btnSavePlan2" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="현재 배치 안을 저장합니다">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                  <span>⭐ 현재 배치 저장</span>
+                </button>
+                <button id="btnExportAllPlans2" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="모든 저장된 안을 엑셀로 다운로드합니다">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>📥 모든 저장 안 다운로드</span>
+                </button>
+              </div>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <!-- Quick Status Filter -->
-              <select id="step2StatusFilterSelect" class="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer">
-                <option value="all">전체 학생 보기</option>
-                <option value="conflict">⚠️ 충돌(중복) 학생만 보기</option>
-                <option value="normal">✅ 정상 배정 학생만 보기</option>
-              </select>
-              <!-- Subject Swap Mode Toggle Button -->
-              <button id="btnToggleSubjectSwap" type="button" class="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="과목과 과목의 위치 및 그룹 배정을 맞교환합니다">
-                <span>🔀 과목 위치 맞교환</span>
-              </button>
-              <!-- Undo Last Swap Button -->
-              <button id="btnUndoSubjectSwap" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="방금 수행한 과목 맞교환을 되돌립니다">
-                <span>↩️ 교환 취소</span>
-              </button>
-              <!-- Reset Filter/Sort Button -->
-              <button id="btnResetTableFilterSort" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 shadow-2xs transition" title="필터 및 정렬 초기화">
-                필터/정렬 초기화 ✕
-              </button>
+
+            <!-- Row 2: Table Search & Filters Toolbar -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- Quick Status Filter -->
+                <select id="step2StatusFilterSelect" class="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer">
+                  <option value="all">전체 학생 보기</option>
+                  <option value="conflict">⚠️ 충돌(중복) 학생만 보기</option>
+                  <option value="normal">✅ 정상 배정 학생만 보기</option>
+                </select>
+                <!-- Subject Swap Mode Toggle Button -->
+                <button id="btnToggleSubjectSwap" type="button" class="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="과목과 과목의 위치 및 그룹 배정을 맞교환합니다">
+                  <span>🔀 과목 위치 맞교환</span>
+                </button>
+                <!-- Undo Last Swap Button -->
+                <button id="btnUndoSubjectSwap" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="방금 수행한 과목 맞교환을 되돌립니다">
+                  <span>↩️ 교환 취소</span>
+                </button>
+                <!-- Reset Filter/Sort Button -->
+                <button id="btnResetTableFilterSort" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 shadow-2xs transition" title="필터 및 정렬 초기화">
+                  필터/정렬 초기화 ✕
+                </button>
+              </div>
+
               <!-- Student Search Input -->
               <div class="relative">
-                <input type="text" id="step2StudentSearchInput" placeholder="학생 검색 (이름/반/번호/진로)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-44 shadow-2xs">
+                <input type="text" id="step2StudentSearchInput" placeholder="학생 검색 (이름/반/번호/진로)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-48 shadow-2xs">
                 <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
@@ -1386,6 +1435,14 @@
     const btnResetConflictTarget = document.getElementById('btnResetConflictTarget');
     const statBestConflictCount = document.getElementById('statBestConflictCount');
     const btnRestoreBestPlan = document.getElementById('btnRestoreBestPlan');
+
+    // Replicated Timetable Toolbar Elements
+    const targetConflictNInput2 = document.getElementById('targetConflictNInput2');
+    const btnApplyTargetN2 = document.getElementById('btnApplyTargetN2');
+    const btnResetConflictTarget2 = document.getElementById('btnResetConflictTarget2');
+    const btnRegroup2 = document.getElementById('btnRegroup2');
+    const btnSavePlan2 = document.getElementById('btnSavePlan2');
+    const btnExportAllPlans2 = document.getElementById('btnExportAllPlans2');
 
     // Together / Separate Constraint Controls
     const togetherSubj1Select = document.getElementById('togetherSubj1Select');
@@ -3330,35 +3387,60 @@
       if (!AppState.targetConflictN) {
         AppState.targetConflictN = { 1: null, 2: null };
       }
-      if (targetConflictNInput) {
-        const currentTarget = AppState.targetConflictN[sem];
-        targetConflictNInput.value = (currentTarget !== null && currentTarget !== undefined && currentTarget !== '') ? currentTarget : '';
-      }
+      const currentTarget = AppState.targetConflictN[sem];
+      const targetVal = (currentTarget !== null && currentTarget !== undefined && currentTarget !== '') ? currentTarget : '';
+      if (targetConflictNInput) targetConflictNInput.value = targetVal;
+      if (targetConflictNInput2) targetConflictNInput2.value = targetVal;
 
       savedPlansActiveTab = sem;
       renderSavedPlansList();
     }
 
-    // Target Conflict N Event Listeners
+    // Target Conflict N Event Listeners (Top & Timetable Toolbar)
+    targetConflictNInput?.addEventListener('input', () => {
+      if (targetConflictNInput2) targetConflictNInput2.value = targetConflictNInput.value;
+    });
+
+    targetConflictNInput2?.addEventListener('input', () => {
+      if (targetConflictNInput) targetConflictNInput.value = targetConflictNInput2.value;
+    });
+
     targetConflictNInput?.addEventListener('change', () => {
       const sem = AppState.currentSemester;
       const rawVal = targetConflictNInput.value.trim();
       if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
       if (rawVal === '') {
         AppState.targetConflictN[sem] = null;
+        if (targetConflictNInput2) targetConflictNInput2.value = '';
       } else {
         const val = Math.max(0, parseInt(rawVal, 10) || 0);
         targetConflictNInput.value = val;
+        if (targetConflictNInput2) targetConflictNInput2.value = val;
         AppState.targetConflictN[sem] = val;
       }
       saveAllState();
+    });
+
+    targetConflictNInput2?.addEventListener('change', () => {
+      if (targetConflictNInput) {
+        targetConflictNInput.value = targetConflictNInput2.value;
+        targetConflictNInput.dispatchEvent(new Event('change'));
+      }
     });
 
     targetConflictNInput?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         targetConflictNInput.blur();
-        runOptimization();
+        btnApplyTargetN?.click();
+      }
+    });
+
+    targetConflictNInput2?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        targetConflictNInput2.blur();
+        btnApplyTargetN2?.click();
       }
     });
 
@@ -3368,13 +3450,22 @@
       if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
       if (rawVal === '') {
         AppState.targetConflictN[sem] = null;
+        if (targetConflictNInput2) targetConflictNInput2.value = '';
       } else {
         const val = Math.max(0, parseInt(rawVal, 10) || 0);
         if (targetConflictNInput) targetConflictNInput.value = val;
+        if (targetConflictNInput2) targetConflictNInput2.value = val;
         AppState.targetConflictN[sem] = val;
       }
       saveAllState();
       runOptimization();
+    });
+
+    btnApplyTargetN2?.addEventListener('click', () => {
+      if (targetConflictNInput && targetConflictNInput2) {
+        targetConflictNInput.value = targetConflictNInput2.value;
+      }
+      btnApplyTargetN?.click();
     });
 
     btnResetConflictTarget?.addEventListener('click', () => {
@@ -3382,8 +3473,26 @@
       if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
       AppState.targetConflictN[sem] = null;
       if (targetConflictNInput) targetConflictNInput.value = '';
+      if (targetConflictNInput2) targetConflictNInput2.value = '';
       saveAllState();
       runOptimization();
+    });
+
+    btnResetConflictTarget2?.addEventListener('click', () => {
+      btnResetConflictTarget?.click();
+    });
+
+    // Replicated Timetable Toolbar Action Buttons
+    btnRegroup2?.addEventListener('click', () => {
+      btnRegroup?.click();
+    });
+
+    btnSavePlan2?.addEventListener('click', () => {
+      btnSavePlan?.click();
+    });
+
+    btnExportAllPlans2?.addEventListener('click', () => {
+      btnExportAllPlans?.click();
     });
 
     btnRestoreBestPlan?.addEventListener('click', () => {
@@ -3619,6 +3728,7 @@
 
     // 3) Global Multi-start Randomized Search & Range-Targeted Exploration
     function runOptimization() {
+      isConflictTableExpanded = false;
       const sem = AppState.currentSemester;
       const rawSubjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
       const closedList = AppState.closedSubjects?.[sem] || [];
@@ -4260,6 +4370,32 @@
       saveAllState();
     };
 
+    // Conflicted Students Table Accordion State (default: false = collapsed)
+    let isConflictTableExpanded = false;
+
+    window.toggleConflictTable = function(forceState) {
+      if (typeof forceState === 'boolean') {
+        isConflictTableExpanded = forceState;
+      } else {
+        isConflictTableExpanded = !isConflictTableExpanded;
+      }
+      const wrapper = document.getElementById('conflictTableWrapper');
+      const btn = document.getElementById('btnToggleConflictTable');
+      if (wrapper) {
+        if (isConflictTableExpanded) {
+          wrapper.classList.remove('hidden');
+        } else {
+          wrapper.classList.add('hidden');
+        }
+      }
+      if (btn) {
+        btn.innerHTML = isConflictTableExpanded 
+          ? '<span>명단 접기 ▲</span>' 
+          : '<span>명단 펼치기 ▼</span>';
+        btn.title = isConflictTableExpanded ? '세부 명단 접기' : '세부 명단 펼치기';
+      }
+    };
+
     // Render Group Cards
     function renderStep2Results() {
       const plan = AppState.currentPlan;
@@ -4298,7 +4434,7 @@
           conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200';
           conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 발생 (최적 탐색)`;
         }
-        conflictAlertBox.className = 'lg:col-span-2 w-full bg-rose-50/90 border border-rose-200 rounded-xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-all';
+        conflictAlertBox.className = 'lg:col-span-2 w-full bg-rose-50/90 border border-rose-200 rounded-xl p-4 shadow-sm space-y-2 flex flex-col justify-between transition-all';
         conflictAlertBox.classList.remove('hidden');
       }
 
@@ -4313,6 +4449,8 @@
             <td class="p-2 font-bold text-slate-800">${c.subjects}</td>
           </tr>
         `).join('');
+        // Maintain accordion state (default: collapsed)
+        window.toggleConflictTable(isConflictTableExpanded);
       }
 
       // Update Historical Best Minimum Conflict Display & Restore Button
@@ -5484,6 +5622,7 @@
 
       AppState.currentSemester = plan.semester;
       savedPlansActiveTab = plan.semester;
+      isConflictTableExpanded = false;
       AppState.currentPlan = {
         id: plan.id,
         name: plan.name,
