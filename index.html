@@ -942,11 +942,14 @@
                   </p>
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0">
-                  <button type="button" onclick="window.undoSubjectSwap();" id="btnGroupCardsUndoSwap" class="hidden px-2.5 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-300 shadow-2xs transition" title="방금 맞교환 되돌리기">
-                    ↩️ 교환 취소
+                  <button type="button" onclick="window.completeSubjectSwap();" id="btnGroupCardsCompleteSwap" class="hidden px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-lg border border-emerald-300 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="현재 과목 배치를 확정하고 맞교환 작업을 완료합니다">
+                    <span>✅ 교환 완료</span>
+                  </button>
+                  <button type="button" onclick="window.undoSubjectSwap();" id="btnGroupCardsUndoSwap" class="hidden px-2.5 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-300 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="방금 맞교환 되돌리기">
+                    <span>↩️ 교환 취소</span>
                   </button>
                   <button type="button" onclick="window.cancelSubjectSwap();" id="btnGroupCardsCancelSwap" class="hidden px-2.5 py-1 text-xs font-bold text-amber-800 bg-white hover:bg-amber-100 rounded-lg border border-amber-300 shadow-2xs transition">
-                    선택 취소 ✕
+                    <span>선택 취소 ✕</span>
                   </button>
                 </div>
               </div>
@@ -1088,6 +1091,9 @@
               </div>
             </div>
             <div class="flex items-center gap-2">
+              <button id="btnCompleteTableSwap" type="button" onclick="window.completeSubjectSwap();" class="hidden px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-lg border border-emerald-300 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="현재 과목 배치를 확정하고 맞교환 작업을 완료합니다">
+                <span>✅ 교환 완료</span>
+              </button>
               <button id="btnExitSwapMode" type="button" class="px-2.5 py-1 text-xs font-bold bg-white text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-300 shadow-2xs transition">
                 교환 모드 종료 ✕
               </button>
@@ -4640,11 +4646,30 @@
       // Group Cards area banner elements
       const gcBanner = document.getElementById('groupCardsSwapBanner');
       const gcBannerText = document.getElementById('groupCardsSwapBannerText');
+      const gcCompleteBtn = document.getElementById('btnGroupCardsCompleteSwap');
       const gcUndoBtn = document.getElementById('btnGroupCardsUndoSwap');
       const gcCancelBtn = document.getElementById('btnGroupCardsCancelSwap');
 
+      const tblCompleteBtn = document.getElementById('btnCompleteTableSwap');
+
       const hasUndo = subjectSwapState.undoStack && subjectSwapState.undoStack.length > 0;
       const lastUndo = hasUndo ? subjectSwapState.undoStack[subjectSwapState.undoStack.length - 1] : null;
+
+      // Update complete buttons
+      if (gcCompleteBtn) {
+        if (hasUndo) {
+          gcCompleteBtn.classList.remove('hidden');
+        } else {
+          gcCompleteBtn.classList.add('hidden');
+        }
+      }
+      if (tblCompleteBtn) {
+        if (hasUndo) {
+          tblCompleteBtn.classList.remove('hidden');
+        } else {
+          tblCompleteBtn.classList.add('hidden');
+        }
+      }
 
       // Update undo buttons
       if (undoBtn) {
@@ -4906,6 +4931,22 @@
         bannerText.innerHTML = undoMsg;
       }
       updateSubjectSwapUI(undoMsg);
+    };
+
+    window.completeSubjectSwap = function() {
+      const swapCount = subjectSwapState.undoStack ? subjectSwapState.undoStack.length : 0;
+      subjectSwapState.active = false;
+      subjectSwapState.selectedSubject = null;
+      subjectSwapState.selectedGroupIdx = null;
+      subjectSwapState.undoStack = [];
+
+      renderStep2Results();
+      updateSubjectSwapUI();
+      saveAllState();
+
+      if (swapCount > 0) {
+        alert(`✅ 과목 맞교환 작업이 확정·완료되었습니다.\n(현재 편성 충돌: ${AppState.currentPlan ? AppState.currentPlan.conflictCount : 0}명)`);
+      }
     };
 
     // Filter and Sort state for Student Schedule Table
