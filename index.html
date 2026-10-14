@@ -1149,6 +1149,15 @@
         };
       },
 
+      cellBorders(top = true, bottom = true, left = true, right = true, thickTop = false, thickBottom = false, thickLeft = false, thickRight = false) {
+        return {
+          top: top ? { style: thickTop ? 'medium' : 'thin', color: { rgb: thickTop ? this.colors.borderThick : this.colors.borderGrid } } : undefined,
+          bottom: bottom ? { style: thickBottom ? 'medium' : 'thin', color: { rgb: thickBottom ? this.colors.borderThick : this.colors.borderGrid } } : undefined,
+          left: left ? { style: thickLeft ? 'medium' : 'thin', color: { rgb: thickLeft ? this.colors.borderThick : this.colors.borderGrid } } : undefined,
+          right: right ? { style: thickRight ? 'medium' : 'thin', color: { rgb: thickRight ? this.colors.borderThick : this.colors.borderGrid } } : undefined
+        };
+      },
+
       setCell(ws, r, c, style) {
         const ref = XLSX.utils.encode_cell({ r, c });
         if (!ws[ref]) {
@@ -4755,10 +4764,10 @@
     btnSaveMemo?.addEventListener('click', saveCurrentWorkMemo);
 
     window.handleSavedPlanMemoChange = function(planId, text) {
-      const plan = AppState.savedPlans.find(p => p.id === planId);
+      const plan = AppState.savedPlans.find(p => p.id === planId || String(p.id) === String(planId));
       if (plan) {
         plan.memo = text;
-        if (AppState.currentPlan && AppState.currentPlan.id === planId) {
+        if (AppState.currentPlan && (AppState.currentPlan.id === planId || String(AppState.currentPlan.id) === String(planId))) {
           AppState.currentPlan.memo = text;
           const memoTextarea = document.getElementById('planWorkMemo');
           if (memoTextarea && memoTextarea.value !== text) {
@@ -4856,21 +4865,21 @@
               class="w-full text-xs p-2.5 border border-slate-300 hover:border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 bg-slate-50/60 hover:bg-white focus:bg-white transition leading-relaxed resize-y font-sans" 
               placeholder="이 안에 대한 검토 의견, 교사 배정 메모, 학생 특이사항 등을 자유롭게 기록하세요..."
               data-plan-id="${plan.id}"
-              oninput="window.handleSavedPlanMemoChange(${plan.id}, this.value)"
+              oninput="window.handleSavedPlanMemoChange('${plan.id}', this.value)"
             >${escapeHtml(plan.memo || '')}</textarea>
           </div>
 
           <!-- Action Toolbar -->
           <div class="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2">
             <div class="flex items-center space-x-2">
-              <button class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1" onclick="loadSavedPlan(${plan.id})">
+              <button class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1" onclick="loadSavedPlan('${plan.id}')">
                 <span>👁️ 학생별 배정 시간표 보기 & 적용</span>
               </button>
-              <button class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1" onclick="exportSinglePlanExcel(${plan.id})">
+              <button class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1" onclick="exportSinglePlanExcel('${plan.id}')">
                 <span>📥 이 안 엑셀 다운로드 (.xlsx)</span>
               </button>
             </div>
-            <button class="text-xs text-rose-500 hover:text-rose-700 font-bold px-2 py-1 hover:bg-rose-50 rounded transition-colors" title="후보안 삭제" onclick="deleteSavedPlan(${plan.id})">
+            <button class="text-xs text-rose-500 hover:text-rose-700 font-bold px-2 py-1 hover:bg-rose-50 rounded transition-colors" title="후보안 삭제" onclick="deleteSavedPlan('${plan.id}')">
               삭제
             </button>
           </div>
@@ -4879,12 +4888,16 @@
     }
 
     window.loadSavedPlan = function(planId) {
-      const plan = AppState.savedPlans.find(p => p.id === planId);
-      if (!plan) return;
+      const plan = AppState.savedPlans.find(p => p.id === planId || String(p.id) === String(planId));
+      if (!plan) {
+        alert('선택한 저장안을 찾을 수 없습니다.');
+        return;
+      }
 
       AppState.currentSemester = plan.semester;
       AppState.currentPlan = {
         id: plan.id,
+        name: plan.name,
         semester: plan.semester,
         groups: JSON.parse(JSON.stringify(plan.groups)),
         conflictCount: plan.conflictCount,
@@ -4894,23 +4907,35 @@
         timestamp: plan.timestamp
       };
 
-      // Restore toggles
+      // Restore toggles UI without re-running optimization
       if (plan.semester === 1) {
-        step2Sem1Btn.click();
+        step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
+        step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
       } else {
-        step2Sem2Btn.click();
+        step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
+        step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
       }
 
+      initStep2Controls();
       renderStep2Results();
+
       const memoTextarea = document.getElementById('planWorkMemo');
       if (memoTextarea) {
         memoTextarea.value = plan.memo || '';
       }
+
+      // Smooth scroll to timetable so user immediately sees the applied timetable
+      const timetableSection = document.getElementById('scheduleTableContainer') || document.getElementById('groupCardsAndConflictWrapper');
+      if (timetableSection) {
+        timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      alert(`📂 [${plan.name}]의 학생별 이동수업 시간표 및 그룹 배치가 화면에 적용되었습니다.`);
     };
 
     window.deleteSavedPlan = function(planId) {
       if (confirm('이 저장안을 삭제하시겠습니까?')) {
-        AppState.savedPlans = AppState.savedPlans.filter(p => p.id !== planId);
+        AppState.savedPlans = AppState.savedPlans.filter(p => p.id !== planId && String(p.id) !== String(planId));
         renderSavedPlansList();
         saveAllState();
       }
@@ -5317,30 +5342,39 @@
 
     // Export Single Plan as Formatted Excel
     window.exportSinglePlanExcel = function(planId) {
-      const plan = AppState.savedPlans.find(p => p.id === planId) || AppState.currentPlan;
-      if (!plan) return;
+      const plan = AppState.savedPlans.find(p => p.id === planId || String(p.id) === String(planId)) || AppState.currentPlan;
+      if (!plan) {
+        alert('다운로드할 저장안 정보를 찾을 수 없습니다.');
+        return;
+      }
 
-      const wb = XLSX.utils.book_new();
-      buildStyledPlanSheets(wb, plan, 0);
+      try {
+        const wb = XLSX.utils.book_new();
+        buildStyledPlanSheets(wb, plan, 0);
 
-      // Embedded State Sheet for 100% restoration
-      const serializedState = JSON.stringify({
-        detectedGrade: AppState.detectedGrade,
-        students: AppState.students,
-        sem1Subjects: AppState.sem1Subjects,
-        sem2Subjects: AppState.sem2Subjects,
-        sem1GroupCount: AppState.sem1GroupCount,
-        sem2GroupCount: AppState.sem2GroupCount,
-        splitSubjects: AppState.splitSubjects,
-        pinnedSubjects: AppState.pinnedSubjects,
-        studentPins: AppState.studentPins,
-        savedPlans: [plan]
-      });
-      const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
-      XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
+        // Embedded State Sheet for 100% restoration
+        const serializedState = JSON.stringify({
+          detectedGrade: AppState.detectedGrade,
+          students: AppState.students,
+          sem1Subjects: AppState.sem1Subjects,
+          sem2Subjects: AppState.sem2Subjects,
+          sem1GroupCount: AppState.sem1GroupCount,
+          sem2GroupCount: AppState.sem2GroupCount,
+          splitSubjects: AppState.splitSubjects,
+          pinnedSubjects: AppState.pinnedSubjects,
+          studentPins: AppState.studentPins,
+          savedPlans: [plan]
+        });
+        const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
+        XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
-      const outFileName = `[상지대관령고]_${AppState.detectedGrade}_${plan.name.replace(/[\s\(\):]/g, '_')}_시간표.xlsx`;
-      XLSX.writeFile(wb, outFileName);
+        const outFileName = `[상지대관령고]_${AppState.detectedGrade}_${plan.name.replace(/[\s\(\):]/g, '_')}_시간표.xlsx`;
+        XLSX.writeFile(wb, outFileName);
+        alert(`📥 [${plan.name}] 엑셀 파일이 다운로드되었습니다!\n(${outFileName})`);
+      } catch (err) {
+        console.error('exportSinglePlanExcel error:', err);
+        alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
+      }
     };
 
     // COMBINED EXCEL EXPORT (Contains all saved plans formatted neatly)
