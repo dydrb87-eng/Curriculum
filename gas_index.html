@@ -4802,6 +4802,7 @@
         studentGroupOverlaps: JSON.parse(JSON.stringify(studentGroupOverlaps)),
         customAssignments: JSON.parse(JSON.stringify(AppState.currentPlan.customAssignments || {})),
         memo: AppState.currentPlan.memo || '',
+        confirmed: false,
         splitConfig: JSON.parse(JSON.stringify(AppState.splitSubjects[sem] || {})),
         pinnedConfig: JSON.parse(JSON.stringify(AppState.pinnedSubjects[sem] || {})),
         timestamp: new Date().toLocaleTimeString()
@@ -4814,6 +4815,15 @@
       alert(`⭐ [${planName}]이 저장되었습니다!\n아래 '저장된 그룹핑 후보안 목록'에서 개별 메모 작성, 다운로드 및 시간표 확인이 가능합니다.`);
     });
 
+    window.togglePlanConfirmed = function(planId) {
+      const plan = AppState.savedPlans.find(p => p.id === planId || String(p.id) === String(planId));
+      if (plan) {
+        plan.confirmed = !plan.confirmed;
+        renderSavedPlansList();
+        saveAllState();
+      }
+    };
+
     function renderSavedPlansList() {
       if (statSavedPlansCount) {
         statSavedPlansCount.textContent = `${AppState.savedPlans.length}개`;
@@ -4824,28 +4834,50 @@
         return;
       }
 
-      savedPlansList.innerHTML = AppState.savedPlans.map((plan, idx) => `
-        <div class="w-full bg-white border-2 border-slate-200 hover:border-blue-400 rounded-xl p-4 shadow-sm space-y-3 transition-all">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2 gap-2">
-            <div class="flex items-center space-x-2">
-              <span class="w-6 h-6 rounded-md bg-indigo-600 text-white font-black text-xs flex items-center justify-center">${idx + 1}</span>
+      savedPlansList.innerHTML = AppState.savedPlans.map((plan, idx) => {
+        const isConfirmed = Boolean(plan.confirmed);
+        const cardStyle = isConfirmed 
+          ? 'w-full bg-amber-50/85 border-2 border-amber-400 ring-2 ring-amber-300/50 rounded-xl p-4 shadow-md space-y-3 transition-all'
+          : 'w-full bg-white border-2 border-slate-200 hover:border-blue-400 rounded-xl p-4 shadow-sm space-y-3 transition-all';
+
+        const numBadgeStyle = isConfirmed
+          ? 'w-6 h-6 rounded-md bg-amber-500 text-amber-950 font-black text-xs flex items-center justify-center shadow-xs'
+          : 'w-6 h-6 rounded-md bg-indigo-600 text-white font-black text-xs flex items-center justify-center';
+
+        const confirmBtnClass = isConfirmed
+          ? 'px-2.5 py-1 text-xs font-bold rounded-lg border border-amber-500 bg-amber-400 hover:bg-amber-500 text-amber-950 transition shadow-2xs flex items-center gap-1 cursor-pointer'
+          : 'px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 transition shadow-2xs flex items-center gap-1 cursor-pointer';
+
+        return `
+        <div class="${cardStyle}">
+          <div class="flex flex-wrap items-center justify-between border-b ${isConfirmed ? 'border-amber-200' : 'border-slate-100'} pb-2 gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="${numBadgeStyle}">${idx + 1}</span>
               <h5 class="text-sm font-bold text-slate-900">${plan.name}</h5>
               ${plan.conflictCount === 0 
                 ? '<span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200">충돌 0명 (최적)</span>' 
                 : `<span class="text-[10px] font-bold px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full border border-rose-300">충돌 ${plan.conflictCount}명</span>`}
+              
+              <!-- 확인 (중요안 지정 버튼) -->
+              <button type="button" 
+                      onclick="window.togglePlanConfirmed('${plan.id}')" 
+                      class="${confirmBtnClass}"
+                      title="${isConfirmed ? '클릭 시 중요 표시 해제' : '중요하게 생각하는 안으로 확인 표시 (노란색 강조)'}">
+                <span>${isConfirmed ? '⭐ 확인됨' : '확인'}</span>
+              </button>
             </div>
-            <span class="text-[11px] text-slate-400 font-medium">저장 시각: ${plan.timestamp}</span>
+            <span class="text-[11px] ${isConfirmed ? 'text-amber-800 font-semibold' : 'text-slate-400 font-medium'}">저장 시각: ${plan.timestamp}</span>
           </div>
 
           <!-- Group Structure Preview -->
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-xs">
             ${plan.groups.map((gSubjs, gIdx) => `
-              <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
-                <div class="font-bold text-slate-800 border-b border-slate-200 pb-1 mb-1 text-[11px] flex justify-between items-center">
+              <div class="${isConfirmed ? 'bg-amber-100/70 border-amber-300' : 'bg-slate-50 border-slate-200'} p-2 rounded-lg border transition">
+                <div class="font-bold ${isConfirmed ? 'text-amber-950 border-amber-300' : 'text-slate-800 border-slate-200'} border-b pb-1 mb-1 text-[11px] flex justify-between items-center">
                   <span>${gIdx + 1}그룹</span>
-                  <span class="text-slate-400 text-[10px]">(${gSubjs.length}과목)</span>
+                  <span class="${isConfirmed ? 'text-amber-700' : 'text-slate-400'} text-[10px]">(${gSubjs.length}과목)</span>
                 </div>
-                <div class="text-[11px] text-slate-600 space-y-0.5 truncate" title="${gSubjs.join(', ')}">
+                <div class="text-[11px] ${isConfirmed ? 'text-amber-900' : 'text-slate-600'} space-y-0.5 truncate" title="${gSubjs.join(', ')}">
                   ${gSubjs.join(', ') || '<span class="text-slate-300 italic">없음</span>'}
                 </div>
               </div>
@@ -4853,16 +4885,16 @@
           </div>
 
           <!-- Dedicated Work Memo & Notes for this Saved Plan -->
-          <div class="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5">
+          <div class="mt-2.5 pt-2.5 border-t ${isConfirmed ? 'border-amber-200' : 'border-slate-100'} space-y-1.5">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <label class="text-xs font-bold ${isConfirmed ? 'text-amber-950' : 'text-slate-700'} flex items-center gap-1.5">
                 <span>📝 시간표 작업 메모 및 특이사항:</span>
               </label>
-              <span class="text-[11px] text-slate-400 font-normal">입력 시 자동 저장되며 엑셀 다운로드에 포함됩니다</span>
+              <span class="text-[11px] ${isConfirmed ? 'text-amber-700' : 'text-slate-400'} font-normal">입력 시 자동 저장되며 엑셀 다운로드에 포함됩니다</span>
             </div>
             <textarea 
               rows="2" 
-              class="w-full text-xs p-2.5 border border-slate-300 hover:border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 bg-slate-50/60 hover:bg-white focus:bg-white transition leading-relaxed resize-y font-sans" 
+              class="w-full text-xs p-2.5 border ${isConfirmed ? 'border-amber-300 bg-white/95 focus:border-amber-500' : 'border-slate-300 bg-slate-50/60 focus:ring-blue-500'} hover:border-slate-400 rounded-lg focus:ring-2 outline-none placeholder-slate-400 hover:bg-white focus:bg-white transition leading-relaxed resize-y font-sans" 
               placeholder="이 안에 대한 검토 의견, 교사 배정 메모, 학생 특이사항 등을 자유롭게 기록하세요..."
               data-plan-id="${plan.id}"
               oninput="window.handleSavedPlanMemoChange('${plan.id}', this.value)"
@@ -4870,7 +4902,7 @@
           </div>
 
           <!-- Action Toolbar -->
-          <div class="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2">
+          <div class="flex flex-wrap items-center justify-between pt-2 border-t ${isConfirmed ? 'border-amber-200' : 'border-slate-100'} gap-2">
             <div class="flex items-center space-x-2">
               <button class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1" onclick="loadSavedPlan('${plan.id}')">
                 <span>👁️ 학생별 배정 시간표 보기 & 적용</span>
@@ -4884,7 +4916,8 @@
             </button>
           </div>
         </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     window.loadSavedPlan = function(planId) {
