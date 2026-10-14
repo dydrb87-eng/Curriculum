@@ -4434,6 +4434,7 @@
     function renderStudentScheduleTable() {
       const plan = AppState.currentPlan;
       if (!plan) return;
+      const sem = plan.semester || AppState.currentSemester;
 
       const { groupCounts, studentAssignments } = analyzeGroupConflicts(plan);
       const searchVal = (document.getElementById('step2StudentSearchInput')?.value || '').trim().toLowerCase();
