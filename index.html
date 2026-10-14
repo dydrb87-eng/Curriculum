@@ -579,26 +579,27 @@
               <span class="text-xs text-slate-500 font-medium" id="groupCountInfo"></span>
             </div>
 
-            <!-- NEW: Conflict Target Range Controls -->
+            <!-- NEW: Target Conflict N Controls (초기화 또는 N명 지정) -->
             <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
               <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
                 <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                <span>충돌 허용 범위 설정:</span>
+                <span>충돌 목표 설정:</span>
               </span>
               <div class="flex items-center gap-1">
-                <input type="number" id="targetMinConflictInput" min="0" max="100" value="0" class="w-12 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white" title="최소 충돌 학생 수">
-                <span class="text-xs text-slate-400 font-bold">~</span>
-                <input type="number" id="targetMaxConflictInput" min="0" max="100" value="0" class="w-12 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white" title="최대 충돌 학생 수">
+                <input type="number" id="targetConflictNInput" min="0" max="100" placeholder="최적" class="w-16 px-1.5 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="특정 충돌 인원 수 (비워두면 0명/최저 충돌 탐색)">
                 <span class="text-xs text-slate-600 font-bold mr-1">명</span>
               </div>
-              <button id="btnApplyConflictRange" type="button" class="px-2 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-slate-300 hover:border-blue-400 rounded-lg text-[11px] font-bold transition shadow-2xs" title="입력한 충돌 범위 내에서 조합 탐색 실행">
-                범위 적용
+              <button id="btnApplyTargetN" type="button" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition shadow-2xs" title="입력한 N명 충돌에 해당하는 다양한 경우의 수 탐색">
+                N명 탐색
+              </button>
+              <button id="btnResetConflictTarget" type="button" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition shadow-2xs" title="목표 충돌 설정을 비우고 최적(0명/최소) 조합을 탐색">
+                ↺ 초기화 (최적)
               </button>
             </div>
 
             <!-- Action Buttons: Refresh (Regroup), Save Plan, Combined Export -->
             <div class="flex flex-wrap items-center gap-2">
-              <button id="btnRegroup" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors flex items-center space-x-1.5" title="설정한 조건 및 충돌 범위 내에서 새로운 조합을 탐색합니다">
+              <button id="btnRegroup" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors flex items-center space-x-1.5" title="설정한 조건 및 충돌 목표에 맞춰 새로운 조합을 탐색합니다">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
@@ -884,10 +885,10 @@
       // Saved candidate proposals
       savedPlans: [], // Array of saved plan objects
 
-      // Target Conflict Range & Historical Best Tracker
-      targetConflictRange: {
-        1: { min: 0, max: 0 },
-        2: { min: 0, max: 0 }
+      // Target Conflict N (null: optimal / number: exact N) & Historical Best Tracker
+      targetConflictN: {
+        1: null,
+        2: null
       },
       simulationHistory: {
         1: { runCount: 0, minConflictEver: null, minConflictPlan: null },
@@ -1105,10 +1106,10 @@
     const statSavedPlansCount = document.getElementById('statSavedPlansCount');
     const savedPlansList = document.getElementById('savedPlansList');
 
-    // Conflict Range & Historical Minimum Elements
-    const targetMinConflictInput = document.getElementById('targetMinConflictInput');
-    const targetMaxConflictInput = document.getElementById('targetMaxConflictInput');
-    const btnApplyConflictRange = document.getElementById('btnApplyConflictRange');
+    // Conflict Target & Historical Minimum Elements
+    const targetConflictNInput = document.getElementById('targetConflictNInput');
+    const btnApplyTargetN = document.getElementById('btnApplyTargetN');
+    const btnResetConflictTarget = document.getElementById('btnResetConflictTarget');
     const statBestConflictCount = document.getElementById('statBestConflictCount');
     const btnRestoreBestPlan = document.getElementById('btnRestoreBestPlan');
 
@@ -2930,46 +2931,62 @@
       }
       pinStudentGroupSelect.innerHTML = grpOptions;
 
-      // 4. Target Conflict Range Sync
-      if (!AppState.targetConflictRange) {
-        AppState.targetConflictRange = { 1: { min: 0, max: 0 }, 2: { min: 0, max: 0 } };
+      // 4. Target Conflict N Sync
+      if (!AppState.targetConflictN) {
+        AppState.targetConflictN = { 1: null, 2: null };
       }
-      if (!AppState.targetConflictRange[sem]) {
-        AppState.targetConflictRange[sem] = { min: 0, max: 0 };
+      if (targetConflictNInput) {
+        const currentTarget = AppState.targetConflictN[sem];
+        targetConflictNInput.value = (currentTarget !== null && currentTarget !== undefined && currentTarget !== '') ? currentTarget : '';
       }
-      if (targetMinConflictInput) targetMinConflictInput.value = AppState.targetConflictRange[sem].min ?? 0;
-      if (targetMaxConflictInput) targetMaxConflictInput.value = AppState.targetConflictRange[sem].max ?? 0;
 
       renderStudentPinsList();
     }
 
-    // Target Conflict Range Event Listeners
-    targetMinConflictInput?.addEventListener('change', () => {
+    // Target Conflict N Event Listeners
+    targetConflictNInput?.addEventListener('change', () => {
       const sem = AppState.currentSemester;
-      const minVal = Math.max(0, parseInt(targetMinConflictInput.value, 10) || 0);
-      targetMinConflictInput.value = minVal;
-      if (!AppState.targetConflictRange) AppState.targetConflictRange = { 1: { min: 0, max: 0 }, 2: { min: 0, max: 0 } };
-      if (!AppState.targetConflictRange[sem]) AppState.targetConflictRange[sem] = { min: 0, max: 0 };
-      AppState.targetConflictRange[sem].min = minVal;
-      if (parseInt(targetMaxConflictInput.value, 10) < minVal) {
-        targetMaxConflictInput.value = minVal;
-        AppState.targetConflictRange[sem].max = minVal;
+      const rawVal = targetConflictNInput.value.trim();
+      if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
+      if (rawVal === '') {
+        AppState.targetConflictN[sem] = null;
+      } else {
+        const val = Math.max(0, parseInt(rawVal, 10) || 0);
+        targetConflictNInput.value = val;
+        AppState.targetConflictN[sem] = val;
       }
       saveAllState();
     });
 
-    targetMaxConflictInput?.addEventListener('change', () => {
-      const sem = AppState.currentSemester;
-      const minVal = Math.max(0, parseInt(targetMinConflictInput.value, 10) || 0);
-      const maxVal = Math.max(minVal, parseInt(targetMaxConflictInput.value, 10) || 0);
-      targetMaxConflictInput.value = maxVal;
-      if (!AppState.targetConflictRange) AppState.targetConflictRange = { 1: { min: 0, max: 0 }, 2: { min: 0, max: 0 } };
-      if (!AppState.targetConflictRange[sem]) AppState.targetConflictRange[sem] = { min: 0, max: 0 };
-      AppState.targetConflictRange[sem].max = maxVal;
-      saveAllState();
+    targetConflictNInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        targetConflictNInput.blur();
+        runOptimization();
+      }
     });
 
-    btnApplyConflictRange?.addEventListener('click', () => {
+    btnApplyTargetN?.addEventListener('click', () => {
+      const sem = AppState.currentSemester;
+      const rawVal = targetConflictNInput ? targetConflictNInput.value.trim() : '';
+      if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
+      if (rawVal === '') {
+        AppState.targetConflictN[sem] = null;
+      } else {
+        const val = Math.max(0, parseInt(rawVal, 10) || 0);
+        if (targetConflictNInput) targetConflictNInput.value = val;
+        AppState.targetConflictN[sem] = val;
+      }
+      saveAllState();
+      runOptimization();
+    });
+
+    btnResetConflictTarget?.addEventListener('click', () => {
+      const sem = AppState.currentSemester;
+      if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
+      AppState.targetConflictN[sem] = null;
+      if (targetConflictNInput) targetConflictNInput.value = '';
+      saveAllState();
       runOptimization();
     });
 
@@ -3122,24 +3139,23 @@
       if (!subjects || subjects.length === 0 || groupCount <= 0) return;
 
       // Ensure state objects exist
-      if (!AppState.targetConflictRange) AppState.targetConflictRange = { 1: { min: 0, max: 0 }, 2: { min: 0, max: 0 } };
-      if (!AppState.targetConflictRange[sem]) AppState.targetConflictRange[sem] = { min: 0, max: 0 };
+      if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
+      if (AppState.targetConflictN[sem] === undefined) AppState.targetConflictN[sem] = null;
       if (!AppState.simulationHistory) AppState.simulationHistory = { 1: { runCount: 0, minConflictEver: null, minConflictPlan: null }, 2: { runCount: 0, minConflictEver: null, minConflictPlan: null } };
       if (!AppState.simulationHistory[sem]) AppState.simulationHistory[sem] = { runCount: 0, minConflictEver: null, minConflictPlan: null };
 
-      // Parse user's target conflict range
-      let targetMin = 0;
-      let targetMax = 0;
-      if (targetMinConflictInput && targetMaxConflictInput) {
-        targetMin = Math.max(0, parseInt(targetMinConflictInput.value, 10) || 0);
-        targetMax = Math.max(targetMin, parseInt(targetMaxConflictInput.value, 10) || 0);
-        AppState.targetConflictRange[sem] = { min: targetMin, max: targetMax };
+      // Parse user's target conflict N (null: 최적 탐색, number: N명 다양한 경우의 수 탐색)
+      let targetN = null;
+      if (targetConflictNInput && targetConflictNInput.value.trim() !== '') {
+        targetN = Math.max(0, parseInt(targetConflictNInput.value.trim(), 10) || 0);
+        AppState.targetConflictN[sem] = targetN;
+      } else if (AppState.targetConflictN && AppState.targetConflictN[sem] !== null && AppState.targetConflictN[sem] !== undefined) {
+        targetN = AppState.targetConflictN[sem];
       } else {
-        targetMin = AppState.targetConflictRange[sem].min || 0;
-        targetMax = AppState.targetConflictRange[sem].max || 0;
+        AppState.targetConflictN[sem] = null;
       }
 
-      const isRangeMode = (targetMin > 0 || targetMax > 0);
+      const isTargetNMode = (targetN !== null);
 
       // Expand subject tokens (handling splits: Japanese-A, Japanese-B)
       const subjectTokens = [];
@@ -3193,8 +3209,11 @@
       let globalBestConflicts = 999999;
       let globalBestStudentConflicts = 999999;
 
-      // Candidate solutions that fall within the user-specified range [targetMin, targetMax]
-      const validRangeCandidates = [];
+      // Candidate solutions that match target N
+      const exactNCandidates = [];
+      const seenSignatures = new Set();
+      let closestCandidate = null;
+      let closestDiff = 999999;
 
       const iterations = 1000; // Thorough exploration
 
@@ -3215,23 +3234,27 @@
         // Shuffle remaining tokens using Fisher-Yates
         shuffleArray(unassignedTokens);
 
-        // In Range Mode, adjust weights dynamically so search moves and explores within range
-        // rather than strictly collapsing to 0
+        // Dynamic heuristic weights:
+        // In pure optimal mode (!isTargetNMode), greedily minimize overlaps.
+        // In target N mode (isTargetNMode), vary search tension to discover diverse non-zero conflict topologies.
         let overlapWeight = 4.0;
         let balanceWeight = 1.5;
-        if (isRangeMode) {
-          if (iter % 3 === 0) {
-            // Balanced group sizing exploration
-            overlapWeight = 1.8 + Math.random() * 1.5;
-            balanceWeight = 3.5;
-          } else if (iter % 3 === 1) {
-            // Relaxed co-occurrence exploration
-            overlapWeight = 0.8 + Math.random() * 1.5;
-            balanceWeight = 2.0;
+
+        if (isTargetNMode) {
+          if (targetN === 0) {
+            overlapWeight = 3.5 + Math.random() * 1.5;
+            balanceWeight = 1.2 + Math.random() * 1.0;
           } else {
-            // Standard co-occurrence avoidance
-            overlapWeight = 3.5 + Math.random() * 1.0;
-            balanceWeight = 1.5;
+            if (iter % 3 === 0) {
+              overlapWeight = 0.6 + Math.random() * 1.8;
+              balanceWeight = 2.5 + Math.random() * 1.5;
+            } else if (iter % 3 === 1) {
+              overlapWeight = 1.8 + Math.random() * 1.8;
+              balanceWeight = 1.2 + Math.random() * 1.0;
+            } else {
+              overlapWeight = 3.2 + Math.random() * 1.5;
+              balanceWeight = 1.5;
+            }
           }
         }
 
@@ -3272,40 +3295,61 @@
         // Evaluate candidate configuration
         const { totalConflicts, conflictedStudentCount } = evaluateCandidateConflicts(currentGroups, studentsChoices, studentPinsForSem);
 
-        // 1. Always update global best (for historical lowest record tracking)
+        // 1. Always update global best (for historical lowest record tracking & fallback)
         if (conflictedStudentCount < globalBestStudentConflicts || (conflictedStudentCount === globalBestStudentConflicts && totalConflicts < globalBestConflicts)) {
           globalBestStudentConflicts = conflictedStudentCount;
           globalBestConflicts = totalConflicts;
           globalBestGroups = currentGroups.map(g => [...g]);
 
-          if (!isRangeMode && globalBestStudentConflicts === 0 && globalBestConflicts === 0) {
-            break; // In pure 0-conflict mode, stop early on optimal zero
+          if (!isTargetNMode && globalBestStudentConflicts === 0 && globalBestConflicts === 0) {
+            break; // In pure 최적(0명) 탐색 mode, stop early on optimal zero
           }
-        } else if (!isRangeMode && conflictedStudentCount === globalBestStudentConflicts && totalConflicts === globalBestConflicts) {
+        } else if (!isTargetNMode && conflictedStudentCount === globalBestStudentConflicts && totalConflicts === globalBestConflicts) {
           if (Math.random() < 0.3) {
             globalBestGroups = currentGroups.map(g => [...g]);
           }
         }
 
-        // 2. In Range Mode: check if within user's target range
-        if (isRangeMode && conflictedStudentCount >= targetMin && conflictedStudentCount <= targetMax) {
-          // Calculate group size variance (evenness of classes)
-          const sizes = currentGroups.map(g => g.length);
-          const avgSize = sizes.reduce((a, b) => a + b, 0) / sizes.length;
-          const variance = sizes.reduce((sum, s) => sum + Math.pow(s - avgSize, 2), 0) / sizes.length;
-          const balanceScore = variance * 2 + totalConflicts * 1.5;
+        // 2. In Target N Mode: collect exact matching configurations and track closest
+        if (isTargetNMode) {
+          const diff = Math.abs(conflictedStudentCount - targetN);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closestCandidate = {
+              groups: currentGroups.map(g => [...g]),
+              studentConflictCount: conflictedStudentCount,
+              totalConflicts
+            };
+          }
 
-          validRangeCandidates.push({
-            groups: currentGroups.map(g => [...g]),
-            studentConflictCount: conflictedStudentCount,
-            totalConflicts,
-            balanceScore
-          });
+          if (conflictedStudentCount === targetN) {
+            // Signature to ensure diverse configurations are collected without exact duplicate groups
+            const sig = currentGroups
+              .map(g => g.map(t => t.name).sort().join(','))
+              .sort()
+              .join('|');
 
-          // Cap candidate pool
-          if (validRangeCandidates.length >= 60) {
-            validRangeCandidates.sort((a, b) => a.balanceScore - b.balanceScore);
-            validRangeCandidates.splice(30);
+            if (!seenSignatures.has(sig)) {
+              seenSignatures.add(sig);
+
+              // Calculate group size variance (evenness of classes)
+              const sizes = currentGroups.map(g => g.length);
+              const avgSize = sizes.reduce((a, b) => a + b, 0) / sizes.length;
+              const variance = sizes.reduce((sum, s) => sum + Math.pow(s - avgSize, 2), 0) / sizes.length;
+              const balanceScore = variance * 2 + totalConflicts * 1.5;
+
+              exactNCandidates.push({
+                groups: currentGroups.map(g => [...g]),
+                studentConflictCount: conflictedStudentCount,
+                totalConflicts,
+                balanceScore
+              });
+            }
+
+            // In Target 0 mode, after gathering a good pool of diverse 0-conflict arrangements, break early
+            if (targetN === 0 && exactNCandidates.length >= 25) {
+              break;
+            }
           }
         }
       }
@@ -3313,12 +3357,15 @@
       // Determine chosen groups
       let chosenGroups = null;
 
-      if (isRangeMode && validRangeCandidates.length > 0) {
-        // Sort by balanceScore and pick randomly from the top candidate tier so every refresh gives a varied combination in range
-        validRangeCandidates.sort((a, b) => a.balanceScore - b.balanceScore);
-        const topPool = validRangeCandidates.slice(0, Math.min(8, validRangeCandidates.length));
-        const picked = topPool[Math.floor(Math.random() * topPool.length)];
+      if (isTargetNMode && exactNCandidates.length > 0) {
+        // Pick randomly from the exact matches pool so every refresh/run provides a varied combination!
+        exactNCandidates.sort((a, b) => a.balanceScore - b.balanceScore);
+        const candidatePoolSize = Math.min(10, exactNCandidates.length);
+        const picked = exactNCandidates[Math.floor(Math.random() * candidatePoolSize)];
         chosenGroups = picked.groups;
+      } else if (isTargetNMode && closestCandidate) {
+        // If exact N wasn't reached in 1000 iterations, use the closest found candidate
+        chosenGroups = closestCandidate.groups;
       } else {
         // Fallback to global best (minimal conflicts)
         chosenGroups = globalBestGroups;
@@ -3661,34 +3708,28 @@
       const { groupCounts, studentGroupOverlaps } = analyzeGroupConflicts(plan);
 
       const sem = plan.semester;
-      const range = AppState.targetConflictRange?.[sem] || { min: 0, max: 0 };
+      const targetN = AppState.targetConflictN?.[sem];
+      const isTargetN = (targetN !== null && targetN !== undefined);
       const history = AppState.simulationHistory?.[sem] || { runCount: 1, minConflictEver: plan.conflictCount };
 
       // Update Conflict Badges
       statConflictCount.textContent = `${plan.conflictCount}명`;
 
-      const hasRange = (range.min > 0 || range.max > 0);
-      const inRange = hasRange && (plan.conflictCount >= range.min && plan.conflictCount <= range.max);
-
       if (plan.conflictCount === 0) {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
-        conflictStatusBadge.textContent = '충돌 없음 (최적)';
+        conflictStatusBadge.textContent = isTargetN ? `충돌 0명 (목표 0명 달성)` : '충돌 없음 (최적)';
         conflictAlertBox.classList.add('hidden');
-      } else if (inRange) {
+      } else if (isTargetN && plan.conflictCount === targetN) {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200';
-        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (설정범위 ${range.min}~${range.max}명 충족)`;
+        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${targetN}명 경우의 수)`;
         conflictAlertBox.classList.remove('hidden');
-      } else if (hasRange && plan.conflictCount > range.max) {
+      } else if (isTargetN && plan.conflictCount !== targetN) {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300';
-        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (설정범위 ${range.min}~${range.max}명 초과)`;
-        conflictAlertBox.classList.remove('hidden');
-      } else if (hasRange && plan.conflictCount < range.min) {
-        conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 border border-indigo-300';
-        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (설정범위 ${range.min}~${range.max}명 미달)`;
+        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${targetN}명 근접 조합)`;
         conflictAlertBox.classList.remove('hidden');
       } else {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200';
-        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}건 발생`;
+        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 발생 (최적 탐색)`;
         conflictAlertBox.classList.remove('hidden');
       }
 
@@ -4992,9 +5033,9 @@
           duplicateEnrollments: []
         },
         savedPlans: [],
-        targetConflictRange: {
-          1: { min: 0, max: 0 },
-          2: { min: 0, max: 0 }
+        targetConflictN: {
+          1: null,
+          2: null
         },
         simulationHistory: {
           1: { runCount: 0, minConflictEver: null, minConflictPlan: null },
@@ -5176,7 +5217,7 @@
         priorData: AppState.priorData ? JSON.parse(JSON.stringify(AppState.priorData)) : null,
         crossCheckResult: AppState.crossCheckResult ? JSON.parse(JSON.stringify(AppState.crossCheckResult)) : null,
         savedPlans: JSON.parse(JSON.stringify(AppState.savedPlans || [])),
-        targetConflictRange: JSON.parse(JSON.stringify(AppState.targetConflictRange || { 1: { min: 0, max: 0 }, 2: { min: 0, max: 0 } })),
+        targetConflictN: JSON.parse(JSON.stringify(AppState.targetConflictN || { 1: null, 2: null })),
         simulationHistory: JSON.parse(JSON.stringify(AppState.simulationHistory || { 1: { runCount: 0, minConflictEver: null, minConflictPlan: null }, 2: { runCount: 0, minConflictEver: null, minConflictPlan: null } })),
         lastUpdated: new Date().toISOString()
       };
