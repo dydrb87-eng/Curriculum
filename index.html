@@ -840,7 +840,7 @@
         <!-- Metrics & Conflict Banner -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Total Conflicts with Best Record & Conflict Range Display -->
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div id="conflictMetricCard" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between scroll-mt-28">
             <div class="flex items-center justify-between">
               <p class="text-xs text-slate-500 font-medium">수강 충돌 발생 학생 수</p>
               <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-base">⚡</div>
@@ -4924,13 +4924,23 @@
         memoTextarea.value = plan.memo || '';
       }
 
-      // Smooth scroll to timetable so user immediately sees the applied timetable
-      const timetableSection = document.getElementById('scheduleTableContainer') || document.getElementById('groupCardsAndConflictWrapper');
-      if (timetableSection) {
-        timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      // Smooth scroll so that '수강 충돌 발생 학생 수' card is at the top of view
+      const scrollToConflictCard = () => {
+        const conflictTarget = document.getElementById('conflictMetricCard') || document.getElementById('statConflictCount');
+        if (conflictTarget) {
+          const headerOffset = 110; // Sticky topbar & nav offset
+          const elementPosition = conflictTarget.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: Math.max(0, offsetPosition),
+            behavior: 'smooth'
+          });
+        }
+      };
 
+      scrollToConflictCard();
       alert(`📂 [${plan.name}]의 학생별 이동수업 시간표 및 그룹 배치가 화면에 적용되었습니다.`);
+      setTimeout(scrollToConflictCard, 50);
     };
 
     window.deleteSavedPlan = function(planId) {
