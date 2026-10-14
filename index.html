@@ -4068,14 +4068,14 @@
                 if (isChosen) {
                   if (isGroupConflicted) {
                     tbody += `<td class="p-1.5 text-center ${borderCls} bg-rose-50">
-                      <div class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[105px]" title="동일 그룹 중복 충돌: ${sName}">
-                        <span>⚠️ ${sName}</span>
+                      <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate" title="동일 그룹 중복 충돌: ${sName}">
+                        <span>⚠️ 선택</span>
                       </div>
                     </td>`;
                   } else {
                     tbody += `<td class="p-1.5 text-center ${borderCls} ${theme.cellChosenBg}">
-                      <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 transition-transform truncate max-w-[105px]" title="${sName} 배정">
-                        <span>${sName}</span>
+                      <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 transition-transform truncate" title="${sName} 배정">
+                        <span>선택</span>
                       </div>
                     </td>`;
                   }
