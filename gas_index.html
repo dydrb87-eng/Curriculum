@@ -785,7 +785,7 @@
           </div>
 
           <!-- Advanced Constraints Accordion / Controls -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
             
             <!-- 1. Split Subjects Setting -->
             <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
@@ -800,20 +800,7 @@
               </div>
             </div>
 
-            <!-- 2. Subject Pinning (과목 특정 그룹 고정) -->
-            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-800 flex items-center space-x-1">
-                  <span>📌 특정 과목 그룹 고정</span>
-                </span>
-                <span class="text-[11px] text-slate-500">특정 그룹(교시)에 고정</span>
-              </div>
-              <div id="pinnedSubjectsContainer" class="max-h-36 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
-                <!-- Pinned Subject Selectors -->
-              </div>
-            </div>
-
-            <!-- 3. Student Mandatory Subject Pinning (특정 학생 필수 수강 고정) -->
+            <!-- 2. Student Mandatory Subject Pinning (특정 학생 필수 수강 고정) -->
             <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-bold text-slate-800 flex items-center space-x-1">
@@ -3121,40 +3108,7 @@
         });
       });
 
-      // 2. Pinned Subjects
-      let pinHtml = '';
-      subjects.forEach(s => {
-        const currentGroup = AppState.pinnedSubjects[sem][s] || '';
-        let options = '<option value="">고정 안함</option>';
-        for (let g = 1; g <= groupCount; g++) {
-          options += `<option value="${g}" ${currentGroup === g ? 'selected' : ''}>${g}그룹 고정</option>`;
-        }
-        pinHtml += `
-          <div class="flex items-center justify-between text-xs py-1 border-b border-slate-200/60">
-            <span class="truncate text-slate-700 max-w-[110px]">${s}</span>
-            <select class="subject-pin-select text-[11px] border border-slate-300 rounded p-0.5" data-subject="${s}">
-              ${options}
-            </select>
-          </div>
-        `;
-      });
-      pinnedSubjectsContainer.innerHTML = pinHtml;
-
-      pinnedSubjectsContainer.querySelectorAll('.subject-pin-select').forEach(sel => {
-        sel.addEventListener('change', (e) => {
-          const subj = e.target.getAttribute('data-subject');
-          const val = parseInt(e.target.value, 10);
-          if (val) {
-            AppState.pinnedSubjects[sem][subj] = val;
-          } else {
-            delete AppState.pinnedSubjects[sem][subj];
-          }
-          runOptimization();
-          saveAllState();
-        });
-      });
-
-      // 3. Student Pins Dropdowns
+      // 2. Student Pins Dropdowns
       pinStudentSelect.innerHTML = AppState.students.map(st => `<option value="${st.id}">[${st.classNum}반 ${st.studentNum}번] ${st.name}</option>`).join('');
       pinStudentSubjectSelect.innerHTML = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
       let grpOptions = '';
@@ -3932,6 +3886,22 @@
       renderSavedPlansList();
     }
 
+    // Toggle Pin for a Subject to a Group
+    window.toggleSubjectPin = function(subjectName, gIdx) {
+      const sem = AppState.currentSemester;
+      if (!AppState.pinnedSubjects) AppState.pinnedSubjects = { 1: {}, 2: {} };
+      if (!AppState.pinnedSubjects[sem]) AppState.pinnedSubjects[sem] = {};
+
+      const parentName = subjectName.replace(/-[A-Z]$/, '');
+      if (AppState.pinnedSubjects[sem][parentName] === gIdx + 1) {
+        delete AppState.pinnedSubjects[sem][parentName];
+      } else {
+        AppState.pinnedSubjects[sem][parentName] = gIdx + 1;
+      }
+      renderStep2Results();
+      saveAllState();
+    };
+
     // Render Group Cards
     function renderStep2Results() {
       const plan = AppState.currentPlan;
@@ -4033,10 +4003,27 @@
           }
           totalGroupEnrollment += count;
 
+          const isSubjPinned = (AppState.pinnedSubjects?.[sem]?.[parentName] === gIdx + 1);
+          const pinBtnTitle = isSubjPinned 
+            ? `[${parentName}] 과목이 ${gIdx + 1}그룹에 고정됨 (클릭 시 고정 해제)` 
+            : `클릭 시 [${parentName}] 과목을 ${gIdx + 1}그룹에 고정 (조합 생성 시 유지)`;
+
+          const pinBtnHtml = `
+            <button type="button" 
+                    onclick="event.stopPropagation(); window.toggleSubjectPin('${parentName}', ${gIdx});" 
+                    class="p-0.5 px-1 rounded transition text-xs select-none cursor-pointer inline-flex items-center justify-center shrink-0 ${isSubjPinned ? 'text-blue-600 bg-blue-100 hover:bg-blue-200 font-black scale-110 shadow-2xs' : 'text-slate-300 hover:text-blue-600 hover:bg-slate-100 opacity-60 hover:opacity-100'}" 
+                    title="${pinBtnTitle}">
+              <span>📌</span>
+            </button>
+          `;
+
           const cardsHtmlSubj = `
-            <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 shadow-2xs hover:border-blue-300 transition-colors">
-              <span class="text-xs font-bold text-slate-800 truncate" title="${sName}">${sName}</span>
-              <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0 ml-1.5 whitespace-nowrap">${count}명</span>
+            <div class="flex items-center justify-between p-2 rounded-lg border shadow-2xs transition-colors ${isSubjPinned ? 'bg-blue-50/80 border-blue-400 ring-1 ring-blue-300' : 'bg-white border-slate-200 hover:border-blue-300'}">
+              <div class="flex items-center min-w-0 mr-1.5 gap-1 overflow-hidden">
+                <span class="text-xs font-bold ${isSubjPinned ? 'text-blue-900 font-black' : 'text-slate-800'} truncate" title="${sName}">${sName}</span>
+                ${pinBtnHtml}
+              </div>
+              <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0 whitespace-nowrap">${count}명</span>
             </div>
           `;
           subjectsListHtml += cardsHtmlSubj;
@@ -4511,6 +4498,12 @@
               thTitle = `클릭: [${sName}] 선택 학생 정렬 (우측 ⇄ 클릭 시 위치 맞교환)`;
             }
 
+            const parentName = sName.replace(/-[A-Z]$/, '');
+            const isSubjPinned = (AppState.pinnedSubjects?.[sem]?.[parentName] === gIdx + 1);
+            const pinIconHtml = isSubjPinned 
+              ? `<button type="button" onclick="event.stopPropagation(); window.toggleSubjectPin('${parentName}', ${gIdx});" class="p-0.5 rounded text-[11px] text-blue-600 hover:bg-blue-100 transition mr-0.5" title="[${parentName}] ${gIdx + 1}그룹 고정됨 (클릭 시 고정 해제)">📌</button>` 
+              : '';
+
             const swapBtnHtml = `<button type="button" onclick="event.stopPropagation(); window.startSubjectSwap('${sName}', ${gIdx});" class="p-0.5 px-1 rounded text-[10px] font-black text-slate-400 hover:text-amber-900 hover:bg-amber-200/90 transition ml-1" title="[${sName}] 위치 맞교환 선택">⇄</button>`;
 
             const selectedBadge = isSelectedForSwap 
@@ -4522,6 +4515,7 @@
                       title="${thTitle}">
               <div class="flex items-center justify-center gap-0.5">
                 ${selectedBadge}
+                ${pinIconHtml}
                 <span class="font-bold">${sName}</span>
                 ${sortIndicator}
                 ${swapBtnHtml}
