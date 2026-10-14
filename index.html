@@ -644,12 +644,12 @@
         <!-- Controls Bar -->
         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <!-- Semester Selector Tabs -->
-          <div class="inline-flex p-1 bg-slate-100 rounded-lg border border-slate-200">
-            <button id="sem1TabBtn" class="px-4 py-2 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all">
-              1학기 선택현황
+          <div class="inline-flex p-1.5 bg-slate-200/90 rounded-xl border border-slate-300 shadow-inner gap-2">
+            <button id="sem1TabBtn" class="px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-black rounded-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-300 transition-all cursor-pointer flex items-center gap-2">
+              <span>📅 1학기 선택현황</span>
             </button>
-            <button id="sem2TabBtn" class="px-4 py-2 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all">
-              2학기 선택현황
+            <button id="sem2TabBtn" class="px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-bold rounded-lg text-slate-600 hover:text-blue-700 hover:bg-white/80 transition-all cursor-pointer flex items-center gap-2">
+              <span>📅 2학기 선택현황</span>
             </button>
           </div>
 
@@ -2496,18 +2496,28 @@
       }
     }
 
+    function updateStep1SemesterTabs(sem) {
+      const activeCls = 'px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-black rounded-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-300 transition-all cursor-pointer flex items-center gap-2';
+      const inactiveCls = 'px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-bold rounded-lg text-slate-600 hover:text-blue-700 hover:bg-white/80 transition-all cursor-pointer flex items-center gap-2';
+      if (sem === 1) {
+        sem1TabBtn.className = activeCls;
+        sem2TabBtn.className = inactiveCls;
+      } else {
+        sem2TabBtn.className = activeCls;
+        sem1TabBtn.className = inactiveCls;
+      }
+    }
+
     sem1TabBtn.addEventListener('click', () => {
       AppState.currentSemester = 1;
-      sem1TabBtn.className = 'px-4 py-2 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
-      sem2TabBtn.className = 'px-4 py-2 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      updateStep1SemesterTabs(1);
       renderStep1();
       saveAllState();
     });
 
     sem2TabBtn.addEventListener('click', () => {
       AppState.currentSemester = 2;
-      sem2TabBtn.className = 'px-4 py-2 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
-      sem1TabBtn.className = 'px-4 py-2 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      updateStep1SemesterTabs(2);
       renderStep1();
       saveAllState();
     });
@@ -2524,6 +2534,7 @@
 
     function renderStep1() {
       const sem = AppState.currentSemester;
+      updateStep1SemesterTabs(sem);
       const subjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
       const threshold = AppState.step1Threshold;
 
