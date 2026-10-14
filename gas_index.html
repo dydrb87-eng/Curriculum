@@ -4376,6 +4376,43 @@
       saveAllState();
     };
 
+    // Toggle Group Pin (Lock / Unlock all subjects in a group)
+    window.toggleGroupPin = function(gIdx) {
+      const plan = AppState.currentPlan;
+      if (!plan || !plan.groups[gIdx]) return;
+      const sem = plan.semester;
+      if (!AppState.pinnedSubjects) AppState.pinnedSubjects = { 1: {}, 2: {} };
+      if (!AppState.pinnedSubjects[sem]) AppState.pinnedSubjects[sem] = {};
+
+      const groupSubjs = plan.groups[gIdx];
+      if (groupSubjs.length === 0) {
+        alert('이 그룹에는 고정할 과목이 없습니다.');
+        return;
+      }
+
+      const isAllPinned = groupSubjs.every(s => {
+        const p = s.replace(/-[A-Z]$/, '');
+        return AppState.pinnedSubjects[sem][p] === gIdx + 1;
+      });
+
+      if (isAllPinned) {
+        // Unlock: unpin all subjects in this group
+        groupSubjs.forEach(s => {
+          const p = s.replace(/-[A-Z]$/, '');
+          delete AppState.pinnedSubjects[sem][p];
+        });
+      } else {
+        // Lock: pin all subjects in this group to gIdx + 1
+        groupSubjs.forEach(s => {
+          const p = s.replace(/-[A-Z]$/, '');
+          AppState.pinnedSubjects[sem][p] = gIdx + 1;
+        });
+      }
+
+      renderStep2Results();
+      saveAllState();
+    };
+
     // Conflicted Students Table Accordion State (default: false = collapsed)
     let isConflictTableExpanded = false;
 
@@ -4572,20 +4609,70 @@
           ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 whitespace-nowrap">중복 0</span>`
           : `<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 whitespace-nowrap animate-pulse">중복 ${groupConflict}</span>`;
 
+        // Check if all subjects in this group are pinned (Group locked)
+        const isGroupLocked = groupSubjs.length > 0 && groupSubjs.every(s => {
+          const p = s.replace(/-[A-Z]$/, '');
+          return AppState.pinnedSubjects?.[sem]?.[p] === gIdx + 1;
+        });
+
+        const groupPinBtnTitle = isGroupLocked
+          ? `[${gIdx + 1}그룹] 잠금됨: 그룹 내 모든 과목(${groupSubjs.length}개)이 고정 상태입니다 (클릭 시 잠금 해제)`
+          : `클릭 시 [${gIdx + 1}그룹] 내 모든 과목(${groupSubjs.length}개)을 이 그룹에 일괄 고정(잠금)합니다`;
+
+        const groupPinBtnHtml = `
+          <button type="button" 
+                  onclick="event.stopPropagation(); window.toggleGroupPin(${gIdx});" 
+                  class="p-0.5 px-1.5 rounded transition text-xs select-none cursor-pointer inline-flex items-center gap-1 shrink-0 ${isGroupLocked ? 'text-blue-700 bg-blue-100 hover:bg-blue-200 border border-blue-300 font-black shadow-2xs' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/70 border border-transparent opacity-70 hover:opacity-100'}" 
+                  title="${groupPinBtnTitle}">
+            <span>📌</span>
+            <span class="text-[10px] ${isGroupLocked ? 'font-black text-blue-800' : 'font-semibold'}">${isGroupLocked ? '잠김' : '고정'}</span>
+          </button>
+        `;
+
+        const isMoveTargetGroup = Boolean(subjectSwapState.selectedSubject) && (subjectSwapState.selectedGroupIdx !== gIdx);
+        let moveBtnHtml = '';
+        let moveDropZoneHtml = '';
+        if (isMoveTargetGroup) {
+          moveBtnHtml = `
+            <button type="button" 
+                    onclick="event.stopPropagation(); window.moveSelectedSubjectToGroup(${gIdx});" 
+                    class="px-2 py-0.5 text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-md shadow-2xs transition flex items-center gap-1 cursor-pointer animate-pulse shrink-0" 
+                    title="[${subjectSwapState.selectedSubject}] 과목을 ${gIdx + 1}그룹으로 바로 이동">
+              <span>📥 이동</span>
+            </button>
+          `;
+          moveDropZoneHtml = `
+            <div onclick="event.stopPropagation(); window.moveSelectedSubjectToGroup(${gIdx});" 
+                 class="border-2 border-dashed border-blue-400 bg-blue-50/70 hover:bg-blue-100 rounded-lg p-2 text-center text-xs font-bold text-blue-700 cursor-pointer transition select-none flex items-center justify-center gap-1 shadow-2xs">
+              <span>📥 [${subjectSwapState.selectedSubject}] 이 그룹으로 이동</span>
+            </div>
+          `;
+        }
+
+        let groupCardBorderCls = 'bg-slate-50 border-slate-200';
+        if (isMoveTargetGroup) {
+          groupCardBorderCls = 'bg-blue-50/40 border-blue-400 ring-2 ring-blue-300/50 hover:bg-blue-50/80 cursor-pointer';
+        } else if (isGroupLocked) {
+          groupCardBorderCls = 'bg-blue-50/20 border-blue-300 ring-1 ring-blue-200';
+        }
+
         cardsHtml += `
-          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-2xs flex flex-col space-y-2.5">
+          <div ${isMoveTargetGroup ? `onclick="window.moveSelectedSubjectToGroup(${gIdx});"` : ''} class="${groupCardBorderCls} border rounded-xl p-3.5 shadow-2xs flex flex-col space-y-2.5 transition-all">
             <div class="flex items-center justify-between border-b border-slate-200 pb-2">
               <div class="flex items-center space-x-1.5 shrink-0">
                 <span class="w-6 h-6 rounded-md bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">${gIdx + 1}</span>
                 <h5 class="text-xs font-bold text-slate-800 whitespace-nowrap">${gIdx + 1}그룹</h5>
+                ${groupPinBtnHtml}
               </div>
               <div class="flex items-center space-x-1 shrink-0">
+                ${moveBtnHtml}
                 ${conflictBadgeHtml}
                 <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap">(${groupSubjs.length}과목)</span>
               </div>
             </div>
             <div class="space-y-1.5 flex-1 max-h-72 overflow-y-auto custom-scrollbar pr-0.5">
               ${subjectsListHtml || '<p class="text-xs text-slate-400 italic">배치된 과목 없음</p>'}
+              ${moveDropZoneHtml}
             </div>
           </div>
         `;
@@ -4672,21 +4759,21 @@
       }
 
       // Update undo buttons
-      if (undoBtn) {
-        if (hasUndo) {
+      if (hasUndo && lastUndo) {
+        const undoTitle = lastUndo.action === 'move'
+          ? `[${lastUndo.subjA}] (${lastUndo.fromGroup}그룹 → ${lastUndo.toGroup}그룹 이동) 되돌리기`
+          : `[${lastUndo.subjA}] ⇄ [${lastUndo.subjB}] 맞교환 되돌리기`;
+        if (undoBtn) {
           undoBtn.classList.remove('hidden');
-          undoBtn.title = `[${lastUndo.subjA}] ⇄ [${lastUndo.subjB}] 맞교환 되돌리기`;
-        } else {
-          undoBtn.classList.add('hidden');
+          undoBtn.title = undoTitle;
         }
-      }
-      if (gcUndoBtn) {
-        if (hasUndo) {
+        if (gcUndoBtn) {
           gcUndoBtn.classList.remove('hidden');
-          gcUndoBtn.title = `[${lastUndo.subjA}] ⇄ [${lastUndo.subjB}] 맞교환 되돌리기`;
-        } else {
-          gcUndoBtn.classList.add('hidden');
+          gcUndoBtn.title = undoTitle;
         }
+      } else {
+        if (undoBtn) undoBtn.classList.add('hidden');
+        if (gcUndoBtn) gcUndoBtn.classList.add('hidden');
       }
 
       // Update cancel button in group cards banner
@@ -4702,7 +4789,7 @@
       const gName = (subjectSwapState.selectedGroupIdx !== null && subjectSwapState.selectedGroupIdx !== undefined) 
         ? `${subjectSwapState.selectedGroupIdx + 1}그룹` : '';
       const defaultSelectionMsg = subjectSwapState.selectedSubject
-        ? `👉 <strong>1차 선택: [${subjectSwapState.selectedSubject}]</strong> (${gName}) &nbsp;→&nbsp; 자리를 바꿀 <strong>다른 그룹의 과목</strong>을 클릭하세요.`
+        ? `👉 <strong>1차 선택: [${subjectSwapState.selectedSubject}]</strong> (${gName}) &nbsp;→&nbsp; 자리를 바꿀 <strong>다른 그룹의 과목</strong>을 클릭하면 '맞교환', 그룹 헤더의 <strong>'📥 이동'</strong>을 클릭하면 '그룹 이동'됩니다.`
         : null;
 
       // Group Cards Banner visibility & text
@@ -4715,7 +4802,10 @@
             } else if (defaultSelectionMsg) {
               gcBannerText.innerHTML = defaultSelectionMsg;
             } else if (hasUndo) {
-              gcBannerText.innerHTML = `과목명을 클릭하여 다른 그룹의 과목과 자리를 맞교환할 수 있습니다. (최근 교환: [${lastUndo.subjA}] ⇄ [${lastUndo.subjB}])`;
+              const recentDesc = lastUndo.action === 'move'
+                ? `[${lastUndo.subjA}] (${lastUndo.fromGroup}그룹 → ${lastUndo.toGroup}그룹 이동)`
+                : `[${lastUndo.subjA}] ⇄ [${lastUndo.subjB}] 맞교환`;
+              gcBannerText.innerHTML = `과목을 클릭하여 맞교환하거나 그룹으로 이동할 수 있습니다. (최근 작업: ${recentDesc})`;
             }
           }
         } else {
@@ -4925,12 +5015,136 @@
       renderSavedPlansList();
       saveAllState();
 
-      const undoMsg = `↩️ <strong>[${last.subjA}]</strong> ⇄ <strong>[${last.subjB}]</strong> 맞교환이 이전 상태로 되돌려졌습니다. (충돌: <strong>${analysis.conflictStudentCount}명</strong>)`;
+      const undoMsg = last.action === 'move'
+        ? `↩️ <strong>[${last.subjA}]</strong> 과목의 그룹 이동(${last.fromGroup}그룹 → ${last.toGroup}그룹)이 취소되어 원래 위치로 복원되었습니다. (충돌: <strong>${analysis.conflictStudentCount}명</strong>)`
+        : `↩️ <strong>[${last.subjA}]</strong> ⇄ <strong>[${last.subjB}]</strong> 맞교환이 이전 상태로 되돌려졌습니다. (충돌: <strong>${analysis.conflictStudentCount}명</strong>)`;
       const bannerText = document.getElementById('subjectSwapBannerText');
       if (bannerText) {
         bannerText.innerHTML = undoMsg;
       }
       updateSubjectSwapUI(undoMsg);
+    };
+
+    window.moveSelectedSubjectToGroup = function(targetGIdx) {
+      const plan = AppState.currentPlan;
+      if (!plan) return;
+
+      const sName = subjectSwapState.selectedSubject;
+      const fromGIdx = subjectSwapState.selectedGroupIdx;
+      if (!sName || fromGIdx === null || fromGIdx === undefined) return;
+
+      if (fromGIdx === targetGIdx) {
+        alert('이미 해당 그룹에 속해 있는 과목입니다.');
+        return;
+      }
+
+      // Check section conflict: cannot put two sections of the same parent subject in the same group
+      const parentName = sName.replace(/-[A-Z]$/, '');
+      const targetHasSameParent = plan.groups[targetGIdx].some(s => s.replace(/-[A-Z]$/, '') === parentName);
+      if (targetHasSameParent) {
+        alert(`⚠️ [분반 충돌]\n[${parentName}] 과목의 다른 분반이 이미 ${targetGIdx + 1}그룹에 개설되어 있습니다.\n동일 과목의 분반은 같은 그룹에 함께 배치할 수 없습니다.`);
+        return;
+      }
+
+      // Check together / separate rule constraints
+      const togetherPairs = AppState.togetherPairs?.[plan.semester] || [];
+      const separatePairs = AppState.separatePairs?.[plan.semester] || [];
+
+      if (togetherPairs.length > 0 || separatePairs.length > 0) {
+        const testGroups = plan.groups.map(g => [...g]);
+        // Remove from origin
+        testGroups[fromGIdx] = testGroups[fromGIdx].filter(s => s !== sName);
+        // Add to target
+        testGroups[targetGIdx].push(sName);
+
+        const violations = [];
+        for (const [a, b] of togetherPairs) {
+          const hasTogether = testGroups.some(g => {
+            const hasA = g.some(s => s.replace(/-[A-Z]$/, '') === a || s === a);
+            const hasB = g.some(s => s.replace(/-[A-Z]$/, '') === b || s === b);
+            return hasA && hasB;
+          });
+          if (!hasTogether) {
+            violations.push(`• [${a}] 🔗 [${b}]: 함께 묶을 과목 규칙 위반 (서로 다른 그룹으로 분리됨)`);
+          }
+        }
+
+        for (const [a, b] of separatePairs) {
+          for (let gi = 0; gi < testGroups.length; gi++) {
+            const g = testGroups[gi];
+            const hasA = g.some(s => s.replace(/-[A-Z]$/, '') === a || s === a);
+            const hasB = g.some(s => s.replace(/-[A-Z]$/, '') === b || s === b);
+            if (hasA && hasB) {
+              violations.push(`• [${a}] ≠ [${b}]: 함께 묶지 않을 과목 규칙 위반 (${gi + 1}그룹에 동시 배치됨)`);
+              break;
+            }
+          }
+        }
+
+        if (violations.length > 0) {
+          const confirmMsg = `⚠️ [설정 규칙 위반 알림]\n이 이동을 실행하면 다음 규칙이 위반됩니다:\n\n${violations.join('\n')}\n\n그래도 이동을 진행하시겠습니까?`;
+          if (!confirm(confirmMsg)) {
+            subjectSwapState.selectedSubject = null;
+            subjectSwapState.selectedGroupIdx = null;
+            renderStep2Results();
+            updateSubjectSwapUI('과목 이동이 취소되었습니다.');
+            return;
+          }
+        }
+      }
+
+      // Record in undo stack
+      subjectSwapState.undoStack.push({
+        planBefore: JSON.parse(JSON.stringify(plan.groups)),
+        action: 'move',
+        subjA: sName,
+        fromGroup: fromGIdx + 1,
+        toGroup: targetGIdx + 1
+      });
+
+      // Execute move
+      plan.groups[fromGIdx] = plan.groups[fromGIdx].filter(s => s !== sName);
+      plan.groups[targetGIdx].push(sName);
+
+      // If the subject was pinned to fromGIdx, update pin to targetGIdx
+      const sem = plan.semester;
+      if (AppState.pinnedSubjects?.[sem]?.[parentName] === fromGIdx + 1) {
+        AppState.pinnedSubjects[sem][parentName] = targetGIdx + 1;
+      }
+
+      // Recalculate conflicts
+      const analysis = analyzeGroupConflicts(plan);
+      plan.conflictCount = analysis.conflictStudentCount;
+      plan.conflicts = analysis.conflictDetails;
+
+      // Sync with linked saved plan
+      const match = AppState.savedPlans.find(p => p.id === plan.id);
+      if (match) {
+        match.groups = JSON.parse(JSON.stringify(plan.groups));
+        match.conflictCount = plan.conflictCount;
+        match.conflicts = JSON.parse(JSON.stringify(plan.conflicts));
+        match.groupCounts = JSON.parse(JSON.stringify(analysis.groupCounts));
+        match.studentGroupOverlaps = JSON.parse(JSON.stringify(analysis.studentGroupOverlaps));
+      }
+
+      // Update historical best
+      if (!AppState.simulationHistory) AppState.simulationHistory = { 1: { runCount: 1, minConflictEver: null }, 2: { runCount: 1, minConflictEver: null } };
+      if (!AppState.simulationHistory[sem]) AppState.simulationHistory[sem] = { runCount: 1, minConflictEver: null };
+      if (AppState.simulationHistory[sem].minConflictEver === null || plan.conflictCount < AppState.simulationHistory[sem].minConflictEver) {
+        AppState.simulationHistory[sem].minConflictEver = plan.conflictCount;
+        AppState.simulationHistory[sem].minConflictPlan = JSON.parse(JSON.stringify(plan));
+      }
+
+      // Clear selection
+      subjectSwapState.selectedSubject = null;
+      subjectSwapState.selectedGroupIdx = null;
+
+      renderStep2Results();
+      renderSavedPlansList();
+      saveAllState();
+
+      const msg = `✅ <strong>[${sName}]</strong> 과목이 <strong>${fromGIdx + 1}그룹 → ${targetGIdx + 1}그룹</strong>으로 이동되었습니다! (현재 수강 충돌: <strong>${plan.conflictCount}명</strong>)`;
+      updateSubjectSwapUI(msg);
     };
 
     window.completeSubjectSwap = function() {
