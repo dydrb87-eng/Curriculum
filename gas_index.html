@@ -774,7 +774,7 @@
                 <span>👤 학생별 그룹 배정 시간표 (개인별 이동수업 시간표)</span>
                 <span id="scheduleTableSortBadge" class="hidden text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs"></span>
               </h4>
-              <p class="text-xs text-slate-500 mt-0.5">과목 헤더를 클릭하여 엑셀처럼 정렬/필터링하고, 학생별 [✏️ 배정수정] 버튼으로 분반과 그룹을 직접 조정할 수 있습니다.</p>
+              <p class="text-xs text-slate-500 mt-0.5">과목 헤더를 클릭하여 엑셀처럼 특정 과목 선택 학생을 상단/하단으로 정렬하거나 필터링할 수 있습니다.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
               <!-- Quick Status Filter -->
@@ -782,7 +782,6 @@
                 <option value="all">전체 학생 보기</option>
                 <option value="conflict">⚠️ 충돌(중복) 학생만 보기</option>
                 <option value="normal">✅ 정상 배정 학생만 보기</option>
-                <option value="manual">✏️ 수동 수정된 학생만 보기</option>
               </select>
               <!-- Reset Filter/Sort Button -->
               <button id="btnResetTableFilterSort" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 shadow-2xs transition" title="필터 및 정렬 초기화">
@@ -795,10 +794,6 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
               </div>
-              <!-- Save Edits Button -->
-              <button id="btnSaveScheduleEdits" type="button" class="px-3 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs flex items-center gap-1.5 transition">
-                <span>💾 수정사항 저장</span>
-              </button>
             </div>
           </div>
 
@@ -3982,8 +3977,8 @@
         </th>`;
       });
 
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('status')" class="p-2.5 text-center bg-slate-100 w-36 border-l-4 border-slate-400 cursor-pointer hover:bg-slate-200 transition select-none font-bold" title="클릭하여 충돌/정상 상태 정렬">
-        선택 상태 & 배정수정${getColSortIcon('status')}
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('status')" class="p-2.5 text-center bg-slate-100 min-w-[90px] border-l-4 border-slate-400 cursor-pointer hover:bg-slate-200 transition select-none font-bold" title="클릭하여 충돌/정상 상태 정렬">
+        선택 상태${getColSortIcon('status')}
       </th>`;
       h1 += '</tr>';
 
@@ -4068,14 +4063,14 @@
                 if (isChosen) {
                   if (isGroupConflicted) {
                     tbody += `<td class="p-1.5 text-center ${borderCls} bg-rose-50">
-                      <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate" title="동일 그룹 중복 충돌: ${sName}">
-                        <span>⚠️ 선택</span>
+                      <div class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[105px]" title="동일 그룹 중복 충돌: ${sName}">
+                        <span>⚠️ ${sName}</span>
                       </div>
                     </td>`;
                   } else {
                     tbody += `<td class="p-1.5 text-center ${borderCls} ${theme.cellChosenBg}">
-                      <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 transition-transform truncate" title="${sName} 배정">
-                        <span>선택</span>
+                      <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 transition-transform truncate max-w-[105px]" title="${sName} 배정">
+                        <span>${sName}</span>
                       </div>
                     </td>`;
                   }
@@ -4088,22 +4083,16 @@
             }
           });
 
-          // Status & Action cell
+          // Status cell
           tbody += `<td class="p-1.5 text-center text-[11px] border-l-4 border-slate-400 whitespace-nowrap">`;
-          tbody += `<div class="flex items-center justify-center gap-1.5 flex-wrap">`;
+          tbody += `<div class="flex items-center justify-center gap-1.5">`;
           if (hasAnyConflict || asgn.hasConflict) {
             tbody += `<span class="px-2 py-0.5 rounded-lg font-extrabold text-rose-800 bg-rose-100 border border-rose-300 shadow-2xs flex items-center gap-1">
               <span>⚠️ 중복</span><span class="text-[10px] font-semibold text-rose-700">(${conflictGroups.join(', ')})</span>
             </span>`;
           } else {
-            tbody += `<span class="px-2.5 py-0.5 rounded-lg font-bold text-emerald-800 bg-emerald-100/90 border border-emerald-300 shadow-2xs">✅ 정상</span>`;
+            tbody += `<span class="px-2.5 py-0.5 rounded-lg font-bold text-emerald-800 bg-emerald-100/90 border border-emerald-300 shadow-2xs">✅ 정상 배정</span>`;
           }
-          if (asgn.isManual) {
-            tbody += `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs" title="사용자 직접 수동 배정됨">✏️수동</span>`;
-          }
-          tbody += `<button type="button" onclick="window.openStudentScheduleEditModal('${asgn.id}')" class="px-2.5 py-1 bg-white hover:bg-indigo-600 hover:text-white text-indigo-700 rounded-lg font-bold border border-indigo-300 shadow-2xs transition flex items-center gap-1" title="이 학생의 그룹/분반 배정 수동 변경">
-            <span>✏️ 배정수정</span>
-          </button>`;
           tbody += `</div></td>`;
 
           tbody += '</tr>';
@@ -4198,219 +4187,10 @@
     }
 
     // ==========================================
-    // MANUAL STUDENT SCHEDULE EDIT MODAL LOGIC
-    // ==========================================
-    let currentEditingStudentId = null;
-
-    window.openStudentScheduleEditModal = function(stId) {
-      if (!AppState.currentPlan) return;
-      const st = AppState.students.find(s => s.id === stId);
-      if (!st) return;
-
-      currentEditingStudentId = stId;
-      const modal = document.getElementById('studentScheduleEditModal');
-      const titleEl = document.getElementById('editModalStudentTitle');
-      const subEl = document.getElementById('editModalStudentSub');
-      const bodyEl = document.getElementById('editModalBody');
-
-      if (titleEl) titleEl.textContent = `[${st.classNum}반 ${st.studentNum}번 ${st.name}] 시간표 배정 수정`;
-      if (subEl) subEl.textContent = `진로/관심: ${st.career || '미지정'} | 각 선택과목의 배정 그룹 및 분반을 직접 지정합니다.`;
-
-      const sem = AppState.currentPlan.semester;
-      const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
-      const planGroups = AppState.currentPlan.groups;
-
-      // Get current assignment for this student
-      let currentMap = {};
-      if (AppState.currentPlan.customAssignments && AppState.currentPlan.customAssignments[stId]) {
-        currentMap = AppState.currentPlan.customAssignments[stId];
-      } else {
-        const asgns = computeStudentAssignments(AppState.currentPlan);
-        const match = asgns.find(a => a.id === stId);
-        currentMap = match ? match.groupSubjects : {};
-      }
-
-      let bodyHtml = '';
-      choices.forEach((parentSubj, cIdx) => {
-        // Find which groups/tokens offer parentSubj
-        const candidateSlots = [];
-        planGroups.forEach((gTokens, gIdx) => {
-          gTokens.forEach(tName => {
-            if (tName === parentSubj || tName.startsWith(parentSubj + '-')) {
-              candidateSlots.push({ gIdx, tokenName: tName });
-            }
-          });
-        });
-
-        // Determine currently active selection for this subject
-        let activeSlot = null;
-        for (const slot of candidateSlots) {
-          if (currentMap[slot.gIdx] && currentMap[slot.gIdx].includes(slot.tokenName)) {
-            activeSlot = slot;
-            break;
-          }
-        }
-        if (!activeSlot && candidateSlots.length > 0) {
-          activeSlot = candidateSlots[0];
-        }
-
-        bodyHtml += `
-          <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-extrabold">${cIdx + 1}</span>
-                <span>${parentSubj}</span>
-              </span>
-              <span class="text-[11px] text-slate-500 font-medium">개설 분반/그룹: ${candidateSlots.length}개</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-        `;
-
-        if (candidateSlots.length === 0) {
-          bodyHtml += `<div class="col-span-2 text-rose-500 font-bold text-xs p-2 bg-rose-50 rounded-xl border border-rose-200">
-            ⚠️ 이 과목은 현재 어떤 그룹에도 배치되어 있지 않습니다.
-          </div>`;
-        } else {
-          candidateSlots.forEach(slot => {
-            const isChecked = activeSlot && (activeSlot.gIdx === slot.gIdx && activeSlot.tokenName === slot.tokenName);
-            const radioId = `edit_radio_${stId}_${cIdx}_${slot.gIdx}_${slot.tokenName.replace(/[^a-zA-Z0-9가-힣]/g, '_')}`;
-            bodyHtml += `
-              <label for="${radioId}" class="flex items-center space-x-2.5 p-2 bg-white border border-slate-200 rounded-xl hover:border-indigo-400 cursor-pointer shadow-2xs transition">
-                <input type="radio" id="${radioId}" name="editSubjectRadio_${cIdx}" value="${slot.gIdx}:${slot.tokenName}" ${isChecked ? 'checked' : ''} onchange="window.updateEditModalConflictPreview()" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
-                <div class="text-xs">
-                  <span class="font-bold text-slate-800">${slot.gIdx + 1}그룹</span>
-                  <span class="text-indigo-600 font-semibold ml-1">(${slot.tokenName})</span>
-                </div>
-              </label>
-            `;
-          });
-        }
-
-        bodyHtml += `
-            </div>
-          </div>
-        `;
-      });
-
-      if (bodyEl) bodyEl.innerHTML = bodyHtml;
-      window.updateEditModalConflictPreview();
-      if (modal) modal.classList.remove('hidden');
-    };
-
-    window.closeStudentScheduleEditModal = function() {
-      const modal = document.getElementById('studentScheduleEditModal');
-      if (modal) modal.classList.add('hidden');
-      currentEditingStudentId = null;
-    };
-
-    window.updateEditModalConflictPreview = function() {
-      if (!currentEditingStudentId || !AppState.currentPlan) return;
-      const st = AppState.students.find(s => s.id === currentEditingStudentId);
-      if (!st) return;
-
-      const sem = AppState.currentPlan.semester;
-      const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
-      const previewDiv = document.getElementById('editModalConflictPreview');
-      if (!previewDiv) return;
-
-      const groupAssignments = {}; // gIdx -> [tokenNames]
-      let selectedCount = 0;
-
-      choices.forEach((_, cIdx) => {
-        const checked = document.querySelector(`input[name="editSubjectRadio_${cIdx}"]:checked`);
-        if (checked) {
-          selectedCount++;
-          const [gStr, tokenName] = checked.value.split(':');
-          const gIdx = parseInt(gStr, 10);
-          if (!groupAssignments[gIdx]) groupAssignments[gIdx] = [];
-          groupAssignments[gIdx].push(tokenName);
-        }
-      });
-
-      // Find any group with > 1 token
-      const conflictGroups = [];
-      Object.keys(groupAssignments).forEach(gIdx => {
-        if (groupAssignments[gIdx].length > 1) {
-          conflictGroups.push({
-            group: parseInt(gIdx, 10) + 1,
-            subjects: groupAssignments[gIdx].join(' & ')
-          });
-        }
-      });
-
-      if (conflictGroups.length > 0) {
-        const details = conflictGroups.map(cg => `${cg.group}그룹 [${cg.subjects}]`).join(', ');
-        previewDiv.className = 'p-3 rounded-xl border border-rose-300 bg-rose-50 text-rose-800 text-xs font-bold leading-relaxed';
-        previewDiv.innerHTML = `⚠️ <strong>동일 그룹 중복 충돌 경고:</strong> ${details}<br><span class="text-[11px] font-normal text-rose-600">한 학생이 같은 그룹에 둘 이상의 과목을 들을 수 없습니다. 서로 다른 그룹의 분반을 선택하세요.</span>`;
-      } else if (selectedCount < choices.length) {
-        previewDiv.className = 'p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold';
-        previewDiv.innerHTML = `ℹ️ 아직 미선택된 과목이 있습니다 (${selectedCount}/${choices.length}개 완료).`;
-      } else {
-        previewDiv.className = 'p-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-bold';
-        previewDiv.innerHTML = `✅ <strong>정상 배정:</strong> 모든 선택과목(${choices.length}개)이 서로 다른 그룹(교시)에 중복 없이 분배되었습니다!`;
-      }
-    };
-
-    // Apply modal edits
-    document.getElementById('btnApplyStudentScheduleEdit')?.addEventListener('click', () => {
-      if (!currentEditingStudentId || !AppState.currentPlan) return;
-      const st = AppState.students.find(s => s.id === currentEditingStudentId);
-      if (!st) return;
-
-      const sem = AppState.currentPlan.semester;
-      const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
-      const m = AppState.currentPlan.groups.length;
-
-      const customMap = {};
-      for (let g = 0; g < m; g++) customMap[g] = [];
-
-      choices.forEach((_, cIdx) => {
-        const checked = document.querySelector(`input[name="editSubjectRadio_${cIdx}"]:checked`);
-        if (checked) {
-          const [gStr, tokenName] = checked.value.split(':');
-          const gIdx = parseInt(gStr, 10);
-          customMap[gIdx].push(tokenName);
-        }
-      });
-
-      if (!AppState.currentPlan.customAssignments) {
-        AppState.currentPlan.customAssignments = {};
-      }
-      AppState.currentPlan.customAssignments[currentEditingStudentId] = customMap;
-
-      // Re-analyze conflicts
-      const analysis = analyzeGroupConflicts(AppState.currentPlan);
-      AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
-      AppState.currentPlan.conflicts = analysis.conflictDetails;
-
-      window.closeStudentScheduleEditModal();
-      renderStep2Results();
-      saveAllState();
-    });
-
-    // Reset student to auto
-    document.getElementById('btnResetStudentToAuto')?.addEventListener('click', () => {
-      if (!currentEditingStudentId || !AppState.currentPlan) return;
-      if (AppState.currentPlan.customAssignments && AppState.currentPlan.customAssignments[currentEditingStudentId]) {
-        delete AppState.currentPlan.customAssignments[currentEditingStudentId];
-      }
-      const analysis = analyzeGroupConflicts(AppState.currentPlan);
-      AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
-      AppState.currentPlan.conflicts = analysis.conflictDetails;
-
-      window.closeStudentScheduleEditModal();
-      renderStep2Results();
-      saveAllState();
-    });
-
     // Toolbar & Filter Event Listeners
     document.getElementById('step2StudentSearchInput')?.addEventListener('input', renderStudentScheduleTable);
     document.getElementById('step2StatusFilterSelect')?.addEventListener('change', renderStudentScheduleTable);
     document.getElementById('btnResetTableFilterSort')?.addEventListener('click', window.resetScheduleTableFilterSort);
-    document.getElementById('btnSaveScheduleEdits')?.addEventListener('click', () => {
-      saveAllState();
-      alert('💾 현재 학생별 시간표 배정 및 수동 조정 내역이 성공적으로 저장되었습니다!');
-    });
 
     // Bottom Work Memo Event Listeners
     const memoTextarea = document.getElementById('planWorkMemo');
@@ -5831,51 +5611,6 @@
     </div>
   </div>
 
-  <!-- Student Schedule Manual Edit Modal -->
-  <div id="studentScheduleEditModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-      
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl shadow-xs">
-            ✏️
-          </div>
-          <div>
-            <h3 id="editModalStudentTitle" class="text-base font-bold text-slate-900">학생 시간표 배정 수동 수정</h3>
-            <p id="editModalStudentSub" class="text-xs text-slate-500">선택과목별 배정 그룹(교시) 또는 분반을 직접 조정합니다.</p>
-          </div>
-        </div>
-        <button type="button" onclick="window.closeStudentScheduleEditModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition font-bold">
-          ✕
-        </button>
-      </div>
-
-      <!-- Choices & Group Radio List -->
-      <div id="editModalBody" class="space-y-3 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
-        <!-- Dynamically injected per choice -->
-      </div>
-
-      <!-- Live Conflict Preview Alert -->
-      <div id="editModalConflictPreview" class="p-3 rounded-xl border text-xs font-bold transition-all"></div>
-
-      <!-- Modal Footer -->
-      <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-        <button type="button" id="btnResetStudentToAuto" class="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline">
-          ↺ 자동 배정으로 초기화
-        </button>
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="window.closeStudentScheduleEditModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
-            취소
-          </button>
-          <button type="button" id="btnApplyStudentScheduleEdit" class="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs transition">
-            수정사항 적용
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div>
 </body>
 </html>
 
