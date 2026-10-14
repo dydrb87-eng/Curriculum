@@ -1069,6 +1069,8 @@
       sem2GroupCount: 7,
       splitSubjects: { 1: {}, 2: {} }, // { '물리학Ⅰ': 2 }
       pinnedSubjects: { 1: {}, 2: {} }, // { '국어독서': 1 }
+      closedSubjects: { 1: [], 2: [] }, // Array of confirmed closed subject names (폐강 확정)
+      subjectMemos: { 1: {}, 2: {} }, // { 1: { '일본어': '소인수 선택 유지 요청' } }
       studentPins: [], // Array of { studentId, subject, group }
       
       // Current Grouping Results
@@ -2271,6 +2273,8 @@
       // Reset configurations
       AppState.splitSubjects = { 1: {}, 2: {} };
       AppState.pinnedSubjects = { 1: {}, 2: {} };
+      AppState.closedSubjects = { 1: [], 2: [] };
+      AppState.subjectMemos = { 1: {}, 2: {} };
       AppState.studentPins = [];
       AppState.savedPlans = [];
 
@@ -2347,6 +2351,8 @@
 
       AppState.splitSubjects = { 1: { '일본어': 2 }, 2: { '일본어 회화': 2 } };
       AppState.pinnedSubjects = { 1: {}, 2: {} };
+      AppState.closedSubjects = { 1: [], 2: [] };
+      AppState.subjectMemos = { 1: {}, 2: {} };
       AppState.studentPins = [];
       AppState.savedPlans = [];
 
@@ -2590,6 +2596,48 @@
       matrixTable.innerHTML = html;
     }
 
+    // Toggle Subject Closed (폐강 확정 / 해제)
+    window.toggleSubjectClosed = function(subjectName) {
+      const sem = AppState.currentSemester;
+      if (!AppState.closedSubjects) AppState.closedSubjects = { 1: [], 2: [] };
+      if (!AppState.closedSubjects[sem]) AppState.closedSubjects[sem] = [];
+
+      const idx = AppState.closedSubjects[sem].indexOf(subjectName);
+      if (idx >= 0) {
+        AppState.closedSubjects[sem].splice(idx, 1);
+      } else {
+        AppState.closedSubjects[sem].push(subjectName);
+        if (AppState.splitSubjects?.[sem]?.[subjectName]) {
+          delete AppState.splitSubjects[sem][subjectName];
+        }
+        if (AppState.pinnedSubjects?.[sem]?.[subjectName]) {
+          delete AppState.pinnedSubjects[sem][subjectName];
+        }
+      }
+
+      renderSubjectSummaryTable();
+      initStep2Controls();
+      runOptimization();
+      renderStep2Results();
+      renderSavedPlansList();
+      saveAllState();
+    };
+
+    // Update Subject Retention Memo (폐강 보류 및 비고 메모)
+    window.updateSubjectMemo = function(subjectName, memo) {
+      const sem = AppState.currentSemester;
+      if (!AppState.subjectMemos) AppState.subjectMemos = { 1: {}, 2: {} };
+      if (!AppState.subjectMemos[sem]) AppState.subjectMemos[sem] = {};
+
+      const trimmed = (memo || '').trim();
+      if (trimmed) {
+        AppState.subjectMemos[sem][subjectName] = trimmed;
+      } else {
+        delete AppState.subjectMemos[sem][subjectName];
+      }
+      saveAllState();
+    };
+
     // Render Subject Summary & Retention Table (과목별 수강 인원 및 개설·폐강 현황)
     function renderSubjectSummaryTable() {
       const sem = AppState.currentSemester;
@@ -2601,9 +2649,14 @@
         titleEl.textContent = `상지대관령고등학교 ${AppState.detectedGrade} [${sem}학기] 과목별 수강 인원 및 개설·폐강 현황`;
       }
 
+      const closedList = AppState.closedSubjects?.[sem] || [];
+      const memoMap = AppState.subjectMemos?.[sem] || {};
+
       // Compute counts per subject
       let totalCount = 0;
       let underCount = 0;
+      let closedCount = 0;
+
       const subjectData = subjects.map((subj, idx) => {
         let count = 0;
         AppState.students.forEach(st => {
@@ -2614,11 +2667,16 @@
         const isUnder = count <= threshold;
         if (isUnder) underCount++;
 
+        const isClosed = closedList.includes(subj);
+        if (isClosed) closedCount++;
+
         return {
           index: idx + 1,
           name: subj,
           count: count,
-          isUnder: isUnder
+          isUnder: isUnder,
+          isClosed: isClosed,
+          memo: memoMap[subj] || ''
         };
       });
 
@@ -2626,42 +2684,72 @@
       let html = `<thead>
         <tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-10 text-xs">
           <th class="p-2.5 text-center border-r border-slate-300 w-12 bg-slate-100">연번</th>
-          <th class="p-2.5 text-left border-r border-slate-300 w-48 bg-slate-100">과목명</th>
-          <th class="p-2.5 text-center border-r border-slate-300 w-32 bg-slate-100">수강 신청 인원</th>
-          <th class="p-2.5 text-center border-r border-slate-300 w-36 bg-slate-100">개설 상태</th>
-          <th class="p-2.5 text-center w-40 bg-slate-100">폐강 보류 신청하기</th>
+          <th class="p-2.5 text-left border-r border-slate-300 w-44 bg-slate-100">과목명</th>
+          <th class="p-2.5 text-center border-r border-slate-300 w-28 bg-slate-100">수강 신청 인원</th>
+          <th class="p-2.5 text-center border-r border-slate-300 w-28 bg-slate-100">개설 상태</th>
+          <th class="p-2.5 text-center border-r border-slate-300 w-24 bg-slate-100">폐강 확정</th>
+          <th class="p-2.5 text-left w-64 bg-slate-100">폐강 보류 및 비고 메모</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-200 text-xs text-slate-700">`;
 
       subjectData.forEach((item, idx) => {
         const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
-        const isUnder = item.isUnder;
-        const rowStyle = isUnder ? 'style="background-color: #fef2f2;"' : '';
+        let rowStyle = '';
+        if (item.isClosed) {
+          rowStyle = 'style="background-color: #fee2e2;"';
+        } else if (item.isUnder) {
+          rowStyle = 'style="background-color: #fef2f2;"';
+        }
         
         // Count badge
-        const countBadge = isUnder
+        const countBadge = item.isUnder
           ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">${item.count}명</span>`
           : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">${item.count}명</span>`;
 
         // Status badge
-        const statusBadge = isUnder
-          ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-600 text-white shadow-xs animate-pulse">[폐강 예정]</span>`
-          : `<span class="text-slate-400 font-medium">-</span>`;
+        let statusBadge = '';
+        if (item.isClosed) {
+          statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-700 text-white shadow-xs">[폐강 확정]</span>`;
+        } else if (item.isUnder) {
+          statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">[폐강 예정]</span>`;
+        } else {
+          statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">개설</span>`;
+        }
 
-        // Retention request checkbox / button (체크박스만 단정하게 표시)
-        const retentionAction = isUnder
-          ? `<label class="inline-flex items-center justify-center cursor-pointer bg-white hover:bg-rose-50 p-1.5 rounded-md border border-rose-200 shadow-2xs transition-colors" title="폐강 보류 신청">
-              <input type="checkbox" class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
-            </label>`
-          : `<span class="text-slate-300 text-xs font-medium">-</span>`;
+        // Closed Checkbox
+        const closedCheckboxHtml = `
+          <label class="inline-flex items-center justify-center cursor-pointer p-1 rounded-md transition-colors ${item.isClosed ? 'bg-rose-200/90 border border-rose-400 text-rose-950 font-extrabold shadow-2xs' : 'hover:bg-slate-100 border border-slate-200'}" title="${item.isClosed ? '폐강 확정 해제 (2단계 포함)' : '폐강 확정 (2단계 그룹핑 제외)'}">
+            <input type="checkbox" onchange="window.toggleSubjectClosed('${item.name}')" ${item.isClosed ? 'checked' : ''} class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
+            <span class="ml-1.5 text-xs ${item.isClosed ? 'font-black text-rose-900' : 'text-slate-600 font-medium'}">${item.isClosed ? '확정' : '체크'}</span>
+          </label>
+        `;
+
+        // Memo input
+        const memoHtml = `
+          <div class="relative flex items-center">
+            <input type="text" 
+                   value="${(item.memo || '').replace(/"/g, '&quot;')}" 
+                   placeholder="${item.isUnder ? '폐강 보류 요청 사유 등 메모...' : '비고 / 메모 입력...'}" 
+                   onchange="window.updateSubjectMemo('${item.name}', this.value)" 
+                   onblur="window.updateSubjectMemo('${item.name}', this.value)" 
+                   class="w-full text-xs px-2.5 py-1 rounded-md border ${item.memo ? 'border-amber-300 bg-amber-50/60 text-slate-800 font-medium' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'} focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                   title="폐강 보류 또는 과목 관련 메모를 입력하세요 (자동 저장)">
+            ${item.memo ? '<span class="absolute right-2 text-amber-500 text-xs select-none pointer-events-none" title="메모 저장됨">📝</span>' : ''}
+          </div>
+        `;
+
+        const nameDisplay = item.isClosed
+          ? `<span class="line-through text-slate-400 mr-1.5">${item.name}</span><span class="text-[11px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300">폐강</span>`
+          : `<span class="text-slate-900">${item.name}</span>`;
 
         html += `<tr class="${rowBg} hover:bg-blue-50/40 transition-colors" ${rowStyle}>
           <td class="p-2.5 text-center font-medium border-r border-slate-200 text-slate-500">${item.index}</td>
-          <td class="p-2.5 font-bold text-slate-900 border-r border-slate-200 text-sm">${item.name}</td>
+          <td class="p-2.5 font-bold border-r border-slate-200 text-sm">${nameDisplay}</td>
           <td class="p-2.5 text-center border-r border-slate-200 font-bold">${countBadge}</td>
           <td class="p-2.5 text-center border-r border-slate-200 font-semibold">${statusBadge}</td>
-          <td class="p-2.5 text-center">${retentionAction}</td>
+          <td class="p-2.5 text-center border-r border-slate-200">${closedCheckboxHtml}</td>
+          <td class="p-2 text-left">${memoHtml}</td>
         </tr>`;
       });
 
@@ -2670,8 +2758,9 @@
         <tr class="bg-slate-100 font-black text-slate-900 border-t-2 border-slate-300 text-xs">
           <td colspan="2" class="p-2.5 text-center border-r border-slate-300 font-bold">전체 과목 수 (${subjects.length}개)</td>
           <td class="p-2.5 text-center border-r border-slate-300 text-blue-700 font-bold">총 ${totalCount}건</td>
-          <td class="p-2.5 text-center border-r border-slate-300 text-rose-600 font-bold">[폐강 예정] ${underCount}개</td>
-          <td class="p-2.5 text-center text-slate-500 font-medium">기준 ${threshold}명 이하</td>
+          <td class="p-2.5 text-center border-r border-slate-300 text-slate-700 font-bold">[예정] ${underCount}개</td>
+          <td class="p-2.5 text-center border-r border-slate-300 text-rose-700 font-bold">[폐강 확정] ${closedCount}개</td>
+          <td class="p-2.5 text-left text-slate-500 font-medium pl-3">기준 ${threshold}명 이하 | 확정 시 2단계 자동 제외</td>
         </tr>
       </tfoot>`;
 
@@ -2694,17 +2783,20 @@
 
       // ================= 1학기 테이블 =================
       const sem1Subjs = AppState.sem1Subjects || [];
+      const closed1List = AppState.closedSubjects?.[1] || [];
+      const memo1Map = AppState.subjectMemos?.[1] || {};
       const r1Start = rows.length; // 0
       rows.push([`[상지대관령고등학교] ${AppState.detectedGrade} [1학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
       rows.push([`기준 인원: ${threshold}명 이하 | 전체 과목 수: ${sem1Subjs.length}개 | 출력일시: ${new Date().toLocaleString()}`]);
       rows.push([]);
-      rows.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 보류 신청하기']);
+      rows.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 확정', '폐강 보류 및 비고 메모']);
 
-      merges.push({ s: { r: r1Start, c: 0 }, e: { r: r1Start, c: 4 } });
-      merges.push({ s: { r: r1Start + 1, c: 0 }, e: { r: r1Start + 1, c: 4 } });
+      merges.push({ s: { r: r1Start, c: 0 }, e: { r: r1Start, c: 5 } });
+      merges.push({ s: { r: r1Start + 1, c: 0 }, e: { r: r1Start + 1, c: 5 } });
       rowHeights.push({ hpt: 30 }, { hpt: 18 }, { hpt: 8 }, { hpt: 24 });
 
       let under1 = 0;
+      let closed1 = 0;
       let total1 = 0;
       sem1Subjs.forEach((s, idx) => {
         let count = 0;
@@ -2714,14 +2806,18 @@
         total1 += count;
         const isUnder = count <= threshold;
         if (isUnder) under1++;
+        const isClosed = closed1List.includes(s);
+        if (isClosed) closed1++;
 
-        const status = isUnder ? '[폐강 예정]' : '';
-        rows.push([idx + 1, s, `${count}명`, status, '']);
+        const status = isClosed ? '[폐강 확정]' : (isUnder ? '[폐강 예정]' : '개설');
+        const closedText = isClosed ? '확정 (제외)' : '';
+        const memoText = memo1Map[s] || '';
+        rows.push([idx + 1, s, `${count}명`, status, closedText, memoText]);
         rowHeights.push({ hpt: 20 });
       });
 
       const r1Sum = rows.length;
-      rows.push(['합계', `전체 ${sem1Subjs.length}개 과목`, `총 ${total1}건`, `[폐강 예정] ${under1}개`, '']);
+      rows.push(['합계', `전체 ${sem1Subjs.length}개 과목`, `총 ${total1}건`, `[예정] ${under1}개`, `[확정] ${closed1}개`, '']);
       rowHeights.push({ hpt: 24 });
 
       // 중간 구분 스페이서 행 (2행)
@@ -2731,17 +2827,20 @@
 
       // ================= 2학기 테이블 =================
       const sem2Subjs = AppState.sem2Subjects || [];
+      const closed2List = AppState.closedSubjects?.[2] || [];
+      const memo2Map = AppState.subjectMemos?.[2] || {};
       const r2Start = rows.length;
       rows.push([`[상지대관령고등학교] ${AppState.detectedGrade} [2학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
       rows.push([`기준 인원: ${threshold}명 이하 | 전체 과목 수: ${sem2Subjs.length}개 | 출력일시: ${new Date().toLocaleString()}`]);
       rows.push([]);
-      rows.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 보류 신청하기']);
+      rows.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 확정', '폐강 보류 및 비고 메모']);
 
-      merges.push({ s: { r: r2Start, c: 0 }, e: { r: r2Start, c: 4 } });
-      merges.push({ s: { r: r2Start + 1, c: 0 }, e: { r: r2Start + 1, c: 4 } });
+      merges.push({ s: { r: r2Start, c: 0 }, e: { r: r2Start, c: 5 } });
+      merges.push({ s: { r: r2Start + 1, c: 0 }, e: { r: r2Start + 1, c: 5 } });
       rowHeights.push({ hpt: 30 }, { hpt: 18 }, { hpt: 8 }, { hpt: 24 });
 
       let under2 = 0;
+      let closed2 = 0;
       let total2 = 0;
       sem2Subjs.forEach((s, idx) => {
         let count = 0;
@@ -2751,32 +2850,37 @@
         total2 += count;
         const isUnder = count <= threshold;
         if (isUnder) under2++;
+        const isClosed = closed2List.includes(s);
+        if (isClosed) closed2++;
 
-        const status = isUnder ? '[폐강 예정]' : '';
-        rows.push([idx + 1, s, `${count}명`, status, '']);
+        const status = isClosed ? '[폐강 확정]' : (isUnder ? '[폐강 예정]' : '개설');
+        const closedText = isClosed ? '확정 (제외)' : '';
+        const memoText = memo2Map[s] || '';
+        rows.push([idx + 1, s, `${count}명`, status, closedText, memoText]);
         rowHeights.push({ hpt: 20 });
       });
 
       const r2Sum = rows.length;
-      rows.push(['합계', `전체 ${sem2Subjs.length}개 과목`, `총 ${total2}건`, `[폐강 예정] ${under2}개`, '']);
+      rows.push(['합계', `전체 ${sem2Subjs.length}개 과목`, `총 ${total2}건`, `[예정] ${under2}개`, `[확정] ${closed2}개`, '']);
       rowHeights.push({ hpt: 24 });
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
       ws['!merges'] = merges;
       ws['!cols'] = [
         { wch: 8 },
-        { wch: 28 },
-        { wch: 18 },
-        { wch: 18 },
-        { wch: 24 }
+        { wch: 26 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 32 }
       ];
       ws['!rows'] = rowHeights;
 
       // 1학기 스타일링
-      ExcelStyler.setRange(ws, r1Start, 0, r1Start, 4, ExcelStyler.titleStyle(true));
-      ExcelStyler.setRange(ws, r1Start + 1, 0, r1Start + 1, 4, ExcelStyler.subtitleStyle(true));
-      for (let c = 0; c < 5; c++) {
-        ExcelStyler.setCell(ws, r1Start + 3, c, ExcelStyler.headerStyle(ExcelStyler.colors.navyMid, c === 4, c === 0));
+      ExcelStyler.setRange(ws, r1Start, 0, r1Start, 5, ExcelStyler.titleStyle(true));
+      ExcelStyler.setRange(ws, r1Start + 1, 0, r1Start + 1, 5, ExcelStyler.subtitleStyle(true));
+      for (let c = 0; c < 6; c++) {
+        ExcelStyler.setCell(ws, r1Start + 3, c, ExcelStyler.headerStyle(ExcelStyler.colors.navyMid, c === 5, c === 0));
       }
       sem1Subjs.forEach((s, idx) => {
         const r = r1Start + 4 + idx;
@@ -2786,21 +2890,23 @@
           if ((st.sem1 || []).includes(s)) count++;
         });
         const isUnder = count <= threshold;
+        const isClosed = closed1List.includes(s);
         ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-        ExcelStyler.setCell(ws, r, 1, ExcelStyler.dataBold(isEven, false, false));
+        ExcelStyler.setCell(ws, r, 1, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false));
         ExcelStyler.setCell(ws, r, 2, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 3, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 4, ExcelStyler.dataCenter(isEven, true, false));
+        ExcelStyler.setCell(ws, r, 3, (isClosed || isUnder) ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+        ExcelStyler.setCell(ws, r, 4, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+        ExcelStyler.setCell(ws, r, 5, ExcelStyler.dataText(isEven, true, false));
       });
-      for (let c = 0; c < 5; c++) {
-        ExcelStyler.setCell(ws, r1Sum, c, ExcelStyler.summaryStyle(c === 3 && under1 > 0, c === 4, c === 0));
+      for (let c = 0; c < 6; c++) {
+        ExcelStyler.setCell(ws, r1Sum, c, ExcelStyler.summaryStyle(c === 3 && under1 > 0, c === 5, c === 0));
       }
 
       // 2학기 스타일링
-      ExcelStyler.setRange(ws, r2Start, 0, r2Start, 4, ExcelStyler.titleStyle(true));
-      ExcelStyler.setRange(ws, r2Start + 1, 0, r2Start + 1, 4, ExcelStyler.subtitleStyle(true));
-      for (let c = 0; c < 5; c++) {
-        ExcelStyler.setCell(ws, r2Start + 3, c, ExcelStyler.headerStyle('0F766E', c === 4, c === 0)); // 청록색 계열로 2학기 구분
+      ExcelStyler.setRange(ws, r2Start, 0, r2Start, 5, ExcelStyler.titleStyle(true));
+      ExcelStyler.setRange(ws, r2Start + 1, 0, r2Start + 1, 5, ExcelStyler.subtitleStyle(true));
+      for (let c = 0; c < 6; c++) {
+        ExcelStyler.setCell(ws, r2Start + 3, c, ExcelStyler.headerStyle('0F766E', c === 5, c === 0)); // 청록색 계열로 2학기 구분
       }
       sem2Subjs.forEach((s, idx) => {
         const r = r2Start + 4 + idx;
@@ -2810,14 +2916,16 @@
           if ((st.sem2 || []).includes(s)) count++;
         });
         const isUnder = count <= threshold;
+        const isClosed = closed2List.includes(s);
         ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-        ExcelStyler.setCell(ws, r, 1, ExcelStyler.dataBold(isEven, false, false));
+        ExcelStyler.setCell(ws, r, 1, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false));
         ExcelStyler.setCell(ws, r, 2, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 3, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 4, ExcelStyler.dataCenter(isEven, true, false));
+        ExcelStyler.setCell(ws, r, 3, (isClosed || isUnder) ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+        ExcelStyler.setCell(ws, r, 4, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+        ExcelStyler.setCell(ws, r, 5, ExcelStyler.dataText(isEven, true, false));
       });
-      for (let c = 0; c < 5; c++) {
-        ExcelStyler.setCell(ws, r2Sum, c, ExcelStyler.summaryStyle(c === 3 && under2 > 0, c === 4, c === 0));
+      for (let c = 0; c < 6; c++) {
+        ExcelStyler.setCell(ws, r2Sum, c, ExcelStyler.summaryStyle(c === 3 && under2 > 0, c === 5, c === 0));
       }
 
       // ================= 페이지 인쇄 및 영역 설정 (한 페이지 인쇄 최적화) =================
@@ -2925,12 +3033,18 @@
         // 2. Subject Summary & Retention Table (과목별 수강 인원 및 개설·폐강 현황)
         const t2Start = sheetData.length;
         sheetData.push([`[상지대관령고등학교] ${AppState.detectedGrade} [${sem}학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
-        sheetData.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 보류 신청하기']);
+        sheetData.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 확정', '폐강 보류 및 비고 메모']);
+
+        const closedList = AppState.closedSubjects?.[sem] || [];
+        const memoMap = AppState.subjectMemos?.[sem] || {};
 
         subjects.forEach((subj, idx) => {
           let count = counts[subj] || 0;
-          const status = count <= threshold ? '[폐강 예정]' : '';
-          sheetData.push([idx + 1, subj, `${count}명`, status, '']);
+          const isClosed = closedList.includes(subj);
+          const memo = memoMap[subj] || '';
+          const status = isClosed ? '[폐강 확정]' : (count <= threshold ? '[폐강 예정]' : '개설');
+          const closedText = isClosed ? '확정 (제외)' : '';
+          sheetData.push([idx + 1, subj, `${count}명`, status, closedText, memo]);
         });
 
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
@@ -2940,7 +3054,7 @@
           { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
           { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
           { s: { r: 5 + AppState.students.length, c: 0 }, e: { r: 5 + AppState.students.length, c: 2 } },
-          { s: { r: t2Start, c: 0 }, e: { r: t2Start, c: 4 } }
+          { s: { r: t2Start, c: 0 }, e: { r: t2Start, c: 5 } }
         ];
 
         // Column widths for Step 1 sheet
@@ -3015,9 +3129,9 @@
         // Style Table 2 (Subject Summary)
         rowHeights.push({ hpt: 28 }); // t2Start
         rowHeights.push({ hpt: 26 }); // t2Start + 1
-        ExcelStyler.setRange(ws, t2Start, 0, t2Start, 4, ExcelStyler.subHeaderStyle(true, true));
-        for (let c = 0; c < 5; c++) {
-          ExcelStyler.setCell(ws, t2Start + 1, c, ExcelStyler.headerStyle(ExcelStyler.colors.navyMid, c === 4, c === 0));
+        ExcelStyler.setRange(ws, t2Start, 0, t2Start, 5, ExcelStyler.subHeaderStyle(true, true));
+        for (let c = 0; c < 6; c++) {
+          ExcelStyler.setCell(ws, t2Start + 1, c, ExcelStyler.headerStyle(ExcelStyler.colors.navyMid, c === 5, c === 0));
         }
 
         subjects.forEach((subj, idx) => {
@@ -3026,12 +3140,14 @@
           rowHeights.push({ hpt: 22 });
           const count = counts[subj] || 0;
           const isUnder = count <= threshold;
+          const isClosed = closedList.includes(subj);
 
           ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-          ExcelStyler.setCell(ws, r, 1, ExcelStyler.dataBold(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 1, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false));
           ExcelStyler.setCell(ws, r, 2, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-          ExcelStyler.setCell(ws, r, 3, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-          ExcelStyler.setCell(ws, r, 4, ExcelStyler.dataCenter(isEven, true, false));
+          ExcelStyler.setCell(ws, r, 3, (isClosed || isUnder) ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 4, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 5, ExcelStyler.dataText(isEven, true, false));
         });
 
         ws['!rows'] = rowHeights;
@@ -3076,10 +3192,13 @@
         step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
       }
 
-      const subjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
+      const rawSubjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
+      const closedList = AppState.closedSubjects?.[sem] || [];
+      const subjects = rawSubjects.filter(s => !closedList.includes(s));
       const groupCount = sem === 1 ? AppState.sem1GroupCount : AppState.sem2GroupCount;
 
-      document.getElementById('groupCountInfo').textContent = `(총 ${groupCount}개 그룹 편성)`;
+      const closedNote = closedList.length > 0 ? ` (폐강 확정 ${closedList.length}과목 제외)` : '';
+      document.getElementById('groupCountInfo').textContent = `(총 ${groupCount}개 그룹 편성${closedNote})`;
       statGroupCountDisplay.textContent = `${groupCount}그룹`;
 
       // 1. Split Subjects List
@@ -3316,7 +3435,9 @@
     // 3) Global Multi-start Randomized Search & Range-Targeted Exploration
     function runOptimization() {
       const sem = AppState.currentSemester;
-      const subjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
+      const rawSubjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
+      const closedList = AppState.closedSubjects?.[sem] || [];
+      const subjects = rawSubjects.filter(s => !closedList.includes(s));
       const groupCount = sem === 1 ? AppState.sem1GroupCount : AppState.sem2GroupCount;
       const splitConfig = AppState.splitSubjects[sem] || {};
       const pinnedConfig = AppState.pinnedSubjects[sem] || {};
@@ -3356,9 +3477,9 @@
         }
       });
 
-      // Prepare student choices representation
+      // Prepare student choices representation (excluding closed subjects)
       const studentsChoices = AppState.students.map(st => {
-        const rawChoices = sem === 1 ? st.sem1 : st.sem2;
+        const rawChoices = (sem === 1 ? st.sem1 : st.sem2).filter(s => !closedList.includes(s));
         return {
           id: st.id,
           classNum: st.classNum,
@@ -3711,7 +3832,8 @@
       // Process each student
       for (const stIdx of randomizedIndices) {
         const st = studentsList[stIdx];
-        const choices = sem === 1 ? st.sem1 : st.sem2;
+        const closedList = AppState.closedSubjects?.[sem] || [];
+        const choices = (sem === 1 ? st.sem1 : st.sem2).filter(s => !closedList.includes(s));
         const n = choices.length;
 
         // 1) If user has manually edited this student's schedule, honor it 100%
@@ -5630,6 +5752,8 @@
         sem2GroupCount: 7,
         splitSubjects: { 1: {}, 2: {} },
         pinnedSubjects: { 1: {}, 2: {} },
+        closedSubjects: { 1: [], 2: [] },
+        subjectMemos: { 1: {}, 2: {} },
         studentPins: [],
         currentPlan: {
           semester: 1,
@@ -5825,6 +5949,8 @@
         sem2GroupCount: AppState.sem2GroupCount || 7,
         splitSubjects: JSON.parse(JSON.stringify(AppState.splitSubjects || { 1: {}, 2: {} })),
         pinnedSubjects: JSON.parse(JSON.stringify(AppState.pinnedSubjects || { 1: {}, 2: {} })),
+        closedSubjects: JSON.parse(JSON.stringify(AppState.closedSubjects || { 1: [], 2: [] })),
+        subjectMemos: JSON.parse(JSON.stringify(AppState.subjectMemos || { 1: {}, 2: {} })),
         studentPins: JSON.parse(JSON.stringify(AppState.studentPins || [])),
         currentPlan: AppState.currentPlan ? JSON.parse(JSON.stringify(AppState.currentPlan)) : null,
         priorData: AppState.priorData ? JSON.parse(JSON.stringify(AppState.priorData)) : null,
