@@ -727,44 +727,49 @@
           </div>
         </div>
 
-        <!-- Conflicted Students Alert Section (If any) -->
-        <div id="conflictAlertBox" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-4 shadow-sm">
-          <div class="flex items-center justify-between mb-2">
-            <h5 class="text-xs font-bold text-rose-900 flex items-center space-x-1.5">
-              <span>⚠️ 충돌 발생 학생 세부 명단</span>
-              <span id="conflictDetailCount" class="bg-rose-200 text-rose-800 px-2 py-0.2 rounded-full text-[11px]"></span>
-            </h5>
-            <span class="text-[11px] text-rose-700">동일 그룹에 2개 이상의 선택과목이 배정되어 시간표가 중복된 학생입니다.</span>
-          </div>
-          <div class="max-h-36 overflow-y-auto custom-scrollbar">
-            <table class="w-full text-xs text-left border-collapse">
-              <thead>
-                <tr class="bg-rose-100/70 text-rose-900 font-semibold border-b border-rose-200">
-                  <th class="p-1.5">반</th>
-                  <th class="p-1.5">번호</th>
-                  <th class="p-1.5">이름</th>
-                  <th class="p-1.5">충돌 발생 그룹</th>
-                  <th class="p-1.5">중복 과목</th>
-                </tr>
-              </thead>
-              <tbody id="conflictTableBody" class="divide-y divide-rose-100 text-slate-800">
-                <!-- Dynamically Populated -->
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <!-- Group Cards & Conflicted Students Side-by-Side Wrapper -->
+        <div id="groupCardsAndConflictWrapper" class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
 
-        <!-- Grouping Arrangement Cards (Group 1..N) -->
-        <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h4 class="text-sm font-bold text-slate-900">
-              그룹별 개설 과목 및 수강 인원 배치 현황
-            </h4>
-            <span class="text-xs text-slate-500">각 그룹(교시) 내에서 학생은 1개 과목만 수강합니다.</span>
+          <!-- Grouping Arrangement Cards (Group 1..N) -->
+          <div id="groupCardsSection" class="xl:col-span-12 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h4 class="text-sm font-bold text-slate-900">
+                그룹별 개설 과목 및 수강 인원 배치 현황
+              </h4>
+              <span class="text-xs text-slate-500">각 그룹(교시) 내에서 학생은 1개 과목만 수강합니다.</span>
+            </div>
+            <div id="groupCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 gap-3.5">
+              <!-- Group 1..N Cards -->
+            </div>
           </div>
-          <div id="groupCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-3.5">
-            <!-- Group 1..N Cards -->
+
+          <!-- Conflicted Students Alert Section (Placed on the right when conflicts exist) -->
+          <div id="conflictAlertBox" class="hidden xl:col-span-4 bg-rose-50/90 border border-rose-200 rounded-xl p-4 shadow-sm space-y-2.5 transition-all">
+            <div class="flex items-center justify-between border-b border-rose-200 pb-2">
+              <h5 class="text-xs font-bold text-rose-900 flex items-center space-x-1.5">
+                <span>⚠️ 충돌 발생 학생 세부 명단</span>
+                <span id="conflictDetailCount" class="bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full text-[11px] font-bold"></span>
+              </h5>
+            </div>
+            <p class="text-[11px] text-rose-700 leading-tight">동일 그룹에 2개 이상의 선택과목이 배정되어 시간표가 중복된 학생입니다.</p>
+            <div class="max-h-72 overflow-y-auto custom-scrollbar border border-rose-200/80 rounded-lg bg-white">
+              <table class="w-full text-xs text-left border-collapse">
+                <thead class="sticky top-0 bg-rose-100/90 text-rose-900 font-bold border-b border-rose-200 z-10">
+                  <tr>
+                    <th class="p-1.5">반</th>
+                    <th class="p-1.5">번호</th>
+                    <th class="p-1.5">이름</th>
+                    <th class="p-1.5">그룹</th>
+                    <th class="p-1.5">중복 과목</th>
+                  </tr>
+                </thead>
+                <tbody id="conflictTableBody" class="divide-y divide-rose-100 text-slate-800">
+                  <!-- Dynamically Populated -->
+                </tbody>
+              </table>
+            </div>
           </div>
+
         </div>
 
         <!-- Student Individual Timetable Schedule View -->
@@ -2697,6 +2702,9 @@
           sheetData.push(row);
         });
 
+        // Blank row spacer to isolate Student Table from Summary Totals (excludes Totals from Excel AutoFilter)
+        sheetData.push([]);
+
         // Total Row
         const totalRow = ['합계', '', '', '총 수강 신청 인원'];
         subjects.forEach(s => totalRow.push(counts[s]));
@@ -2723,7 +2731,7 @@
         ws['!merges'] = [
           { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
           { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
-          { s: { r: 4 + AppState.students.length, c: 0 }, e: { r: 4 + AppState.students.length, c: 2 } },
+          { s: { r: 5 + AppState.students.length, c: 0 }, e: { r: 5 + AppState.students.length, c: 2 } },
           { s: { r: t2Start, c: 0 }, e: { r: t2Start, c: 4 } }
         ];
 
@@ -2776,8 +2784,11 @@
           });
         });
 
+        // Blank spacer row height (isolates table from filter)
+        rowHeights.push({ hpt: 12 });
+
         // Summary row styling
-        const sumR = 4 + AppState.students.length;
+        const sumR = 5 + AppState.students.length;
         rowHeights.push({ hpt: 26 });
         for (let c = 0; c < 4; c++) {
           const isRight = (c === 3);
@@ -3715,21 +3726,29 @@
       // Update Conflict Badges
       statConflictCount.textContent = `${plan.conflictCount}명`;
 
+      const groupCardsSection = document.getElementById('groupCardsSection');
+
       if (plan.conflictCount === 0) {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
         conflictStatusBadge.textContent = isTargetN ? `충돌 0명 (목표 0명 달성)` : '충돌 없음 (최적)';
         conflictAlertBox.classList.add('hidden');
-      } else if (isTargetN && plan.conflictCount === targetN) {
-        conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200';
-        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${targetN}명 경우의 수)`;
-        conflictAlertBox.classList.remove('hidden');
-      } else if (isTargetN && plan.conflictCount !== targetN) {
-        conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300';
-        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${targetN}명 근접 조합)`;
-        conflictAlertBox.classList.remove('hidden');
+        if (groupCardsSection) {
+          groupCardsSection.className = 'xl:col-span-12 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 transition-all';
+        }
       } else {
-        conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200';
-        conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 발생 (최적 탐색)`;
+        if (groupCardsSection) {
+          groupCardsSection.className = 'xl:col-span-8 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 transition-all';
+        }
+        if (isTargetN && plan.conflictCount === targetN) {
+          conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200';
+          conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${targetN}명 경우의 수)`;
+        } else if (isTargetN && plan.conflictCount !== targetN) {
+          conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300';
+          conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${targetN}명 근접 조합)`;
+        } else {
+          conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200';
+          conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 발생 (최적 탐색)`;
+        }
         conflictAlertBox.classList.remove('hidden');
       }
 
@@ -4227,6 +4246,16 @@
       }
     }
 
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     // ==========================================
     // Toolbar & Filter Event Listeners
     document.getElementById('step2StudentSearchInput')?.addEventListener('input', renderStudentScheduleTable);
@@ -4240,7 +4269,16 @@
 
     function saveCurrentWorkMemo() {
       if (!AppState.currentPlan) return;
-      AppState.currentPlan.memo = memoTextarea ? memoTextarea.value : '';
+      const val = memoTextarea ? memoTextarea.value : '';
+      AppState.currentPlan.memo = val;
+      const match = AppState.savedPlans.find(p => p.id === AppState.currentPlan.id);
+      if (match) {
+        match.memo = val;
+        const savedTa = document.querySelector(`textarea[data-plan-id="${match.id}"]`);
+        if (savedTa && savedTa.value !== val) {
+          savedTa.value = val;
+        }
+      }
       saveAllState();
       if (memoSavedHint) {
         memoSavedHint.classList.remove('hidden');
@@ -4250,11 +4288,35 @@
 
     memoTextarea?.addEventListener('input', () => {
       if (AppState.currentPlan && memoTextarea) {
-        AppState.currentPlan.memo = memoTextarea.value;
+        const val = memoTextarea.value;
+        AppState.currentPlan.memo = val;
+        const match = AppState.savedPlans.find(p => p.id === AppState.currentPlan.id);
+        if (match) {
+          match.memo = val;
+          const savedTa = document.querySelector(`textarea[data-plan-id="${match.id}"]`);
+          if (savedTa && savedTa.value !== val) {
+            savedTa.value = val;
+          }
+        }
       }
     });
     memoTextarea?.addEventListener('blur', saveCurrentWorkMemo);
     btnSaveMemo?.addEventListener('click', saveCurrentWorkMemo);
+
+    window.handleSavedPlanMemoChange = function(planId, text) {
+      const plan = AppState.savedPlans.find(p => p.id === planId);
+      if (plan) {
+        plan.memo = text;
+        if (AppState.currentPlan && AppState.currentPlan.id === planId) {
+          AppState.currentPlan.memo = text;
+          const memoTextarea = document.getElementById('planWorkMemo');
+          if (memoTextarea && memoTextarea.value !== text) {
+            memoTextarea.value = text;
+          }
+        }
+        saveAllState();
+      }
+    };
 
     // ==========================================
     // 6. SAVING PLANS & COMBINED EXCEL DOWNLOAD
@@ -4286,9 +4348,10 @@
       };
 
       AppState.savedPlans.push(newSavedPlan);
+      AppState.currentPlan.id = newSavedPlan.id; // Link active plan to this saved plan
       renderSavedPlansList();
       saveAllState();
-      alert(`⭐ [${planName}]이 저장되었습니다!\n아래 '저장된 그룹핑 후보안 목록'에서 개별 다운로드 및 시간표 확인이 가능합니다.`);
+      alert(`⭐ [${planName}]이 저장되었습니다!\n아래 '저장된 그룹핑 후보안 목록'에서 개별 메모 작성, 다운로드 및 시간표 확인이 가능합니다.`);
     });
 
     function renderSavedPlansList() {
@@ -4325,6 +4388,23 @@
                 </div>
               </div>
             `).join('')}
+          </div>
+
+          <!-- Dedicated Work Memo & Notes for this Saved Plan -->
+          <div class="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <span>📝 시간표 작업 메모 및 특이사항:</span>
+              </label>
+              <span class="text-[11px] text-slate-400 font-normal">입력 시 자동 저장되며 엑셀 다운로드에 포함됩니다</span>
+            </div>
+            <textarea 
+              rows="2" 
+              class="w-full text-xs p-2.5 border border-slate-300 hover:border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 bg-slate-50/60 hover:bg-white focus:bg-white transition leading-relaxed resize-y font-sans" 
+              placeholder="이 안에 대한 검토 의견, 교사 배정 메모, 학생 특이사항 등을 자유롭게 기록하세요..."
+              data-plan-id="${plan.id}"
+              oninput="window.handleSavedPlanMemoChange(${plan.id}, this.value)"
+            >${escapeHtml(plan.memo || '')}</textarea>
           </div>
 
           <!-- Action Toolbar -->
@@ -4369,7 +4449,10 @@
       }
 
       renderStep2Results();
-      alert(`📂 [${plan.name}]의 학생별 이동수업 시간표 및 그룹 배치가 화면에 적용되었습니다.`);
+      const memoTextarea = document.getElementById('planWorkMemo');
+      if (memoTextarea) {
+        memoTextarea.value = plan.memo || '';
+      }
     };
 
     window.deleteSavedPlan = function(planId) {
@@ -4493,12 +4576,11 @@
         });
       });
 
-      // 1. Spacer Row (1행 띄움)
-      const emptyRow = new Array(totalCols).fill('');
-      ttRows.push(emptyRow);
+      // 1. Spacer Row (1행 띄움: 셀 없는 완전한 빈 행을 추가하여 엑셀 자동 필터 범위에서 하단 합계행 격리)
+      ttRows.push([]);
 
       // 2. Subject Totals Row (각 과목별 학생수 합계: N명)
-      const subjSumRow = ['', '', '', ''];
+      const subjSumRow = ['과목 수강 총 인원', '', '', ''];
       plan.groups.forEach(groupSubjs => {
         if (groupSubjs.length === 0) {
           subjSumRow.push('');
@@ -4509,10 +4591,12 @@
         }
       });
       subjSumRow.push(''); // for status col
+      const subjSumR = ttRows.length;
       ttRows.push(subjSumRow);
+      merges.push({ s: { r: subjSumR, c: 0 }, e: { r: subjSumR, c: 3 } });
 
       // 3. Group Totals Row (그룹별 학생수 합계: 각 그룹의 첫 번째 과목 위치에 N명)
-      const grpSumRow = ['', '', '', ''];
+      const grpSumRow = ['그룹별 총 인원', '', '', ''];
       plan.groups.forEach(groupSubjs => {
         const groupTotal = groupSubjs.reduce((acc, sName) => acc + (subjCounts[sName] || 0), 0);
         if (groupSubjs.length === 0) {
@@ -4528,12 +4612,14 @@
         }
       });
       grpSumRow.push(''); // for status col
+      const grpSumR = ttRows.length;
       ttRows.push(grpSumRow);
+      merges.push({ s: { r: grpSumR, c: 0 }, e: { r: grpSumR, c: 3 } });
 
       let memoHRIdx = -1;
       let memoCRIdx = -1;
       if (plan.memo && plan.memo.trim()) {
-        ttRows.push(new Array(totalCols).fill('')); // Empty spacer row
+        ttRows.push([]); // Empty spacer row without cells
 
         const memoHRow = ['📝 [시간표 작업 메모 및 특이사항]'];
         for (let c = 1; c < totalCols; c++) memoHRow.push('');
@@ -4635,19 +4721,17 @@
       });
 
       // Bottom Summary Rows Styling
-      const spacerR = 5 + AppState.students.length;
-      const subjSumR = spacerR + 1;
-      const grpSumR = spacerR + 2;
-
       rowHeights.push({ hpt: 12 }); // Empty spacer row
       rowHeights.push({ hpt: 24 }); // Subject count row
       rowHeights.push({ hpt: 26 }); // Group count row
 
       // 1. Style Subject Sum Row
-      for (let c = 0; c < 4; c++) {
-        const isRight = (c === 3);
-        ExcelStyler.setCell(wsTT, subjSumR, c, ExcelStyler.dataCenter(false, isRight, c === 0));
-      }
+      ExcelStyler.setRange(wsTT, subjSumR, 0, subjSumR, 3, {
+        font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '1E40AF' } },
+        fill: { fgColor: { rgb: 'EFF6FF' } },
+        alignment: { vertical: 'center', horizontal: 'center' },
+        border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+      });
       let sumColIdx = 4;
       plan.groups.forEach(groupSubjs => {
         if (groupSubjs.length === 0) {
@@ -4665,10 +4749,12 @@
       ExcelStyler.setCell(wsTT, subjSumR, sumColIdx, ExcelStyler.dataCenter(false, true, true));
 
       // 2. Style Group Sum Row
-      for (let c = 0; c < 4; c++) {
-        const isRight = (c === 3);
-        ExcelStyler.setCell(wsTT, grpSumR, c, ExcelStyler.dataCenter(false, isRight, c === 0));
-      }
+      ExcelStyler.setRange(wsTT, grpSumR, 0, grpSumR, 3, {
+        font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '1E3A8A' } },
+        fill: { fgColor: { rgb: 'DBEAFE' } },
+        alignment: { vertical: 'center', horizontal: 'center' },
+        border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+      });
       let grpColIdx = 4;
       plan.groups.forEach(groupSubjs => {
         if (groupSubjs.length === 0) {
