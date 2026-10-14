@@ -784,40 +784,61 @@
             </div>
           </div>
 
-          <!-- Advanced Constraints Accordion / Controls -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <!-- Advanced Constraints Controls: 3-column Layout -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             
-            <!-- 1. Split Subjects Setting -->
-            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+            <!-- 영역 1: 분반 가능 과목 체크 (인원 분할) -->
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex flex-col">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-bold text-slate-800 flex items-center space-x-1">
-                  <span>✂️ 분반 가능 과목 체크 (인원 분할)</span>
+                  <span>✂️ 분반 가능 과목 체크</span>
                 </span>
-                <span class="text-[11px] text-slate-500">A/B반 자동 분할</span>
+                <span class="text-[11px] text-slate-500">A/B반 분할</span>
               </div>
-              <div id="splitSubjectsContainer" class="max-h-36 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+              <div id="splitSubjectsContainer" class="max-h-36 overflow-y-auto space-y-1.5 custom-scrollbar pr-1 flex-1">
                 <!-- Split Subject Checkboxes -->
               </div>
             </div>
 
-            <!-- 2. Student Mandatory Subject Pinning (특정 학생 필수 수강 고정) -->
-            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+            <!-- 영역 2: 함께 묶을 과목 선택 (동일 그룹 배치) -->
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex flex-col">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-bold text-slate-800 flex items-center space-x-1">
-                  <span>👤 특정 학생 수강 그룹 고정</span>
+                  <span>🔗 함께 묶을 과목</span>
                 </span>
-                <span class="text-[11px] text-slate-500">필수 수강 학생 지정</span>
+                <span class="text-[11px] text-blue-600 font-bold">동일 그룹 배치</span>
               </div>
-              <div class="space-y-2">
-                <div class="flex space-x-1">
-                  <select id="pinStudentSelect" class="w-1/2 text-xs border border-slate-300 rounded p-1"></select>
-                  <select id="pinStudentSubjectSelect" class="w-1/2 text-xs border border-slate-300 rounded p-1"></select>
+              <div class="space-y-2 flex flex-col flex-1">
+                <div class="flex items-center gap-1">
+                  <select id="togetherSubj1Select" class="w-1/2 text-xs border border-slate-300 rounded p-1 bg-white truncate" title="과목 1"></select>
+                  <span class="text-xs font-bold text-slate-400 shrink-0">+</span>
+                  <select id="togetherSubj2Select" class="w-1/2 text-xs border border-slate-300 rounded p-1 bg-white truncate" title="과목 2"></select>
+                  <button id="btnAddTogetherPair" type="button" class="shrink-0 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow-2xs transition">추가</button>
                 </div>
-                <div class="flex space-x-1">
-                  <select id="pinStudentGroupSelect" class="w-2/3 text-xs border border-slate-300 rounded p-1"></select>
-                  <button id="btnAddStudentPin" class="w-1/3 text-xs bg-slate-800 text-white font-bold rounded hover:bg-slate-700 transition">추가</button>
+                <div id="togetherPairsList" class="max-h-24 overflow-y-auto custom-scrollbar flex-1 space-y-1 pr-0.5 text-xs">
+                  <!-- Together pairs list chips -->
                 </div>
-                <div id="studentPinsList" class="max-h-16 overflow-y-auto text-[11px] text-slate-600 space-y-1"></div>
+              </div>
+            </div>
+
+            <!-- 영역 3: 함께 묶지 않을 과목 선택 (분리 배치) -->
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex flex-col">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-800 flex items-center space-x-1">
+                  <span>🚫 함께 묶지 않을 과목</span>
+                </span>
+                <span class="text-[11px] text-rose-600 font-bold">다른 그룹 분리</span>
+              </div>
+              <div class="space-y-2 flex flex-col flex-1">
+                <div class="flex items-center gap-1">
+                  <select id="separateSubj1Select" class="w-1/2 text-xs border border-slate-300 rounded p-1 bg-white truncate" title="과목 1"></select>
+                  <span class="text-xs font-bold text-slate-400 shrink-0">≠</span>
+                  <select id="separateSubj2Select" class="w-1/2 text-xs border border-slate-300 rounded p-1 bg-white truncate" title="과목 2"></select>
+                  <button id="btnAddSeparatePair" type="button" class="shrink-0 px-2 py-1 text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold rounded shadow-2xs transition">추가</button>
+                </div>
+                <div id="separatePairsList" class="max-h-24 overflow-y-auto custom-scrollbar flex-1 space-y-1 pr-0.5 text-xs">
+                  <!-- Separate pairs list chips -->
+                </div>
               </div>
             </div>
 
@@ -1091,9 +1112,11 @@
       sem2GroupCount: 7,
       splitSubjects: { 1: {}, 2: {} }, // { '물리학Ⅰ': 2 }
       pinnedSubjects: { 1: {}, 2: {} }, // { '국어독서': 1 }
+      togetherPairs: { 1: [], 2: [] }, // Array of [subj1, subj2] pairs (동일 그룹 배치)
+      separatePairs: { 1: [], 2: [] }, // Array of [subj1, subj2] pairs (다른 그룹 분리)
       closedSubjects: { 1: [], 2: [] }, // Array of confirmed closed subject names (폐강 확정)
       subjectMemos: { 1: {}, 2: {} }, // { 1: { '일본어': '소인수 선택 유지 요청' } }
-      studentPins: [], // Array of { studentId, subject, group }
+      studentPins: [], // Array of { studentId, subject, group } (kept for compatibility)
       
       // Current Grouping Results
       currentPlan: {
@@ -1350,12 +1373,16 @@
     const statBestConflictCount = document.getElementById('statBestConflictCount');
     const btnRestoreBestPlan = document.getElementById('btnRestoreBestPlan');
 
-    // Student Pin Controls
-    const pinStudentSelect = document.getElementById('pinStudentSelect');
-    const pinStudentSubjectSelect = document.getElementById('pinStudentSubjectSelect');
-    const pinStudentGroupSelect = document.getElementById('pinStudentGroupSelect');
-    const btnAddStudentPin = document.getElementById('btnAddStudentPin');
-    const studentPinsList = document.getElementById('studentPinsList');
+    // Together / Separate Constraint Controls
+    const togetherSubj1Select = document.getElementById('togetherSubj1Select');
+    const togetherSubj2Select = document.getElementById('togetherSubj2Select');
+    const btnAddTogetherPair = document.getElementById('btnAddTogetherPair');
+    const togetherPairsList = document.getElementById('togetherPairsList');
+
+    const separateSubj1Select = document.getElementById('separateSubj1Select');
+    const separateSubj2Select = document.getElementById('separateSubj2Select');
+    const btnAddSeparatePair = document.getElementById('btnAddSeparatePair');
+    const separatePairsList = document.getElementById('separatePairsList');
 
     // Prior Data & Cross-Check Elements
     const priorFileInput = document.getElementById('priorFileInput');
@@ -3249,14 +3276,26 @@
         });
       });
 
-      // 2. Student Pins Dropdowns
-      pinStudentSelect.innerHTML = AppState.students.map(st => `<option value="${st.id}">[${st.classNum}반 ${st.studentNum}번] ${st.name}</option>`).join('');
-      pinStudentSubjectSelect.innerHTML = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
-      let grpOptions = '';
-      for (let g = 1; g <= groupCount; g++) {
-        grpOptions += `<option value="${g}">${g}그룹</option>`;
+      // 2. Together & Separate Pair Dropdowns
+      const together1 = document.getElementById('togetherSubj1Select');
+      const together2 = document.getElementById('togetherSubj2Select');
+      const separate1 = document.getElementById('separateSubj1Select');
+      const separate2 = document.getElementById('separateSubj2Select');
+
+      const subjOptions = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+      if (together1) together1.innerHTML = subjOptions;
+      if (together2) {
+        together2.innerHTML = subjOptions;
+        if (subjects.length > 1) together2.selectedIndex = 1;
       }
-      pinStudentGroupSelect.innerHTML = grpOptions;
+      if (separate1) separate1.innerHTML = subjOptions;
+      if (separate2) {
+        separate2.innerHTML = subjOptions;
+        if (subjects.length > 1) separate2.selectedIndex = 1;
+      }
+
+      renderTogetherPairsList();
+      renderSeparatePairsList();
 
       // 4. Target Conflict N Sync
       if (!AppState.targetConflictN) {
@@ -3266,8 +3305,6 @@
         const currentTarget = AppState.targetConflictN[sem];
         targetConflictNInput.value = (currentTarget !== null && currentTarget !== undefined && currentTarget !== '') ? currentTarget : '';
       }
-
-      renderStudentPinsList();
     }
 
     // Target Conflict N Event Listeners
@@ -3328,50 +3365,144 @@
       }
     });
 
-    btnAddStudentPin.addEventListener('click', () => {
+    // ----------------------------------------------------
+    // TOGETHER & SEPARATE PAIRS RULE MANAGEMENT
+    // ----------------------------------------------------
+    function renderTogetherPairsList() {
       const sem = AppState.currentSemester;
-      const studentId = pinStudentSelect.value;
-      const subject = pinStudentSubjectSelect.value;
-      const group = parseInt(pinStudentGroupSelect.value, 10);
-      const student = AppState.students.find(s => s.id === studentId);
+      if (!AppState.togetherPairs) AppState.togetherPairs = { 1: [], 2: [] };
+      if (!AppState.togetherPairs[sem]) AppState.togetherPairs[sem] = [];
+      const list = AppState.togetherPairs[sem];
+      const container = document.getElementById('togetherPairsList');
+      if (!container) return;
 
-      if (!student) return;
-
-      AppState.studentPins.push({
-        id: Date.now(),
-        semester: sem,
-        studentId,
-        studentName: student.name,
-        classNum: student.classNum,
-        studentNum: student.studentNum,
-        subject,
-        group
-      });
-
-      renderStudentPinsList();
-      runOptimization();
-    });
-
-    function renderStudentPinsList() {
-      const sem = AppState.currentSemester;
-      const filteredPins = AppState.studentPins.filter(p => p.semester === sem);
-      if (filteredPins.length === 0) {
-        studentPinsList.innerHTML = '<span class="text-slate-400 italic">설정된 학생 고정이 없습니다.</span>';
+      if (list.length === 0) {
+        container.innerHTML = '<p class="text-[11px] text-slate-400 italic py-1 text-center">설정된 묶음 규칙 없음</p>';
         return;
       }
-      studentPinsList.innerHTML = filteredPins.map(p => `
-        <div class="flex items-center justify-between bg-white p-1 rounded border border-slate-200">
-          <span>${p.studentName}(${p.classNum}-${p.studentNum}): <b>${p.subject}</b> ➔ ${p.group}그룹</span>
-          <button class="text-rose-500 font-bold hover:text-rose-700 px-1" onclick="removeStudentPin(${p.id})">×</button>
+
+      container.innerHTML = list.map((p, idx) => `
+        <div class="flex items-center justify-between bg-blue-50/90 border border-blue-200 rounded px-2 py-0.5 text-[11px] text-blue-950 shadow-2xs">
+          <div class="flex items-center gap-1 min-w-0 truncate">
+            <span class="font-bold truncate" title="${p[0]}">${p[0]}</span>
+            <span class="text-blue-500 font-black shrink-0">🔗</span>
+            <span class="font-bold truncate" title="${p[1]}">${p[1]}</span>
+          </div>
+          <button type="button" onclick="window.removeTogetherPair(${idx});" class="text-slate-400 hover:text-rose-600 font-black px-1 text-xs transition shrink-0 ml-1 cursor-pointer" title="규칙 삭제">✕</button>
         </div>
       `).join('');
     }
 
-    window.removeStudentPin = function(pinId) {
-      AppState.studentPins = AppState.studentPins.filter(p => p.id !== pinId);
-      renderStudentPinsList();
-      runOptimization();
+    function renderSeparatePairsList() {
+      const sem = AppState.currentSemester;
+      if (!AppState.separatePairs) AppState.separatePairs = { 1: [], 2: [] };
+      if (!AppState.separatePairs[sem]) AppState.separatePairs[sem] = [];
+      const list = AppState.separatePairs[sem];
+      const container = document.getElementById('separatePairsList');
+      if (!container) return;
+
+      if (list.length === 0) {
+        container.innerHTML = '<p class="text-[11px] text-slate-400 italic py-1 text-center">설정된 분리 규칙 없음</p>';
+        return;
+      }
+
+      container.innerHTML = list.map((p, idx) => `
+        <div class="flex items-center justify-between bg-rose-50/90 border border-rose-200 rounded px-2 py-0.5 text-[11px] text-rose-950 shadow-2xs">
+          <div class="flex items-center gap-1 min-w-0 truncate">
+            <span class="font-bold truncate" title="${p[0]}">${p[0]}</span>
+            <span class="text-rose-500 font-black shrink-0">≠</span>
+            <span class="font-bold truncate" title="${p[1]}">${p[1]}</span>
+          </div>
+          <button type="button" onclick="window.removeSeparatePair(${idx});" class="text-slate-400 hover:text-rose-600 font-black px-1 text-xs transition shrink-0 ml-1 cursor-pointer" title="규칙 삭제">✕</button>
+        </div>
+      `).join('');
+    }
+
+    window.removeTogetherPair = function(idx) {
+      const sem = AppState.currentSemester;
+      if (AppState.togetherPairs?.[sem]) {
+        AppState.togetherPairs[sem].splice(idx, 1);
+        renderTogetherPairsList();
+        saveAllState();
+      }
     };
+
+    window.removeSeparatePair = function(idx) {
+      const sem = AppState.currentSemester;
+      if (AppState.separatePairs?.[sem]) {
+        AppState.separatePairs[sem].splice(idx, 1);
+        renderSeparatePairsList();
+        saveAllState();
+      }
+    };
+
+    document.getElementById('btnAddTogetherPair')?.addEventListener('click', () => {
+      const sem = AppState.currentSemester;
+      const s1 = document.getElementById('togetherSubj1Select')?.value;
+      const s2 = document.getElementById('togetherSubj2Select')?.value;
+      if (!s1 || !s2) return;
+      if (s1 === s2) {
+        alert('동일한 과목은 함께 묶을 수 없습니다. 서로 다른 두 과목을 선택해주세요.');
+        return;
+      }
+
+      if (!AppState.togetherPairs) AppState.togetherPairs = { 1: [], 2: [] };
+      if (!AppState.togetherPairs[sem]) AppState.togetherPairs[sem] = [];
+      const list = AppState.togetherPairs[sem];
+
+      // Check if already in together list
+      const exists = list.some(p => (p[0] === s1 && p[1] === s2) || (p[0] === s2 && p[1] === s1));
+      if (exists) {
+        alert(`[${s1}] 와 [${s2}] 과목은 이미 '함께 묶을 과목'으로 등록되어 있습니다.`);
+        return;
+      }
+
+      // Check if conflicting with separate list
+      const sepList = AppState.separatePairs?.[sem] || [];
+      const conflicts = sepList.some(p => (p[0] === s1 && p[1] === s2) || (p[0] === s2 && p[1] === s1));
+      if (conflicts) {
+        alert(`⚠️ 상충 규칙 오류:\n[${s1}] 과(와) [${s2}] 은(는) 이미 '함께 묶지 않을 과목'에 등록되어 있습니다.\n해당 분리 규칙을 먼저 삭제한 후 추가해주세요.`);
+        return;
+      }
+
+      list.push([s1, s2]);
+      renderTogetherPairsList();
+      saveAllState();
+    });
+
+    document.getElementById('btnAddSeparatePair')?.addEventListener('click', () => {
+      const sem = AppState.currentSemester;
+      const s1 = document.getElementById('separateSubj1Select')?.value;
+      const s2 = document.getElementById('separateSubj2Select')?.value;
+      if (!s1 || !s2) return;
+      if (s1 === s2) {
+        alert('동일한 과목은 선택할 수 없습니다. 서로 다른 두 과목을 선택해주세요.');
+        return;
+      }
+
+      if (!AppState.separatePairs) AppState.separatePairs = { 1: [], 2: [] };
+      if (!AppState.separatePairs[sem]) AppState.separatePairs[sem] = [];
+      const list = AppState.separatePairs[sem];
+
+      // Check if already in separate list
+      const exists = list.some(p => (p[0] === s1 && p[1] === s2) || (p[0] === s2 && p[1] === s1));
+      if (exists) {
+        alert(`[${s1}] 와 [${s2}] 과목은 이미 '함께 묶지 않을 과목'으로 등록되어 있습니다.`);
+        return;
+      }
+
+      // Check if conflicting with together list
+      const togList = AppState.togetherPairs?.[sem] || [];
+      const conflicts = togList.some(p => (p[0] === s1 && p[1] === s2) || (p[0] === s2 && p[1] === s1));
+      if (conflicts) {
+        alert(`⚠️ 상충 규칙 오류:\n[${s1}] 과(와) [${s2}] 은(는) 이미 '함께 묶을 과목'에 등록되어 있습니다.\n해당 묶음 규칙을 먼저 삭제한 후 추가해주세요.`);
+        return;
+      }
+
+      list.push([s1, s2]);
+      renderSeparatePairsList();
+      saveAllState();
+    });
 
     // ==========================================
     // 5. CORE OPTIMIZATION ALGORITHM (UNBIASED & FAST BIPARTITE MATCHING)
@@ -3463,7 +3594,9 @@
       const groupCount = sem === 1 ? AppState.sem1GroupCount : AppState.sem2GroupCount;
       const splitConfig = AppState.splitSubjects[sem] || {};
       const pinnedConfig = AppState.pinnedSubjects[sem] || {};
-      const studentPinsForSem = AppState.studentPins.filter(p => p.semester === sem);
+      const studentPinsForSem = (AppState.studentPins || []).filter(p => p.semester === sem);
+      const togetherPairs = (AppState.togetherPairs?.[sem] || []).filter(p => subjects.includes(p[0]) && subjects.includes(p[1]));
+      const separatePairs = (AppState.separatePairs?.[sem] || []).filter(p => subjects.includes(p[0]) && subjects.includes(p[1]));
 
       if (!subjects || subjects.length === 0 || groupCount <= 0) return;
 
@@ -3600,6 +3733,32 @@
             const hasSameParent = currentGroups[gIdx].some(t => t.parent === token.parent);
             if (hasSameParent) continue;
 
+            // Cannot put into group if any separatePair with an existing subject in this group
+            const violatesSeparate = currentGroups[gIdx].some(t => {
+              return separatePairs.some(p => (p[0] === t.parent && p[1] === token.parent) || (p[0] === token.parent && p[1] === t.parent));
+            });
+            if (violatesSeparate) continue;
+
+            // If token has a togetherPair with a partner that is ALREADY placed in another group, token MUST go to that partner's group
+            const togetherPartners = [];
+            togetherPairs.forEach(p => {
+              if (p[0] === token.parent) togetherPartners.push(p[1]);
+              else if (p[1] === token.parent) togetherPartners.push(p[0]);
+            });
+
+            if (togetherPartners.length > 0) {
+              let partnerGIdx = -1;
+              for (let gi = 0; gi < groupCount; gi++) {
+                if (currentGroups[gi].some(t => togetherPartners.includes(t.parent))) {
+                  partnerGIdx = gi;
+                  break;
+                }
+              }
+              if (partnerGIdx !== -1 && partnerGIdx !== gIdx) {
+                continue; // Partner is in a different group, so token cannot go here!
+              }
+            }
+
             let score = currentGroups[gIdx].length * balanceWeight;
             for (const existingToken of currentGroups[gIdx]) {
               const overlap = (coOccurrence[existingToken.parent] && coOccurrence[existingToken.parent][token.parent]) || 0;
@@ -3614,12 +3773,30 @@
             }
           }
 
-          const chosenGIdx = tiedGroups.length > 0
-            ? tiedGroups[Math.floor(Math.random() * tiedGroups.length)]
-            : order[0];
+          if (tiedGroups.length === 0) {
+            // No valid group could accept this token without violating hard constraints
+            break;
+          }
 
+          const chosenGIdx = tiedGroups[Math.floor(Math.random() * tiedGroups.length)];
           currentGroups[chosenGIdx].push(token);
         }
+
+        // Validate candidate configuration: 100% hard constraints satisfaction
+        const totalPlaced = currentGroups.reduce((acc, g) => acc + g.length, 0);
+        if (totalPlaced < subjectTokens.length) {
+          continue; // Incomplete placement, reject
+        }
+
+        const satisfiesTogether = togetherPairs.every(([a, b]) => {
+          return currentGroups.some(g => g.some(t => t.parent === a) && g.some(t => t.parent === b));
+        });
+        if (!satisfiesTogether) continue;
+
+        const satisfiesSeparate = separatePairs.every(([a, b]) => {
+          return !currentGroups.some(g => g.some(t => t.parent === a) && g.some(t => t.parent === b));
+        });
+        if (!satisfiesSeparate) continue;
 
         // Evaluate candidate configuration
         const { totalConflicts, conflictedStudentCount } = evaluateCandidateConflicts(currentGroups, studentsChoices, studentPinsForSem);
@@ -3698,6 +3875,11 @@
       } else {
         // Fallback to global best (minimal conflicts)
         chosenGroups = globalBestGroups;
+      }
+
+      if (!chosenGroups) {
+        alert('⚠️ 설정된 [함께 묶을 과목] 또는 [함께 묶지 않을 과목] 조건을 모두 만족하는 그룹 조합을 찾을 수 없습니다.\n규칙 간 상충(예: 묶음과 분리가 모순)이나 과목 수/그룹 수 제약을 확인해주세요.');
+        return;
       }
 
       // Update Historical Best Record (역대 최저치 기록)
@@ -4424,6 +4606,51 @@
         return;
       }
 
+      // Check if swap violates togetherPairs or separatePairs
+      const togetherPairs = AppState.togetherPairs?.[plan.semester] || [];
+      const separatePairs = AppState.separatePairs?.[plan.semester] || [];
+
+      if (togetherPairs.length > 0 || separatePairs.length > 0) {
+        const testGroups = plan.groups.map(g => [...g]);
+        testGroups[gA][sA] = subjB;
+        testGroups[gB][sB] = subjA;
+
+        const violations = [];
+        for (const [a, b] of togetherPairs) {
+          const hasTogether = testGroups.some(g => {
+            const hasA = g.some(s => s.replace(/-[A-Z]$/, '') === a || s === a);
+            const hasB = g.some(s => s.replace(/-[A-Z]$/, '') === b || s === b);
+            return hasA && hasB;
+          });
+          if (!hasTogether) {
+            violations.push(`• [${a}] 🔗 [${b}]: 함께 묶을 과목 규칙 위반 (서로 다른 그룹으로 분리됨)`);
+          }
+        }
+
+        for (const [a, b] of separatePairs) {
+          for (let gi = 0; gi < testGroups.length; gi++) {
+            const g = testGroups[gi];
+            const hasA = g.some(s => s.replace(/-[A-Z]$/, '') === a || s === a);
+            const hasB = g.some(s => s.replace(/-[A-Z]$/, '') === b || s === b);
+            if (hasA && hasB) {
+              violations.push(`• [${a}] ≠ [${b}]: 함께 묶지 않을 과목 규칙 위반 (${gi + 1}그룹에 동시 배치됨)`);
+              break;
+            }
+          }
+        }
+
+        if (violations.length > 0) {
+          const confirmMsg = `⚠️ [설정 규칙 위반 알림]\n이 맞교환을 실행하면 다음 규칙이 위반됩니다:\n\n${violations.join('\n')}\n\n그래도 맞교환을 진행하시겠습니까?`;
+          if (!confirm(confirmMsg)) {
+            subjectSwapState.selectedSubject = null;
+            subjectSwapState.selectedGroupIdx = null;
+            renderStep2Results();
+            updateSubjectSwapUI('과목 맞교환이 취소되었습니다.');
+            return;
+          }
+        }
+      }
+
       // Record in undo stack
       subjectSwapState.undoStack.push({
         planBefore: JSON.parse(JSON.stringify(plan.groups)),
@@ -5052,6 +5279,8 @@
         confirmed: false,
         splitConfig: JSON.parse(JSON.stringify(AppState.splitSubjects[sem] || {})),
         pinnedConfig: JSON.parse(JSON.stringify(AppState.pinnedSubjects[sem] || {})),
+        togetherConfig: JSON.parse(JSON.stringify(AppState.togetherPairs?.[sem] || [])),
+        separateConfig: JSON.parse(JSON.stringify(AppState.separatePairs?.[sem] || [])),
         timestamp: new Date().toLocaleTimeString()
       };
 
@@ -5194,6 +5423,13 @@
       } else {
         step2Sem2Btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-md bg-white text-blue-700 shadow-sm transition-all';
         step2Sem1Btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      }
+
+      if (plan.togetherConfig) {
+        AppState.togetherPairs[plan.semester] = JSON.parse(JSON.stringify(plan.togetherConfig));
+      }
+      if (plan.separateConfig) {
+        AppState.separatePairs[plan.semester] = JSON.parse(JSON.stringify(plan.separateConfig));
       }
 
       initStep2Controls();
@@ -5883,6 +6119,8 @@
         sem2GroupCount: 7,
         splitSubjects: { 1: {}, 2: {} },
         pinnedSubjects: { 1: {}, 2: {} },
+        togetherPairs: { 1: [], 2: [] },
+        separatePairs: { 1: [], 2: [] },
         closedSubjects: { 1: [], 2: [] },
         subjectMemos: { 1: {}, 2: {} },
         studentPins: [],
@@ -6080,6 +6318,8 @@
         sem2GroupCount: AppState.sem2GroupCount || 7,
         splitSubjects: JSON.parse(JSON.stringify(AppState.splitSubjects || { 1: {}, 2: {} })),
         pinnedSubjects: JSON.parse(JSON.stringify(AppState.pinnedSubjects || { 1: {}, 2: {} })),
+        togetherPairs: JSON.parse(JSON.stringify(AppState.togetherPairs || { 1: [], 2: [] })),
+        separatePairs: JSON.parse(JSON.stringify(AppState.separatePairs || { 1: [], 2: [] })),
         closedSubjects: JSON.parse(JSON.stringify(AppState.closedSubjects || { 1: [], 2: [] })),
         subjectMemos: JSON.parse(JSON.stringify(AppState.subjectMemos || { 1: {}, 2: {} })),
         studentPins: JSON.parse(JSON.stringify(AppState.studentPins || [])),
@@ -6175,6 +6415,14 @@
       // Clone targetData into AppState
       Object.assign(AppState, JSON.parse(JSON.stringify(targetData)));
       AppState.detectedGrade = targetGrade;
+
+      // Ensure togetherPairs and separatePairs are defined
+      if (!AppState.togetherPairs) AppState.togetherPairs = { 1: [], 2: [] };
+      if (!AppState.togetherPairs[1]) AppState.togetherPairs[1] = [];
+      if (!AppState.togetherPairs[2]) AppState.togetherPairs[2] = [];
+      if (!AppState.separatePairs) AppState.separatePairs = { 1: [], 2: [] };
+      if (!AppState.separatePairs[1]) AppState.separatePairs[1] = [];
+      if (!AppState.separatePairs[2]) AppState.separatePairs[2] = [];
 
       // Update UI Elements
       if (currentWorkText) {
