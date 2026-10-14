@@ -782,24 +782,6 @@
               </div>
               <span class="text-xs text-slate-500 font-medium" id="groupCountInfo"></span>
             </div>
-
-            <!-- NEW: Target Conflict N Controls (초기화 또는 N명 지정) -->
-            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-              <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
-                <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                <span>충돌 목표 설정:</span>
-              </span>
-              <div class="flex items-center gap-1">
-                <input type="number" id="targetConflictNInput" min="0" max="100" placeholder="최적" class="w-16 px-1.5 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="특정 충돌 인원 수 (비워두면 0명/최저 충돌 탐색)">
-                <span class="text-xs text-slate-600 font-bold mr-1">명</span>
-              </div>
-              <button id="btnApplyTargetN" type="button" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition shadow-2xs" title="입력한 N명 충돌에 해당하는 다양한 경우의 수 탐색">
-                N명 탐색
-              </button>
-              <button id="btnResetConflictTarget" type="button" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition shadow-2xs" title="목표 초기화 (최적 인원 탐색 모드)">
-                초기화
-              </button>
-            </div>
           </div>
 
           <!-- Advanced Constraints Accordion / Controls -->
@@ -902,20 +884,36 @@
                   <h4 class="text-sm font-bold text-slate-900 flex items-center gap-1.5 whitespace-nowrap">
                     <span>📚 그룹별 개설 과목 및 수강 인원 배치 현황</span>
                   </h4>
-                  <span class="text-xs text-slate-400 font-medium hidden sm:inline">(각 그룹 내 1개 과목 수강)</span>
                 </div>
                 <div class="flex flex-wrap items-center gap-1.5">
+                  <!-- 충돌 목표 설정 -->
+                  <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 shadow-2xs mr-1">
+                    <span class="text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0">
+                      <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                      <span>충돌 목표 설정:</span>
+                    </span>
+                    <div class="flex items-center gap-0.5">
+                      <input type="number" id="targetConflictNInput" min="0" max="100" placeholder="최적" class="w-14 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="특정 충돌 인원 수 (비워두면 0명/최저 충돌 탐색)">
+                      <span class="text-xs text-slate-600 font-bold mr-0.5">명</span>
+                    </div>
+                    <button id="btnApplyTargetN" type="button" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-xs font-bold transition shadow-2xs" title="입력한 N명 충돌에 해당하는 다양한 경우의 수 탐색">
+                      N명 탐색
+                    </button>
+                    <button id="btnResetConflictTarget" type="button" class="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md text-xs font-bold transition shadow-2xs" title="목표 초기화 (최적 인원 탐색 모드)">
+                      초기화
+                    </button>
+                  </div>
                   <button id="btnRegroup" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="설정한 조건 및 충돌 목표에 맞춰 새로운 조합을 탐색합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    <span>🔄 새로고침 (조합 재실행)</span>
+                    <span>🔄 새로고침</span>
                   </button>
                   <button id="btnSavePlan" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="현재 배치 안을 저장합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                    <span>⭐ 현재 배치 안 저장하기</span>
+                    <span>⭐ 현재 배치 저장</span>
                   </button>
                   <button id="btnExportAllPlans" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="모든 저장된 안을 엑셀로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>📥 모든 저장된 안 엑셀 다운로드</span>
+                    <span>📥 모든 저장 안 다운로드</span>
                   </button>
                   <button id="btnGasSaveToSheets" class="hidden px-3 py-1.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
@@ -1050,7 +1048,7 @@
             <span class="text-xs text-slate-500">저장된 안을 클릭하여 다시 확인하거나 불러올 수 있습니다.</span>
           </div>
           <div id="savedPlansList" class="flex flex-wrap gap-2 pt-1">
-            <p class="text-xs text-slate-400 italic">아직 저장된 안이 없습니다. 상단의 '현재 배치 안 저장하기' 버튼을 눌러보세요.</p>
+            <p class="text-xs text-slate-400 italic">아직 저장된 안이 없습니다. 상단의 '현재 배치 저장' 버튼을 눌러보세요.</p>
           </div>
         </div>
 
@@ -4813,7 +4811,7 @@
       }
 
       if (AppState.savedPlans.length === 0) {
-        savedPlansList.innerHTML = '<p class="text-xs text-slate-400 italic">아직 저장된 안이 없습니다. 상단의 "현재 배치 안 저장하기" 버튼을 눌러보세요.</p>';
+        savedPlansList.innerHTML = '<p class="text-xs text-slate-400 italic">아직 저장된 안이 없습니다. 상단의 "현재 배치 저장" 버튼을 눌러보세요.</p>';
         return;
       }
 
