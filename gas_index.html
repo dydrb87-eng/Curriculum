@@ -683,7 +683,7 @@
         </div>
 
         <!-- Metrics & Conflict Banner -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Total Conflicts with Best Record & Conflict Range Display -->
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between">
@@ -716,57 +716,52 @@
             </div>
             <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">📊</div>
           </div>
-
-          <!-- Saved Plans Count -->
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p class="text-xs text-slate-500 font-medium">임시 저장된 후보안</p>
-              <h4 id="statSavedPlansCount" class="text-2xl font-black text-slate-900 mt-0.5">0개</h4>
-            </div>
-            <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">📁</div>
-          </div>
         </div>
 
-        <!-- Group Cards & Conflicted Students Side-by-Side Wrapper -->
-        <div id="groupCardsAndConflictWrapper" class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+        <!-- Group Cards & Conflicted Students Side-by-Side Wrapper (50% : 50%) -->
+        <div id="groupCardsAndConflictWrapper" class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
 
-          <!-- Grouping Arrangement Cards (Group 1..N) -->
-          <div id="groupCardsSection" class="xl:col-span-12 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 transition-all">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h4 class="text-sm font-bold text-slate-900">
-                그룹별 개설 과목 및 수강 인원 배치 현황
-              </h4>
-              <span class="text-xs text-slate-500">각 그룹(교시) 내에서 학생은 1개 과목만 수강합니다.</span>
-            </div>
-            <div id="groupCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 gap-3.5">
-              <!-- Group 1..N Cards -->
+          <!-- Left (50%): Grouping Arrangement Cards (Group 1..N) -->
+          <div id="groupCardsSection" class="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all">
+            <div>
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>📚 그룹별 개설 과목 및 수강 인원 배치 현황</span>
+                </h4>
+                <span class="text-xs text-slate-500 font-medium">각 그룹(교시) 내에서 학생은 1개 과목만 수강합니다.</span>
+              </div>
+              <div id="groupCardsContainer" class="grid gap-3.5 w-full">
+                <!-- Group 1..N Cards dynamically filling width -->
+              </div>
             </div>
           </div>
 
-          <!-- Conflicted Students Alert Section (Placed on the right when conflicts exist) -->
-          <div id="conflictAlertBox" class="hidden xl:col-span-4 bg-rose-50/90 border border-rose-200 rounded-xl p-4 shadow-sm space-y-2.5 transition-all">
-            <div class="flex items-center justify-between border-b border-rose-200 pb-2">
-              <h5 class="text-xs font-bold text-rose-900 flex items-center space-x-1.5">
-                <span>⚠️ 충돌 발생 학생 세부 명단</span>
-                <span id="conflictDetailCount" class="bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full text-[11px] font-bold"></span>
-              </h5>
-            </div>
-            <p class="text-[11px] text-rose-700 leading-tight">동일 그룹에 2개 이상의 선택과목이 배정되어 시간표가 중복된 학생입니다.</p>
-            <div class="max-h-72 overflow-y-auto custom-scrollbar border border-rose-200/80 rounded-lg bg-white">
-              <table class="w-full text-xs text-left border-collapse">
-                <thead class="sticky top-0 bg-rose-100/90 text-rose-900 font-bold border-b border-rose-200 z-10">
-                  <tr>
-                    <th class="p-1.5">반</th>
-                    <th class="p-1.5">번호</th>
-                    <th class="p-1.5">이름</th>
-                    <th class="p-1.5">그룹</th>
-                    <th class="p-1.5">중복 과목</th>
-                  </tr>
-                </thead>
-                <tbody id="conflictTableBody" class="divide-y divide-rose-100 text-slate-800">
-                  <!-- Dynamically Populated -->
-                </tbody>
-              </table>
+          <!-- Right (50%): Conflicted Students Alert Section -->
+          <div id="conflictAlertBox" class="hidden bg-rose-50/90 border border-rose-200 rounded-xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-all">
+            <div>
+              <div class="flex items-center justify-between border-b border-rose-200 pb-3 mb-2">
+                <h5 class="text-sm font-bold text-rose-900 flex items-center space-x-2">
+                  <span>⚠️ 충돌 발생 학생 세부 명단</span>
+                  <span id="conflictDetailCount" class="bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full text-xs font-bold"></span>
+                </h5>
+                <span class="text-xs text-rose-700">동일 그룹에 2개 이상의 과목이 배정된 학생입니다.</span>
+              </div>
+              <div class="max-h-80 overflow-y-auto custom-scrollbar border border-rose-200/80 rounded-lg bg-white shadow-2xs">
+                <table class="w-full text-xs text-left border-collapse">
+                  <thead class="sticky top-0 bg-rose-100/90 text-rose-900 font-bold border-b border-rose-200 z-10">
+                    <tr>
+                      <th class="p-2 text-center w-12">반</th>
+                      <th class="p-2 text-center w-12">번호</th>
+                      <th class="p-2 text-center w-16">이름</th>
+                      <th class="p-2 text-center w-24">충돌 그룹</th>
+                      <th class="p-2">중복 과목</th>
+                    </tr>
+                  </thead>
+                  <tbody id="conflictTableBody" class="divide-y divide-rose-100 text-slate-800">
+                    <!-- Dynamically Populated -->
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -3733,11 +3728,11 @@
         conflictStatusBadge.textContent = isTargetN ? `충돌 0명 (목표 0명 달성)` : '충돌 없음 (최적)';
         conflictAlertBox.classList.add('hidden');
         if (groupCardsSection) {
-          groupCardsSection.className = 'xl:col-span-12 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 transition-all';
+          groupCardsSection.className = 'lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all';
         }
       } else {
         if (groupCardsSection) {
-          groupCardsSection.className = 'xl:col-span-8 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 transition-all';
+          groupCardsSection.className = 'bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all';
         }
         if (isTargetN && plan.conflictCount === targetN) {
           conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200';
@@ -3756,11 +3751,11 @@
         conflictDetailCount.textContent = `총 ${plan.conflicts.length}건`;
         conflictTableBody.innerHTML = plan.conflicts.map(c => `
           <tr class="hover:bg-rose-100/50">
-            <td class="p-1.5 font-medium">${c.classNum}반</td>
-            <td class="p-1.5 font-medium">${c.studentNum}번</td>
-            <td class="p-1.5 font-bold">${c.name}</td>
-            <td class="p-1.5 font-semibold text-rose-700">${c.group}그룹</td>
-            <td class="p-1.5 font-bold text-slate-900">${c.subjects}</td>
+            <td class="p-2 text-center font-medium">${c.classNum}반</td>
+            <td class="p-2 text-center font-medium">${c.studentNum}번</td>
+            <td class="p-2 text-center font-bold text-slate-900">${c.name}</td>
+            <td class="p-2 text-center font-semibold text-rose-700">${c.group}그룹</td>
+            <td class="p-2 font-bold text-slate-800">${c.subjects}</td>
           </tr>
         `).join('');
       }
@@ -3778,6 +3773,17 @@
           btnRestoreBestPlan.textContent = `🏆 최저치(${history.minConflictEver}명) 안 복원`;
         } else {
           btnRestoreBestPlan.classList.add('hidden');
+        }
+      }
+
+      const numGroups = plan.groups.length;
+      if (groupCardsContainer) {
+        if (plan.conflictCount === 0) {
+          groupCardsContainer.style.gridTemplateColumns = `repeat(${Math.min(numGroups, 7)}, minmax(0, 1fr))`;
+        } else {
+          groupCardsContainer.style.gridTemplateColumns = numGroups <= 4 
+            ? `repeat(${numGroups}, minmax(0, 1fr))` 
+            : `repeat(auto-fit, minmax(130px, 1fr))`;
         }
       }
 
@@ -3802,9 +3808,9 @@
           totalGroupEnrollment += count;
 
           const cardsHtmlSubj = `
-            <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 shadow-xs hover:border-blue-300 transition-colors">
+            <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 shadow-2xs hover:border-blue-300 transition-colors">
               <span class="text-xs font-bold text-slate-800 truncate" title="${sName}">${sName}</span>
-              <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">${count}명</span>
+              <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0 ml-1.5 whitespace-nowrap">${count}명</span>
             </div>
           `;
           subjectsListHtml += cardsHtmlSubj;
@@ -3813,22 +3819,22 @@
         // Group conflict badge
         const groupConflict = groupCounts[gIdx];
         const conflictBadgeHtml = groupConflict === 0
-          ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">중복 0명</span>`
-          : `<span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">중복 ${groupConflict}명</span>`;
+          ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 whitespace-nowrap">중복 0</span>`
+          : `<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 whitespace-nowrap animate-pulse">중복 ${groupConflict}</span>`;
 
         cardsHtml += `
-          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col space-y-3">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-2xs flex flex-col space-y-2.5">
             <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-              <div class="flex items-center space-x-1.5">
-                <span class="w-6 h-6 rounded-md bg-blue-600 text-white font-black text-xs flex items-center justify-center">${gIdx + 1}</span>
-                <h5 class="text-xs font-bold text-slate-800">${gIdx + 1}그룹</h5>
+              <div class="flex items-center space-x-1.5 shrink-0">
+                <span class="w-6 h-6 rounded-md bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">${gIdx + 1}</span>
+                <h5 class="text-xs font-bold text-slate-800 whitespace-nowrap">${gIdx + 1}그룹</h5>
               </div>
-              <div class="flex items-center space-x-1.5">
+              <div class="flex items-center space-x-1 shrink-0">
                 ${conflictBadgeHtml}
-                <span class="text-[11px] text-slate-400 font-medium">(${groupSubjs.length}과목)</span>
+                <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap">(${groupSubjs.length}과목)</span>
               </div>
             </div>
-            <div class="space-y-1.5 flex-1 max-h-64 overflow-y-auto custom-scrollbar pr-0.5">
+            <div class="space-y-1.5 flex-1 max-h-72 overflow-y-auto custom-scrollbar pr-0.5">
               ${subjectsListHtml || '<p class="text-xs text-slate-400 italic">배치된 과목 없음</p>'}
             </div>
           </div>
@@ -4355,7 +4361,9 @@
     });
 
     function renderSavedPlansList() {
-      statSavedPlansCount.textContent = `${AppState.savedPlans.length}개`;
+      if (statSavedPlansCount) {
+        statSavedPlansCount.textContent = `${AppState.savedPlans.length}개`;
+      }
 
       if (AppState.savedPlans.length === 0) {
         savedPlansList.innerHTML = '<p class="text-xs text-slate-400 italic">아직 저장된 안이 없습니다. 상단의 "현재 배치 안 저장하기" 버튼을 눌러보세요.</p>';
