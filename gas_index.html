@@ -827,6 +827,12 @@
               <span>✕ 초기화</span>
             </button>
 
+            <!-- Modified Student Count Badge & Revert All Button -->
+            <span id="step1ModifiedBadge" class="hidden px-2.5 py-1 text-xs font-bold bg-amber-100 text-amber-900 rounded-lg border border-amber-300 flex items-center gap-1 shadow-2xs"></span>
+            <button id="btnRevertAllStep1" type="button" onclick="window.revertAllStudentsChoices(AppState.currentSemester)" class="hidden px-2.5 py-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-300 transition cursor-pointer flex items-center gap-1 shadow-2xs" title="현재 학기 학생들의 모든 과목 변경사항을 업로드 원본으로 복원">
+              <span>↩ 선택 변경 전체 복원</span>
+            </button>
+
             <!-- Excel Export Button for Step 1 -->
             <button id="btnExportStep1" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors flex items-center space-x-1.5">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1218,6 +1224,7 @@
                   <option value="all">전체 학생 보기</option>
                   <option value="conflict">⚠️ 충돌(중복) 학생만 보기</option>
                   <option value="normal">✅ 정상 배정 학생만 보기</option>
+                  <option value="modified">✏️ 선택 수정된 학생만 보기</option>
                 </select>
                 <!-- Subject Swap Mode Toggle Button -->
                 <button id="btnToggleSubjectSwap" type="button" class="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="과목과 과목의 위치 및 그룹 배정을 맞교환합니다">
@@ -1230,6 +1237,11 @@
                 <!-- Reset Filter/Sort Button -->
                 <button id="btnResetTableFilterSort" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 shadow-2xs transition" title="필터 및 정렬 초기화">
                   필터/정렬 초기화 ✕
+                </button>
+                <!-- Step 2 Modified Students Badge & Revert All Button -->
+                <span id="step2ModifiedBadge" class="hidden px-2.5 py-1 text-xs font-bold bg-amber-100 text-amber-900 rounded-lg border border-amber-300 flex items-center gap-1 shadow-2xs"></span>
+                <button id="btnRevertAllStep2" type="button" onclick="window.revertAllStudentsChoices(AppState.currentPlan?.semester || AppState.currentSemester)" class="hidden px-2 py-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-300 transition cursor-pointer flex items-center gap-1 shadow-2xs" title="현재 학기 학생들의 모든 과목 변경사항을 업로드 원본으로 복원">
+                  <span>↩ 선택 변경 전체 복원</span>
                 </button>
               </div>
 
@@ -2865,7 +2877,9 @@
           name: nameVal,
           career: careerVal,
           sem1: s1Subjects,
-          sem2: s2Subjects
+          sem2: s2Subjects,
+          origSem1: [...s1Subjects],
+          origSem2: [...s2Subjects]
         });
       });
 
@@ -3121,6 +3135,252 @@
       return result;
     }
 
+    // ==========================================
+    // Student Choice Modification & Audit Trail (수강신청 선택 과목 수정 및 변경 이력 관리)
+    // ==========================================
+    function getStudentOriginalChoices(st, sem) {
+      if (!st) return [];
+      if (sem === 1) {
+        if (!st.origSem1) st.origSem1 = [...(st.sem1 || [])];
+        return st.origSem1;
+      } else {
+        if (!st.origSem2) st.origSem2 = [...(st.sem2 || [])];
+        return st.origSem2;
+      }
+    }
+
+    function getStudentActiveChoices(st, sem) {
+      if (!st) return [];
+      return sem === 1 ? (st.sem1 || []) : (st.sem2 || []);
+    }
+
+    function isStudentChoicesModified(st, sem) {
+      if (!st) return false;
+      const orig = getStudentOriginalChoices(st, sem);
+      const active = getStudentActiveChoices(st, sem);
+      if (orig.length !== active.length) return true;
+      const setA = new Set(orig);
+      for (const s of active) {
+        if (!setA.has(s)) return true;
+      }
+      return false;
+    }
+
+    window.toggleStudentSubjectSelection = function(studentId, subjectName, semester) {
+      const sem = semester || AppState.currentSemester || 1;
+      const st = (AppState.students || []).find(s => s.id === studentId);
+      if (!st) return;
+
+      // Ensure orig baseline is initialized
+      if (!st.origSem1) st.origSem1 = [...(st.sem1 || [])];
+      if (!st.origSem2) st.origSem2 = [...(st.sem2 || [])];
+
+      const active = sem === 1 ? st.sem1 : st.sem2;
+      const idx = active.indexOf(subjectName);
+
+      if (idx !== -1) {
+        // Active -> Remove (cancelled or un-added)
+        active.splice(idx, 1);
+      } else {
+        // Inactive -> Add (restored or newly added)
+        active.push(subjectName);
+        active.sort();
+      }
+
+      // If current plan exists, cleanup customAssignments for this student if needed
+      if (AppState.currentPlan && AppState.currentPlan.customAssignments && AppState.currentPlan.customAssignments[studentId]) {
+        if (idx !== -1) {
+          const custom = AppState.currentPlan.customAssignments[studentId];
+          Object.keys(custom).forEach(g => {
+            custom[g] = custom[g].filter(s => s !== subjectName && !s.startsWith(subjectName + '-'));
+          });
+        }
+      }
+
+      saveAllState();
+
+      // Always re-render Step 1
+      renderStep1();
+
+      // If Step 2 currentPlan exists, re-analyze conflicts and re-render
+      if (AppState.currentPlan) {
+        renderStep2Results();
+      }
+
+      // If modal is open, re-render modal content
+      if (currentModalStudentId === studentId) {
+        renderStudentChoiceEditModalContent();
+      }
+    };
+
+    window.revertStudentChoices = function(studentId, semester) {
+      const sem = semester || AppState.currentSemester || 1;
+      const st = (AppState.students || []).find(s => s.id === studentId);
+      if (!st) return;
+
+      if (sem === 1) {
+        if (st.origSem1) st.sem1 = [...st.origSem1];
+      } else {
+        if (st.origSem2) st.sem2 = [...st.origSem2];
+      }
+
+      if (AppState.currentPlan && AppState.currentPlan.customAssignments) {
+        delete AppState.currentPlan.customAssignments[studentId];
+      }
+
+      saveAllState();
+      renderStep1();
+      if (AppState.currentPlan) {
+        renderStep2Results();
+      }
+      if (currentModalStudentId === studentId) {
+        renderStudentChoiceEditModalContent();
+      }
+    };
+
+    window.revertAllStudentsChoices = function(semester) {
+      const sem = semester || AppState.currentSemester || 1;
+      const modifiedCount = (AppState.students || []).filter(st => isStudentChoicesModified(st, sem)).length;
+      if (modifiedCount === 0) {
+        alert(`${sem}학기에 수정된 학생 선택 내역이 없습니다.`);
+        return;
+      }
+
+      if (!confirm(`[${sem}학기] 수정된 ${modifiedCount}명 학생의 선택 과목을 모두 원본(엑셀 업로드 시점)으로 복원하시겠습니까?`)) {
+        return;
+      }
+
+      (AppState.students || []).forEach(st => {
+        if (sem === 1 && st.origSem1) {
+          st.sem1 = [...st.origSem1];
+        } else if (sem === 2 && st.origSem2) {
+          st.sem2 = [...st.origSem2];
+        }
+      });
+
+      if (AppState.currentPlan) {
+        AppState.currentPlan.customAssignments = {};
+      }
+
+      saveAllState();
+      renderStep1();
+      if (AppState.currentPlan) {
+        renderStep2Results();
+      }
+      alert(`✅ [${sem}학기] ${modifiedCount}명 학생의 선택 과목이 모두 원본으로 복원되었습니다.`);
+    };
+
+    let currentModalStudentId = null;
+    let currentModalSemester = null;
+
+    window.openStudentChoiceEditModal = function(studentId, semester) {
+      const sem = semester || AppState.currentSemester || 1;
+      const st = (AppState.students || []).find(s => s.id === studentId);
+      if (!st) return;
+
+      currentModalStudentId = studentId;
+      currentModalSemester = sem;
+
+      const modal = document.getElementById('studentChoiceEditModal');
+      const titleEl = document.getElementById('studentEditModalTitle');
+      const subtitleEl = document.getElementById('studentEditModalSubtitle');
+
+      if (titleEl) {
+        titleEl.textContent = `${st.classNum}반 ${st.studentNum}번 ${st.name} - ${sem}학기 선택 과목 수정`;
+      }
+      if (subtitleEl) {
+        subtitleEl.textContent = `진로/희망: ${st.career || '미기재'} | 과목 카드를 클릭하여 추가하거나 취소할 수 있습니다.`;
+      }
+
+      renderStudentChoiceEditModalContent();
+      modal?.classList.remove('hidden');
+    };
+
+    window.closeStudentChoiceEditModal = function() {
+      document.getElementById('studentChoiceEditModal')?.classList.add('hidden');
+      currentModalStudentId = null;
+      currentModalSemester = null;
+    };
+
+    function renderStudentChoiceEditModalContent() {
+      if (!currentModalStudentId) return;
+      const sem = currentModalSemester;
+      const st = (AppState.students || []).find(s => s.id === currentModalStudentId);
+      if (!st) return;
+
+      const container = document.getElementById('studentEditSubjectsContainer');
+      const countEl = document.getElementById('studentEditSelectedCount');
+      if (!container) return;
+
+      const subjects = sem === 1 ? (AppState.sem1Subjects || []) : (AppState.sem2Subjects || []);
+      const orig = getStudentOriginalChoices(st, sem);
+      const active = getStudentActiveChoices(st, sem);
+      const activeSet = new Set(active);
+      const origSet = new Set(orig);
+
+      if (countEl) {
+        const expectedCount = sem === 1 ? AppState.sem1GroupCount : AppState.sem2GroupCount;
+        countEl.innerHTML = `현재 선택: <span class="text-base font-black ${active.length === expectedCount ? 'text-emerald-600' : 'text-amber-600'}">${active.length}과목</span> <span class="text-xs text-slate-500 font-normal">(기준: ${expectedCount}과목)</span>`;
+      }
+
+      let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">';
+      subjects.forEach(s => {
+        const wasOrig = origSet.has(s);
+        const isAct = activeSet.has(s);
+        const isClosed = (AppState.closedSubjects?.[sem] || []).includes(s);
+
+        let badge = '';
+        let cardBg = 'bg-white border-slate-200 hover:border-slate-400';
+
+        if (wasOrig && isAct) {
+          cardBg = 'bg-blue-50/70 border-blue-300';
+          badge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">선택 유지</span>';
+        } else if (wasOrig && !isAct) {
+          cardBg = 'bg-rose-50/70 border-rose-300';
+          badge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-300 line-through">✕ 취소됨 (집계 제외)</span>';
+        } else if (!wasOrig && isAct) {
+          cardBg = 'bg-emerald-50/70 border-emerald-300';
+          badge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">★ 새로 추가</span>';
+        } else {
+          badge = '<span class="px-2 py-0.5 rounded text-[11px] font-normal text-slate-400">미선택</span>';
+        }
+
+        const safeS = s.replace(/'/g, "\\'");
+        html += `
+          <div onclick="window.handleModalToggleSubject('${safeS}');" class="p-2.5 rounded-xl border ${cardBg} flex items-center justify-between gap-2 cursor-pointer transition select-none shadow-2xs">
+            <div class="flex items-center gap-2.5">
+              <input type="checkbox" ${isAct ? 'checked' : ''} onclick="event.stopPropagation(); window.handleModalToggleSubject('${safeS}');" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+              <span class="text-xs font-bold ${isAct ? 'text-slate-900' : 'text-slate-500'} ${wasOrig && !isAct ? 'line-through text-rose-600' : ''}">${s}</span>
+              ${isClosed ? '<span class="text-[10px] text-rose-600 font-semibold">(폐강)</span>' : ''}
+            </div>
+            <div>
+              ${badge}
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+    window.handleModalToggleSubject = function(sName) {
+      if (!currentModalStudentId) return;
+      window.toggleStudentSubjectSelection(currentModalStudentId, sName, currentModalSemester);
+    };
+
+    document.getElementById('btnStudentEditRevert')?.addEventListener('click', () => {
+      if (!currentModalStudentId) return;
+      window.revertStudentChoices(currentModalStudentId, currentModalSemester);
+    });
+    document.getElementById('btnCloseStudentEditModal')?.addEventListener('click', () => window.closeStudentChoiceEditModal());
+    document.getElementById('btnStudentEditDone')?.addEventListener('click', () => window.closeStudentChoiceEditModal());
+    document.getElementById('studentChoiceEditModal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'studentChoiceEditModal') {
+        window.closeStudentChoiceEditModal();
+      }
+    });
+
     function renderStep1() {
       const sem = AppState.currentSemester;
       updateStep1SemesterTabs(sem);
@@ -3155,6 +3415,7 @@
       if (subjFilterSel) {
         const curVal = step1TableSortState.subjectFilter;
         let optHtml = '<option value="all">전체 과목 (모든 학생)</option>';
+        optHtml += `<option value="__modified__" ${curVal === '__modified__' ? 'selected' : ''}>✏️ 선택 수정된 학생만</option>`;
         subjects.forEach(s => {
           const c = counts[s] || 0;
           optHtml += `<option value="${s.replace(/"/g, '&quot;')}" ${curVal === s ? 'selected' : ''}>[${s}] 선택 학생 (${c}명)</option>`;
@@ -3187,7 +3448,9 @@
       // 1. Filter students by search and by step1TableSortState.subjectFilter
       const filteredStudents = AppState.students.filter(st => {
         const selected = sem === 1 ? (st.sem1 || []) : (st.sem2 || []);
-        if (step1TableSortState.subjectFilter !== 'all') {
+        if (step1TableSortState.subjectFilter === '__modified__') {
+          if (!isStudentChoicesModified(st, sem)) return false;
+        } else if (step1TableSortState.subjectFilter !== 'all') {
           if (!selected.includes(step1TableSortState.subjectFilter)) return false;
         }
         if (!searchQuery) return true;
@@ -3241,7 +3504,10 @@
       const isSortedOrFiltered = (step1TableSortState.sortCol !== 'default') || 
                                  (step1TableSortState.subjectFilter !== 'all');
       if (badge) {
-        if (step1TableSortState.subjectFilter !== 'all') {
+        if (step1TableSortState.subjectFilter === '__modified__') {
+          badge.textContent = `필터: 선택 수정된 학생 (${filteredStudents.length}명)`;
+          badge.classList.remove('hidden');
+        } else if (step1TableSortState.subjectFilter !== 'all') {
           badge.textContent = `필터: [${step1TableSortState.subjectFilter}] 선택 학생 (${filteredStudents.length}명)`;
           badge.classList.remove('hidden');
         } else if (step1TableSortState.sortCol !== 'default') {
@@ -3262,6 +3528,26 @@
           resetBtn.classList.remove('hidden');
         } else {
           resetBtn.classList.add('hidden');
+        }
+      }
+
+      // Update Toolbar Modified Students Badge and Revert All Button
+      const modBadge = document.getElementById('step1ModifiedBadge');
+      const modRevertBtn = document.getElementById('btnRevertAllStep1');
+      const totalModifiedCount = (AppState.students || []).filter(st => isStudentChoicesModified(st, sem)).length;
+      if (modBadge) {
+        if (totalModifiedCount > 0) {
+          modBadge.textContent = `✏️ 선택 수정: ${totalModifiedCount}명`;
+          modBadge.classList.remove('hidden');
+        } else {
+          modBadge.classList.add('hidden');
+        }
+      }
+      if (modRevertBtn) {
+        if (totalModifiedCount > 0) {
+          modRevertBtn.classList.remove('hidden');
+        } else {
+          modRevertBtn.classList.add('hidden');
         }
       }
 
@@ -3287,7 +3573,7 @@
       let html = '<thead><tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-20">';
       html += `<th onclick="window.handleStep1ColHeaderClick('classNum')" class="p-2.5 text-center border-r border-slate-200 w-12 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 반 순서 정렬">반${getStep1SortIcon('classNum')}</th>`;
       html += `<th onclick="window.handleStep1ColHeaderClick('studentNum')" class="p-2.5 text-center border-r border-slate-200 w-12 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 번호 순서 정렬">번호${getStep1SortIcon('studentNum')}</th>`;
-      html += `<th onclick="window.handleStep1ColHeaderClick('name')" class="p-2.5 text-left border-r border-slate-200 w-24 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 이름 순서 정렬">이름${getStep1SortIcon('name')}</th>`;
+      html += `<th onclick="window.handleStep1ColHeaderClick('name')" class="p-2.5 text-left border-r border-slate-200 w-28 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 이름 순서 정렬">이름${getStep1SortIcon('name')}</th>`;
       html += `<th onclick="window.handleStep1ColHeaderClick('career')" class="p-2.5 text-left border-r border-slate-200 w-28 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 진로 순서 정렬">진로·관심학과${getStep1SortIcon('career')}</th>`;
 
       subjects.forEach(s => {
@@ -3324,7 +3610,9 @@
       // Table Body
       html += '<tbody class="divide-y divide-slate-200 text-slate-700">';
       filteredStudents.forEach((st, idx) => {
-        const selected = sem === 1 ? st.sem1 : st.sem2;
+        const origList = getStudentOriginalChoices(st, sem);
+        const activeList = getStudentActiveChoices(st, sem);
+        const isModified = isStudentChoicesModified(st, sem);
         const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
 
         // Check if this student has duplicate enrollments from prior data
@@ -3341,30 +3629,56 @@
         html += `<tr class="${rowBg} hover:bg-blue-50/60 transition-colors">`;
         html += `<td class="p-2 text-center border-r border-slate-200 font-medium">${st.classNum}</td>`;
         html += `<td class="p-2 text-center border-r border-slate-200 font-medium">${st.studentNum}</td>`;
-        html += `<td class="p-2 font-bold text-slate-900 border-r border-slate-200">${st.name}</td>`;
-        html += `<td class="p-2 text-slate-500 border-r border-slate-200 text-[11px] truncate max-w-[120px]">${st.career}</td>`;
+        html += `<td class="p-2 border-r border-slate-200">
+          <div class="flex items-center justify-between gap-1">
+            <span class="font-bold text-slate-900">${st.name}</span>
+            <div class="flex items-center gap-0.5 shrink-0">
+              ${isModified ? `
+                <span class="px-1 py-0.2 rounded text-[10px] bg-amber-100 text-amber-800 font-extrabold border border-amber-300 shadow-2xs" title="선택 과목이 수정됨">수정</span>
+                <button type="button" onclick="event.stopPropagation(); window.revertStudentChoices('${st.id}', ${sem});" class="text-blue-600 hover:text-blue-800 text-[10px] underline font-semibold cursor-pointer" title="이 학생 원래 선택으로 복원">↩</button>
+              ` : ''}
+              <button type="button" onclick="event.stopPropagation(); window.openStudentChoiceEditModal('${st.id}', ${sem});" class="p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition text-[11px] cursor-pointer" title="과목 일괄 편집 창 열기">✏️</button>
+            </div>
+          </div>
+        </td>`;
+        html += `<td class="p-2 text-slate-500 border-r border-slate-200 text-[11px] truncate max-w-[120px]" title="${st.career || ''}">${st.career || ''}</td>`;
 
         subjects.forEach(s => {
-          const isSelected = selected.includes(s);
+          const wasOriginallySelected = origList.includes(s);
+          const isCurrentlySelected = activeList.includes(s);
           const isUnder = counts[s] <= threshold;
-          const bgAttr = isUnder ? 'style="background-color: #cbd5e1; color: #1e3a8a;"' : '';
+          const isDup = dupSubjNorms.has(normalizeSubject(s));
 
-          if (isSelected) {
-            const isDup = dupSubjNorms.has(normalizeSubject(s));
+          let cellContent = '';
+          let cellBg = isUnder ? 'style="background-color: #cbd5e1;"' : '';
+          let cellTitle = '';
+
+          if (wasOriginallySelected && isCurrentlySelected) {
             if (isDup) {
               const dupItem = dupSt ? dupSt.dupList.find(d => d.semester === sem && d.normalized === normalizeSubject(s)) : null;
               const dupTip = dupItem ? `${dupItem.sourceLabel} 주의` : '중복 신청 주의';
-              html += `<td class="p-2 text-center border-r border-slate-200 bg-amber-50" ${bgAttr}>
-                <span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-amber-100 text-amber-900 border border-amber-400 cursor-help" title="${dupTip}">선택 (중복주의)</span>
-              </td>`;
+              cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-amber-100 text-amber-900 border border-amber-400 hover:opacity-80 transition select-none" title="${dupTip} (클릭 시 선택 취소)">선택(중복)</span>`;
             } else {
-              html += `<td class="p-2 text-center border-r border-slate-200" ${bgAttr}>
-                <span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-blue-100 text-blue-800 border border-blue-300">선택</span>
-              </td>`;
+              cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition select-none shadow-2xs" title="원래 선택한 과목 (클릭 시 선택 취소/제외)">선택</span>`;
             }
+            cellTitle = `[${s}] 원래 선택한 과목 - 클릭 시 선택 취소`;
+          } else if (wasOriginallySelected && !isCurrentlySelected) {
+            cellBg = 'style="background-color: #ffe4e6;"';
+            cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-bold text-[10px] bg-rose-100 text-rose-700 border border-rose-300 line-through decoration-rose-600 decoration-2 hover:bg-rose-200 transition select-none shadow-2xs" title="원래 선택했으나 취소됨 (집계 제외) - 클릭 시 원본 복원">✕ 취소됨</span>`;
+            cellTitle = `[${s}] 원래 선택했으나 취소됨 (집계 제외) - 클릭 시 원본 복원`;
+          } else if (!wasOriginallySelected && isCurrentlySelected) {
+            cellBg = 'style="background-color: #d1fae5;"';
+            cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border border-emerald-400 hover:bg-emerald-200 transition select-none shadow-2xs" title="새로 추가된 과목 (집계 포함) - 클릭 시 추가 취소">★ 추가</span>`;
+            cellTitle = `[${s}] 새로 추가된 과목 (집계 포함) - 클릭 시 추가 취소`;
           } else {
-            html += `<td class="p-2 text-center border-r border-slate-200 text-slate-300" ${bgAttr}>-</td>`;
+            cellContent = `<span class="text-slate-300 group-hover:text-blue-500 font-bold text-xs select-none transition-colors" title="클릭 시 [${s}] 추가">-</span>`;
+            cellTitle = `클릭 시 [${s}] 추가`;
           }
+
+          const safeS = s.replace(/'/g, "\\'");
+          html += `<td class="p-1.5 text-center border-r border-slate-200 cursor-pointer group hover:ring-2 hover:ring-blue-400 hover:ring-inset transition-all" ${cellBg} onclick="window.toggleStudentSubjectSelection('${st.id}', '${safeS}', ${sem});" title="${cellTitle}">
+            ${cellContent}
+          </td>`;
         });
         html += '</tr>';
       });
@@ -6023,6 +6337,10 @@
         if (statusVal === 'conflict' && !asgn.hasConflict) return false;
         if (statusVal === 'normal' && asgn.hasConflict) return false;
         if (statusVal === 'manual' && !asgn.isManual) return false;
+        if (statusVal === 'modified') {
+          const stObj = (AppState.students || []).find(s => s.id === asgn.id);
+          if (!stObj || !isStudentChoicesModified(stObj, sem)) return false;
+        }
 
         return true;
       });
@@ -6088,7 +6406,7 @@
           badge.textContent = `정렬: ${colLabel} (${dirLabel})`;
           badge.classList.remove('hidden');
         } else if (scheduleTableFilterState.statusFilter !== 'all') {
-          const filterLabels = { conflict: '충돌 학생만', normal: '정상 학생만', manual: '수동 수정 학생만' };
+          const filterLabels = { conflict: '충돌 학생만', normal: '정상 학생만', manual: '수동 수정 학생만', modified: '선택 수정된 학생만' };
           badge.textContent = `필터: ${filterLabels[scheduleTableFilterState.statusFilter] || ''}`;
           badge.classList.remove('hidden');
         } else {
@@ -6101,6 +6419,26 @@
           resetBtn.classList.remove('hidden');
         } else {
           resetBtn.classList.add('hidden');
+        }
+      }
+
+      // Update Step 2 Toolbar Modified Students Badge and Revert All Button
+      const modBadge2 = document.getElementById('step2ModifiedBadge');
+      const modRevertBtn2 = document.getElementById('btnRevertAllStep2');
+      const totalModifiedCount2 = (AppState.students || []).filter(st => isStudentChoicesModified(st, sem)).length;
+      if (modBadge2) {
+        if (totalModifiedCount2 > 0) {
+          modBadge2.textContent = `✏️ 선택 수정: ${totalModifiedCount2}명`;
+          modBadge2.classList.remove('hidden');
+        } else {
+          modBadge2.classList.add('hidden');
+        }
+      }
+      if (modRevertBtn2) {
+        if (totalModifiedCount2 > 0) {
+          modRevertBtn2.classList.remove('hidden');
+        } else {
+          modRevertBtn2.classList.add('hidden');
         }
       }
 
@@ -6127,7 +6465,7 @@
       let h1 = '<tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-30">';
       h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('classNum')" style="position: sticky; left: 0px; min-width: 44px; max-width: 44px; z-index: 40;" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[1px_0_0_0_#cbd5e1]" title="클릭하여 반 순서 정렬">반${getColSortIcon('classNum')}</th>`;
       h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('studentNum')" style="position: sticky; left: 44px; min-width: 44px; max-width: 44px; z-index: 40;" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[1px_0_0_0_#cbd5e1]" title="클릭하여 번호 순서 정렬">번호${getColSortIcon('studentNum')}</th>`;
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('name')" style="position: sticky; left: 88px; min-width: 82px; max-width: 82px; z-index: 40;" class="p-2.5 text-left border-r-2 border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]" title="클릭하여 이름 순서 정렬">이름${getColSortIcon('name')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('name')" style="position: sticky; left: 88px; min-width: 105px; max-width: 120px; z-index: 40;" class="p-2.5 text-left border-r-2 border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]" title="클릭하여 이름 순서 정렬">이름${getColSortIcon('name')}</th>`;
       h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('career')" class="p-2.5 text-left border-r-4 border-slate-400 bg-slate-100 min-w-[130px] max-w-[170px] cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 진로 순서 정렬">진로·관심${getColSortIcon('career')}</th>`;
 
       const groupStudentCounts = plan.groups.map((_, gIdx) => {
@@ -6253,10 +6591,26 @@
             }
           });
 
+          const st = (AppState.students || []).find(s => s.id === asgn.id);
+          const origList = st ? getStudentOriginalChoices(st, sem) : [];
+          const activeList = st ? getStudentActiveChoices(st, sem) : [];
+          const isModified = st ? isStudentChoicesModified(st, sem) : false;
+
           tbody += `<tr class="${rowBg} hover:bg-indigo-50/50 transition-colors">`;
           tbody += `<td style="position: sticky; left: 0px; min-width: 44px; max-width: 44px; z-index: 10;" class="p-2 text-center border-r border-slate-200 font-medium ${rowBg} shadow-[1px_0_0_0_#e2e8f0]">${asgn.classNum}</td>`;
           tbody += `<td style="position: sticky; left: 44px; min-width: 44px; max-width: 44px; z-index: 10;" class="p-2 text-center border-r border-slate-200 font-medium ${rowBg} shadow-[1px_0_0_0_#e2e8f0]">${asgn.studentNum}</td>`;
-          tbody += `<td style="position: sticky; left: 88px; min-width: 82px; max-width: 82px; z-index: 10;" class="p-2 font-bold text-slate-900 border-r-2 border-slate-300 whitespace-nowrap ${rowBg} shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]">${asgn.name}</td>`;
+          tbody += `<td style="position: sticky; left: 88px; min-width: 105px; max-width: 120px; z-index: 10;" class="p-2 border-r-2 border-slate-300 whitespace-nowrap ${rowBg} shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]">
+            <div class="flex items-center justify-between gap-1">
+              <span class="font-bold text-slate-900">${asgn.name}</span>
+              <div class="flex items-center gap-0.5 shrink-0">
+                ${isModified ? `
+                  <span class="px-1 py-0.2 rounded text-[9px] bg-amber-100 text-amber-800 font-black border border-amber-300 shadow-2xs" title="선택 과목 변경됨">수정</span>
+                  <button type="button" onclick="event.stopPropagation(); window.revertStudentChoices('${asgn.id}', ${sem});" class="text-blue-600 hover:text-blue-800 text-[10px] underline font-semibold cursor-pointer" title="이 학생 원래 선택으로 복원">↩</button>
+                ` : ''}
+                <button type="button" onclick="event.stopPropagation(); window.openStudentChoiceEditModal('${asgn.id}', ${sem});" class="p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition text-[10px] cursor-pointer" title="학생 수강 과목 수정">✏️</button>
+              </div>
+            </div>
+          </td>`;
           tbody += `<td class="p-2 text-slate-600 border-r-4 border-slate-400 text-[11px] truncate min-w-[130px] max-w-[170px]" title="${asgn.career}">${asgn.career}</td>`;
 
           // Render cells under each group and subject
@@ -6274,25 +6628,45 @@
                 const isChosen = chosenInGrp.includes(sName);
                 const isColSelectedForSwap = subjectSwapState.active && subjectSwapState.selectedSubject === sName;
                 const swapColBg = isColSelectedForSwap ? 'bg-amber-100/40' : '';
+                const parentName = sName.replace(/-[A-Z]$/, '');
+                const wasOrig = origList.includes(parentName);
+                const isAct = activeList.includes(parentName);
+                const safeParent = parentName.replace(/'/g, "\\'");
 
                 if (isChosen) {
+                  const isNewlyAdded = !wasOrig && isAct;
                   if (isGroupConflicted) {
                     tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/80' : 'bg-rose-50'}">
-                      <div class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[105px]" title="동일 그룹 중복 충돌: ${sName}">
-                        <span>⚠️ ${sName}</span>
+                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[105px] cursor-pointer hover:bg-rose-200 transition" title="⚠️ 동일 그룹 중복 충돌: ${sName} (클릭 시 수강 취소)">
+                        <span>⚠️ ${isNewlyAdded ? '★ ' : ''}${sName}</span>
+                      </div>
+                    </td>`;
+                  } else if (isNewlyAdded) {
+                    tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/60' : 'bg-emerald-50/70'}">
+                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border-2 border-emerald-400 shadow-2xs hover:bg-emerald-200 transition cursor-pointer truncate max-w-[105px]" title="[${parentName}] 사용자가 새로 추가함 (클릭 시 추가 취소)">
+                        <span>★ ${sName}</span>
                       </div>
                     </td>`;
                   } else {
                     tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/60' : theme.cellChosenBg}">
-                      <div class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 transition-transform truncate max-w-[105px]" title="${sName} 배정">
+                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 hover:bg-blue-200 transition cursor-pointer truncate max-w-[105px]" title="${sName} 배정됨 (클릭 시 선택 취소/제외)">
                         <span>${sName}</span>
                       </div>
                     </td>`;
                   }
                 } else {
-                  tbody += `<td class="p-1.5 text-center ${borderCls} ${swapColBg}">
-                    <span class="text-slate-300 text-xs font-bold select-none">·</span>
-                  </td>`;
+                  if (wasOrig && !isAct) {
+                    // The student originally took parentName, but cancelled it!
+                    tbody += `<td class="p-1.5 text-center ${borderCls} bg-rose-50/50 hover:bg-rose-100 transition cursor-pointer" onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" title="[${parentName}] 원래 선택했으나 취소됨 (집계 제외) - 클릭 시 원본 복원">
+                      <div class="inline-flex items-center justify-center px-1.5 py-0.5 rounded font-semibold text-[10px] text-rose-600 bg-rose-100/90 border border-dashed border-rose-300 opacity-90 truncate max-w-[105px]">
+                        <span class="line-through decoration-rose-600 decoration-1">✕ ${sName}</span>
+                      </div>
+                    </td>`;
+                  } else {
+                    tbody += `<td class="p-1.5 text-center ${borderCls} ${swapColBg} hover:bg-blue-50/50 transition cursor-pointer group" onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" title="클릭하여 [${parentName}] 추가">
+                      <span class="text-slate-300 group-hover:text-blue-600 font-bold text-xs select-none">·</span>
+                    </td>`;
+                  }
                 }
               });
             }
@@ -7766,6 +8140,10 @@
 
       // Update Survey / Students Display
       if (AppState.students && AppState.students.length > 0) {
+        AppState.students.forEach(st => {
+          if (!st.origSem1) st.origSem1 = [...(st.sem1 || [])];
+          if (!st.origSem2) st.origSem2 = [...(st.sem2 || [])];
+        });
         appBody.classList.remove('hidden');
         btnResetAll.classList.remove('hidden');
         if (thresholdInput) thresholdInput.value = AppState.step1Threshold || 3;
@@ -9666,6 +10044,55 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Student Choice Edit Modal (학생 수강신청 과목 수정 모달) -->
+  <div id="studentChoiceEditModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl shadow-xs">
+            📝
+          </div>
+          <div>
+            <h3 id="studentEditModalTitle" class="text-base font-bold text-slate-900">학생 수강신청 과목 수정</h3>
+            <p id="studentEditModalSubtitle" class="text-xs text-slate-500">과목 카드를 클릭하여 추가하거나 취소할 수 있습니다. 취소된 과목은 집계에서 자동 제외됩니다.</p>
+          </div>
+        </div>
+        <button id="btnCloseStudentEditModal" type="button" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Legend & Info Bar -->
+      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">선택 유지</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200 line-through">✕ 취소됨 (집계 제외)</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">★ 새로 추가</span>
+        </div>
+        <div id="studentEditSelectedCount" class="font-extrabold text-blue-900">
+          현재 선택: 0과목
+        </div>
+      </div>
+
+      <!-- Subject List Container (Scrollable) -->
+      <div id="studentEditSubjectsContainer" class="overflow-y-auto space-y-2 pr-1 flex-1 min-h-[220px]">
+        <!-- Rendered subject cards -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <button id="btnStudentEditRevert" type="button" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-slate-700 font-bold text-xs transition border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-2xs">
+          <span>↩</span>
+          <span>이 학생 원래 선택으로 복원</span>
+        </button>
+        <button id="btnStudentEditDone" type="button" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm cursor-pointer">
+          완료 / 닫기
+        </button>
+      </div>
     </div>
   </div>
 
