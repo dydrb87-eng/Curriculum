@@ -89,44 +89,10 @@
           <span>📊 구글 시트에서 가져오기</span>
         </button>
         <!-- 1-Click Backup & Restore for Seamless Machine-to-Machine Transfer -->
-        <div class="relative inline-flex rounded-lg shadow-xs" id="saveButtonGroup">
-          <button id="btnHeaderExportSession" type="button" onclick="window.handleMainSaveButtonClick();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-l-lg transition-all border border-blue-300 flex items-center space-x-1.5 cursor-pointer" title="현재 작업 데이터를 이전에 선택한 위치에 즉시 저장합니다">
-            <span>💾</span>
-            <span id="saveButtonText">작업 저장</span>
-          </button>
-          <button id="btnSaveLocationDropdown" type="button" onclick="window.toggleSaveDropdown(event);" class="px-2 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-200 rounded-r-lg transition-all border-t border-b border-r border-blue-300 flex items-center justify-center cursor-pointer" title="저장 위치 변경 및 옵션">
-            <svg class="w-3.5 h-3.5 transition-transform duration-150" id="saveDropdownArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-
-          <!-- Dropdown Menu -->
-          <div id="saveDropdownMenu" class="hidden absolute right-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
-            <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] text-slate-400 font-semibold">
-              저장 위치 및 방식 선택
-            </div>
-            <button type="button" onclick="window.saveToPreviousLocation();" class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
-              <span>💾</span>
-              <div>
-                <p class="text-xs text-blue-900 font-bold">이전 위치에 저장</p>
-                <p id="dropdownPrevLocationHint" class="text-[10px] text-slate-500 truncate max-w-[210px]">이전에 지정한 위치에 덮어씁니다</p>
-              </div>
-            </button>
-            <button type="button" onclick="window.saveWithNewLocation();" class="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
-              <span>📁</span>
-              <div>
-                <p class="text-xs text-indigo-900 font-bold">저장 위치 새로 선택...</p>
-                <p class="text-[10px] text-slate-500">원하는 폴더를 직접 지정하여 저장</p>
-              </div>
-            </button>
-            <div class="border-t border-slate-100 my-1"></div>
-            <button type="button" onclick="window.exportStandardDownload();" class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
-              <span>📥</span>
-              <div>
-                <p class="text-xs text-slate-800 font-bold">기본 다운로드 파일로 저장</p>
-                <p class="text-[10px] text-slate-500">브라우저 다운로드 폴더로 저장 (.json)</p>
-              </div>
-            </button>
-          </div>
-        </div>
+        <button id="btnHeaderExportSession" type="button" onclick="window.exportStandardDownload();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-300 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="현재 전체 학년도/학년 작업 데이터를 브라우저 다운로드 폴더에 즉시 저장합니다 (.json)">
+          <span>💾</span>
+          <span id="saveButtonText">작업 저장</span>
+        </button>
         <label id="headerRestoreBackupLabel" for="headerRestoreBackupJson" class="px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 rounded-lg transition-all border-2 border-dashed border-indigo-400 hover:border-indigo-600 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="클릭하거나 백업 파일(.json / .xlsx)을 직접 이 버튼 위로 드래그하여 작업 상태를 복원합니다.">
           <span class="text-sm">📂</span>
           <span>작업 불러오기</span>
@@ -517,7 +483,7 @@
         <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
           <div>
             <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span>👨‍🏫 교사별 주당 수업 시수 및 담당 과목 종합 요약</span>
+              <span>👨‍🏫 교사별 학기 수업 시수 및 담당 과목 요약</span>
               <span id="allGradesTeacherBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">총 0명</span>
             </h4>
             <p class="text-xs text-slate-500 mt-0.5">1·2·3학년 전과목을 종합하여 교사별 학기별 담당 과목과 총 시수를 집계합니다.</p>
@@ -542,7 +508,7 @@
                 <th class="p-2.5 border-r border-slate-200 text-emerald-900 bg-emerald-50/70">2학기 담당 과목 (학년 / 시수)</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200 text-emerald-900 bg-emerald-100/70 font-black">2학기 시수</th>
                 <th class="p-2.5 text-center w-24 bg-slate-100 font-extrabold text-slate-900 border-r border-slate-200">연간 총시수</th>
-                <th class="p-2.5 text-center w-24 bg-slate-100 font-extrabold text-slate-900">주당 평균</th>
+                <th class="p-2.5 text-center w-24 bg-slate-100 font-extrabold text-slate-900">학기당 평균</th>
               </tr>
             </thead>
             <tbody id="allGradesTeacherSummaryTbody" class="divide-y divide-slate-100 text-slate-700">
@@ -729,11 +695,17 @@
             <!-- Table 2: Duplicate Courses Table (Right) -->
             <div class="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-xs flex flex-col h-full">
               <div class="bg-amber-50 px-4 py-2.5 border-b border-amber-200 flex justify-between items-center gap-2">
-                <h5 class="text-xs font-bold text-amber-900 flex items-center gap-1.5 whitespace-nowrap">
-                  <span>⚠️ 동일·기이수 과목 중복신청 의심 명단</span>
-                  <span id="duplicateBadgeCount" class="px-2 py-0.5 bg-amber-200 text-amber-800 text-[10px] rounded-full font-black">0명</span>
-                </h5>
-                <span class="text-[11px] text-amber-700 truncate" title="이전 학년 기이수 및 현재 학년(1·2학기) 동일 과목 중복 자동 대조">기이수 & 현재 학년 내 중복 자동대조</span>
+                <div class="flex items-center gap-2">
+                  <h5 class="text-xs font-bold text-amber-900 flex items-center gap-1.5 whitespace-nowrap">
+                    <span>⚠️ 동일·기이수 과목 중복신청 의심 명단</span>
+                    <span id="duplicateBadgeCount" class="px-2 py-0.5 bg-amber-200 text-amber-800 text-[10px] rounded-full font-black">0명</span>
+                  </h5>
+                  <span class="text-[11px] text-amber-700 hidden sm:inline" title="이전 학년 기이수 및 현재 학년(1·2학기) 동일 과목 중복 자동 대조">(기이수 & 학년 내 중복)</span>
+                </div>
+                <button id="btnExportDuplicateCorrectionExcel" type="button" onclick="window.exportDuplicateCorrectionExcel()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer select-none" title="동일·기이수 중복신청 과목 변경 확인 및 신청서(학생 배부용) 엑셀을 다운로드합니다">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>📥 변경신청서 엑셀 다운로드</span>
+                </button>
               </div>
               <div class="max-h-72 overflow-y-auto custom-scrollbar flex-1">
                 <table class="w-full text-xs text-center border-collapse">
@@ -804,13 +776,30 @@
                 <option value="closed">폐강 확정 과목만</option>
               </select>
             </div>
+
+            <!-- Target Subject Student Filter (특정 과목 선택 학생만 필터) -->
+            <div class="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
+              <label for="step1TargetSubjectFilter" class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                <span>📚</span>
+                <span>과목별 학생:</span>
+              </label>
+              <select id="step1TargetSubjectFilter" class="text-xs font-bold bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer max-w-[150px]">
+                <option value="all">전체 과목 (모든 학생)</option>
+              </select>
+            </div>
             
             <div class="relative">
-              <input type="text" id="studentSearchInput" placeholder="학생 검색 (이름/반/번호)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-44">
+              <input type="text" id="studentSearchInput" placeholder="학생 검색 (이름/반/번호)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-40">
               <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
               </svg>
             </div>
+
+            <!-- Sort/Filter Status Badge and Reset Button -->
+            <span id="step1TableSortBadge" class="hidden px-2.5 py-1 text-xs font-bold bg-blue-100 text-blue-800 rounded-lg border border-blue-300 flex items-center gap-1"></span>
+            <button id="btnResetStep1TableSort" type="button" onclick="window.resetStep1TableSort()" class="hidden px-2 py-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition cursor-pointer flex items-center gap-1" title="정렬 및 필터 초기화">
+              <span>✕ 초기화</span>
+            </button>
 
             <!-- Excel Export Button for Step 1 -->
             <button id="btnExportStep1" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors flex items-center space-x-1.5">
@@ -2362,6 +2351,154 @@
       XLSX.writeFile(wb, outName);
     }
 
+    // 학생 배부용 중복신청 과목 변경 확인 및 신청서 엑셀 다운로드 (출력용 공적 문서 양식)
+    window.exportDuplicateCorrectionExcel = function() {
+      if (!AppState.crossCheckResult || !AppState.crossCheckResult.duplicateEnrollments || AppState.crossCheckResult.duplicateEnrollments.length === 0) {
+        alert('현재 동일·기이수 중복 신청 의심 학생이 없습니다.');
+        return;
+      }
+      const duplicateEnrollments = AppState.crossCheckResult.duplicateEnrollments;
+      const wb = XLSX.utils.book_new();
+      const grade = AppState.detectedGrade || '2학년';
+      const activeYear = MultiState?.activeYear || '2027';
+
+      // 1. 헤더 및 타이틀 구성
+      const rows = [
+        [`[상지대관령고등학교] ${activeYear}학년도 ${grade} 동일·기이수 과목 중복신청 과목 변경 확인 및 신청서`],
+        [`발행일자: ${new Date().toLocaleDateString('ko-KR')} | 대상 학생: 총 ${duplicateEnrollments.length}명 | 상지대관령고등학교 교육과정위원회`],
+        [`※ 학생 안내사항: 본 학생은 동일 학년 내 중복 선택 또는 이전 학년 기이수 과목과 중복되었습니다. 아래 내역을 확인한 후 '변경 희망 과목명' 및 '확인 서명'을 기재하여 교육과정 담당 선생님께 제출하시기 바랍니다.`],
+        ['연번', '학적 (반-번호)', '성명', '학기', '현재 중복 신청 과목', '중복 사유 / 구분', '변경 희망 과목명 (수기 작성란)', '학생 확인', '보호자 확인']
+      ];
+
+      const merges = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 8 } }
+      ];
+
+      const studentSpanMeta = [];
+
+      let curRowIdx = 4;
+      duplicateEnrollments.forEach((st, sIdx) => {
+        const dupList = (st.dupList && st.dupList.length > 0) 
+          ? st.dupList 
+          : [{ semester: 1, subject: st.dupSubjStr || '중복과목', sourceLabel: '중복 의심' }];
+        const startR = curRowIdx;
+        const endR = curRowIdx + dupList.length - 1;
+
+        dupList.forEach((d) => {
+          rows.push([
+            sIdx + 1,
+            `${st.grade} ${st.classNum}반 ${st.studentNum}번`,
+            st.name,
+            `${d.semester}학기`,
+            d.subject,
+            d.sourceLabel || '동일/기이수 중복',
+            '', // 학생이 직접 손으로 작성할 변경 희망 과목명 빈칸
+            '(서명)',
+            '(서명)'
+          ]);
+          curRowIdx++;
+        });
+
+        // 학생별 중복 과목이 복수개일 경우 학생 기본 정보 및 서명란 병합
+        if (dupList.length > 1) {
+          merges.push({ s: { r: startR, c: 0 }, e: { r: endR, c: 0 } }); // 연번
+          merges.push({ s: { r: startR, c: 1 }, e: { r: endR, c: 1 } }); // 학적
+          merges.push({ s: { r: startR, c: 2 }, e: { r: endR, c: 2 } }); // 성명
+          merges.push({ s: { r: startR, c: 7 }, e: { r: endR, c: 7 } }); // 학생 서명
+          merges.push({ s: { r: startR, c: 8 }, e: { r: endR, c: 8 } }); // 보호자 서명
+        }
+
+        studentSpanMeta.push({ sIdx, startR, endR });
+      });
+
+      // 하단 확인 및 서약 문구
+      const bottomNoticeR = curRowIdx;
+      rows.push([]);
+      rows.push(['위 학생의 수강신청 변경 사항을 확인하였으며, 상기와 같이 과목 변경을 신청합니다.']);
+      rows.push([`202   년     월     일        신청 학생:                    (인/서명)        담임 교사 확인:                    (인/서명)`]);
+      merges.push({ s: { r: bottomNoticeR + 1, c: 0 }, e: { r: bottomNoticeR + 1, c: 8 } });
+      merges.push({ s: { r: bottomNoticeR + 2, c: 0 }, e: { r: bottomNoticeR + 2, c: 8 } });
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!merges'] = merges;
+      ws['!cols'] = [
+        { wch: 6 },  // 연번
+        { wch: 16 }, // 학적
+        { wch: 12 }, // 성명
+        { wch: 9 },  // 학기
+        { wch: 22 }, // 현재 중복 과목
+        { wch: 24 }, // 중복 사유
+        { wch: 34 }, // 변경 희망 과목명 (수기 작성란)
+        { wch: 12 }, // 학생 확인
+        { wch: 12 }  // 보호자 확인
+      ];
+
+      // A4 가로 인쇄 최적화 설정
+      ws['!pageSetup'] = {
+        paperSize: 9,            // A4
+        orientation: 'landscape', // 가로 방향
+        fitToWidth: 1,
+        fitToPage: true
+      };
+      ws['!printOptions'] = { horizontalCentered: true };
+      ws['!margins'] = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 };
+
+      // 공적 문서 스타일 적용
+      ExcelStyler.setRange(ws, 0, 0, 0, 8, ExcelStyler.titleStyle(true));
+      ExcelStyler.setRange(ws, 1, 0, 1, 8, ExcelStyler.subtitleStyle(true));
+      ExcelStyler.setRange(ws, 2, 0, 2, 8, {
+        font: { name: '맑은 고딕', sz: 9.5, italic: true, color: { rgb: '92400E' } },
+        fill: { fgColor: { rgb: 'FEF3C7' } },
+        alignment: { vertical: 'center', horizontal: 'left', wrapText: true },
+        border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+      });
+
+      // 테이블 헤더
+      for (let c = 0; c < 9; c++) {
+        ExcelStyler.setCell(ws, 3, c, ExcelStyler.headerStyle('B45309', c === 8, c === 0));
+      }
+
+      // 데이터 행 스타일링
+      studentSpanMeta.forEach(({ sIdx, startR, endR }) => {
+        const isEven = sIdx % 2 === 1;
+        for (let r = startR; r <= endR; r++) {
+          ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
+          ExcelStyler.setCell(ws, r, 1, ExcelStyler.dataCenter(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 2, ExcelStyler.dataBold(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 3, ExcelStyler.dataCenter(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 4, ExcelStyler.dataWarning(false, false));
+          ExcelStyler.setCell(ws, r, 5, ExcelStyler.dataText(isEven, false, false));
+          // 변경 희망 과목명 칸: 넉넉하고 깔끔한 수기 작성용 빈 칸 스타일
+          ExcelStyler.setCell(ws, r, 6, {
+            font: { name: '맑은 고딕', sz: 10, color: { rgb: '1E293B' } },
+            fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
+            alignment: { vertical: 'center', horizontal: 'center' },
+            border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+          });
+          ExcelStyler.setCell(ws, r, 7, ExcelStyler.dataCenter(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 8, ExcelStyler.dataCenter(isEven, true, false));
+        }
+      });
+
+      // 하단 확인 서명 안내 스타일링
+      ExcelStyler.setRange(ws, bottomNoticeR + 1, 0, bottomNoticeR + 1, 8, {
+        font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '334155' } },
+        alignment: { vertical: 'center', horizontal: 'center' },
+        border: ExcelStyler.cellBorders(false, false, false, false, false, false, false, false)
+      });
+      ExcelStyler.setRange(ws, bottomNoticeR + 2, 0, bottomNoticeR + 2, 8, {
+        font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '1E293B' } },
+        alignment: { vertical: 'center', horizontal: 'center' },
+        border: ExcelStyler.cellBorders(false, false, false, false, false, false, false, false)
+      });
+
+      XLSX.utils.book_append_sheet(wb, ws, '중복과목_변경신청서');
+      const filename = `[상지대관령고]_${activeYear}학년도_${grade}_중복신청_과목변경_신청서(학생배부용).xlsx`;
+      XLSX.writeFile(wb, filename);
+    };
+
     // Prior Data Event Listeners
     priorFileInput?.addEventListener('click', () => {
       priorFileInput.value = '';
@@ -2852,6 +2989,53 @@
       renderSubjectSummaryTable();
     });
 
+    document.getElementById('step1TargetSubjectFilter')?.addEventListener('change', (e) => {
+      step1TableSortState.subjectFilter = e.target.value;
+      renderStep1TableOnly();
+    });
+
+    // 1단계 학생 매트릭스 테이블 정렬 및 과목 필터 상태 관리
+    const step1TableSortState = {
+      sortCol: 'default', // 'default' | 'classNum' | 'studentNum' | 'name' | 'career' | subjectName
+      sortDir: 'asc',     // 'asc' | 'desc'
+      subjectFilter: 'all' // 'all' | subjectName
+    };
+
+    window.handleStep1SubjectColClick = function(sName) {
+      if (step1TableSortState.sortCol !== sName) {
+        step1TableSortState.sortCol = sName;
+        step1TableSortState.sortDir = 'asc'; // 1차 클릭: 선택자 우선 정렬 (오름차순)
+      } else if (step1TableSortState.sortDir === 'asc') {
+        step1TableSortState.sortDir = 'desc'; // 2차 클릭: 미선택자 우선 정렬 (내림차순)
+      } else {
+        step1TableSortState.sortCol = 'default'; // 3차 클릭: 기본 반/번호 순 복귀
+        step1TableSortState.sortDir = 'asc';
+      }
+      renderStep1TableOnly();
+    };
+
+    window.handleStep1ColHeaderClick = function(colKey) {
+      if (step1TableSortState.sortCol !== colKey) {
+        step1TableSortState.sortCol = colKey;
+        step1TableSortState.sortDir = 'asc';
+      } else if (step1TableSortState.sortDir === 'asc') {
+        step1TableSortState.sortDir = 'desc';
+      } else {
+        step1TableSortState.sortCol = 'default';
+        step1TableSortState.sortDir = 'asc';
+      }
+      renderStep1TableOnly();
+    };
+
+    window.resetStep1TableSort = function() {
+      step1TableSortState.sortCol = 'default';
+      step1TableSortState.sortDir = 'asc';
+      step1TableSortState.subjectFilter = 'all';
+      const subjFilterSel = document.getElementById('step1TargetSubjectFilter');
+      if (subjFilterSel) subjFilterSel.value = 'all';
+      renderStep1TableOnly();
+    };
+
     window.cycleStep1SubjectSort = function(type) {
       const sortSelect = document.getElementById('step1SubjectSortSelect');
       if (!sortSelect) return;
@@ -2937,6 +3121,18 @@
       });
       statUnderThresholdCount.textContent = `${underThresholdCount}개`;
 
+      // Update Target Subject Filter Dropdown options
+      const subjFilterSel = document.getElementById('step1TargetSubjectFilter');
+      if (subjFilterSel) {
+        const curVal = step1TableSortState.subjectFilter;
+        let optHtml = '<option value="all">전체 과목 (모든 학생)</option>';
+        subjects.forEach(s => {
+          const c = counts[s] || 0;
+          optHtml += `<option value="${s.replace(/"/g, '&quot;')}" ${curVal === s ? 'selected' : ''}>[${s}] 선택 학생 (${c}명)</option>`;
+        });
+        subjFilterSel.innerHTML = optHtml;
+      }
+
       renderStep1TableOnly();
       renderSubjectSummaryTable();
     }
@@ -2959,14 +3155,86 @@
 
       const subjects = getFilteredAndSortedStep1Subjects(sem, counts);
 
-      // Filter students
+      // 1. Filter students by search and by step1TableSortState.subjectFilter
       const filteredStudents = AppState.students.filter(st => {
+        const selected = sem === 1 ? (st.sem1 || []) : (st.sem2 || []);
+        if (step1TableSortState.subjectFilter !== 'all') {
+          if (!selected.includes(step1TableSortState.subjectFilter)) return false;
+        }
         if (!searchQuery) return true;
         return st.name.toLowerCase().includes(searchQuery) ||
-               st.classNum.includes(searchQuery) ||
-               st.studentNum.includes(searchQuery) ||
-               st.career.toLowerCase().includes(searchQuery);
+               String(st.classNum).includes(searchQuery) ||
+               String(st.studentNum).includes(searchQuery) ||
+               (st.career || '').toLowerCase().includes(searchQuery);
       });
+
+      // 2. Sort students according to step1TableSortState
+      filteredStudents.sort((a, b) => {
+        const cA = parseInt(String(a.classNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const cB = parseInt(String(b.classNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const nA = parseInt(String(a.studentNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const nB = parseInt(String(b.studentNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const fallback = (cA !== cB) ? (cA - cB) : (nA - nB);
+
+        const col = step1TableSortState.sortCol;
+        const dir = step1TableSortState.sortDir;
+
+        if (col === 'default') return fallback;
+
+        if (col === 'classNum') {
+          return dir === 'asc' ? (cA - cB || nA - nB) : (cB - cA || nB - nA);
+        }
+        if (col === 'studentNum') {
+          return dir === 'asc' ? (nA - nB || cA - cB) : (nB - nA || cB - cA);
+        }
+        if (col === 'name') {
+          return dir === 'asc' ? (a.name.localeCompare(b.name, 'ko') || fallback) : (b.name.localeCompare(a.name, 'ko') || fallback);
+        }
+        if (col === 'career') {
+          return dir === 'asc' ? ((a.career || '').localeCompare(b.career || '', 'ko') || fallback) : ((b.career || '').localeCompare(a.career || '', 'ko') || fallback);
+        }
+
+        // Subject Column Click:
+        // dir === 'asc': 선택자 우선 정렬 (Chosen first)
+        // dir === 'desc': 미선택자 우선 정렬 (Unchosen first)
+        const aChosen = (sem === 1 ? (a.sem1 || []) : (a.sem2 || [])).includes(col);
+        const bChosen = (sem === 1 ? (b.sem1 || []) : (b.sem2 || [])).includes(col);
+
+        if (aChosen !== bChosen) {
+          return dir === 'asc' ? (aChosen ? -1 : 1) : (aChosen ? 1 : -1);
+        }
+        return fallback;
+      });
+
+      // Update Toolbar Sort/Filter Badge and Reset Button
+      const badge = document.getElementById('step1TableSortBadge');
+      const resetBtn = document.getElementById('btnResetStep1TableSort');
+      const isSortedOrFiltered = (step1TableSortState.sortCol !== 'default') || 
+                                 (step1TableSortState.subjectFilter !== 'all');
+      if (badge) {
+        if (step1TableSortState.subjectFilter !== 'all') {
+          badge.textContent = `필터: [${step1TableSortState.subjectFilter}] 선택 학생 (${filteredStudents.length}명)`;
+          badge.classList.remove('hidden');
+        } else if (step1TableSortState.sortCol !== 'default') {
+          let colName = step1TableSortState.sortCol;
+          if (colName === 'classNum') colName = '반';
+          else if (colName === 'studentNum') colName = '번호';
+          else if (colName === 'name') colName = '이름';
+          else if (colName === 'career') colName = '진로';
+          const dirText = step1TableSortState.sortDir === 'asc' ? '선택자/오름차순 ▲' : '미선택자/내림차순 ▼';
+          badge.textContent = `정렬: [${colName}] (${dirText})`;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+      if (resetBtn) {
+        if (isSortedOrFiltered) {
+          resetBtn.classList.remove('hidden');
+        } else {
+          resetBtn.classList.add('hidden');
+        }
+      }
 
       if (subjects.length === 0) {
         matrixTable.innerHTML = `
@@ -2977,19 +3245,49 @@
         return;
       }
 
+      const getStep1SortIcon = (key) => {
+        if (step1TableSortState.sortCol === key) {
+          return step1TableSortState.sortDir === 'asc' 
+            ? ' <span class="text-blue-600 font-black">▲</span>' 
+            : ' <span class="text-indigo-600 font-black">▼</span>';
+        }
+        return ' <span class="text-slate-400 font-normal text-[10px]">⇅</span>';
+      };
+
       // Build Table HTML
       let html = '<thead><tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-20">';
-      html += '<th class="p-2.5 text-center border-r border-slate-200 w-12 bg-slate-100">반</th>';
-      html += '<th class="p-2.5 text-center border-r border-slate-200 w-12 bg-slate-100">번호</th>';
-      html += '<th class="p-2.5 text-left border-r border-slate-200 w-24 bg-slate-100">이름</th>';
-      html += '<th class="p-2.5 text-left border-r border-slate-200 w-28 bg-slate-100">진로·관심학과</th>';
+      html += `<th onclick="window.handleStep1ColHeaderClick('classNum')" class="p-2.5 text-center border-r border-slate-200 w-12 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 반 순서 정렬">반${getStep1SortIcon('classNum')}</th>`;
+      html += `<th onclick="window.handleStep1ColHeaderClick('studentNum')" class="p-2.5 text-center border-r border-slate-200 w-12 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 번호 순서 정렬">번호${getStep1SortIcon('studentNum')}</th>`;
+      html += `<th onclick="window.handleStep1ColHeaderClick('name')" class="p-2.5 text-left border-r border-slate-200 w-24 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 이름 순서 정렬">이름${getStep1SortIcon('name')}</th>`;
+      html += `<th onclick="window.handleStep1ColHeaderClick('career')" class="p-2.5 text-left border-r border-slate-200 w-28 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors" title="클릭하여 진로 순서 정렬">진로·관심학과${getStep1SortIcon('career')}</th>`;
 
       subjects.forEach(s => {
         const isUnder = counts[s] <= threshold;
-        const colStyle = isUnder ? 'style="background-color: #cbd5e1; color: #334155;"' : '';
-        html += `<th class="p-2.5 text-center border-r border-slate-200 whitespace-nowrap min-w-[75px]" ${colStyle}>
-          <div>${s}</div>
-          <div class="text-[11px] font-normal mt-0.5 opacity-80">${counts[s]}명</div>
+        const isTargetFilter = step1TableSortState.subjectFilter === s;
+        const isColSorted = step1TableSortState.sortCol === s;
+        
+        let colStyle = '';
+        if (isTargetFilter) {
+          colStyle = 'style="background-color: #dbeafe; color: #1e3a8a; border-left: 2px solid #3b82f6; border-right: 2px solid #3b82f6;"';
+        } else if (isColSorted) {
+          colStyle = 'style="background-color: #e0e7ff; color: #3730a3;"';
+        } else if (isUnder) {
+          colStyle = 'style="background-color: #cbd5e1; color: #334155;"';
+        }
+
+        let sortBadge = '<span class="text-slate-400 font-normal text-[10px] ml-0.5 opacity-60 group-hover:opacity-100">⇅</span>';
+        if (isColSorted) {
+          if (step1TableSortState.sortDir === 'asc') {
+            sortBadge = '<span class="ml-1 px-1.5 py-0.2 rounded bg-blue-600 text-white font-extrabold text-[10px] shadow-2xs">▲선택자</span>';
+          } else {
+            sortBadge = '<span class="ml-1 px-1.5 py-0.2 rounded bg-indigo-600 text-white font-extrabold text-[10px] shadow-2xs">▼미선택자</span>';
+          }
+        }
+
+        const safeS = s.replace(/'/g, "\\'");
+        html += `<th onclick="window.handleStep1SubjectColClick('${safeS}')" class="p-2.5 text-center border-r border-slate-200 whitespace-nowrap min-w-[75px] cursor-pointer hover:bg-blue-100/70 select-none transition-colors group" ${colStyle} title="클릭하여 [${s}] 선택자 우선(오름차순)/미선택자 우선(내림차순) 정렬">
+          <div class="font-bold flex items-center justify-center">${s}</div>
+          <div class="text-[11px] font-normal mt-0.5 opacity-90 flex items-center justify-center">${counts[s]}명 ${sortBadge}</div>
         </th>`;
       });
       html += '</tr></thead>';
@@ -7549,10 +7847,21 @@
 
     function applyExternalMultiState(externalData, showSuccessMsg = true) {
       if (!externalData || !externalData.data) return;
-      Object.assign(MultiState, externalData);
-      if (!MultiState.yearsList.includes('2027')) MultiState.yearsList.unshift('2027');
-      if (!MultiState.yearsList.includes('2026')) MultiState.yearsList.push('2026');
-      switchAcademicContext(MultiState.activeYear || '2027', MultiState.activeGrade || '2학년', false);
+      MultiState.data = JSON.parse(JSON.stringify(externalData.data));
+      if (Array.isArray(externalData.yearsList) && externalData.yearsList.length > 0) {
+        MultiState.yearsList = [...externalData.yearsList];
+      } else {
+        const keys = Object.keys(MultiState.data).filter(k => /^\d{4}$/.test(k));
+        MultiState.yearsList = keys.length > 0 ? keys : ['2027'];
+      }
+      if (!MultiState.yearsList.includes(externalData.activeYear)) {
+        MultiState.activeYear = MultiState.yearsList[0] || '2027';
+      } else {
+        MultiState.activeYear = externalData.activeYear;
+      }
+      MultiState.activeGrade = externalData.activeGrade || '2학년';
+
+      switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
       if (showSuccessMsg) {
         alert('🎉 최신 데이터가 성공적으로 반영되었습니다!');
@@ -7626,116 +7935,8 @@
     });
 
     // ==========================================
-    // SAVE LOGIC WITH LOCATION SELECTION & SPLIT BUTTON
+    // BACKUP & RESTORE DATA (.json)
     // ==========================================
-    let rememberedSaveHandle = null;
-
-    // Helper: IndexedDB for FileHandle persistence across browser sessions
-    async function getSavedFileHandle() {
-      return new Promise((resolve) => {
-        try {
-          if (!window.indexedDB) return resolve(null);
-          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
-          req.onupgradeneeded = (e) => {
-            if (!e.target.result.objectStoreNames.contains('handles')) {
-              e.target.result.createObjectStore('handles');
-            }
-          };
-          req.onsuccess = (e) => {
-            const db = e.target.result;
-            try {
-              const tx = db.transaction('handles', 'readonly');
-              const store = tx.objectStore('handles');
-              const getReq = store.get('lastSaveHandle');
-              getReq.onsuccess = () => resolve(getReq.result || null);
-              getReq.onerror = () => resolve(null);
-            } catch { resolve(null); }
-          };
-          req.onerror = () => resolve(null);
-        } catch { resolve(null); }
-      });
-    }
-
-    async function setSavedFileHandle(handle) {
-      rememberedSaveHandle = handle;
-      return new Promise((resolve) => {
-        try {
-          if (!window.indexedDB || !handle) return resolve(false);
-          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
-          req.onupgradeneeded = (e) => {
-            if (!e.target.result.objectStoreNames.contains('handles')) {
-              e.target.result.createObjectStore('handles');
-            }
-          };
-          req.onsuccess = (e) => {
-            const db = e.target.result;
-            try {
-              const tx = db.transaction('handles', 'readwrite');
-              const store = tx.objectStore('handles');
-              store.put(handle, 'lastSaveHandle');
-              tx.oncomplete = () => resolve(true);
-              tx.onerror = () => resolve(false);
-            } catch { resolve(false); }
-          };
-          req.onerror = () => resolve(false);
-        } catch { resolve(false); }
-      });
-    }
-
-    function updateSaveButtonTooltip(name) {
-      const btn = document.getElementById('btnHeaderExportSession');
-      const hint = document.getElementById('dropdownPrevLocationHint');
-      if (btn && name) {
-        btn.title = `클릭 시 이전에 선택한 파일 [${name}]에 바로 저장합니다`;
-      }
-      if (hint && name) {
-        hint.textContent = `현재 설정된 파일: ${name}`;
-      }
-    }
-
-    async function writeToHandle(handle, jsonContent) {
-      if (!handle) return false;
-      if (typeof handle.queryPermission === 'function') {
-        let perm = await handle.queryPermission({ mode: 'readwrite' });
-        if (perm !== 'granted') {
-          perm = await handle.requestPermission({ mode: 'readwrite' });
-          if (perm !== 'granted') return false;
-        }
-      }
-      const writable = await handle.createWritable();
-      await writable.write(jsonContent);
-      await writable.close();
-      return true;
-    }
-
-    window.toggleSaveDropdown = function(event) {
-      if (event) event.stopPropagation();
-      const menu = document.getElementById('saveDropdownMenu');
-      const arrow = document.getElementById('saveDropdownArrow');
-      if (!menu) return;
-      const isHidden = menu.classList.contains('hidden');
-      if (isHidden) {
-        menu.classList.remove('hidden');
-        if (arrow) arrow.style.transform = 'rotate(180deg)';
-      } else {
-        menu.classList.add('hidden');
-        if (arrow) arrow.style.transform = 'rotate(0deg)';
-      }
-    };
-
-    window.closeSaveDropdown = function() {
-      const menu = document.getElementById('saveDropdownMenu');
-      const arrow = document.getElementById('saveDropdownArrow');
-      if (menu) menu.classList.add('hidden');
-      if (arrow) arrow.style.transform = 'rotate(0deg)';
-    };
-
-    window.addEventListener('click', (e) => {
-      const group = document.getElementById('saveButtonGroup');
-      if (group && !group.contains(e.target)) {
-        window.closeSaveDropdown();
-      }
-    });
 
     window.generateFullBackupJsonString = function() {
       syncCurrentToMulti();
@@ -7759,7 +7960,7 @@
     };
 
     window.exportStandardDownload = function() {
-      window.closeSaveDropdown();
+      if (typeof window.closeSaveDropdown === 'function') window.closeSaveDropdown();
       const jsonStr = window.generateFullBackupJsonString();
       const filename = window.generateDefaultBackupFileName();
       const jsonBlob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
@@ -7775,90 +7976,8 @@
       }, 500);
     };
 
-    window.saveWithNewLocation = async function() {
-      window.closeSaveDropdown();
-      const jsonStr = window.generateFullBackupJsonString();
-      const suggestedName = window.generateDefaultBackupFileName();
-
-      if (window.showSaveFilePicker) {
-        try {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: suggestedName,
-            types: [{
-              description: '수강신청 작업 백업 파일 (*.json)',
-              accept: { 'application/json': ['.json'] }
-            }]
-          });
-          if (handle) {
-            const ok = await writeToHandle(handle, jsonStr);
-            if (ok) {
-              await setSavedFileHandle(handle);
-              updateSaveButtonTooltip(handle.name);
-              alert(`✅ [${handle.name}] 파일에 성공적으로 저장되었습니다!\n\n앞으로 상단 [작업 저장] 버튼을 누르면 이 파일/위치에 바로 덮어써서 보존됩니다.`);
-              return;
-            }
-          }
-        } catch (err) {
-          if (err.name === 'AbortError') return; // User cancelled
-          console.warn('showSaveFilePicker error:', err);
-        }
-      }
-      // Fallback
-      window.exportStandardDownload();
-    };
-
-    window.saveToPreviousLocation = async function() {
-      window.closeSaveDropdown();
-      let handle = rememberedSaveHandle;
-      if (!handle) handle = await getSavedFileHandle();
-
-      if (handle && window.showSaveFilePicker) {
-        try {
-          const jsonStr = window.generateFullBackupJsonString();
-          const ok = await writeToHandle(handle, jsonStr);
-          if (ok) {
-            setSavedFileHandle(handle);
-            updateSaveButtonTooltip(handle.name);
-            alert(`💾 이전에 지정하신 파일 [${handle.name}]에 성공적으로 덮어쓰기 저장되었습니다!`);
-            return;
-          }
-        } catch (err) {
-          console.warn('saveToPreviousLocation error:', err);
-        }
-      }
-      // If no previous location set, prompt to choose one
-      await window.saveWithNewLocation();
-    };
-
-    window.handleMainSaveButtonClick = async function() {
-      let handle = rememberedSaveHandle;
-      if (!handle) handle = await getSavedFileHandle();
-
-      if (handle && window.showSaveFilePicker) {
-        try {
-          const jsonStr = window.generateFullBackupJsonString();
-          const ok = await writeToHandle(handle, jsonStr);
-          if (ok) {
-            setSavedFileHandle(handle);
-            updateSaveButtonTooltip(handle.name);
-            alert(`💾 이전에 지정하신 파일 [${handle.name}]에 최신 데이터가 성공적으로 저장되었습니다!`);
-            return;
-          }
-        } catch (err) {
-          console.warn('handleMainSaveButtonClick handle error, falling back to picker:', err);
-        }
-      }
-
-      // If no handle or failed, prompt user to pick save location
-      if (window.showSaveFilePicker) {
-        await window.saveWithNewLocation();
-      } else {
-        window.exportStandardDownload();
-      }
-    };
-
-    // Alias for compatibility
-    window.exportFullBackupJson = window.handleMainSaveButtonClick;
+    window.handleMainSaveButtonClick = window.exportStandardDownload;
+    window.exportFullBackupJson = window.exportStandardDownload;
     document.getElementById('btnExportFullBackupJson')?.addEventListener('click', window.exportFullBackupJson);
 
     // Restore from JSON (Available globally for header, dropzone and modal)
@@ -8022,6 +8141,9 @@
     function getStep2OpenedSubjects(year, gradeStr, semesterNum) {
       const yData = MultiState.data[year] || {};
       const gData = yData[gradeStr] || {};
+      const closedList = gData.closedSubjects?.[semesterNum] || [];
+      const closedNorms = new Set(closedList.map(s => normalizeSubjectKey(s)));
+
       let plan = null;
       if (gData.currentPlan && gData.currentPlan.semester === semesterNum) {
         plan = gData.currentPlan;
@@ -8035,6 +8157,10 @@
       plan.groups.flat().forEach(token => {
         if (!token) return;
         const clean = getBaseSubjectName(token);
+        // 폐강 확정 과목은 개설 목록에서 제외
+        if (closedNorms.has(normalizeSubjectKey(clean)) || closedNorms.has(normalizeSubjectKey(token))) {
+          return;
+        }
         opened.add(clean);
         opened.add(String(token).trim());
       });
@@ -8083,7 +8209,12 @@
           const step2Grouped = new Set();
           if (plan && plan.semester === sem && plan.groups && Array.isArray(plan.groups)) {
             plan.groups.flat().forEach(tok => {
-              if (tok) step2Grouped.add(getBaseSubjectName(tok));
+              if (tok) {
+                const baseName = getBaseSubjectName(tok);
+                if (!closedNorms.has(normalizeSubjectKey(baseName)) && !closedNorms.has(normalizeSubjectKey(tok))) {
+                  step2Grouped.add(baseName);
+                }
+              }
             });
           }
 
@@ -8092,11 +8223,16 @@
           // 2단계 그룹이 아직 없다면 1단계 미폐강 과목들을 개설 대상 과목으로 간주.
           const openSubjectNames = new Set();
           if (step2Grouped.size > 0) {
-            step2Grouped.forEach(s => openSubjectNames.add(s));
+            step2Grouped.forEach(s => {
+              if (!closedNorms.has(normalizeSubjectKey(s))) {
+                openSubjectNames.add(s);
+              }
+            });
           } else {
             semSubjects.forEach(s => {
-              if (!closedNorms.has(normalizeSubjectKey(s))) {
-                openSubjectNames.add(getBaseSubjectName(s));
+              const base = getBaseSubjectName(s);
+              if (!closedNorms.has(normalizeSubjectKey(s)) && !closedNorms.has(normalizeSubjectKey(base))) {
+                openSubjectNames.add(base);
               }
             });
           }
@@ -8514,7 +8650,7 @@
           '2학기 담당과목': d.sem2Courses.join(', '),
           '2학기 총시수': d.sem2Hours,
           '연간 총시수': total,
-          '주당 평균시수': parseFloat(avg)
+          '학기당 평균시수': parseFloat(avg)
         };
       });
 
@@ -8527,7 +8663,7 @@
         { wch: 40 }, // 2학기 과목
         { wch: 12 }, // 2학기 시수
         { wch: 12 }, // 연간 총시수
-        { wch: 12 }  // 주당 평균
+        { wch: 14 }  // 학기당 평균
       ];
       XLSX.utils.book_append_sheet(wb, ws1, '교사별_시수_종합');
 
@@ -8561,6 +8697,8 @@
       ];
       XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
 
+      const year = MultiState?.activeYear || '2027';
+      XLSX.writeFile(wb, `${year}학년도_전학년_교사별시수_및_과목배정_종합.xlsx`);
     }
 
     function renderAllGradesDashboard(fullRedraw = true) {
@@ -8713,7 +8851,7 @@
             </td>
             <td class="p-2.5 text-center font-black text-emerald-700 border-r border-slate-200 bg-emerald-50/40">${d.sem2Hours}h</td>
             <td class="p-2.5 text-center font-black text-slate-900 border-r border-slate-200 bg-slate-100/50">${totalHours}h</td>
-            <td class="p-2.5 text-center font-extrabold text-indigo-700 bg-slate-100/50">${avgHours}h/주</td>
+            <td class="p-2.5 text-center font-extrabold text-indigo-700 bg-slate-100/50">${avgHours}h</td>
           </tr>
         `;
       }).join('');
@@ -8960,10 +9098,11 @@
     // Initialize MultiState & Load on Startup (항상 빈 화면으로 시작)
     function loadAllState() {
       // 1. 처음 접속 시에는 무조건 빈 화면으로 시작 (작업 불러오기 또는 파일 업로드를 통해 시작)
-      if (!MultiState.yearsList.includes('2027')) MultiState.yearsList.unshift('2027');
-      if (!MultiState.yearsList.includes('2026')) MultiState.yearsList.push('2026');
+      if (!MultiState.yearsList || MultiState.yearsList.length === 0) {
+        MultiState.yearsList = ['2027'];
+      }
 
-      MultiState.activeYear = '2027';
+      MultiState.activeYear = MultiState.yearsList[0] || '2027';
       MultiState.activeGrade = '2학년';
 
       MultiState.yearsList.forEach(y => {
