@@ -8022,12 +8022,14 @@
     function getStep2OpenedSubjects(year, gradeStr, semesterNum) {
       const yData = MultiState.data[year] || {};
       const gData = yData[gradeStr] || {};
-      let plan = gData.currentPlan;
-      if (!plan || plan.semester !== semesterNum) {
+      let plan = null;
+      if (gData.currentPlan && gData.currentPlan.semester === semesterNum) {
+        plan = gData.currentPlan;
+      } else {
         const saved = (gData.savedPlans || []).filter(p => p.semester === semesterNum);
         if (saved.length > 0) plan = saved[saved.length - 1];
       }
-      if (!plan || !plan.groups || !Array.isArray(plan.groups)) return null;
+      if (!plan || plan.semester !== semesterNum || !plan.groups || !Array.isArray(plan.groups)) return null;
 
       const opened = new Set();
       plan.groups.flat().forEach(token => {
@@ -8058,10 +8060,10 @@
           const closedList = gData.closedSubjects?.[sem] || [];
           const closedNorms = new Set(closedList.map(s => normalizeSubjectKey(s)));
 
-          // 1. 후보 과목 수집 (1단계 조사 과목)
+          // 1. 후보 과목 수집 (1단계 조사 과목 - 오직 해당 학기 과목만!)
           let semSubjects = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
           if (!semSubjects || semSubjects.length === 0) {
-            const semKey = (sem === 1 ? 's1' : 's2');
+            const semKey = (sem === 1 ? 'sem1' : 'sem2');
             const set = new Set();
             (gData.students || []).forEach(st => {
               (st[semKey] || []).forEach(s => { if (s && s.trim()) set.add(s.trim()); });
@@ -8069,29 +8071,37 @@
             semSubjects = Array.from(set);
           }
 
-          // 2. 2단계 그룹핑 배치안 과목 수집
-          let plan = gData.currentPlan;
-          if (!plan || plan.semester !== sem) {
+          // 2. 2단계 그룹핑 배치안 과목 수집 (오직 해당 학기 plan만 엄격하게 조회!)
+          let plan = null;
+          if (gData.currentPlan && gData.currentPlan.semester === sem) {
+            plan = gData.currentPlan;
+          } else {
             const saved = (gData.savedPlans || []).filter(p => p.semester === sem);
             if (saved.length > 0) plan = saved[saved.length - 1];
           }
+
           const step2Grouped = new Set();
-          if (plan && plan.groups && Array.isArray(plan.groups)) {
+          if (plan && plan.semester === sem && plan.groups && Array.isArray(plan.groups)) {
             plan.groups.flat().forEach(tok => {
               if (tok) step2Grouped.add(getBaseSubjectName(tok));
             });
           }
 
-          // 3. 개설(미폐강) 대상 과목: 2단계 그룹에 포함되었거나 1단계 미폐강 과목
+          // 3. 개설(미폐강) 대상 과목:
+          // 2단계 그룹에 포함된 과목이 있다면 그 과목들이 개설 과목.
+          // 2단계 그룹이 아직 없다면 1단계 미폐강 과목들을 개설 대상 과목으로 간주.
           const openSubjectNames = new Set();
-          step2Grouped.forEach(s => openSubjectNames.add(s));
-          semSubjects.forEach(s => {
-            if (!closedNorms.has(normalizeSubjectKey(s))) {
-              openSubjectNames.add(getBaseSubjectName(s));
-            }
-          });
+          if (step2Grouped.size > 0) {
+            step2Grouped.forEach(s => openSubjectNames.add(s));
+          } else {
+            semSubjects.forEach(s => {
+              if (!closedNorms.has(normalizeSubjectKey(s))) {
+                openSubjectNames.add(getBaseSubjectName(s));
+              }
+            });
+          }
 
-          // 4. 업로드된 편제표 과목들과 비교
+          // 4. 업로드된 편제표 과목들과 비교 (정확히 해당 학년, 해당 학기 매칭)
           const currForGradeSem = currList.filter(item => 
             item.grade === gradeStr && item.semester === sem
           );
