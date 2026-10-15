@@ -7,7 +7,7 @@
 ---
 
 ## 🌐 웹 접속 및 사용 방법 (Web App)
-- **웹 서비스 주소**: [GitHub Pages로 즉시 실행하기](https://566dydrb87-cloud.github.io/sangji-course-registration-automation/)
+- **웹 서비스 주소**: [GitHub Pages로 즉시 실행하기](https://dydrb87-eng.github.io/Curriculum/)
 - 토큰이나 계정 인증 없이 웹 브라우저(크롬, 엣지, 웨일 등)에서 바로 접속하여 엑셀 파일을 업로드하고 작업할 수 있습니다.
 
 ---

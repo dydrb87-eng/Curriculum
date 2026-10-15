@@ -914,16 +914,18 @@
                   <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 shadow-2xs mr-1">
                     <span class="text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0">
                       <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                      <span>충돌 목표 설정:</span>
+                      <span>충돌 목표:</span>
                     </span>
-                    <div class="flex items-center gap-0.5">
-                      <input type="number" id="targetConflictNInput" min="0" max="100" placeholder="최적" class="w-14 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="특정 충돌 인원 수 (비워두면 0명/최저 충돌 탐색)">
+                    <div class="flex items-center gap-1">
+                      <input type="number" id="targetConflictMinInput" min="0" max="100" placeholder="최소" class="w-11 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="목표 최소 충돌 인원">
+                      <span class="text-xs text-slate-400 font-bold">~</span>
+                      <input type="number" id="targetConflictMaxInput" min="0" max="100" placeholder="최대" class="w-11 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="목표 최대 충돌 인원">
                       <span class="text-xs text-slate-600 font-bold mr-0.5">명</span>
                     </div>
-                    <button id="btnApplyTargetN" type="button" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-xs font-bold transition shadow-2xs" title="입력한 N명 충돌에 해당하는 다양한 경우의 수 탐색">
-                      N명 탐색
+                    <button id="btnApplyTargetN" type="button" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-xs font-bold transition shadow-2xs cursor-pointer" title="입력한 범위 내에서 무작위 목표 인원을 추출하여 다양한 경우의 수 탐색">
+                      범위 탐색
                     </button>
-                    <button id="btnResetConflictTarget" type="button" class="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md text-xs font-bold transition shadow-2xs" title="목표 초기화 (최적 인원 탐색 모드)">
+                    <button id="btnResetConflictTarget" type="button" class="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md text-xs font-bold transition shadow-2xs cursor-pointer" title="목표 초기화 (최적 인원 탐색 모드)">
                       초기화
                     </button>
                   </div>
@@ -1031,16 +1033,18 @@
                 <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 shadow-2xs mr-1">
                   <span class="text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0">
                     <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                    <span>충돌 목표 설정:</span>
+                    <span>충돌 목표:</span>
                   </span>
-                  <div class="flex items-center gap-0.5">
-                    <input type="number" id="targetConflictNInput2" min="0" max="100" placeholder="최적" class="w-14 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="특정 충돌 인원 수 (비워두면 0명/최저 충돌 탐색)">
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="targetConflictMinInput2" min="0" max="100" placeholder="최소" class="w-11 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="목표 최소 충돌 인원">
+                    <span class="text-xs text-slate-400 font-bold">~</span>
+                    <input type="number" id="targetConflictMaxInput2" min="0" max="100" placeholder="최대" class="w-11 px-1 py-0.5 text-xs text-center font-black border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white placeholder:font-normal placeholder:text-slate-400" title="목표 최대 충돌 인원">
                     <span class="text-xs text-slate-600 font-bold mr-0.5">명</span>
                   </div>
-                  <button id="btnApplyTargetN2" type="button" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-xs font-bold transition shadow-2xs" title="입력한 N명 충돌에 해당하는 다양한 경우의 수 탐색">
-                    N명 탐색
+                  <button id="btnApplyTargetN2" type="button" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-xs font-bold transition shadow-2xs cursor-pointer" title="입력한 범위 내에서 무작위 목표 인원을 추출하여 다양한 경우의 수 탐색">
+                    범위 탐색
                   </button>
-                  <button id="btnResetConflictTarget2" type="button" class="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md text-xs font-bold transition shadow-2xs" title="목표 초기화 (최적 인원 탐색 모드)">
+                  <button id="btnResetConflictTarget2" type="button" class="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md text-xs font-bold transition shadow-2xs cursor-pointer" title="목표 초기화 (최적 인원 탐색 모드)">
                     초기화
                   </button>
                 </div>
@@ -1451,15 +1455,17 @@
     const statSavedPlansCount = document.getElementById('statSavedPlansCount');
     const savedPlansList = document.getElementById('savedPlansList');
 
-    // Conflict Target & Historical Minimum Elements
-    const targetConflictNInput = document.getElementById('targetConflictNInput');
+    // Conflict Target Range & Historical Minimum Elements
+    const targetConflictMinInput = document.getElementById('targetConflictMinInput');
+    const targetConflictMaxInput = document.getElementById('targetConflictMaxInput');
     const btnApplyTargetN = document.getElementById('btnApplyTargetN');
     const btnResetConflictTarget = document.getElementById('btnResetConflictTarget');
     const statBestConflictCount = document.getElementById('statBestConflictCount');
     const btnRestoreBestPlan = document.getElementById('btnRestoreBestPlan');
 
     // Replicated Timetable Toolbar Elements
-    const targetConflictNInput2 = document.getElementById('targetConflictNInput2');
+    const targetConflictMinInput2 = document.getElementById('targetConflictMinInput2');
+    const targetConflictMaxInput2 = document.getElementById('targetConflictMaxInput2');
     const btnApplyTargetN2 = document.getElementById('btnApplyTargetN2');
     const btnResetConflictTarget2 = document.getElementById('btnResetConflictTarget2');
     const btnRegroup2 = document.getElementById('btnRegroup2');
@@ -3580,88 +3586,86 @@
       renderTogetherPairsList();
       renderSeparatePairsList();
 
-      // 4. Target Conflict N Sync
+      // 4. Target Conflict Range Sync
       if (!AppState.targetConflictN) {
         AppState.targetConflictN = { 1: null, 2: null };
       }
       const currentTarget = AppState.targetConflictN[sem];
-      const targetVal = (currentTarget !== null && currentTarget !== undefined && currentTarget !== '') ? currentTarget : '';
-      if (targetConflictNInput) targetConflictNInput.value = targetVal;
-      if (targetConflictNInput2) targetConflictNInput2.value = targetVal;
+      let minVal = '', maxVal = '';
+      if (currentTarget) {
+        if (typeof currentTarget === 'number') {
+          minVal = currentTarget;
+          maxVal = currentTarget;
+        } else if (currentTarget.min !== undefined && currentTarget.max !== undefined) {
+          minVal = currentTarget.min;
+          maxVal = currentTarget.max;
+        }
+      }
+      if (targetConflictMinInput) targetConflictMinInput.value = minVal;
+      if (targetConflictMaxInput) targetConflictMaxInput.value = maxVal;
+      if (targetConflictMinInput2) targetConflictMinInput2.value = minVal;
+      if (targetConflictMaxInput2) targetConflictMaxInput2.value = maxVal;
 
       savedPlansActiveTab = sem;
       renderSavedPlansList();
     }
 
-    // Target Conflict N Event Listeners (Top & Timetable Toolbar)
-    targetConflictNInput?.addEventListener('input', () => {
-      if (targetConflictNInput2) targetConflictNInput2.value = targetConflictNInput.value;
+    // Target Conflict Range Event Listeners (Top & Timetable Toolbar)
+    targetConflictMinInput?.addEventListener('input', () => {
+      if (targetConflictMinInput2) targetConflictMinInput2.value = targetConflictMinInput.value;
+    });
+    targetConflictMaxInput?.addEventListener('input', () => {
+      if (targetConflictMaxInput2) targetConflictMaxInput2.value = targetConflictMaxInput.value;
     });
 
-    targetConflictNInput2?.addEventListener('input', () => {
-      if (targetConflictNInput) targetConflictNInput.value = targetConflictNInput2.value;
+    targetConflictMinInput2?.addEventListener('input', () => {
+      if (targetConflictMinInput) targetConflictMinInput.value = targetConflictMinInput2.value;
+    });
+    targetConflictMaxInput2?.addEventListener('input', () => {
+      if (targetConflictMaxInput) targetConflictMaxInput.value = targetConflictMaxInput2.value;
     });
 
-    targetConflictNInput?.addEventListener('change', () => {
-      const sem = AppState.currentSemester;
-      const rawVal = targetConflictNInput.value.trim();
-      if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
-      if (rawVal === '') {
-        AppState.targetConflictN[sem] = null;
-        if (targetConflictNInput2) targetConflictNInput2.value = '';
-      } else {
-        const val = Math.max(0, parseInt(rawVal, 10) || 0);
-        targetConflictNInput.value = val;
-        if (targetConflictNInput2) targetConflictNInput2.value = val;
-        AppState.targetConflictN[sem] = val;
-      }
-      saveAllState();
-    });
-
-    targetConflictNInput2?.addEventListener('change', () => {
-      if (targetConflictNInput) {
-        targetConflictNInput.value = targetConflictNInput2.value;
-        targetConflictNInput.dispatchEvent(new Event('change'));
-      }
-    });
-
-    targetConflictNInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        targetConflictNInput.blur();
-        btnApplyTargetN?.click();
-      }
-    });
-
-    targetConflictNInput2?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        targetConflictNInput2.blur();
-        btnApplyTargetN2?.click();
-      }
+    [targetConflictMinInput, targetConflictMaxInput, targetConflictMinInput2, targetConflictMaxInput2].forEach(inp => {
+      inp?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          inp.blur();
+          btnApplyTargetN?.click();
+        }
+      });
     });
 
     btnApplyTargetN?.addEventListener('click', () => {
       const sem = AppState.currentSemester;
-      const rawVal = targetConflictNInput ? targetConflictNInput.value.trim() : '';
+      const minRaw = targetConflictMinInput ? targetConflictMinInput.value.trim() : '';
+      const maxRaw = targetConflictMaxInput ? targetConflictMaxInput.value.trim() : '';
       if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
-      if (rawVal === '') {
+
+      if (minRaw === '' && maxRaw === '') {
         AppState.targetConflictN[sem] = null;
-        if (targetConflictNInput2) targetConflictNInput2.value = '';
+        if (targetConflictMinInput) targetConflictMinInput.value = '';
+        if (targetConflictMaxInput) targetConflictMaxInput.value = '';
+        if (targetConflictMinInput2) targetConflictMinInput2.value = '';
+        if (targetConflictMaxInput2) targetConflictMaxInput2.value = '';
       } else {
-        const val = Math.max(0, parseInt(rawVal, 10) || 0);
-        if (targetConflictNInput) targetConflictNInput.value = val;
-        if (targetConflictNInput2) targetConflictNInput2.value = val;
-        AppState.targetConflictN[sem] = val;
+        let minN = minRaw !== '' ? Math.max(0, parseInt(minRaw, 10) || 0) : 0;
+        let maxN = maxRaw !== '' ? Math.max(0, parseInt(maxRaw, 10) || 0) : minN;
+        if (minN > maxN) [minN, maxN] = [maxN, minN];
+
+        if (targetConflictMinInput) targetConflictMinInput.value = minN;
+        if (targetConflictMaxInput) targetConflictMaxInput.value = maxN;
+        if (targetConflictMinInput2) targetConflictMinInput2.value = minN;
+        if (targetConflictMaxInput2) targetConflictMaxInput2.value = maxN;
+
+        AppState.targetConflictN[sem] = { min: minN, max: maxN };
       }
       saveAllState();
       runOptimization();
     });
 
     btnApplyTargetN2?.addEventListener('click', () => {
-      if (targetConflictNInput && targetConflictNInput2) {
-        targetConflictNInput.value = targetConflictNInput2.value;
-      }
+      if (targetConflictMinInput && targetConflictMinInput2) targetConflictMinInput.value = targetConflictMinInput2.value;
+      if (targetConflictMaxInput && targetConflictMaxInput2) targetConflictMaxInput2.value = targetConflictMaxInput2.value;
       btnApplyTargetN?.click();
     });
 
@@ -3669,8 +3673,10 @@
       const sem = AppState.currentSemester;
       if (!AppState.targetConflictN) AppState.targetConflictN = { 1: null, 2: null };
       AppState.targetConflictN[sem] = null;
-      if (targetConflictNInput) targetConflictNInput.value = '';
-      if (targetConflictNInput2) targetConflictNInput2.value = '';
+      if (targetConflictMinInput) targetConflictMinInput.value = '';
+      if (targetConflictMaxInput) targetConflictMaxInput.value = '';
+      if (targetConflictMinInput2) targetConflictMinInput2.value = '';
+      if (targetConflictMaxInput2) targetConflictMaxInput2.value = '';
       saveAllState();
       runOptimization();
     });
@@ -3945,18 +3951,35 @@
       if (!AppState.simulationHistory) AppState.simulationHistory = { 1: { runCount: 0, minConflictEver: null, minConflictPlan: null }, 2: { runCount: 0, minConflictEver: null, minConflictPlan: null } };
       if (!AppState.simulationHistory[sem]) AppState.simulationHistory[sem] = { runCount: 0, minConflictEver: null, minConflictPlan: null };
 
-      // Parse user's target conflict N (null: 최적 탐색, number: N명 다양한 경우의 수 탐색)
-      let targetN = null;
-      if (targetConflictNInput && targetConflictNInput.value.trim() !== '') {
-        targetN = Math.max(0, parseInt(targetConflictNInput.value.trim(), 10) || 0);
-        AppState.targetConflictN[sem] = targetN;
-      } else if (AppState.targetConflictN && AppState.targetConflictN[sem] !== null && AppState.targetConflictN[sem] !== undefined) {
-        targetN = AppState.targetConflictN[sem];
+      // Parse user's target conflict range
+      let targetRange = null;
+      const minRaw = targetConflictMinInput ? targetConflictMinInput.value.trim() : '';
+      const maxRaw = targetConflictMaxInput ? targetConflictMaxInput.value.trim() : '';
+
+      if (minRaw !== '' || maxRaw !== '') {
+        let minN = minRaw !== '' ? Math.max(0, parseInt(minRaw, 10) || 0) : 0;
+        let maxN = maxRaw !== '' ? Math.max(0, parseInt(maxRaw, 10) || 0) : minN;
+        if (minN > maxN) [minN, maxN] = [maxN, minN];
+        targetRange = { min: minN, max: maxN };
+        AppState.targetConflictN[sem] = targetRange;
+      } else if (AppState.targetConflictN && AppState.targetConflictN[sem]) {
+        const stored = AppState.targetConflictN[sem];
+        if (typeof stored === 'number') {
+          targetRange = { min: stored, max: stored };
+        } else if (stored.min !== undefined && stored.max !== undefined) {
+          targetRange = { min: stored.min, max: stored.max };
+        }
       } else {
         AppState.targetConflictN[sem] = null;
       }
 
-      const isTargetNMode = (targetN !== null);
+      const isTargetMode = (targetRange !== null);
+
+      // 그 범위 내에서 랜덤하게 목표 인원(randomTargetN)이 정해지도록 설정 (최소값 편향 방지)
+      let randomTargetN = null;
+      if (isTargetMode) {
+        randomTargetN = Math.floor(Math.random() * (targetRange.max - targetRange.min + 1)) + targetRange.min;
+      }
 
       // Expand subject tokens (handling splits: Japanese-A, Japanese-B)
       const subjectTokens = [];
@@ -4010,13 +4033,14 @@
       let globalBestConflicts = 999999;
       let globalBestStudentConflicts = 999999;
 
-      // Candidate solutions that match target N
-      const exactNCandidates = [];
+      // Candidate solutions that fall within [min, max] range (grouped by conflict count for unbiased selection)
+      const candidatesByCount = {}; // count -> array of candidate objects
+      const allRangeCandidates = [];
       const seenSignatures = new Set();
       let closestCandidate = null;
       let closestDiff = 999999;
 
-      const iterations = 1000; // Thorough exploration
+      const iterations = 1200; // Thorough unbiased exploration
 
       for (let iter = 0; iter < iterations; iter++) {
         const currentGroups = Array.from({ length: groupCount }, () => []);
@@ -4032,29 +4056,31 @@
           }
         });
 
-        // Shuffle remaining tokens using Fisher-Yates
+        // Fisher-Yates shuffle remaining tokens for unbiased placement
         shuffleArray(unassignedTokens);
 
         // Dynamic heuristic weights:
-        // In pure optimal mode (!isTargetNMode), greedily minimize overlaps.
-        // In target N mode (isTargetNMode), vary search tension to discover diverse non-zero conflict topologies.
+        // In target mode, fluctuate search tensions to discover diverse conflict spectrums
         let overlapWeight = 4.0;
         let balanceWeight = 1.5;
 
-        if (isTargetNMode) {
-          if (targetN === 0) {
+        if (isTargetMode) {
+          if (randomTargetN === 0) {
             overlapWeight = 3.5 + Math.random() * 1.5;
             balanceWeight = 1.2 + Math.random() * 1.0;
           } else {
-            if (iter % 3 === 0) {
-              overlapWeight = 0.6 + Math.random() * 1.8;
+            if (iter % 4 === 0) {
+              overlapWeight = 0.5 + Math.random() * 1.5;
               balanceWeight = 2.5 + Math.random() * 1.5;
-            } else if (iter % 3 === 1) {
-              overlapWeight = 1.8 + Math.random() * 1.8;
-              balanceWeight = 1.2 + Math.random() * 1.0;
+            } else if (iter % 4 === 1) {
+              overlapWeight = 1.6 + Math.random() * 1.8;
+              balanceWeight = 1.5 + Math.random() * 1.0;
+            } else if (iter % 4 === 2) {
+              overlapWeight = 2.8 + Math.random() * 1.5;
+              balanceWeight = 1.2;
             } else {
-              overlapWeight = 3.2 + Math.random() * 1.5;
-              balanceWeight = 1.5;
+              overlapWeight = 3.8 + Math.random() * 1.5;
+              balanceWeight = 1.0;
             }
           }
         }
@@ -4146,18 +4172,18 @@
           globalBestConflicts = totalConflicts;
           globalBestGroups = currentGroups.map(g => [...g]);
 
-          if (!isTargetNMode && globalBestStudentConflicts === 0 && globalBestConflicts === 0) {
+          if (!isTargetMode && globalBestStudentConflicts === 0 && globalBestConflicts === 0) {
             break; // In pure 최적(0명) 탐색 mode, stop early on optimal zero
           }
-        } else if (!isTargetNMode && conflictedStudentCount === globalBestStudentConflicts && totalConflicts === globalBestConflicts) {
+        } else if (!isTargetMode && conflictedStudentCount === globalBestStudentConflicts && totalConflicts === globalBestConflicts) {
           if (Math.random() < 0.3) {
             globalBestGroups = currentGroups.map(g => [...g]);
           }
         }
 
-        // 2. In Target N Mode: collect exact matching configurations and track closest
-        if (isTargetNMode) {
-          const diff = Math.abs(conflictedStudentCount - targetN);
+        // 2. In Target Mode: collect candidate configurations within [min, max] range
+        if (isTargetMode) {
+          const diff = Math.abs(conflictedStudentCount - randomTargetN);
           if (diff < closestDiff) {
             closestDiff = diff;
             closestCandidate = {
@@ -4167,8 +4193,7 @@
             };
           }
 
-          if (conflictedStudentCount === targetN) {
-            // Signature to ensure diverse configurations are collected without exact duplicate groups
+          if (conflictedStudentCount >= targetRange.min && conflictedStudentCount <= targetRange.max) {
             const sig = currentGroups
               .map(g => g.map(t => t.name).sort().join(','))
               .sort()
@@ -4177,23 +4202,23 @@
             if (!seenSignatures.has(sig)) {
               seenSignatures.add(sig);
 
-              // Calculate group size variance (evenness of classes)
               const sizes = currentGroups.map(g => g.length);
               const avgSize = sizes.reduce((a, b) => a + b, 0) / sizes.length;
               const variance = sizes.reduce((sum, s) => sum + Math.pow(s - avgSize, 2), 0) / sizes.length;
               const balanceScore = variance * 2 + totalConflicts * 1.5;
 
-              exactNCandidates.push({
+              const candObj = {
                 groups: currentGroups.map(g => [...g]),
                 studentConflictCount: conflictedStudentCount,
                 totalConflicts,
                 balanceScore
-              });
-            }
+              };
 
-            // In Target 0 mode, after gathering a good pool of diverse 0-conflict arrangements, break early
-            if (targetN === 0 && exactNCandidates.length >= 25) {
-              break;
+              if (!candidatesByCount[conflictedStudentCount]) {
+                candidatesByCount[conflictedStudentCount] = [];
+              }
+              candidatesByCount[conflictedStudentCount].push(candObj);
+              allRangeCandidates.push(candObj);
             }
           }
         }
@@ -4201,18 +4226,32 @@
 
       // Determine chosen groups
       let chosenGroups = null;
+      let finalTargetDrawn = randomTargetN;
 
-      if (isTargetNMode && exactNCandidates.length > 0) {
-        // Pick randomly from the exact matches pool so every refresh/run provides a varied combination!
-        exactNCandidates.sort((a, b) => a.balanceScore - b.balanceScore);
-        const candidatePoolSize = Math.min(10, exactNCandidates.length);
-        const picked = exactNCandidates[Math.floor(Math.random() * candidatePoolSize)];
-        chosenGroups = picked.groups;
-      } else if (isTargetNMode && closestCandidate) {
-        // If exact N wasn't reached in 1000 iterations, use the closest found candidate
+      if (isTargetMode && allRangeCandidates.length > 0) {
+        // 1순위: randomTargetN과 정확히 일치하는 후보안 풀에서 무작위 선택
+        if (candidatesByCount[randomTargetN] && candidatesByCount[randomTargetN].length > 0) {
+          const pool = candidatesByCount[randomTargetN];
+          pool.sort((a, b) => a.balanceScore - b.balanceScore);
+          const topPool = pool.slice(0, Math.min(10, pool.length));
+          const picked = topPool[Math.floor(Math.random() * topPool.length)];
+          chosenGroups = picked.groups;
+          finalTargetDrawn = randomTargetN;
+        } else {
+          // 2순위: 범위 내에서 발견된 다른 충돌 인원수 버킷들 중 무작위 버킷 선택 (최소값에 편향되지 않음!)
+          const availableCounts = Object.keys(candidatesByCount).map(Number);
+          const pickedCount = availableCounts[Math.floor(Math.random() * availableCounts.length)];
+          const pool = candidatesByCount[pickedCount];
+          pool.sort((a, b) => a.balanceScore - b.balanceScore);
+          const topPool = pool.slice(0, Math.min(10, pool.length));
+          const picked = topPool[Math.floor(Math.random() * topPool.length)];
+          chosenGroups = picked.groups;
+          finalTargetDrawn = pickedCount;
+        }
+      } else if (isTargetMode && closestCandidate) {
         chosenGroups = closestCandidate.groups;
+        finalTargetDrawn = closestCandidate.studentConflictCount;
       } else {
-        // Fallback to global best (minimal conflicts)
         chosenGroups = globalBestGroups;
       }
 
@@ -4251,6 +4290,8 @@
         conflicts: [],
         customAssignments: {},
         memo: '',
+        targetRange: targetRange,
+        targetDrawn: finalTargetDrawn,
         timestamp: new Date().toLocaleTimeString()
       };
 
@@ -4638,9 +4679,19 @@
       const { groupCounts, studentGroupOverlaps } = analyzeGroupConflicts(plan);
 
       const sem = plan.semester;
-      const targetN = AppState.targetConflictN?.[sem];
-      const isTargetN = (targetN !== null && targetN !== undefined);
-      const history = AppState.simulationHistory?.[sem] || { runCount: 1, minConflictEver: plan.conflictCount };
+      const targetConfig = AppState.targetConflictN?.[sem];
+      const isTarget = Boolean(targetConfig);
+
+      let minN = null, maxN = null;
+      if (isTarget) {
+        if (typeof targetConfig === 'number') {
+          minN = targetConfig;
+          maxN = targetConfig;
+        } else if (targetConfig.min !== undefined && targetConfig.max !== undefined) {
+          minN = targetConfig.min;
+          maxN = targetConfig.max;
+        }
+      }
 
       // Update Conflict Badges
       statConflictCount.textContent = `${plan.conflictCount}명`;
@@ -4649,7 +4700,7 @@
 
       if (plan.conflictCount === 0) {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
-        conflictStatusBadge.textContent = isTargetN ? `충돌 0명 (목표 0명 달성)` : '충돌 없음 (최적)';
+        conflictStatusBadge.textContent = isTarget ? `충돌 0명 (목표 ${minN}~${maxN}명 중 0명)` : '충돌 없음 (최적)';
         conflictAlertBox.classList.add('hidden');
         if (groupCardsSection) {
           groupCardsSection.className = 'lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all';
@@ -4658,12 +4709,17 @@
         if (groupCardsSection) {
           groupCardsSection.className = 'lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all';
         }
-        if (isTargetN && plan.conflictCount === targetN) {
+        if (isTarget && plan.conflictCount >= minN && plan.conflictCount <= maxN) {
           conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200';
-          conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${targetN}명 경우의 수)`;
-        } else if (isTargetN && plan.conflictCount !== targetN) {
+          if (minN === maxN) {
+            conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${minN}명 경우의 수)`;
+          } else {
+            const drawn = plan.targetDrawn !== undefined && plan.targetDrawn !== null ? plan.targetDrawn : plan.conflictCount;
+            conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 범위 ${minN}~${maxN}명 중 ${drawn}명 추출 조합)`;
+          }
+        } else if (isTarget) {
           conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300';
-          conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${targetN}명 근접 조합)`;
+          conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 (목표 ${minN}~${maxN}명 근접 조합)`;
         } else {
           conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200';
           conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 발생 (최적 탐색)`;
