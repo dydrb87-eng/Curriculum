@@ -89,10 +89,36 @@
           <span>📊 구글 시트에서 가져오기</span>
         </button>
         <!-- 1-Click Backup & Restore for Seamless Machine-to-Machine Transfer -->
-        <button id="btnHeaderExportSession" type="button" onclick="window.exportStandardDownload();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-300 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="현재 전체 학년도/학년 작업 데이터를 브라우저 다운로드 폴더에 즉시 저장합니다 (.json)">
-          <span>💾</span>
-          <span id="saveButtonText">작업 저장</span>
-        </button>
+        <div class="relative inline-flex rounded-lg shadow-xs" id="saveButtonGroup">
+          <button id="btnHeaderExportSession" type="button" onclick="window.handleMainSaveButtonClick();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-l-lg transition-all border border-blue-300 flex items-center space-x-1.5 cursor-pointer select-none" title="현재 전체 학년도/학년 작업 데이터를 저장합니다 (.json)">
+            <span>💾</span>
+            <span id="saveButtonText">작업 저장</span>
+          </button>
+          <button id="btnSaveLocationDropdown" type="button" onclick="window.toggleSaveDropdown(event);" class="px-2 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-200 rounded-r-lg transition-all border-t border-b border-r border-blue-300 flex items-center justify-center cursor-pointer select-none" title="저장 위치 변경 및 다운로드 옵션">
+            <svg class="w-3.5 h-3.5 transition-transform duration-150" id="saveDropdownArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div id="saveDropdownMenu" class="hidden absolute right-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+            <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] text-slate-400 font-semibold">
+              저장 위치 및 다운로드 설정
+            </div>
+            <button type="button" onclick="window.saveWithNewLocation();" class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
+              <span>📁</span>
+              <div>
+                <div>저장 위치/파일 변경...</div>
+                <div class="text-[10px] text-slate-400 font-normal" id="dropdownPrevLocationHint">원하는 폴더를 직접 선택하여 저장</div>
+              </div>
+            </button>
+            <button type="button" onclick="window.resetSaveLocationToDefault();" class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer border-t border-slate-100">
+              <span>📥</span>
+              <div>
+                <div>브라우저 기본 다운로드로 저장</div>
+                <div class="text-[10px] text-slate-400 font-normal">다운로드 폴더에 자동 저장 (초기값)</div>
+              </div>
+            </button>
+          </div>
+        </div>
         <label id="headerRestoreBackupLabel" for="headerRestoreBackupJson" class="px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 rounded-lg transition-all border-2 border-dashed border-indigo-400 hover:border-indigo-600 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="클릭하거나 백업 파일(.json / .xlsx)을 직접 이 버튼 위로 드래그하여 작업 상태를 복원합니다.">
           <span class="text-sm">📂</span>
           <span>작업 불러오기</span>
@@ -1025,8 +1051,9 @@
                   <div>
                     <h4 class="text-sm font-bold text-slate-900 flex items-center gap-1.5 whitespace-nowrap">
                       <span>📚 그룹별 개설 과목 및 수강 인원 배치 현황</span>
+                      <span id="step2TotalStudentsBadge" class="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full shadow-2xs"></span>
                     </h4>
-                    <p class="text-[11px] text-slate-500 mt-0.5">과목명을 클릭하여 다른 그룹의 과목과 자리를 직접 맞교환할 수 있습니다.</p>
+                    <p class="text-[11px] text-slate-500 mt-0.5">과목명을 클릭하여 위치를 맞교환할 수 있으며, '잠금' 시 해당 그룹 과목 고정 및 다른 과목 유입이 완전 차단됩니다.</p>
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-1.5">
@@ -1322,6 +1349,7 @@
       sem2GroupCount: 7,
       splitSubjects: { 1: {}, 2: {} }, // { '물리학Ⅰ': 2 }
       pinnedSubjects: { 1: {}, 2: {} }, // { '국어독서': 1 }
+      lockedGroups: { 1: {}, 2: {} }, // { 0: true } - 그룹 잠금 (해당 그룹 내 과목 고정 및 다른 과목 유입 차단)
       togetherPairs: { 1: [], 2: [] }, // Array of [subj1, subj2] pairs (동일 그룹 배치)
       separatePairs: { 1: [], 2: [] }, // Array of [subj1, subj2] pairs (다른 그룹 분리)
       closedSubjects: { 1: [], 2: [] }, // Array of confirmed closed subject names (폐강 확정)
@@ -4401,6 +4429,11 @@
       const studentPinsForSem = (AppState.studentPins || []).filter(p => p.semester === sem);
       const togetherPairs = (AppState.togetherPairs?.[sem] || []).filter(p => subjects.includes(p[0]) && subjects.includes(p[1]));
       const separatePairs = (AppState.separatePairs?.[sem] || []).filter(p => subjects.includes(p[0]) && subjects.includes(p[1]));
+      const lockedConfig = AppState.lockedGroups?.[sem] || {};
+      const lockedGroupIndices = new Set();
+      Object.keys(lockedConfig).forEach(k => {
+        if (lockedConfig[k]) lockedGroupIndices.add(parseInt(k, 10));
+      });
 
       if (!subjects || subjects.length === 0 || groupCount <= 0) return;
 
@@ -4553,6 +4586,9 @@
           let tiedGroups = [];
 
           for (const gIdx of order) {
+            // Cannot put into locked group (잠금된 그룹에는 기존 과목 외 다른 과목 유입 완전 차단)
+            if (lockedGroupIndices.has(gIdx)) continue;
+
             // Cannot put two sections of the same parent subject into the same group
             const hasSameParent = currentGroups[gIdx].some(t => t.parent === token.parent);
             if (hasSameParent) continue;
@@ -5067,33 +5103,34 @@
       saveAllState();
     };
 
-    // Toggle Group Pin (Lock / Unlock all subjects in a group)
-    window.toggleGroupPin = function(gIdx) {
+    // Toggle Group Lock (Lock / Unlock a group: locks existing subjects in place and blocks all other subjects from entering)
+    window.toggleGroupLock = function(gIdx) {
       const plan = AppState.currentPlan;
       if (!plan || !plan.groups[gIdx]) return;
       const sem = plan.semester;
       if (!AppState.pinnedSubjects) AppState.pinnedSubjects = { 1: {}, 2: {} };
       if (!AppState.pinnedSubjects[sem]) AppState.pinnedSubjects[sem] = {};
+      if (!AppState.lockedGroups) AppState.lockedGroups = { 1: {}, 2: {} };
+      if (!AppState.lockedGroups[sem]) AppState.lockedGroups[sem] = {};
 
       const groupSubjs = plan.groups[gIdx];
       if (groupSubjs.length === 0) {
-        alert('이 그룹에는 고정할 과목이 없습니다.');
+        alert('이 그룹에는 과목이 없어 잠글 수 없습니다.');
         return;
       }
 
-      const isAllPinned = groupSubjs.every(s => {
-        const p = s.replace(/-[A-Z]$/, '');
-        return AppState.pinnedSubjects[sem][p] === gIdx + 1;
-      });
+      const isLocked = Boolean(AppState.lockedGroups[sem][gIdx]);
 
-      if (isAllPinned) {
-        // Unlock: unpin all subjects in this group
+      if (isLocked) {
+        // Unlock: unmark group lock and release pinned subjects in this group
+        delete AppState.lockedGroups[sem][gIdx];
         groupSubjs.forEach(s => {
           const p = s.replace(/-[A-Z]$/, '');
           delete AppState.pinnedSubjects[sem][p];
         });
       } else {
-        // Lock: pin all subjects in this group to gIdx + 1
+        // Lock: Mark this group as locked (no other subjects can enter), and pin all current subjects to this group
+        AppState.lockedGroups[sem][gIdx] = true;
         groupSubjs.forEach(s => {
           const p = s.replace(/-[A-Z]$/, '');
           AppState.pinnedSubjects[sem][p] = gIdx + 1;
@@ -5103,6 +5140,7 @@
       renderStep2Results();
       saveAllState();
     };
+    window.toggleGroupPin = window.toggleGroupLock; // Alias for backward compatibility
 
     // Conflicted Students Table Accordion State (default: false = collapsed)
     let isConflictTableExpanded = false;
@@ -5135,7 +5173,7 @@
       const plan = AppState.currentPlan;
       if (!plan) return;
 
-      const { groupCounts, studentGroupOverlaps } = analyzeGroupConflicts(plan);
+      const { groupCounts, studentGroupOverlaps, studentAssignments } = analyzeGroupConflicts(plan);
 
       const sem = plan.semester;
       const targetConfig = AppState.targetConflictN?.[sem];
@@ -5230,6 +5268,24 @@
         }
       }
 
+      // Total students in the schedule table
+      const totalStudents = (studentAssignments || []).length;
+      const totalBadge = document.getElementById('step2TotalStudentsBadge');
+      if (totalBadge) {
+        totalBadge.textContent = `(총 ${totalStudents}명)`;
+      }
+
+      // Group student counts: number of students who take a class in each group
+      const groupStudentCounts = plan.groups.map((_, gIdx) => {
+        let count = 0;
+        (studentAssignments || []).forEach(asgn => {
+          if ((asgn.groupSubjects[gIdx] || []).length > 0) {
+            count++;
+          }
+        });
+        return count;
+      });
+
       let cardsHtml = '';
 
       plan.groups.forEach((groupSubjs, gIdx) => {
@@ -5315,27 +5371,24 @@
           ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 whitespace-nowrap">중복 0</span>`
           : `<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 whitespace-nowrap animate-pulse">중복 ${groupConflict}</span>`;
 
-        // Check if all subjects in this group are pinned (Group locked)
-        const isGroupLocked = groupSubjs.length > 0 && groupSubjs.every(s => {
-          const p = s.replace(/-[A-Z]$/, '');
-          return AppState.pinnedSubjects?.[sem]?.[p] === gIdx + 1;
-        });
+        // Check if group is locked (Group locked: marks locked and blocks other subjects from entering)
+        const isGroupLocked = Boolean(AppState.lockedGroups?.[sem]?.[gIdx]);
 
-        const groupPinBtnTitle = isGroupLocked
-          ? `[${gIdx + 1}그룹] 잠금됨: 그룹 내 모든 과목(${groupSubjs.length}개)이 고정 상태입니다 (클릭 시 잠금 해제)`
-          : `클릭 시 [${gIdx + 1}그룹] 내 모든 과목(${groupSubjs.length}개)을 이 그룹에 일괄 고정(잠금)합니다`;
+        const groupLockBtnTitle = isGroupLocked
+          ? `[${gIdx + 1}그룹] 잠금됨: 그룹 내 과목이 고정되며 다른 과목이 들어올 수 없습니다 (클릭 시 잠금 해제)`
+          : `클릭 시 [${gIdx + 1}그룹]을 잠급니다 (현재 과목 고정 & 다른 과목 유입 완전 차단)`;
 
-        const groupPinBtnHtml = `
+        const groupLockBtnHtml = `
           <button type="button" 
-                  onclick="event.stopPropagation(); window.toggleGroupPin(${gIdx});" 
-                  class="p-0.5 px-1.5 rounded transition text-xs select-none cursor-pointer inline-flex items-center gap-1 shrink-0 ${isGroupLocked ? 'text-blue-700 bg-blue-100 hover:bg-blue-200 border border-blue-300 font-black shadow-2xs' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/70 border border-transparent opacity-70 hover:opacity-100'}" 
-                  title="${groupPinBtnTitle}">
-            <span>📌</span>
-            <span class="text-[10px] ${isGroupLocked ? 'font-black text-blue-800' : 'font-semibold'}">${isGroupLocked ? '잠김' : '고정'}</span>
+                  onclick="event.stopPropagation(); window.toggleGroupLock(${gIdx});" 
+                  class="p-0.5 px-1.5 rounded transition text-xs select-none cursor-pointer inline-flex items-center gap-1 shrink-0 ${isGroupLocked ? 'text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 font-extrabold shadow-2xs' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 border border-slate-200 opacity-70 hover:opacity-100'}" 
+                  title="${groupLockBtnTitle}">
+            <span>${isGroupLocked ? '🔒' : '🔓'}</span>
+            <span class="text-[10px] ${isGroupLocked ? 'font-black text-amber-950' : 'font-semibold'}">${isGroupLocked ? '잠김' : '잠금'}</span>
           </button>
         `;
 
-        const isMoveTargetGroup = Boolean(subjectSwapState.selectedSubject) && (subjectSwapState.selectedGroupIdx !== gIdx);
+        const isMoveTargetGroup = Boolean(subjectSwapState.selectedSubject) && (subjectSwapState.selectedGroupIdx !== gIdx) && !isGroupLocked;
         let moveBtnHtml = '';
         let moveDropZoneHtml = '';
         if (isMoveTargetGroup) {
@@ -5359,7 +5412,7 @@
         if (isMoveTargetGroup) {
           groupCardBorderCls = 'bg-blue-50/40 border-blue-400 ring-2 ring-blue-300/50 hover:bg-blue-50/80 cursor-pointer';
         } else if (isGroupLocked) {
-          groupCardBorderCls = 'bg-blue-50/20 border-blue-300 ring-1 ring-blue-200';
+          groupCardBorderCls = 'bg-amber-50/20 border-amber-300 ring-1 ring-amber-200 shadow-2xs';
         }
 
         cardsHtml += `
@@ -5367,8 +5420,8 @@
             <div class="flex items-center justify-between border-b border-slate-200 pb-2">
               <div class="flex items-center space-x-1.5 shrink-0">
                 <span class="w-6 h-6 rounded-md bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">${gIdx + 1}</span>
-                <h5 class="text-xs font-bold text-slate-800 whitespace-nowrap">${gIdx + 1}그룹</h5>
-                ${groupPinBtnHtml}
+                <h5 class="text-xs font-bold text-slate-800 whitespace-nowrap">${gIdx + 1}그룹(${groupStudentCounts[gIdx]}명)</h5>
+                ${groupLockBtnHtml}
               </div>
               <div class="flex items-center space-x-1 shrink-0">
                 ${moveBtnHtml}
@@ -5599,6 +5652,19 @@
         return;
       }
 
+      // Check if either group is locked
+      const isLockedA = Boolean(AppState.lockedGroups?.[plan.semester]?.[gA]);
+      const isLockedB = Boolean(AppState.lockedGroups?.[plan.semester]?.[gB]);
+      if (isLockedA || isLockedB) {
+        const lockedGrp = isLockedA ? (gA + 1) : (gB + 1);
+        alert(`🔒 [그룹 잠금 안내]\n${lockedGrp}그룹은 '잠금' 상태이므로 과목을 맞교환할 수 없습니다.\n과목을 변경하려면 먼저 ${lockedGrp}그룹의 잠금을 해제해주세요.`);
+        subjectSwapState.selectedSubject = null;
+        subjectSwapState.selectedGroupIdx = null;
+        renderStep2Results();
+        updateSubjectSwapUI();
+        return;
+      }
+
       // Check if swap violates togetherPairs or separatePairs
       const togetherPairs = AppState.togetherPairs?.[plan.semester] || [];
       const separatePairs = AppState.separatePairs?.[plan.semester] || [];
@@ -5741,6 +5807,18 @@
 
       if (fromGIdx === targetGIdx) {
         alert('이미 해당 그룹에 속해 있는 과목입니다.');
+        return;
+      }
+
+      // Check if target or origin group is locked
+      const isTargetLocked = Boolean(AppState.lockedGroups?.[plan.semester]?.[targetGIdx]);
+      if (isTargetLocked) {
+        alert(`🔒 [그룹 잠금 안내]\n${targetGIdx + 1}그룹은 '잠금' 상태이므로 다른 과목이 들어올 수 없습니다.\n과목을 이동하려면 먼저 ${targetGIdx + 1}그룹의 잠금을 해제해주세요.`);
+        return;
+      }
+      const isFromLocked = Boolean(AppState.lockedGroups?.[plan.semester]?.[fromGIdx]);
+      if (isFromLocked) {
+        alert(`🔒 [그룹 잠금 안내]\n${fromGIdx + 1}그룹은 '잠금' 상태이므로 소속 과목을 다른 그룹으로 이동할 수 없습니다.\n과목을 이동하려면 먼저 ${fromGIdx + 1}그룹의 잠금을 해제해주세요.`);
         return;
       }
 
@@ -6052,6 +6130,16 @@
       h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('name')" style="position: sticky; left: 88px; min-width: 82px; max-width: 82px; z-index: 40;" class="p-2.5 text-left border-r-2 border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]" title="클릭하여 이름 순서 정렬">이름${getColSortIcon('name')}</th>`;
       h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('career')" class="p-2.5 text-left border-r-4 border-slate-400 bg-slate-100 min-w-[130px] max-w-[170px] cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 진로 순서 정렬">진로·관심${getColSortIcon('career')}</th>`;
 
+      const groupStudentCounts = plan.groups.map((_, gIdx) => {
+        let count = 0;
+        (studentAssignments || []).forEach(asgn => {
+          if ((asgn.groupSubjects[gIdx] || []).length > 0) {
+            count++;
+          }
+        });
+        return count;
+      });
+
       plan.groups.forEach((groupSubjs, gIdx) => {
         const colCount = Math.max(groupSubjs.length, 1);
         const gConf = groupCounts[gIdx];
@@ -6063,7 +6151,7 @@
         h1 += `<th colspan="${colCount}" class="p-2.5 text-center border-r-4 border-slate-400 font-extrabold ${theme.headerBg}">
           <div class="flex items-center justify-center gap-1.5">
             <span class="w-5 h-5 rounded-md ${theme.numBg} text-[11px] font-black flex items-center justify-center shadow-2xs">${gIdx + 1}</span>
-            <span class="text-xs font-black tracking-wide">${gIdx + 1}그룹</span>
+            <span class="text-xs font-black tracking-wide">${gIdx + 1}그룹(${groupStudentCounts[gIdx]}명)</span>
             ${confBadge}
           </div>
         </th>`;
@@ -6071,6 +6159,9 @@
 
       h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('status')" class="p-2.5 text-center bg-slate-100 min-w-[90px] border-l-4 border-slate-400 cursor-pointer hover:bg-slate-200 transition select-none font-bold" title="클릭하여 충돌/정상 상태 정렬">
         선택 상태${getColSortIcon('status')}
+      </th>`;
+      h1 += `<th rowspan="2" class="p-2.5 text-center bg-slate-100 min-w-[220px] border-l-2 border-slate-300 font-bold whitespace-nowrap select-none" title="다른 선택과목 변경 추천 또는 상담 특이사항 메모">
+        과목 변경 추천 / 상담 메모
       </th>`;
       h1 += '</tr>';
 
@@ -6219,6 +6310,17 @@
           }
           tbody += `</div></td>`;
 
+          // Recommendation / Consultation Memo Cell
+          const studentNote = (plan.studentRecommendations && plan.studentRecommendations[asgn.id]) || '';
+          tbody += `<td class="p-1.5 border-l-2 border-slate-300 min-w-[220px] bg-white">
+            <input type="text" 
+                   value="${escapeHtml(studentNote)}" 
+                   placeholder="추천 과목 / 메모..." 
+                   class="w-full text-xs px-2.5 py-1 border border-slate-200 hover:border-slate-400 focus:border-blue-500 rounded bg-white focus:bg-amber-50/40 outline-none transition placeholder:text-slate-300 font-normal" 
+                   oninput="window.handleStudentScheduleNoteChange('${asgn.id}', this.value)" 
+                   title="학생별 과목 변경 추천 또는 상담 메모" />
+          </td>`;
+
           tbody += '</tr>';
         });
       }
@@ -6267,7 +6369,7 @@
           });
         }
       });
-      tbody += '<td class="p-2 border-l-4 border-slate-400 bg-blue-50/60"></td>';
+      tbody += '<td class="p-2 border-l-4 border-slate-400 bg-blue-50/60"></td><td class="p-2 border-l-2 border-slate-300 bg-blue-50/60"></td>';
       tbody += '</tr>';
 
       // 2. Group Totals Row (그룹별 학생수 합계: 각 그룹의 첫 번째 과목 위치에 N명)
@@ -6295,7 +6397,7 @@
           });
         }
       });
-      tbody += '<td class="p-2.5 border-l-4 border-slate-400 bg-indigo-50/70"></td>';
+      tbody += '<td class="p-2.5 border-l-4 border-slate-400 bg-indigo-50/70"></td><td class="p-2.5 border-l-2 border-slate-300 bg-indigo-50/70"></td>';
       tbody += '</tr>';
 
       tbody += '</tbody>';
@@ -6309,6 +6411,21 @@
         memoTextarea.value = plan.memo || '';
       }
     }
+
+    window.handleStudentScheduleNoteChange = function(studentId, note) {
+      const plan = AppState.currentPlan;
+      if (!plan) return;
+      if (!plan.studentRecommendations) plan.studentRecommendations = {};
+      plan.studentRecommendations[studentId] = note;
+
+      // Sync to matching savedPlan if active plan is linked
+      const match = AppState.savedPlans.find(p => p.id === plan.id);
+      if (match) {
+        if (!match.studentRecommendations) match.studentRecommendations = {};
+        match.studentRecommendations[studentId] = note;
+      }
+      saveAllState();
+    };
 
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
@@ -6419,9 +6536,11 @@
         studentGroupOverlaps: JSON.parse(JSON.stringify(studentGroupOverlaps)),
         customAssignments: JSON.parse(JSON.stringify(AppState.currentPlan.customAssignments || {})),
         memo: AppState.currentPlan.memo || '',
+        studentRecommendations: JSON.parse(JSON.stringify(AppState.currentPlan.studentRecommendations || {})),
         confirmed: false,
         splitConfig: JSON.parse(JSON.stringify(AppState.splitSubjects[sem] || {})),
         pinnedConfig: JSON.parse(JSON.stringify(AppState.pinnedSubjects[sem] || {})),
+        lockedConfig: JSON.parse(JSON.stringify(AppState.lockedGroups?.[sem] || {})),
         togetherConfig: JSON.parse(JSON.stringify(AppState.togetherPairs?.[sem] || [])),
         separateConfig: JSON.parse(JSON.stringify(AppState.separatePairs?.[sem] || [])),
         timestamp: new Date().toLocaleTimeString()
@@ -6615,6 +6734,15 @@
       if (plan.separateConfig) {
         AppState.separatePairs[plan.semester] = JSON.parse(JSON.stringify(plan.separateConfig));
       }
+      if (plan.studentRecommendations) {
+        AppState.currentPlan.studentRecommendations = JSON.parse(JSON.stringify(plan.studentRecommendations));
+      } else {
+        AppState.currentPlan.studentRecommendations = {};
+      }
+      if (plan.lockedConfig) {
+        if (!AppState.lockedGroups) AppState.lockedGroups = { 1: {}, 2: {} };
+        AppState.lockedGroups[plan.semester] = JSON.parse(JSON.stringify(plan.lockedConfig));
+      }
 
       initStep2Controls();
       renderStep2Results();
@@ -6707,7 +6835,13 @@
       h1.push('선택 배정 상태');
       h2.push('');
       merges.push({ s: { r: 3, c: colIdx }, e: { r: 4, c: colIdx } });
-      colWidths.push({ wch: 20 });
+      colWidths.push({ wch: 18 });
+      colIdx++;
+
+      h1.push('과목 변경 추천 / 상담 메모');
+      h2.push('');
+      merges.push({ s: { r: 3, c: colIdx }, e: { r: 4, c: colIdx } });
+      colWidths.push({ wch: 30 });
       const totalCols = colIdx + 1;
 
       ttRows.push(h1);
@@ -6741,6 +6875,7 @@
         });
 
         row.push(hasConflict ? `중복 (${confList.join(', ')})` : '정상 배정');
+        row.push((plan.studentRecommendations && plan.studentRecommendations[st.id]) || '');
         ttRows.push(row);
       });
 
@@ -6779,6 +6914,7 @@
         }
       });
       subjSumRow.push(''); // for status col
+      subjSumRow.push(''); // for memo col
       const subjSumR = ttRows.length;
       ttRows.push(subjSumRow);
       merges.push({ s: { r: subjSumR, c: 0 }, e: { r: subjSumR, c: 3 } });
@@ -6800,6 +6936,7 @@
         }
       });
       grpSumRow.push(''); // for status col
+      grpSumRow.push(''); // for memo col
       const grpSumR = ttRows.length;
       ttRows.push(grpSumRow);
       merges.push({ s: { r: grpSumR, c: 0 }, e: { r: grpSumR, c: 3 } });
@@ -7304,6 +7441,7 @@
         sem2GroupCount: is3rd ? 7 : 4,
         splitSubjects: { 1: {}, 2: {} },
         pinnedSubjects: { 1: {}, 2: {} },
+        lockedGroups: { 1: {}, 2: {} },
         togetherPairs: { 1: [], 2: [] },
         separatePairs: { 1: [], 2: [] },
         closedSubjects: { 1: [], 2: [] },
@@ -7503,6 +7641,7 @@
         sem2GroupCount: AppState.sem2GroupCount || 7,
         splitSubjects: JSON.parse(JSON.stringify(AppState.splitSubjects || { 1: {}, 2: {} })),
         pinnedSubjects: JSON.parse(JSON.stringify(AppState.pinnedSubjects || { 1: {}, 2: {} })),
+        lockedGroups: JSON.parse(JSON.stringify(AppState.lockedGroups || { 1: {}, 2: {} })),
         togetherPairs: JSON.parse(JSON.stringify(AppState.togetherPairs || { 1: [], 2: [] })),
         separatePairs: JSON.parse(JSON.stringify(AppState.separatePairs || { 1: [], 2: [] })),
         closedSubjects: JSON.parse(JSON.stringify(AppState.closedSubjects || { 1: [], 2: [] })),
@@ -7608,6 +7747,9 @@
       if (!AppState.separatePairs) AppState.separatePairs = { 1: [], 2: [] };
       if (!AppState.separatePairs[1]) AppState.separatePairs[1] = [];
       if (!AppState.separatePairs[2]) AppState.separatePairs[2] = [];
+      if (!AppState.lockedGroups) AppState.lockedGroups = { 1: {}, 2: {} };
+      if (!AppState.lockedGroups[1]) AppState.lockedGroups[1] = {};
+      if (!AppState.lockedGroups[2]) AppState.lockedGroups[2] = {};
 
       // Update UI Elements
       if (currentWorkText) {
@@ -7987,8 +8129,211 @@
       }, 500);
     };
 
-    window.handleMainSaveButtonClick = window.exportStandardDownload;
-    window.exportFullBackupJson = window.exportStandardDownload;
+    let rememberedSaveHandle = null;
+
+    async function getSavedFileHandle() {
+      if (rememberedSaveHandle) return rememberedSaveHandle;
+      return new Promise((resolve) => {
+        try {
+          if (!window.indexedDB) return resolve(null);
+          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
+          req.onupgradeneeded = (e) => {
+            if (!e.target.result.objectStoreNames.contains('handles')) {
+              e.target.result.createObjectStore('handles');
+            }
+          };
+          req.onsuccess = (e) => {
+            const db = e.target.result;
+            try {
+              const tx = db.transaction('handles', 'readonly');
+              const store = tx.objectStore('handles');
+              const getReq = store.get('lastSaveHandle');
+              getReq.onsuccess = () => {
+                rememberedSaveHandle = getReq.result || null;
+                resolve(rememberedSaveHandle);
+              };
+              getReq.onerror = () => resolve(null);
+            } catch { resolve(null); }
+          };
+          req.onerror = () => resolve(null);
+        } catch { resolve(null); }
+      });
+    }
+
+    async function setSavedFileHandle(handle) {
+      rememberedSaveHandle = handle;
+      return new Promise((resolve) => {
+        try {
+          if (!window.indexedDB || !handle) return resolve(false);
+          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
+          req.onupgradeneeded = (e) => {
+            if (!e.target.result.objectStoreNames.contains('handles')) {
+              e.target.result.createObjectStore('handles');
+            }
+          };
+          req.onsuccess = (e) => {
+            const db = e.target.result;
+            try {
+              const tx = db.transaction('handles', 'readwrite');
+              const store = tx.objectStore('handles');
+              store.put(handle, 'lastSaveHandle');
+              tx.oncomplete = () => resolve(true);
+              tx.onerror = () => resolve(false);
+            } catch { resolve(false); }
+          };
+          req.onerror = () => resolve(false);
+        } catch { resolve(false); }
+      });
+    }
+
+    async function clearSavedFileHandle() {
+      rememberedSaveHandle = null;
+      return new Promise((resolve) => {
+        try {
+          if (!window.indexedDB) return resolve(false);
+          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
+          req.onsuccess = (e) => {
+            const db = e.target.result;
+            try {
+              const tx = db.transaction('handles', 'readwrite');
+              const store = tx.objectStore('handles');
+              store.delete('lastSaveHandle');
+              tx.oncomplete = () => resolve(true);
+              tx.onerror = () => resolve(false);
+            } catch { resolve(false); }
+          };
+          req.onerror = () => resolve(false);
+        } catch { resolve(false); }
+      });
+    }
+
+    function updateSaveButtonTooltip(name) {
+      const btn = document.getElementById('btnHeaderExportSession');
+      const hint = document.getElementById('dropdownPrevLocationHint');
+      if (btn) {
+        if (name) {
+          btn.title = `클릭 시 지정된 파일 [${name}]에 최신 작업 데이터를 바로 저장합니다`;
+        } else {
+          btn.title = `현재 전체 학년도/학년 작업 데이터를 브라우저 다운로드 폴더에 즉시 저장합니다 (.json)`;
+        }
+      }
+      if (hint) {
+        hint.textContent = name ? `현재 설정된 위치: ${name}` : '원하는 폴더를 직접 선택하여 저장';
+      }
+    }
+
+    async function writeToHandle(handle, jsonContent) {
+      if (!handle) return false;
+      if (typeof handle.queryPermission === 'function') {
+        let perm = await handle.queryPermission({ mode: 'readwrite' });
+        if (perm !== 'granted') {
+          perm = await handle.requestPermission({ mode: 'readwrite' });
+          if (perm !== 'granted') return false;
+        }
+      }
+      const writable = await handle.createWritable();
+      await writable.write(jsonContent);
+      await writable.close();
+      return true;
+    }
+
+    window.toggleSaveDropdown = function(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('saveDropdownMenu');
+      const arrow = document.getElementById('saveDropdownArrow');
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+      } else {
+        menu.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    };
+
+    window.closeSaveDropdown = function() {
+      const menu = document.getElementById('saveDropdownMenu');
+      const arrow = document.getElementById('saveDropdownArrow');
+      if (menu) menu.classList.add('hidden');
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
+    };
+
+    window.addEventListener('click', (e) => {
+      const group = document.getElementById('saveButtonGroup');
+      if (group && !group.contains(e.target)) {
+        window.closeSaveDropdown();
+      }
+    });
+
+    window.saveWithNewLocation = async function() {
+      window.closeSaveDropdown();
+      const jsonStr = window.generateFullBackupJsonString();
+      const suggestedName = window.generateDefaultBackupFileName();
+
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: suggestedName,
+            types: [{
+              description: '수강신청 작업 백업 파일 (*.json)',
+              accept: { 'application/json': ['.json'] }
+            }]
+          });
+          if (handle) {
+            const ok = await writeToHandle(handle, jsonStr);
+            if (ok) {
+              await setSavedFileHandle(handle);
+              updateSaveButtonTooltip(handle.name);
+              alert(`✅ [${handle.name}] 파일에 성공적으로 저장되었습니다!\n\n앞으로 [작업 저장] 버튼을 누르면 이 파일/위치로 저장됩니다.`);
+              return;
+            }
+          }
+        } catch (err) {
+          if (err.name === 'AbortError') return; // User cancelled
+          console.warn('showSaveFilePicker error:', err);
+        }
+      }
+      // Fallback
+      window.exportStandardDownload();
+    };
+
+    window.resetSaveLocationToDefault = async function() {
+      window.closeSaveDropdown();
+      await clearSavedFileHandle();
+      updateSaveButtonTooltip(null);
+      window.exportStandardDownload();
+    };
+
+    window.handleMainSaveButtonClick = async function() {
+      let handle = rememberedSaveHandle;
+      if (!handle) handle = await getSavedFileHandle();
+
+      if (handle && window.showSaveFilePicker) {
+        try {
+          const jsonStr = window.generateFullBackupJsonString();
+          const ok = await writeToHandle(handle, jsonStr);
+          if (ok) {
+            await setSavedFileHandle(handle);
+            updateSaveButtonTooltip(handle.name);
+            alert(`💾 지정하신 파일 [${handle.name}]에 최신 데이터가 성공적으로 저장되었습니다!`);
+            return;
+          }
+        } catch (err) {
+          console.warn('handleMainSaveButtonClick handle error, falling back:', err);
+        }
+      }
+
+      // If no handle is set (initial state), run default browser download
+      window.exportStandardDownload();
+    };
+
+    // Restore saved handle tooltip on start
+    getSavedFileHandle().then(handle => {
+      if (handle && handle.name) updateSaveButtonTooltip(handle.name);
+    });
+
+    window.exportFullBackupJson = window.handleMainSaveButtonClick;
     document.getElementById('btnExportFullBackupJson')?.addEventListener('click', window.exportFullBackupJson);
 
     // Restore from JSON (Available globally for header, dropzone and modal)
