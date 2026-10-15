@@ -774,6 +774,35 @@
               <input type="number" id="thresholdInput" min="1" max="100" value="3" class="w-16 px-2 py-1 text-xs text-center font-bold border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none">
               <span class="text-xs text-slate-500">명 이하</span>
             </div>
+
+            <!-- Subject Sort Select (오름차순 / 내림차순) -->
+            <div class="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
+              <label for="step1SubjectSortSelect" class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                <span>🔀</span>
+                <span>과목 정렬:</span>
+              </label>
+              <select id="step1SubjectSortSelect" class="text-xs font-bold bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                <option value="default">기본 순서 (엑셀 원본)</option>
+                <option value="name_asc">과목명 오름차순 (ㄱ→ㅎ)</option>
+                <option value="name_desc">과목명 내림차순 (ㅎ→ㄱ)</option>
+                <option value="count_desc">신청 인원 많은 순 (내림차순 ↓)</option>
+                <option value="count_asc">신청 인원 적은 순 (오름차순 ↑)</option>
+              </select>
+            </div>
+
+            <!-- Subject Status Filter Select -->
+            <div class="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
+              <label for="step1SubjectFilterSelect" class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                <span>🔍</span>
+                <span>과목 필터:</span>
+              </label>
+              <select id="step1SubjectFilterSelect" class="text-xs font-bold bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                <option value="all">전체 과목</option>
+                <option value="opened">개설 과목만</option>
+                <option value="under">기준 인원 이하만</option>
+                <option value="closed">폐강 확정 과목만</option>
+              </select>
+            </div>
             
             <div class="relative">
               <input type="text" id="studentSearchInput" placeholder="학생 검색 (이름/반/번호)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-44">
@@ -2657,6 +2686,72 @@
       renderStep1TableOnly();
     });
 
+    document.getElementById('step1SubjectSortSelect')?.addEventListener('change', () => {
+      renderStep1TableOnly();
+      renderSubjectSummaryTable();
+    });
+
+    document.getElementById('step1SubjectFilterSelect')?.addEventListener('change', () => {
+      renderStep1TableOnly();
+      renderSubjectSummaryTable();
+    });
+
+    window.cycleStep1SubjectSort = function(type) {
+      const sortSelect = document.getElementById('step1SubjectSortSelect');
+      if (!sortSelect) return;
+      const current = sortSelect.value;
+      if (type === 'name') {
+        sortSelect.value = (current === 'name_asc') ? 'name_desc' : 'name_asc';
+      } else if (type === 'count') {
+        sortSelect.value = (current === 'count_desc') ? 'count_asc' : 'count_desc';
+      }
+      renderStep1TableOnly();
+      renderSubjectSummaryTable();
+    };
+
+    function getFilteredAndSortedStep1Subjects(sem, counts) {
+      const baseSubjects = sem === 1 ? (AppState.sem1Subjects || []) : (AppState.sem2Subjects || []);
+      const threshold = AppState.step1Threshold;
+      const closedList = AppState.closedSubjects?.[sem] || [];
+      const sortMode = document.getElementById('step1SubjectSortSelect')?.value || 'default';
+      const filterMode = document.getElementById('step1SubjectFilterSelect')?.value || 'all';
+
+      // 1. Filter
+      let result = baseSubjects.filter(s => {
+        const count = counts[s] || 0;
+        const isClosed = closedList.includes(s);
+        const isUnder = count <= threshold;
+
+        if (filterMode === 'opened') {
+          return !isClosed && !isUnder;
+        } else if (filterMode === 'under') {
+          return !isClosed && isUnder;
+        } else if (filterMode === 'closed') {
+          return isClosed;
+        }
+        return true; // 'all'
+      });
+
+      // 2. Sort
+      result.sort((a, b) => {
+        if (sortMode === 'name_asc') {
+          return a.localeCompare(b, 'ko');
+        } else if (sortMode === 'name_desc') {
+          return b.localeCompare(a, 'ko');
+        } else if (sortMode === 'count_desc') {
+          const diff = (counts[b] || 0) - (counts[a] || 0);
+          return diff !== 0 ? diff : a.localeCompare(b, 'ko');
+        } else if (sortMode === 'count_asc') {
+          const diff = (counts[a] || 0) - (counts[b] || 0);
+          return diff !== 0 ? diff : a.localeCompare(b, 'ko');
+        }
+        // 'default' - preserve original order in baseSubjects
+        return baseSubjects.indexOf(a) - baseSubjects.indexOf(b);
+      });
+
+      return result;
+    }
+
     function renderStep1() {
       const sem = AppState.currentSemester;
       updateStep1SemesterTabs(sem);
@@ -2692,19 +2787,21 @@
 
     function renderStep1TableOnly() {
       const sem = AppState.currentSemester;
-      const subjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
+      const baseSubjects = sem === 1 ? (AppState.sem1Subjects || []) : (AppState.sem2Subjects || []);
       const threshold = AppState.step1Threshold;
       const searchQuery = (studentSearchInput.value || '').trim().toLowerCase();
 
       // Calculate subject counts
       const counts = {};
-      subjects.forEach(s => counts[s] = 0);
+      baseSubjects.forEach(s => counts[s] = 0);
       AppState.students.forEach(st => {
         const selected = sem === 1 ? st.sem1 : st.sem2;
         selected.forEach(s => {
           if (counts[s] !== undefined) counts[s]++;
         });
       });
+
+      const subjects = getFilteredAndSortedStep1Subjects(sem, counts);
 
       // Filter students
       const filteredStudents = AppState.students.filter(st => {
@@ -2714,6 +2811,15 @@
                st.studentNum.includes(searchQuery) ||
                st.career.toLowerCase().includes(searchQuery);
       });
+
+      if (subjects.length === 0) {
+        matrixTable.innerHTML = `
+          <thead><tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+            <th class="p-8 text-center text-slate-500 text-sm">선택된 필터 조건에 해당하는 과목이 없습니다.</th>
+          </tr></thead>
+        `;
+        return;
+      }
 
       // Build Table HTML
       let html = '<thead><tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-20">';
@@ -2840,7 +2946,7 @@
     // Render Subject Summary & Retention Table (과목별 수강 인원 및 개설·폐강 현황)
     function renderSubjectSummaryTable() {
       const sem = AppState.currentSemester;
-      const subjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
+      const allSubjects = sem === 1 ? (AppState.sem1Subjects || []) : (AppState.sem2Subjects || []);
       const threshold = AppState.step1Threshold;
 
       const titleEl = document.getElementById('subjectSummaryTitle');
@@ -2852,22 +2958,37 @@
       const memoMap = AppState.subjectMemos?.[sem] || {};
 
       // Compute counts per subject
+      const counts = {};
+      allSubjects.forEach(s => counts[s] = 0);
+      AppState.students.forEach(st => {
+        const selected = sem === 1 ? st.sem1 : st.sem2;
+        selected.forEach(s => {
+          if (counts[s] !== undefined) counts[s]++;
+        });
+      });
+
+      // Filter & Sort subjects
+      const displayedSubjects = getFilteredAndSortedStep1Subjects(sem, counts);
+
       let totalCount = 0;
       let underCount = 0;
       let closedCount = 0;
 
-      const subjectData = subjects.map((subj, idx) => {
-        let count = 0;
-        AppState.students.forEach(st => {
-          const selected = sem === 1 ? st.sem1 : st.sem2;
-          if (selected.includes(subj)) count++;
-        });
-        totalCount += count;
-        const isUnder = count <= threshold;
-        if (isUnder) underCount++;
+      allSubjects.forEach(subj => {
+        const c = counts[subj] || 0;
+        totalCount += c;
+        if (closedList.includes(subj)) closedCount++;
+        else if (c <= threshold) underCount++;
+      });
 
+      const sortMode = document.getElementById('step1SubjectSortSelect')?.value || 'default';
+      const nameSortIcon = sortMode === 'name_asc' ? '▲ (ㄱ→ㅎ)' : (sortMode === 'name_desc' ? '▼ (ㅎ→ㄱ)' : '↕️');
+      const countSortIcon = sortMode === 'count_desc' ? '▼ (많은순)' : (sortMode === 'count_asc' ? '▲ (적은순)' : '↕️');
+
+      const subjectData = displayedSubjects.map((subj, idx) => {
+        const count = counts[subj] || 0;
         const isClosed = closedList.includes(subj);
-        if (isClosed) closedCount++;
+        const isUnder = count <= threshold;
 
         return {
           index: idx + 1,
@@ -2883,8 +3004,18 @@
       let html = `<thead>
         <tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-10 text-xs">
           <th class="p-2.5 text-center border-r border-slate-300 w-12 bg-slate-100">연번</th>
-          <th class="p-2.5 text-left border-r border-slate-300 w-44 bg-slate-100">과목명</th>
-          <th class="p-2.5 text-center border-r border-slate-300 w-28 bg-slate-100">수강 신청 인원</th>
+          <th class="p-2.5 text-left border-r border-slate-300 w-48 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors group" onclick="window.cycleStep1SubjectSort('name')" title="클릭하여 과목명 오름차순/내림차순 정렬">
+            <div class="flex items-center justify-between">
+              <span>과목명</span>
+              <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 group-hover:bg-blue-100">${nameSortIcon}</span>
+            </div>
+          </th>
+          <th class="p-2.5 text-center border-r border-slate-300 w-36 bg-slate-100 cursor-pointer hover:bg-slate-200 select-none transition-colors group" onclick="window.cycleStep1SubjectSort('count')" title="클릭하여 신청 인원 많은순(내림차순)/적은순(오름차순) 정렬">
+            <div class="flex items-center justify-center gap-1.5">
+              <span>수강 신청 인원</span>
+              <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 group-hover:bg-blue-100">${countSortIcon}</span>
+            </div>
+          </th>
           <th class="p-2.5 text-center border-r border-slate-300 w-28 bg-slate-100">개설 상태</th>
           <th class="p-2.5 text-center border-r border-slate-300 w-24 bg-slate-100">폐강 확정</th>
           <th class="p-2.5 text-left w-64 bg-slate-100">폐강 보류 및 비고 메모</th>
@@ -2892,70 +3023,76 @@
       </thead>
       <tbody class="divide-y divide-slate-200 text-xs text-slate-700">`;
 
-      subjectData.forEach((item, idx) => {
-        const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
-        let rowStyle = '';
-        if (item.isClosed) {
-          rowStyle = 'style="background-color: #fee2e2;"';
-        } else if (item.isUnder) {
-          rowStyle = 'style="background-color: #fef2f2;"';
-        }
-        
-        // Count badge
-        const countBadge = item.isUnder
-          ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">${item.count}명</span>`
-          : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">${item.count}명</span>`;
+      if (subjectData.length === 0) {
+        html += `<tr><td colspan="6" class="p-8 text-center text-slate-400 font-medium">선택된 필터 조건에 해당하는 과목이 없습니다.</td></tr>`;
+      } else {
+        subjectData.forEach((item, idx) => {
+          const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
+          let rowStyle = '';
+          if (item.isClosed) {
+            rowStyle = 'style="background-color: #fee2e2;"';
+          } else if (item.isUnder) {
+            rowStyle = 'style="background-color: #fef2f2;"';
+          }
+          
+          // Count badge
+          const countBadge = item.isUnder
+            ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">${item.count}명</span>`
+            : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">${item.count}명</span>`;
 
-        // Status badge
-        let statusBadge = '';
-        if (item.isClosed) {
-          statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-700 text-white shadow-xs">[폐강 확정]</span>`;
-        } else if (item.isUnder) {
-          statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">[폐강 예정]</span>`;
-        } else {
-          statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">개설</span>`;
-        }
+          // Status badge
+          let statusBadge = '';
+          if (item.isClosed) {
+            statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-700 text-white shadow-xs">[폐강 확정]</span>`;
+          } else if (item.isUnder) {
+            statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">[폐강 예정]</span>`;
+          } else {
+            statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">개설</span>`;
+          }
 
-        // Closed Checkbox
-        const closedCheckboxHtml = `
-          <label class="inline-flex items-center justify-center cursor-pointer p-1 rounded-md transition-colors ${item.isClosed ? 'bg-rose-200/90 border border-rose-400 text-rose-950 font-extrabold shadow-2xs' : 'hover:bg-slate-100 border border-slate-200'}" title="${item.isClosed ? '폐강 확정 해제 (2단계 포함)' : '폐강 확정 (2단계 그룹핑 제외)'}">
-            <input type="checkbox" onchange="window.toggleSubjectClosed('${item.name}')" ${item.isClosed ? 'checked' : ''} class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
-            <span class="ml-1.5 text-xs ${item.isClosed ? 'font-black text-rose-900' : 'text-slate-600 font-medium'}">${item.isClosed ? '확정' : '체크'}</span>
-          </label>
-        `;
+          // Closed Checkbox
+          const closedCheckboxHtml = `
+            <label class="inline-flex items-center justify-center cursor-pointer p-1 rounded-md transition-colors ${item.isClosed ? 'bg-rose-200/90 border border-rose-400 text-rose-950 font-extrabold shadow-2xs' : 'hover:bg-slate-100 border border-slate-200'}" title="${item.isClosed ? '폐강 확정 해제 (2단계 포함)' : '폐강 확정 (2단계 그룹핑 제외)'}">
+              <input type="checkbox" onchange="window.toggleSubjectClosed('${item.name}')" ${item.isClosed ? 'checked' : ''} class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
+              <span class="ml-1.5 text-xs ${item.isClosed ? 'font-black text-rose-900' : 'text-slate-600 font-medium'}">${item.isClosed ? '확정' : '체크'}</span>
+            </label>
+          `;
 
-        // Memo input
-        const memoHtml = `
-          <div class="relative flex items-center">
-            <input type="text" 
-                   value="${(item.memo || '').replace(/"/g, '&quot;')}" 
-                   placeholder="${item.isUnder ? '폐강 보류 요청 사유 등 메모...' : '비고 / 메모 입력...'}" 
-                   onchange="window.updateSubjectMemo('${item.name}', this.value)" 
-                   onblur="window.updateSubjectMemo('${item.name}', this.value)" 
-                   class="w-full text-xs px-2.5 py-1 rounded-md border ${item.memo ? 'border-amber-300 bg-amber-50/60 text-slate-800 font-medium' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'} focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                   title="폐강 보류 또는 과목 관련 메모를 입력하세요 (자동 저장)">
-            ${item.memo ? '<span class="absolute right-2 text-amber-500 text-xs select-none pointer-events-none" title="메모 저장됨">📝</span>' : ''}
-          </div>
-        `;
+          // Memo input
+          const memoHtml = `
+            <div class="relative flex items-center">
+              <input type="text" 
+                     value="${(item.memo || '').replace(/"/g, '&quot;')}" 
+                     placeholder="${item.isUnder ? '폐강 보류 요청 사유 등 메모...' : '비고 / 메모 입력...'}" 
+                     onchange="window.updateSubjectMemo('${item.name}', this.value)" 
+                     onblur="window.updateSubjectMemo('${item.name}', this.value)" 
+                     class="w-full text-xs px-2.5 py-1 rounded-md border ${item.memo ? 'border-amber-300 bg-amber-50/60 text-slate-800 font-medium' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'} focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                     title="폐강 보류 또는 과목 관련 메모를 입력하세요 (자동 저장)">
+              ${item.memo ? '<span class="absolute right-2 text-amber-500 text-xs select-none pointer-events-none" title="메모 저장됨">📝</span>' : ''}
+            </div>
+          `;
 
-        const nameDisplay = item.isClosed
-          ? `<span class="line-through text-slate-400 mr-1.5">${item.name}</span><span class="text-[11px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300">폐강</span>`
-          : `<span class="text-slate-900">${item.name}</span>`;
+          const nameDisplay = item.isClosed
+            ? `<span class="line-through text-slate-400 mr-1.5">${item.name}</span><span class="text-[11px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300">폐강</span>`
+            : `<span class="text-slate-900">${item.name}</span>`;
 
-        html += `<tr class="${rowBg} hover:bg-blue-50/40 transition-colors" ${rowStyle}>
-          <td class="p-2.5 text-center font-medium border-r border-slate-200 text-slate-500">${item.index}</td>
-          <td class="p-2.5 font-bold border-r border-slate-200 text-sm">${nameDisplay}</td>
-          <td class="p-2.5 text-center border-r border-slate-200 font-bold">${countBadge}</td>
-          <td class="p-2.5 text-center border-r border-slate-200 font-semibold">${statusBadge}</td>
-          <td class="p-2.5 text-center border-r border-slate-200">${closedCheckboxHtml}</td>
-          <td class="p-2 text-left">${memoHtml}</td>
-        </tr>`;
-      });
+          html += `<tr class="${rowBg} hover:bg-blue-50/40 transition-colors" ${rowStyle}>
+            <td class="p-2.5 text-center font-medium border-r border-slate-200 text-slate-500">${item.index}</td>
+            <td class="p-2.5 font-bold border-r border-slate-200 text-sm">${nameDisplay}</td>
+            <td class="p-2.5 text-center border-r border-slate-200 font-bold">${countBadge}</td>
+            <td class="p-2.5 text-center border-r border-slate-200 font-semibold">${statusBadge}</td>
+            <td class="p-2.5 text-center border-r border-slate-200">${closedCheckboxHtml}</td>
+            <td class="p-2 text-left">${memoHtml}</td>
+          </tr>`;
+        });
+      }
 
       html += `</tbody>
       <tfoot>
         <tr class="bg-slate-100 font-black text-slate-900 border-t-2 border-slate-300 text-xs">
-          <td colspan="2" class="p-2.5 text-center border-r border-slate-300 font-bold">전체 과목 수 (${subjects.length}개)</td>
+          <td colspan="2" class="p-2.5 text-center border-r border-slate-300 font-bold">
+            과목 수 (표시: ${displayedSubjects.length}개 / 전체: ${allSubjects.length}개)
+          </td>
           <td class="p-2.5 text-center border-r border-slate-300 text-blue-700 font-bold">총 ${totalCount}건</td>
           <td class="p-2.5 text-center border-r border-slate-300 text-slate-700 font-bold">[예정] ${underCount}개</td>
           <td class="p-2.5 text-center border-r border-slate-300 text-rose-700 font-bold">[폐강 확정] ${closedCount}개</td>
