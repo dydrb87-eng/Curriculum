@@ -310,11 +310,16 @@
             </div>
           </div>
 
-          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <label for="dropzoneBackupInput" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer" title="다른 컴퓨터에서 저장한 백업 파일(.json)을 불러옵니다">
-              <span>📂 다른 PC의 백업 파일(.json) 불러오기</span>
-              <input type="file" id="dropzoneBackupInput" accept=".json" class="hidden" onchange="if(this.files[0]) { window.importBackupJsonFile(this.files[0]); this.value=''; }" />
-            </label>
+          <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <label for="dropzoneBackupInput" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer" title="저장한 백업 파일(.json)을 불러옵니다">
+                <span>📂 백업 파일(.json) 불러오기</span>
+                <input type="file" id="dropzoneBackupInput" accept=".json" class="hidden" onchange="if(this.files[0]) { window.importBackupJsonFile(this.files[0]); this.value=''; }" />
+              </label>
+              <button id="btnRestoreLocalStorage" type="button" class="hidden text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded cursor-pointer" title="이 브라우저에 임시 보존된 이전 작업 내용을 복원합니다">
+                🔄 브라우저 임시 작업 복원
+              </button>
+            </div>
             <span class="text-[11px] text-slate-500 font-medium">
               💡 저장된 JSON 백업 파일 또는 엑셀 파일을 불러오면 바로 작업이 시작됩니다.
             </span>
@@ -6650,7 +6655,7 @@
       lastUpdated: new Date().toISOString()
     };
 
-    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V5';
+    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V6';
     const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
 
     // Cloud Sync Manager
@@ -8109,11 +8114,27 @@
       document.getElementById('allGradesCourseSearchInput')?.addEventListener('input', renderAllGradesCurriculumTable);
     }
 
-    // Initialize MultiState & Load on Startup
+    // Initialize MultiState & Load on Startup (항상 빈 화면으로 시작)
     function loadAllState() {
-      let isLoadedFromLocal = false;
+      // 1. 처음 접속 시에는 무조건 빈 화면으로 시작 (작업 불러오기 또는 파일 업로드를 통해 시작)
+      if (!MultiState.yearsList.includes('2027')) MultiState.yearsList.unshift('2027');
+      if (!MultiState.yearsList.includes('2026')) MultiState.yearsList.push('2026');
+
+      MultiState.activeYear = '2027';
+      MultiState.activeGrade = '2학년';
+
+      MultiState.yearsList.forEach(y => {
+        if (!MultiState.data[y]) MultiState.data[y] = {};
+        MultiState.data[y]['2학년'] = createEmptyGradeState('2학년');
+        MultiState.data[y]['3학년'] = createEmptyGradeState('3학년');
+        MultiState.data[y]['전체'] = { curriculum: [], lastUpdated: null };
+      });
+
+      initAllGradesListeners();
+
+      // 브라우저 로컬 저장소에 이전 작업 흔적이 있는 경우, 드롭존에서 수동 복원할 수 있도록 버튼 제공
       try {
-        let raw = localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('SANGJI_COURSE_REG_MULTI_V5');
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && parsed.data) {
@@ -8121,44 +8142,26 @@
               y && Object.values(y).some(g => g && Array.isArray(g.students) && g.students.length > 0)
             );
             if (hasStudents) {
-              Object.assign(MultiState, parsed);
-              isLoadedFromLocal = true;
+              const btnRestore = document.getElementById('btnRestoreLocalStorage');
+              if (btnRestore) {
+                btnRestore.classList.remove('hidden');
+                btnRestore.onclick = () => {
+                  applyExternalMultiState(parsed, true);
+                  btnRestore.classList.add('hidden');
+                };
+              }
             }
           }
         }
       } catch (e) {
-        console.warn('loadAllState error:', e);
+        console.warn('checkLocalBackup error:', e);
       }
-
-      // 로컬스토리지에 데이터가 없거나 비어있는 경우 저장소 시드 데이터 자동 연동
-      if (!isLoadedFromLocal && window.INITIAL_CURRICULUM_DATA && window.INITIAL_CURRICULUM_DATA.data) {
-        Object.assign(MultiState, window.INITIAL_CURRICULUM_DATA);
-      }
-
-      if (!MultiState.yearsList.includes('2027')) MultiState.yearsList.unshift('2027');
-      if (!MultiState.yearsList.includes('2026')) MultiState.yearsList.push('2026');
-
-      if (!MultiState.activeYear || !MultiState.yearsList.includes(MultiState.activeYear)) {
-        MultiState.activeYear = '2027';
-      }
-      if (!MultiState.activeGrade || !['2학년', '3학년', '전체'].includes(MultiState.activeGrade)) {
-        MultiState.activeGrade = '3학년';
-      }
-
-      MultiState.yearsList.forEach(y => {
-        if (!MultiState.data[y]) MultiState.data[y] = {};
-        if (!MultiState.data[y]['2학년']) MultiState.data[y]['2학년'] = createEmptyGradeState('2학년');
-        if (!MultiState.data[y]['3학년']) MultiState.data[y]['3학년'] = createEmptyGradeState('3학년');
-        if (!MultiState.data[y]['전체']) MultiState.data[y]['전체'] = { curriculum: [], lastUpdated: null };
-      });
-
-      initAllGradesListeners();
 
       // 저장소 데이터 수동 연동 버튼 이벤트
       document.getElementById('btnLoadRepoData')?.addEventListener('click', () => {
         if (window.INITIAL_CURRICULUM_DATA) {
           applyExternalMultiState(window.INITIAL_CURRICULUM_DATA, false);
-          alert('✅ GitHub 저장소의 최신 수강신청 데이터(2027학년도 3학년)가 성공적으로 연동되었습니다!');
+          alert('✅ GitHub 저장소의 최신 수강신청 데이터가 성공적으로 연동되었습니다!');
         } else {
           alert('연동할 저장소 데이터(curriculum_data.js)를 찾을 수 없습니다.');
         }
