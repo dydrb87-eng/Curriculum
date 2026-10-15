@@ -89,11 +89,45 @@
           <span>📊 구글 시트에서 가져오기</span>
         </button>
         <!-- 1-Click Backup & Restore for Seamless Machine-to-Machine Transfer -->
-        <button id="btnHeaderExportSession" type="button" onclick="window.exportFullBackupJson();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-300 flex items-center space-x-1.5 shadow-xs cursor-pointer" title="현재까지 작업한 모든 데이터(학생 명단, 그룹핑, 고정핀, 저장된 안)를 파일(.json)로 다운로드합니다. 다른 컴퓨터로 작업 이동 시 필수!">
-          <span>💾</span>
-          <span>작업 저장 (백업)</span>
-        </button>
-        <label for="headerRestoreBackupJson" class="px-3.5 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-300 flex items-center space-x-1.5 shadow-xs cursor-pointer" title="이전에 저장한 백업 파일(.json)을 불러와 모든 작업 상태를 그대로 복원합니다.">
+        <div class="relative inline-flex rounded-lg shadow-xs" id="saveButtonGroup">
+          <button id="btnHeaderExportSession" type="button" onclick="window.handleMainSaveButtonClick();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-l-lg transition-all border border-blue-300 flex items-center space-x-1.5 cursor-pointer" title="현재 작업 데이터를 이전에 선택한 위치에 즉시 저장합니다">
+            <span>💾</span>
+            <span id="saveButtonText">작업 저장</span>
+          </button>
+          <button id="btnSaveLocationDropdown" type="button" onclick="window.toggleSaveDropdown(event);" class="px-2 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-200 rounded-r-lg transition-all border-t border-b border-r border-blue-300 flex items-center justify-center cursor-pointer" title="저장 위치 변경 및 옵션">
+            <svg class="w-3.5 h-3.5 transition-transform duration-150" id="saveDropdownArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div id="saveDropdownMenu" class="hidden absolute right-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+            <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] text-slate-400 font-semibold">
+              저장 위치 및 방식 선택
+            </div>
+            <button type="button" onclick="window.saveToPreviousLocation();" class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
+              <span>💾</span>
+              <div>
+                <p class="text-xs text-blue-900 font-bold">이전 위치에 저장</p>
+                <p id="dropdownPrevLocationHint" class="text-[10px] text-slate-500 truncate max-w-[210px]">이전에 지정한 위치에 덮어씁니다</p>
+              </div>
+            </button>
+            <button type="button" onclick="window.saveWithNewLocation();" class="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
+              <span>📁</span>
+              <div>
+                <p class="text-xs text-indigo-900 font-bold">저장 위치 새로 선택...</p>
+                <p class="text-[10px] text-slate-500">원하는 폴더를 직접 지정하여 저장</p>
+              </div>
+            </button>
+            <div class="border-t border-slate-100 my-1"></div>
+            <button type="button" onclick="window.exportStandardDownload();" class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
+              <span>📥</span>
+              <div>
+                <p class="text-xs text-slate-800 font-bold">기본 다운로드 파일로 저장</p>
+                <p class="text-[10px] text-slate-500">브라우저 다운로드 폴더로 저장 (.json)</p>
+              </div>
+            </button>
+          </div>
+        </div>
+        <label id="headerRestoreBackupLabel" for="headerRestoreBackupJson" class="px-3.5 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-300 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="클릭하거나 백업 파일(.json)을 직접 이 버튼 위로 드래그하여 작업 상태를 복원합니다.">
           <span>📂</span>
           <span>작업 불러오기</span>
           <input type="file" id="headerRestoreBackupJson" accept=".json,.xlsx,.xls" class="hidden" onchange="if(this.files[0]) { if(this.files[0].name.toLowerCase().endsWith('.json')) { window.importBackupJsonFile(this.files[0]); } else { processUploadedFile(this.files[0]); } this.value=''; }" />
@@ -379,6 +413,62 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span>📊 종합 엑셀 다운로드</span>
           </button>
+        </div>
+      </div>
+
+      <!-- 1. All Grades Missing Subjects Alert Box (2,3학년 개설 과목 중 편제표 누락 과목 경고) -->
+      <div id="allGradesMissingAlert" class="hidden bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 shadow-sm space-y-3 animate-in fade-in duration-150">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl mt-0.5">⚠️</span>
+            <div>
+              <h4 class="text-sm font-bold text-amber-900 flex items-center gap-2">
+                <span>2·3학년 개설(미폐강) 과목 중 편제표 엑셀에 누락된 과목 발견</span>
+                <span id="allGradesMissingBadge" class="text-xs px-2.5 py-0.5 rounded-full font-black bg-amber-200 text-amber-900 border border-amber-300">0건</span>
+              </h4>
+              <p class="text-xs text-amber-800 mt-1 leading-relaxed">
+                아래 과목들은 <strong>2학년 또는 3학년 수강신청에서 폐강되지 않은(개설 대상) 과목</strong>이지만, 업로드하신 기초데이터(편제표) 엑셀 파일에는 등록되어 있지 않습니다.
+              </p>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('allGradesMissingAlert').classList.add('hidden')" class="text-amber-500 hover:text-amber-900 text-sm font-bold px-2 py-1 rounded cursor-pointer" title="닫기">
+            ✕
+          </button>
+        </div>
+
+        <!-- Missing Subjects Pills Container -->
+        <div id="allGradesMissingListContainer" class="flex flex-wrap gap-2 pt-1">
+          <!-- Dynamically rendered pills -->
+        </div>
+
+        <div class="pt-2.5 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-2">
+          <span class="text-[11px] text-amber-700 font-medium">
+            💡 누락 과목을 편제표에 추가하면 교사 배정 및 시수 통계에 즉시 반영됩니다.
+          </span>
+          <button id="btnAddMissingToCurriculum" type="button" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+            <span>➕ 누락 과목 편제표에 일괄 추가하기</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. All Grades Drag & Drop Upload Zone (전체 탭 드래그 앤 드롭 업로드 구역) -->
+      <div id="allGradesDropZone" class="relative group border-2 border-dashed border-indigo-300 hover:border-indigo-600 rounded-2xl p-4 bg-indigo-50/30 hover:bg-indigo-50/70 transition-all text-center cursor-pointer">
+        <input type="file" id="allGradesDropFileInput" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="기초데이터(편제표) 엑셀 파일을 클릭하거나 드래그하여 업로드하세요" />
+        <div class="pointer-events-none flex items-center justify-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform shrink-0">
+            📊
+          </div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-slate-800">
+              기초데이터(편제표) 엑셀 파일을 이 곳으로 드래그하거나 클릭하여 업로드하세요
+            </p>
+            <p class="text-[11px] text-slate-500 mt-0.5">
+              필수 열: 학기, 학년, 구분(지정/선택), 과목명, 총 시수, 담당교사 (2·3학년 개설 과목 자동 대조)
+            </p>
+          </div>
+          <span class="inline-flex items-center px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-xs ml-auto shrink-0">
+            📁 파일 선택 (.xlsx)
+          </span>
         </div>
       </div>
 
@@ -7240,16 +7330,126 @@
       saveAllState();
     });
 
-    // Full JSON Export (Bundles ALL tabs, ALL grades, ALL years, ALL saved plans into single backup file)
-    window.exportFullBackupJson = function() {
-      // 1. Sync current working grade to MultiState
-      syncCurrentToMulti();
+    // ==========================================
+    // SAVE LOGIC WITH LOCATION SELECTION & SPLIT BUTTON
+    // ==========================================
+    let rememberedSaveHandle = null;
 
-      // 2. Ensure year data container exists
+    // Helper: IndexedDB for FileHandle persistence across browser sessions
+    async function getSavedFileHandle() {
+      return new Promise((resolve) => {
+        try {
+          if (!window.indexedDB) return resolve(null);
+          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
+          req.onupgradeneeded = (e) => {
+            if (!e.target.result.objectStoreNames.contains('handles')) {
+              e.target.result.createObjectStore('handles');
+            }
+          };
+          req.onsuccess = (e) => {
+            const db = e.target.result;
+            try {
+              const tx = db.transaction('handles', 'readonly');
+              const store = tx.objectStore('handles');
+              const getReq = store.get('lastSaveHandle');
+              getReq.onsuccess = () => resolve(getReq.result || null);
+              getReq.onerror = () => resolve(null);
+            } catch { resolve(null); }
+          };
+          req.onerror = () => resolve(null);
+        } catch { resolve(null); }
+      });
+    }
+
+    async function setSavedFileHandle(handle) {
+      rememberedSaveHandle = handle;
+      return new Promise((resolve) => {
+        try {
+          if (!window.indexedDB || !handle) return resolve(false);
+          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
+          req.onupgradeneeded = (e) => {
+            if (!e.target.result.objectStoreNames.contains('handles')) {
+              e.target.result.createObjectStore('handles');
+            }
+          };
+          req.onsuccess = (e) => {
+            const db = e.target.result;
+            try {
+              const tx = db.transaction('handles', 'readwrite');
+              const store = tx.objectStore('handles');
+              store.put(handle, 'lastSaveHandle');
+              tx.oncomplete = () => resolve(true);
+              tx.onerror = () => resolve(false);
+            } catch { resolve(false); }
+          };
+          req.onerror = () => resolve(false);
+        } catch { resolve(false); }
+      });
+    }
+
+    function updateSaveButtonTooltip(name) {
+      const btn = document.getElementById('btnHeaderExportSession');
+      const hint = document.getElementById('dropdownPrevLocationHint');
+      if (btn && name) {
+        btn.title = `클릭 시 이전에 선택한 파일 [${name}]에 바로 저장합니다`;
+      }
+      if (hint && name) {
+        hint.textContent = `현재 설정된 파일: ${name}`;
+      }
+    }
+
+    async function writeToHandle(handle, jsonContent) {
+      if (!handle) return false;
+      if (typeof handle.queryPermission === 'function') {
+        let perm = await handle.queryPermission({ mode: 'readwrite' });
+        if (perm !== 'granted') {
+          perm = await handle.requestPermission({ mode: 'readwrite' });
+          if (perm !== 'granted') return false;
+        }
+      }
+      const writable = await handle.createWritable();
+      await writable.write(jsonContent);
+      await writable.close();
+      return true;
+    }
+
+    window.toggleSaveDropdown = function(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('saveDropdownMenu');
+      const arrow = document.getElementById('saveDropdownArrow');
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+      } else {
+        menu.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    };
+
+    window.closeSaveDropdown = function() {
+      const menu = document.getElementById('saveDropdownMenu');
+      const arrow = document.getElementById('saveDropdownArrow');
+      if (menu) menu.classList.add('hidden');
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
+    };
+
+    window.addEventListener('click', (e) => {
+      const group = document.getElementById('saveButtonGroup');
+      if (group && !group.contains(e.target)) {
+        window.closeSaveDropdown();
+      }
+    });
+
+    window.generateFullBackupJsonString = function() {
+      syncCurrentToMulti();
       const y = MultiState.activeYear || '2027';
       if (!MultiState.data[y]) MultiState.data[y] = {};
+      return JSON.stringify(MultiState, null, 2);
+    };
 
-      // 3. Format filename: 2027학년도 수강신청 데이터_날짜_시간 (YYYYMMDD_HHMMSS)
+    window.generateDefaultBackupFileName = function() {
       const now = new Date();
       const yyyy = now.getFullYear();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -7260,10 +7460,14 @@
       const dateStr = `${yyyy}${mm}${dd}`;
       const timeStr = `${hh}${min}${ss}`;
       const year = MultiState.activeYear || '2027';
-      const filename = `${year}학년도 수강신청 데이터_${dateStr}_${timeStr}.json`;
+      return `${year}학년도 수강신청 데이터_${dateStr}_${timeStr}.json`;
+    };
 
-      // 4. Trigger download using Blob
-      const jsonBlob = new Blob([JSON.stringify(MultiState, null, 2)], { type: 'application/json;charset=utf-8;' });
+    window.exportStandardDownload = function() {
+      window.closeSaveDropdown();
+      const jsonStr = window.generateFullBackupJsonString();
+      const filename = window.generateDefaultBackupFileName();
+      const jsonBlob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
       const url = URL.createObjectURL(jsonBlob);
       const dlAnchor = document.createElement('a');
       dlAnchor.setAttribute("href", url);
@@ -7275,6 +7479,91 @@
         dlAnchor.remove();
       }, 500);
     };
+
+    window.saveWithNewLocation = async function() {
+      window.closeSaveDropdown();
+      const jsonStr = window.generateFullBackupJsonString();
+      const suggestedName = window.generateDefaultBackupFileName();
+
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: suggestedName,
+            types: [{
+              description: '수강신청 작업 백업 파일 (*.json)',
+              accept: { 'application/json': ['.json'] }
+            }]
+          });
+          if (handle) {
+            const ok = await writeToHandle(handle, jsonStr);
+            if (ok) {
+              await setSavedFileHandle(handle);
+              updateSaveButtonTooltip(handle.name);
+              alert(`✅ [${handle.name}] 파일에 성공적으로 저장되었습니다!\n\n앞으로 상단 [작업 저장] 버튼을 누르면 이 파일/위치에 바로 덮어써서 보존됩니다.`);
+              return;
+            }
+          }
+        } catch (err) {
+          if (err.name === 'AbortError') return; // User cancelled
+          console.warn('showSaveFilePicker error:', err);
+        }
+      }
+      // Fallback
+      window.exportStandardDownload();
+    };
+
+    window.saveToPreviousLocation = async function() {
+      window.closeSaveDropdown();
+      let handle = rememberedSaveHandle;
+      if (!handle) handle = await getSavedFileHandle();
+
+      if (handle && window.showSaveFilePicker) {
+        try {
+          const jsonStr = window.generateFullBackupJsonString();
+          const ok = await writeToHandle(handle, jsonStr);
+          if (ok) {
+            setSavedFileHandle(handle);
+            updateSaveButtonTooltip(handle.name);
+            alert(`💾 이전에 지정하신 파일 [${handle.name}]에 성공적으로 덮어쓰기 저장되었습니다!`);
+            return;
+          }
+        } catch (err) {
+          console.warn('saveToPreviousLocation error:', err);
+        }
+      }
+      // If no previous location set, prompt to choose one
+      await window.saveWithNewLocation();
+    };
+
+    window.handleMainSaveButtonClick = async function() {
+      let handle = rememberedSaveHandle;
+      if (!handle) handle = await getSavedFileHandle();
+
+      if (handle && window.showSaveFilePicker) {
+        try {
+          const jsonStr = window.generateFullBackupJsonString();
+          const ok = await writeToHandle(handle, jsonStr);
+          if (ok) {
+            setSavedFileHandle(handle);
+            updateSaveButtonTooltip(handle.name);
+            alert(`💾 이전에 지정하신 파일 [${handle.name}]에 최신 데이터가 성공적으로 저장되었습니다!`);
+            return;
+          }
+        } catch (err) {
+          console.warn('handleMainSaveButtonClick handle error, falling back to picker:', err);
+        }
+      }
+
+      // If no handle or failed, prompt user to pick save location
+      if (window.showSaveFilePicker) {
+        await window.saveWithNewLocation();
+      } else {
+        window.exportStandardDownload();
+      }
+    };
+
+    // Alias for compatibility
+    window.exportFullBackupJson = window.handleMainSaveButtonClick;
     document.getElementById('btnExportFullBackupJson')?.addEventListener('click', window.exportFullBackupJson);
 
     // Restore from JSON (Available globally for header, dropzone and modal)
@@ -7455,6 +7744,149 @@
       return opened;
     }
 
+    // 2,3학년 수강신청 개설(미폐강) 과목 중 편제표 엑셀 누락 과목 대조 검사
+    function checkMissingOpenSubjectsInCurriculum(curriculum) {
+      const activeY = MultiState.activeYear || '2027';
+      const currList = curriculum || getAllGradesCurriculum();
+      if (!currList || currList.length === 0) {
+        document.getElementById('allGradesMissingAlert')?.classList.add('hidden');
+        return [];
+      }
+
+      const missing = [];
+
+      ['2학년', '3학년'].forEach(gradeStr => {
+        const gData = MultiState.data[activeY]?.[gradeStr];
+        if (!gData || !gData.students || gData.students.length === 0) return;
+
+        [1, 2].forEach(sem => {
+          const closedList = gData.closedSubjects?.[sem] || [];
+          const closedNorms = new Set(closedList.map(s => normalizeSubjectKey(s)));
+
+          // 1. 후보 과목 수집 (1단계 조사 과목)
+          let semSubjects = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
+          if (!semSubjects || semSubjects.length === 0) {
+            const semKey = (sem === 1 ? 's1' : 's2');
+            const set = new Set();
+            (gData.students || []).forEach(st => {
+              (st[semKey] || []).forEach(s => { if (s && s.trim()) set.add(s.trim()); });
+            });
+            semSubjects = Array.from(set);
+          }
+
+          // 2. 2단계 그룹핑 배치안 과목 수집
+          let plan = gData.currentPlan;
+          if (!plan || plan.semester !== sem) {
+            const saved = (gData.savedPlans || []).filter(p => p.semester === sem);
+            if (saved.length > 0) plan = saved[saved.length - 1];
+          }
+          const step2Grouped = new Set();
+          if (plan && plan.groups && Array.isArray(plan.groups)) {
+            plan.groups.flat().forEach(tok => {
+              if (tok) step2Grouped.add(getBaseSubjectName(tok));
+            });
+          }
+
+          // 3. 개설(미폐강) 대상 과목: 2단계 그룹에 포함되었거나 1단계 미폐강 과목
+          const openSubjectNames = new Set();
+          step2Grouped.forEach(s => openSubjectNames.add(s));
+          semSubjects.forEach(s => {
+            if (!closedNorms.has(normalizeSubjectKey(s))) {
+              openSubjectNames.add(getBaseSubjectName(s));
+            }
+          });
+
+          // 4. 업로드된 편제표 과목들과 비교
+          const currForGradeSem = currList.filter(item => 
+            item.grade === gradeStr && item.semester === sem
+          );
+          const currNorms = currForGradeSem.map(item => normalizeSubjectKey(item.subject));
+
+          openSubjectNames.forEach(openSubj => {
+            if (!openSubj) return;
+            const norm = normalizeSubjectKey(openSubj);
+            const matchFound = currNorms.some(cNorm => 
+              cNorm === norm || cNorm.includes(norm) || norm.includes(cNorm)
+            );
+            if (!matchFound) {
+              missing.push({
+                grade: gradeStr,
+                semester: sem,
+                subject: openSubj
+              });
+            }
+          });
+        });
+      });
+
+      renderMissingSubjectsAlert(missing);
+      return missing;
+    }
+
+    function renderMissingSubjectsAlert(missingList) {
+      const alertEl = document.getElementById('allGradesMissingAlert');
+      const badgeEl = document.getElementById('allGradesMissingBadge');
+      const container = document.getElementById('allGradesMissingListContainer');
+      if (!alertEl || !container) return;
+
+      if (!missingList || missingList.length === 0) {
+        alertEl.classList.add('hidden');
+        return;
+      }
+
+      if (badgeEl) badgeEl.textContent = `${missingList.length}건 누락`;
+      container.innerHTML = '';
+
+      missingList.forEach(item => {
+        const pill = document.createElement('div');
+        pill.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-amber-300 rounded-lg text-xs font-semibold text-amber-900 shadow-2xs';
+        pill.innerHTML = `
+          <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">${item.grade} ${item.semester}학기</span>
+          <span class="font-bold">${escapeHtml(item.subject)}</span>
+          <span class="text-[10px] text-rose-600 font-bold">(미편제)</span>
+        `;
+        container.appendChild(pill);
+      });
+
+      alertEl.classList.remove('hidden');
+
+      // Bind 일괄 추가 버튼
+      const addBtn = document.getElementById('btnAddMissingToCurriculum');
+      if (addBtn) {
+        addBtn.onclick = () => {
+          const curriculum = getAllGradesCurriculum();
+          let addedCount = 0;
+          missingList.forEach(item => {
+            const exists = curriculum.some(c => 
+              c.grade === item.grade && c.semester === item.semester && 
+              normalizeSubjectKey(c.subject) === normalizeSubjectKey(item.subject)
+            );
+            if (!exists) {
+              curriculum.push({
+                id: 'curr_missing_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + addedCount,
+                semester: item.semester,
+                grade: item.grade,
+                category: '선택',
+                subject: item.subject,
+                baseSubject: getBaseSubjectName(item.subject),
+                division: '',
+                hours: 3,
+                originalTeacher: '',
+                teacher: '',
+                isModified: true,
+                status: '개설'
+              });
+              addedCount++;
+            }
+          });
+          setAllGradesCurriculum(curriculum);
+          applyStep2ToCurriculum(true);
+          renderAllGradesDashboard();
+          alert(`✅ 수강신청 개설 과목 중 누락되었던 [${addedCount}개] 과목이 편제표에 추가되었습니다!\n담당 교사 및 주당 시수를 확인해주세요.`);
+        };
+      }
+    }
+
     function applyStep2ToCurriculum(preserveEdits = true) {
       const curriculum = getAllGradesCurriculum();
       if (curriculum.length === 0) {
@@ -7615,7 +8047,14 @@
 
           setAllGradesCurriculum(parsedCurriculum);
           applyStep2ToCurriculum(true); // Automatically run Step 2 matching
-          alert(`✅ [${parsedCurriculum.length}개] 과목 기초데이터를 성공적으로 불러왔습니다!\n(구분: 지정/선택, 시수: 총 시수, 과목 분반 및 띄어쓰기 자동 처리 완료)`);
+          const missing = checkMissingOpenSubjectsInCurriculum(parsedCurriculum);
+          renderAllGradesDashboard();
+
+          if (missing.length > 0) {
+            alert(`✅ [${parsedCurriculum.length}개] 과목 기초데이터를 성공적으로 불러왔습니다!\n\n⚠️ [편제표 누락 과목 확인]\n2·3학년 수강신청에서 개설된 과목 중 기초데이터 엑셀에 없는 과목이 [${missing.length}개] 발견되었습니다.\n상단 주황색 안내 상자에서 누락 과목을 확인하거나 [일괄 추가]할 수 있습니다.`);
+          } else {
+            alert(`✅ [${parsedCurriculum.length}개] 과목 기초데이터를 성공적으로 불러왔습니다!\n(구분: 지정/선택, 시수: 총 시수, 과목 분반 및 띄어쓰기 자동 처리 완료)`);
+          }
         } catch (err) {
           console.error('parseAllGradesExcel error:', err);
           alert('엑셀 파일을 읽는 도중 오류가 발생했습니다: ' + err.message);
@@ -7642,6 +8081,8 @@
 
       setAllGradesCurriculum(parsedCurriculum);
       applyStep2ToCurriculum(true);
+      checkMissingOpenSubjectsInCurriculum(parsedCurriculum);
+      renderAllGradesDashboard();
       alert(`💡 테스트용 예시 기초데이터(${parsedCurriculum.length}개 과목)를 불러왔습니다!`);
     }
 
@@ -7819,6 +8260,9 @@
 
     function renderAllGradesDashboard(fullRedraw = true) {
       const curriculum = getAllGradesCurriculum();
+
+      // Check for missing open subjects from 2, 3학년
+      checkMissingOpenSubjectsInCurriculum(curriculum);
 
       // Metric calculations
       const teacherSet = new Set();
@@ -8095,6 +8539,8 @@
       const templateBtn = document.getElementById('btnDownloadCurriculumTemplate');
       const sampleBtn = document.getElementById('btnSampleCurriculumData');
       const exportBtn = document.getElementById('btnExportAllGradesExcel');
+      const allGradesDropZone = document.getElementById('allGradesDropZone');
+      const allGradesDropFileInput = document.getElementById('allGradesDropFileInput');
 
       uploadBtn?.addEventListener('click', () => fileInput?.click());
       fileInput?.addEventListener('change', (e) => {
@@ -8104,7 +8550,96 @@
         }
       });
 
-      applyBtn?.addEventListener('click', () => applyStep2ToCurriculum(true));
+      if (allGradesDropFileInput) {
+        allGradesDropFileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            parseAllGradesExcel(e.target.files[0]);
+            e.target.value = '';
+          }
+        });
+      }
+
+      // Drag & Drop on All Grades Drop Zone
+      if (allGradesDropZone) {
+        ['dragenter', 'dragover'].forEach(name => {
+          allGradesDropZone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            allGradesDropZone.classList.add('border-indigo-600', 'bg-indigo-100/70', 'ring-4', 'ring-indigo-200');
+          });
+        });
+        ['dragleave', 'drop'].forEach(name => {
+          allGradesDropZone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            allGradesDropZone.classList.remove('border-indigo-600', 'bg-indigo-100/70', 'ring-4', 'ring-indigo-200');
+          });
+        });
+        allGradesDropZone.addEventListener('drop', (e) => {
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            parseAllGradesExcel(e.dataTransfer.files[0]);
+          }
+        });
+      }
+
+      // Drag & Drop on Upload Button
+      if (uploadBtn) {
+        ['dragenter', 'dragover'].forEach(name => {
+          uploadBtn.addEventListener(name, (e) => {
+            e.preventDefault();
+            uploadBtn.classList.add('ring-2', 'ring-indigo-400', 'scale-105');
+          });
+        });
+        ['dragleave', 'drop'].forEach(name => {
+          uploadBtn.addEventListener(name, (e) => {
+            e.preventDefault();
+            uploadBtn.classList.remove('ring-2', 'ring-indigo-400', 'scale-105');
+          });
+        });
+        uploadBtn.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            parseAllGradesExcel(e.dataTransfer.files[0]);
+          }
+        });
+      }
+
+      // Drag & Drop on Header '작업 불러오기' Button
+      const headerRestoreLabel = document.getElementById('headerRestoreBackupLabel');
+      if (headerRestoreLabel) {
+        ['dragenter', 'dragover'].forEach(name => {
+          headerRestoreLabel.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            headerRestoreLabel.classList.add('ring-2', 'ring-indigo-600', 'bg-indigo-100', 'scale-105');
+          });
+        });
+        ['dragleave', 'drop'].forEach(name => {
+          headerRestoreLabel.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            headerRestoreLabel.classList.remove('ring-2', 'ring-indigo-600', 'bg-indigo-100', 'scale-105');
+          });
+        });
+        headerRestoreLabel.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const f = e.dataTransfer.files[0];
+            if (f.name.toLowerCase().endsWith('.json')) {
+              window.importBackupJsonFile(f);
+            } else {
+              processUploadedFile(f);
+            }
+          }
+        });
+      }
+
+      applyBtn?.addEventListener('click', () => {
+        applyStep2ToCurriculum(true);
+        checkMissingOpenSubjectsInCurriculum();
+        renderAllGradesDashboard();
+      });
       templateBtn?.addEventListener('click', downloadCurriculumTemplate);
       sampleBtn?.addEventListener('click', loadSampleCurriculumData);
       exportBtn?.addEventListener('click', exportAllGradesConsolidatedExcel);
@@ -8134,6 +8669,14 @@
       });
 
       initAllGradesListeners();
+
+      // 저장된 파일 핸들(저장 위치) 비동기 로드
+      getSavedFileHandle().then(handle => {
+        if (handle) {
+          rememberedSaveHandle = handle;
+          updateSaveButtonTooltip(handle.name);
+        }
+      });
 
       // 브라우저 로컬 저장소에 이전 작업 흔적이 있는 경우, 드롭존에서 수동 복원할 수 있도록 버튼 제공
       try {
