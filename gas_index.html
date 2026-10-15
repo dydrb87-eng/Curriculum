@@ -2444,112 +2444,209 @@
     }
 
     // ==========================================
-    // 2. SAMPLE DATA GENERATOR
+    // 2. SAMPLE DATA GENERATOR & INITIAL STATES
     // ==========================================
+    const SAMPLE_2ND_GRADE_RAW = [
+      { c: '1', n: '1', name: '강민규', career: '탐색중', s1: ['미디어 영어', '세계사', '중국어'], s2: ['인공지능 수학', '실생활 영어 회화', '법과 사회', '중국어 회화'] },
+      { c: '1', n: '2', name: '강민채', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '1', n: '3', name: '권오선', career: '탐색중', s1: ['주제 탐구 독서', '중국어', '육상'], s2: ['윤리와 사상', '경제', '운동과 건강', '일본어 회화'] },
+      { c: '1', n: '4', name: '김동혁', career: '탐색중', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '일본어 회화', '정보'] },
+      { c: '1', n: '5', name: '김민진', career: '탐색중', s1: ['주제 탐구 독서', '세계사', '현대사회와 윤리'], s2: ['매체 의사소통', '법과 사회', '윤리와 사상', '동아시아 역사 기행'] },
+      { c: '1', n: '6', name: '김승준', career: '탐색중', s1: ['미디어 영어', '현대사회와 윤리', '중국어'], s2: ['실생활 영어 회화', '법과 사회', '지구과학', '중국어 회화'] },
+      { c: '1', n: '7', name: '김예람', career: '미용', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['실생활 영어 회화', '윤리와 사상', '운동과 건강', '일본어 회화'] },
+      { c: '1', n: '8', name: '박은비', career: '간호학과', s1: ['미디어 영어', '현대사회와 윤리', '일본어'], s2: ['영미 문학 읽기', '윤리와 사상', '동아시아 역사 기행', '일본어 회화'] },
+      { c: '1', n: '9', name: '박재윤', career: '소프트웨어학과', s1: ['미디어 영어', '물리학', '일본어'], s2: ['인공지능 수학', '수학과제 탐구', '역학과 에너지', '정보'] },
+      { c: '1', n: '10', name: '엄백호', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '1', n: '11', name: '원규연', career: '탐색중', s1: ['현대사회와 윤리', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '일본어 회화', '정보'] },
+      { c: '1', n: '12', name: '윤지우', career: '미디어콘텐츠학과', s1: ['미디어 영어', '현대사회와 윤리', '중국어'], s2: ['매체 의사소통', '영미 문학 읽기', '법과 사회', '중국어 회화'] },
+      { c: '1', n: '13', name: '이호주', career: '체육교육과', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '1', n: '14', name: '장시우', career: '전기전자공학과', s1: ['물리학', '화학', '주제 탐구 독서'], s2: ['인공지능 수학', '수학과제 탐구', '역학과 에너지', '정보'] },
+      { c: '1', n: '15', name: '장은총', career: '탐색중', s1: ['중국어', '기초 체육 전공 실기', '육상'], s2: ['실생활 영어 회화', '윤리와 사상', '심화체육전공실기', '중국어 회화'] },
+      { c: '1', n: '17', name: '정수민', career: '화학공학과', s1: ['물리학', '화학', '생명과학'], s2: ['수학과제 탐구', '경제', '역학과 에너지', '세포와 물질대사'] },
+      { c: '1', n: '18', name: '최규완', career: '체육교육과', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '1', n: '19', name: '최리', career: '미용', s1: ['미디어 영어', '현대사회와 윤리', '일본어'], s2: ['실생활 영어 회화', '윤리와 사상', '동아시아 역사 기행', '일본어 회화'] },
+      { c: '1', n: '20', name: '최현서', career: '법학과, 행정학과', s1: ['미디어 영어', '현대사회와 윤리', '중국어'], s2: ['매체 의사소통', '영미 문학 읽기', '법과 사회', '중국어 회화'] },
+      { c: '1', n: '23', name: '정다교', career: '체육교사', s1: ['현대사회와 윤리', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '1', n: '24', name: '김석현', career: '운동관련', s1: ['미디어 영어', '일본어', '기초 체육 전공 실기'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '1', name: '권다현', career: '간호사', s1: ['주제 탐구 독서', '현대사회와 윤리', '일본어'], s2: ['영미 문학 읽기', '윤리와 사상', '일본어 회화', '정보'] },
+      { c: '2', n: '2', name: '권한아름', career: '교육계열', s1: ['주제 탐구 독서', '미디어 영어', '현대사회와 윤리'], s2: ['매체 의사소통', '세계 문화와 영어', '윤리와 사상', '기술‧가정'] },
+      { c: '2', n: '4', name: '기대한', career: '영어 교사 , 영어교육학과', s1: ['미디어 영어', '현대사회와 윤리', '일본어'], s2: ['실생활 영어 회화', '윤리와 사상', '일본어 회화', '정보'] },
+      { c: '2', n: '5', name: '김기영', career: '운동선수', s1: ['세계사', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '일본어 회화', '정보'] },
+      { c: '2', n: '6', name: '송찬국', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '7', name: '안시우', career: '의학계열', s1: ['주제 탐구 독서', '미디어 영어', '생명과학'], s2: ['인공지능 수학', '수학과제 탐구', '세포와 물질대사', '지구과학'] },
+      { c: '2', n: '8', name: '이성준', career: '물리학과', s1: ['물리학', '화학', '생명과학'], s2: ['인공지능 수학', '수학과제 탐구', '역학과 에너지', '세포와 물질대사'] },
+      { c: '2', n: '9', name: '이재서', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '10', name: '이지효', career: '엔터테인먼트 기획 및 경영', s1: ['미디어 영어', '현대사회와 윤리', '일본어'], s2: ['매체 의사소통', '영미 문학 읽기', '법과 사회', '일본어 회화'] },
+      { c: '2', n: '11', name: '지동현', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '12', name: '한지현', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '14', name: '현표', career: '체육', s1: ['미디어 영어', '물리학', '화학'], s2: ['인공지능 수학', '수학과제 탐구', '역학과 에너지', '정보'] },
+      { c: '2', n: '15', name: '홍준서', career: '의료', s1: ['현대사회와 윤리', '화학', '생명과학'], s2: ['수학과제 탐구', '세포와 물질대사', '윤리와 사상', '회계 원리'] },
+      { c: '2', n: '16', name: '오흥민', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '17', name: '곽효민', career: '군인', s1: ['미디어 영어', '일본어', '기초 체육 전공 실기'], s2: ['운동과 건강', '심화체육전공실기', '일본어 회화', '정보'] },
+      { c: '2', n: '18', name: '강승재', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '19', name: '김대현', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '20', name: '이현호', career: '체육', s1: ['기초 체육 전공 실기', '육상', '중국어'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
+      { c: '2', n: '21', name: '김준이', career: '체육', s1: ['기초 체육 전공 실기', '육상', '중국어'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] }
+    ];
+
+    const SAMPLE_3RD_GRADE_RAW = [
+      { c: '1', n: '1', name: '고요한', career: '게임학과', s1: ["미술 창작","음악 연주와 창작","음악 감상과 비평","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["문학과 영상","여행지리","미술 감상과 비평","인간과 심리","중국 문화","일본 문화","스포츠 경기 기술"] },
+      { c: '1', n: '2', name: '권순범', career: '음향', s1: ["독서 토론과 글쓰기","윤리와 사상","사회와 문화","음악 연주와 창작","중국 문화"], s2: ["여행지리","미술 창작","음악 감상과 비평","미술 감상과 비평","논술","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '1', n: '3', name: '김리언', career: '탐색중', s1: ["음악 연주와 창작","음악 감상과 비평","보건","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["실생활 영어 회화","여행지리","미술 창작","미술 감상과 비평","인간과 심리","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '1', n: '4', name: '김소민', career: '간호', s1: ["미적분Ⅱ","사회문제 탐구","생물의 유전","융합과학 탐구","보건"], s2: ["문학과 영상","언어생활 탐구","심화 영어 독해와 작문","과학의 역사와 문화","음악 연주와 창작","인간과 심리","논술"] },
+      { c: '1', n: '5', name: '김승찬', career: '소방', s1: ["영어 독해와 작문","윤리와 사상","사회와 문화","사회문제 탐구","보건"], s2: ["문학과 영상","언어생활 탐구","심화 영어 독해와 작문","여행지리","미술 창작","인간과 심리","중국 문화"] },
+      { c: '1', n: '6', name: '김예빈', career: '소설작가/웹소설학과', s1: ["독서 토론과 글쓰기","미술 창작","음악 연주와 창작","인간과 심리","일본 문화"], s2: ["문학과 영상","영미 문학 읽기","과학의 역사와 문화","음악 감상과 비평","미술 감상과 비평","논술","일본 문화"] },
+      { c: '1', n: '7', name: '박성준', career: '축구', s1: ["음악 감상과 비평","보건","일본 문화","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["여행지리","미술 창작","미술 감상과 비평","인간과 심리","중국 문화","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '1', n: '9', name: '배섬근', career: '항공정비', s1: ["미적분Ⅱ","경제 수학","영어 독해와 작문","미디어 영어","인간과 심리"], s2: ["실용 통계","심화 영어 독해와 작문","세계 문화와 영어","실생활 영어 회화","영미 문학 읽기","과학의 역사와 문화","인간과 심리"] },
+      { c: '1', n: '11', name: '이윤하', career: '체육학과', s1: ["음악 감상과 비평","보건","일본 문화","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["여행지리","미술 창작","미술 감상과 비평","인간과 심리","중국 문화","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '1', n: '12', name: '임지연', career: '제과제빵', s1: ["사회와 문화","미술 창작","보건","인간과 심리","일본 문화"], s2: ["문학과 영상","여행지리","미술 창작","음악 감상과 비평","인간과 심리","논술","일본 문화"] },
+      { c: '1', n: '14', name: '장현일', career: '탐색중', s1: ["음악 연주와 창작","보건","일본 문화","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["문학과 영상","실생활 영어 회화","음악 감상과 비평","인간과 심리","논술","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '1', n: '15', name: '전시우', career: '체육', s1: ["음악 감상과 비평","보건","일본 문화","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["실생활 영어 회화","여행지리","미술 창작","미술 감상과 비평","인간과 심리","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '1', n: '16', name: '전하랑', career: '축구', s1: ["미술 창작","보건","일본 문화","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["언어생활 탐구","여행지리","음악 감상과 비평","인간과 심리","중국 문화","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '1', n: '17', name: '조기환', career: '탐색중', s1: ["독서 토론과 글쓰기","미적분Ⅱ","사회문제 탐구","미술 창작","보건"], s2: ["언어생활 탐구","심화 영어 독해와 작문","실생활 영어 회화","여행지리","미술 감상과 비평","인간과 심리","논술"] },
+      { c: '1', n: '18', name: '한지민', career: '탐색중', s1: ["영어 독해와 작문","사회와 문화","생물의 유전","보건","일본 문화"], s2: ["문학과 영상","과학의 역사와 문화","음악 연주와 창작","미술 감상과 비평","인간과 심리","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '2', n: '2', name: '배다정', career: '간호', s1: ["미적분Ⅱ","미디어 영어","생물의 유전","융합과학 탐구","보건"], s2: ["문학과 영상","언어생활 탐구","실용 통계","심화 영어 독해와 작문","과학의 역사와 문화","미술 감상과 비평","논술"] },
+      { c: '2', n: '3', name: '노준표', career: '탐색중', s1: ["미술 창작","음악 연주와 창작","음악 감상과 비평","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["문학과 영상","여행지리","미술 감상과 비평","인간과 심리","일본 문화","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '2', n: '6', name: '배학성', career: '초등교육학과', s1: ["독서 토론과 글쓰기","미적분Ⅱ","영어 독해와 작문","사회문제 탐구","보건"], s2: ["실용 통계","심화 영어 독해와 작문","여행지리","과학의 역사와 문화","미술 감상과 비평","논술","중국 문화"] },
+      { c: '2', n: '9', name: '원용준', career: '축구', s1: ["미술 창작","보건","일본 문화","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["실생활 영어 회화","여행지리","음악 연주와 창작","음악 감상과 비평","인간과 심리","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '2', n: '12', name: '장민호', career: '체육학과', s1: ["미술 창작","음악 연주와 창작","음악 감상과 비평","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["영미 문학 읽기","여행지리","미술 감상과 비평","인간과 심리","일본 문화","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '2', n: '15', name: '조섬근', career: '영어교사', s1: ["독서 토론과 글쓰기","미디어 영어","사회문제 탐구","미술 창작","미술 감상과 비평"], s2: ["심화 영어 독해와 작문","여행지리","음악 연주와 창작","음악 감상과 비평","중국 문화","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '2', n: '16', name: '조이락', career: '탐색중', s1: ["미술 창작","음악 연주와 창작","음악 감상과 비평","고급 체육 전공 실기","스포츠 경기 체력"], s2: ["영미 문학 읽기","여행지리","미술 감상과 비평","인간과 심리","중국 문화","스포츠 경기 기술","스포츠 경기 분석"] },
+      { c: '2', n: '18', name: '홍승현', career: '탐색중', s1: ["독서 토론과 글쓰기","영어 독해와 작문","음악 연주와 창작","음악 감상과 비평","일본 문화"], s2: ["문학과 영상","심화 영어 독해와 작문","영미 문학 읽기","여행지리","미술 창작","미술 감상과 비평","중국 문화"] }
+    ];
+
+    function createInitialGradeState(grade = '2학년', year = '2027') {
+      const is3rd = (grade === '3학년');
+      const rawSample = is3rd ? SAMPLE_3RD_GRADE_RAW : SAMPLE_2ND_GRADE_RAW;
+
+      const sem1Set = new Set();
+      const sem2Set = new Set();
+
+      const students = rawSample.map((st, idx) => {
+        st.s1.forEach(s => sem1Set.add(s));
+        st.s2.forEach(s => sem2Set.add(s));
+        return {
+          id: `std_${grade}_${idx + 1}`,
+          classNum: st.c,
+          studentNum: st.n,
+          name: st.name,
+          career: st.career,
+          sem1: [...st.s1],
+          sem2: [...st.s2]
+        };
+      });
+
+      const sem1Subjects = Array.from(sem1Set).sort();
+      const sem2Subjects = Array.from(sem2Set).sort();
+
+      const savedPlans = is3rd
+        ? [
+            {
+              id: 'plan_saved_3rd_1',
+              name: '1학기 추천안 (충돌 9명)',
+              semester: 1,
+              groups: [
+                ['독서 토론과 글쓰기', '생물의 유전', '스포츠 경기 체력', '윤리와 사상', '인간과 심리'],
+                ['미술 창작', '영어 독해와 작문', '융합과학 탐구', '음악 감상과 비평'],
+                ['미디어 영어', '보건'],
+                ['경제 수학', '사회문제 탐구', '음악 연주와 창작', '일본 문화'],
+                ['고급 체육 전공 실기', '미술 감상과 비평', '미적분Ⅱ', '사회와 문화', '중국 문화']
+              ],
+              conflictCount: 9,
+              conflicts: [],
+              pinnedConfig: {},
+              memo: '3학년 1학기 5개 그룹 추천안 (택5)',
+              timestamp: new Date().toLocaleTimeString()
+            },
+            {
+              id: 'plan_saved_3rd_2',
+              name: '2학기 추천안 (충돌 12명)',
+              semester: 2,
+              groups: [
+                ['논술', '여행지리'],
+                ['스포츠 경기 분석'],
+                ['미술 감상과 비평', '음악 감상과 비평'],
+                ['문학과 영상', '미술 창작', '언어생활 탐구', '영미 문학 읽기', '음악 연주와 창작'],
+                ['과학의 역사와 문화', '스포츠 경기 기술', '실용 통계'],
+                ['세계 문화와 영어', '실생활 영어 회화', '일본 문화', '중국 문화'],
+                ['심화 영어 독해와 작문', '인간과 심리']
+              ],
+              conflictCount: 12,
+              conflicts: [],
+              pinnedConfig: {},
+              memo: '3학년 2학기 7개 그룹 추천안 (택7)',
+              timestamp: new Date().toLocaleTimeString()
+            }
+          ]
+        : [
+            {
+              id: 'plan_saved_1',
+              name: '1학기 1안 (충돌 6명)',
+              semester: 1,
+              groups: [
+                ['기초 체육 전공 실기', '물리학', '현대사회와 윤리'],
+                ['미디어 영어', '생명과학', '육상', '주제 탐구 독서'],
+                ['세계사', '일본어', '중국어', '화학']
+              ],
+              conflictCount: 6,
+              conflicts: [],
+              pinnedConfig: { '물리학': 1, '화학': 3, '생명과학': 2 },
+              memo: '2학년 1학기 3개 그룹 확정안 (택3)',
+              timestamp: new Date().toLocaleTimeString()
+            }
+          ];
+
+      return {
+        detectedGrade: grade,
+        fileName: `${year}학년도_${grade}_2차_선택과목_수강신청.xlsx`,
+        students: students,
+        sem1Subjects: sem1Subjects,
+        sem2Subjects: sem2Subjects,
+        currentSemester: 1,
+        step1Threshold: 3,
+        sem1GroupCount: is3rd ? 5 : 3,
+        sem2GroupCount: is3rd ? 7 : 4,
+        splitSubjects: { 1: {}, 2: {} },
+        pinnedSubjects: is3rd ? { 1: {}, 2: {} } : { 1: { '물리학': 1, '화학': 3, '생명과학': 2 }, 2: {} },
+        togetherPairs: { 1: [], 2: [] },
+        separatePairs: { 1: [], 2: [] },
+        closedSubjects: { 1: [], 2: [] },
+        subjectMemos: { 1: {}, 2: {} },
+        studentPins: [],
+        savedPlans: savedPlans,
+        currentPlan: JSON.parse(JSON.stringify(savedPlans[0])),
+        targetConflictN: { 1: null, 2: null },
+        simulationHistory: {
+          1: { runCount: 1, minConflictEver: is3rd ? 9 : 6, minConflictPlan: savedPlans[0] },
+          2: { runCount: is3rd ? 1 : 0, minConflictEver: is3rd ? 12 : null, minConflictPlan: is3rd ? savedPlans[1] : null }
+        },
+        priorData: null,
+        crossCheckResult: { missingStudents: [], duplicateEnrollments: [] },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
     btnSampleData.addEventListener('click', () => {
-      loadSampleHighSchoolData();
+      loadSampleHighSchoolData(MultiState.activeGrade);
     });
 
-    function loadSampleHighSchoolData() {
-      const activeG = MultiState.activeGrade || '2학년';
+    function loadSampleHighSchoolData(targetGrade) {
+      const activeG = targetGrade || MultiState.activeGrade || '2학년';
       const activeY = MultiState.activeYear || '2027';
+      MultiState.activeGrade = activeG;
+
+      const state = createInitialGradeState(activeG, activeY);
+      Object.assign(AppState, JSON.parse(JSON.stringify(state)));
+      MultiState.data[activeY][activeG] = JSON.parse(JSON.stringify(AppState));
+
       AppState.detectedGrade = activeG;
       AppState.fileName = `${activeY}학년도_${activeG}_2차_선택과목_수강신청.xlsx`;
       gradeBadge.textContent = `🎯 ${activeG} 감지됨`;
       gradeBadge.classList.remove('hidden');
       restoredBadge.classList.add('hidden');
       btnResetAll.classList.remove('hidden');
-
-      const rawSample = [
-        { c: '1', n: '1', name: '강민규', career: '탐색중', s1: ['미디어 영어', '세계사', '중국어'], s2: ['인공지능 수학', '실생활 영어 회화', '법과 사회', '중국어 회화'] },
-        { c: '1', n: '2', name: '강민채', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '1', n: '3', name: '권오선', career: '탐색중', s1: ['주제 탐구 독서', '중국어', '육상'], s2: ['윤리와 사상', '경제', '운동과 건강', '일본어 회화'] },
-        { c: '1', n: '4', name: '김동혁', career: '탐색중', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '일본어 회화', '정보'] },
-        { c: '1', n: '5', name: '김민진', career: '탐색중', s1: ['주제 탐구 독서', '세계사', '현대사회와 윤리'], s2: ['매체 의사소통', '법과 사회', '윤리와 사상', '동아시아 역사 기행'] },
-        { c: '1', n: '6', name: '김승준', career: '탐색중', s1: ['미디어 영어', '현대사회와 윤리', '중국어'], s2: ['실생활 영어 회화', '법과 사회', '지구과학', '중국어 회화'] },
-        { c: '1', n: '7', name: '김예람', career: '미용', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['실생활 영어 회화', '윤리와 사상', '운동과 건강', '일본어 회화'] },
-        { c: '1', n: '8', name: '박은비', career: '간호학과', s1: ['미디어 영어', '현대사회와 윤리', '일본어'], s2: ['영미 문학 읽기', '윤리와 사상', '동아시아 역사 기행', '일본어 회화'] },
-        { c: '1', n: '9', name: '박재윤', career: '소프트웨어학과', s1: ['미디어 영어', '물리학', '일본어'], s2: ['인공지능 수학', '수학과제 탐구', '역학과 에너지', '정보'] },
-        { c: '1', n: '10', name: '엄백호', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '1', n: '11', name: '원규연', career: '탐색중', s1: ['현대사회와 윤리', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '일본어 회화', '정보'] },
-        { c: '1', n: '12', name: '윤지우', career: '미디어콘텐츠학과', s1: ['미디어 영어', '현대사회와 윤리', '중국어'], s2: ['매체 의사소통', '영미 문학 읽기', '법과 사회', '중국어 회화'] },
-        { c: '1', n: '13', name: '이호주', career: '체육교육과', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '1', n: '14', name: '장시우', career: '전기전자공학과', s1: ['물리학', '화학', '주제 탐구 독서'], s2: ['인공지능 수학', '수학과제 탐구', '역학과 에너지', '정보'] },
-        { c: '1', n: '15', name: '장은총', career: '탐색중', s1: ['중국어', '기초 체육 전공 실기', '육상'], s2: ['실생활 영어 회화', '윤리와 사상', '심화체육전공실기', '중국어 회화'] },
-        { c: '1', n: '17', name: '정수민', career: '화학공학과', s1: ['물리학', '화학', '생명과학'], s2: ['수학과제 탐구', '경제', '역학과 에너지', '세포와 물질대사'] },
-        { c: '1', n: '18', name: '최규완', career: '체육교육과', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '1', n: '19', name: '최리', career: '미용', s1: ['미디어 영어', '현대사회와 윤리', '일본어'], s2: ['실생활 영어 회화', '윤리와 사상', '동아시아 역사 기행', '일본어 회화'] },
-        { c: '1', n: '20', name: '최현서', career: '법학과, 행정학과', s1: ['미디어 영어', '현대사회와 윤리', '중국어'], s2: ['매체 의사소통', '영미 문학 읽기', '법과 사회', '중국어 회화'] },
-        { c: '1', n: '23', name: '정다교', career: '체육교사', s1: ['현대사회와 윤리', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '1', n: '24', name: '김석현', career: '운동관련', s1: ['미디어 영어', '일본어', '기초 체육 전공 실기'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '1', name: '권다현', career: '간호사', s1: ['주제 탐구 독서', '현대사회와 윤리', '일본어'], s2: ['영미 문학 읽기', '윤리와 사상', '일본어 회화', '정보'] },
-        { c: '2', n: '2', name: '권한아름', career: '교육계열', s1: ['주제 탐구 독서', '미디어 영어', '현대사회와 윤리'], s2: ['매체 의사소통', '세계 문화와 영어', '윤리와 사상', '기술‧가정'] },
-        { c: '2', n: '4', name: '기대한', career: '영어 교사 , 영어교육학과', s1: ['미디어 영어', '현대사회와 윤리', '일본어'], s2: ['실생활 영어 회화', '윤리와 사상', '일본어 회화', '정보'] },
-        { c: '2', n: '5', name: '김기영', career: '운동선수', s1: ['세계사', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '일본어 회화', '정보'] },
-        { c: '2', n: '6', name: '송찬국', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '7', name: '안시우', career: '의학계열', s1: ['주제 탐구 독서', '미디어 영어', '생명과학'], s2: ['인공지능 수학', '수학과제 탐구', '세포와 물질대사', '지구과학'] },
-        { c: '2', n: '8', name: '이성준', career: '물리학과', s1: ['물리학', '화학', '생명과학'], s2: ['인공지능 수학', '수학과제 탐구', '역학과 에너지', '세포와 물질대사'] },
-        { c: '2', n: '9', name: '이재서', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '10', name: '이지효', career: '엔터테인먼트 기획 및 경영', s1: ['미디어 영어', '현대사회와 윤리', '일본어'], s2: ['매체 의사소통', '영미 문학 읽기', '법과 사회', '일본어 회화'] },
-        { c: '2', n: '11', name: '지동현', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '12', name: '한지현', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '14', name: '현표', career: '체육', s1: ['미디어 영어', '물리학', '화학'], s2: ['인공지능 수학', '수학과제 탐구', '역학과 에너지', '정보'] },
-        { c: '2', n: '15', name: '홍준서', career: '의료', s1: ['현대사회와 윤리', '화학', '생명과학'], s2: ['수학과제 탐구', '세포와 물질대사', '윤리와 사상', '회계 원리'] },
-        { c: '2', n: '16', name: '오흥민', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '17', name: '곽효민', career: '군인', s1: ['미디어 영어', '일본어', '기초 체육 전공 실기'], s2: ['운동과 건강', '심화체육전공실기', '일본어 회화', '정보'] },
-        { c: '2', n: '18', name: '강승재', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '19', name: '김대현', career: '체육', s1: ['일본어', '기초 체육 전공 실기', '육상'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '20', name: '이현호', career: '체육', s1: ['기초 체육 전공 실기', '육상', '중국어'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] },
-        { c: '2', n: '21', name: '김준이', career: '체육', s1: ['기초 체육 전공 실기', '육상', '중국어'], s2: ['운동과 건강', '심화체육전공실기', '중국어 회화', '일본어 회화'] }
-      ];
-
-      const sem1Set = new Set();
-      const sem2Set = new Set();
-
-      AppState.students = rawSample.map((st, idx) => {
-        st.s1.forEach(s => sem1Set.add(s));
-        st.s2.forEach(s => sem2Set.add(s));
-        return {
-          id: `std_${idx + 1}`,
-          classNum: st.c,
-          studentNum: st.n,
-          name: st.name,
-          career: st.career,
-          sem1: st.s1,
-          sem2: st.s2
-        };
-      });
-
-      AppState.sem1Subjects = Array.from(sem1Set).sort();
-      AppState.sem2Subjects = Array.from(sem2Set).sort();
-      AppState.sem1GroupCount = 3; // 택3
-      AppState.sem2GroupCount = 4; // 택4
-
-      AppState.splitSubjects = { 1: {}, 2: {} };
-      AppState.pinnedSubjects = { 
-        1: { '물리학': 1, '화학': 3, '생명과학': 2 }, 
-        2: {} 
-      };
-      AppState.closedSubjects = { 1: [], 2: [] };
-      AppState.subjectMemos = { 1: {}, 2: {} };
-      AppState.studentPins = [];
-      AppState.savedPlans = [
-        {
-          id: 'plan_saved_1',
-          name: '1학기 1안 (충돌 6명)',
-          semester: 1,
-          groups: [
-            ['기초 체육 전공 실기', '물리학', '현대사회와 윤리'],
-            ['미디어 영어', '생명과학', '육상', '주제 탐구 독서'],
-            ['세계사', '일본어', '중국어', '화학']
-          ],
-          conflictsCount: 6,
-          pinnedConfig: { '물리학': 1, '화학': 3, '생명과학': 2 },
-          timestamp: new Date().toLocaleTimeString()
-        }
-      ];
-
       appBody.classList.remove('hidden');
+
       if (!AppState.priorData) {
         loadSamplePriorData(false);
       } else {
@@ -2557,14 +2654,19 @@
       }
       renderStep1();
       initStep2Controls();
-      if (AppState.savedPlans.length > 0) {
+
+      if (AppState.savedPlans && AppState.savedPlans.length > 0) {
         AppState.currentPlan = JSON.parse(JSON.stringify(AppState.savedPlans[0]));
-        evaluateCurrentPlanConflicts();
+        const analysis = analyzeGroupConflicts(AppState.currentPlan);
+        AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
+        AppState.currentPlan.conflicts = analysis.conflictDetails;
         renderStep2Results();
       } else {
         runOptimization();
       }
       saveAllState();
+      renderYearGradeNav();
+      updateModalStats();
     }
 
     btnResetAll.addEventListener('click', () => {
@@ -6648,6 +6750,7 @@
     // =========================================================================
 
     function createEmptyGradeState(grade = '2학년') {
+      const is3rd = (grade === '3학년');
       return {
         detectedGrade: grade,
         fileName: '',
@@ -6656,8 +6759,8 @@
         sem2Subjects: [],
         currentSemester: 1,
         step1Threshold: 3,
-        sem1GroupCount: 5,
-        sem2GroupCount: 7,
+        sem1GroupCount: is3rd ? 5 : 3,
+        sem2GroupCount: is3rd ? 7 : 4,
         splitSubjects: { 1: {}, 2: {} },
         pinnedSubjects: { 1: {}, 2: {} },
         togetherPairs: { 1: [], 2: [] },
@@ -6708,7 +6811,7 @@
       lastUpdated: new Date().toISOString()
     };
 
-    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V2';
+    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V3';
     const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
 
     // Cloud Sync Manager
@@ -6985,6 +7088,15 @@
         if (thresholdInput) thresholdInput.value = AppState.step1Threshold || 3;
         renderStep1();
         renderStep2UI();
+        if (AppState.savedPlans && AppState.savedPlans.length > 0 && !AppState.currentPlan) {
+          AppState.currentPlan = JSON.parse(JSON.stringify(AppState.savedPlans[0]));
+        }
+        if (AppState.currentPlan) {
+          const analysis = analyzeGroupConflicts(AppState.currentPlan);
+          AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
+          AppState.currentPlan.conflicts = analysis.conflictDetails;
+          renderStep2Results();
+        }
       } else {
         appBody.classList.add('hidden');
         btnResetAll.classList.add('hidden');
@@ -8019,7 +8131,10 @@
     // Initialize MultiState & Load on Startup
     function loadAllState() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        let raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          raw = localStorage.getItem('SANGJI_COURSE_REG_MULTI_V2');
+        }
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && parsed.data) {
@@ -8047,15 +8162,21 @@
         if (!MultiState.data[y]['전체']) MultiState.data[y]['전체'] = { curriculum: [], lastUpdated: null };
       });
 
+      // Auto-populate 2027 full datasets if empty or outdated (< 40 for 2학년, < 20 for 3학년)
+      ['2027'].forEach(y => {
+        const g2 = MultiState.data[y]['2학년'];
+        if (!g2 || !g2.students || g2.students.length < 40) {
+          MultiState.data[y]['2학년'] = createInitialGradeState('2학년', y);
+        }
+        const g3 = MultiState.data[y]['3학년'];
+        if (!g3 || !g3.students || g3.students.length < 20) {
+          MultiState.data[y]['3학년'] = createInitialGradeState('3학년', y);
+        }
+      });
+
       initAllGradesListeners();
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       cloudSync.init();
-
-      // If active grade has no students yet, auto-populate with previous survey data so user sees everything immediately!
-      const currentActiveGradeState = MultiState.data[MultiState.activeYear]?.[MultiState.activeGrade];
-      if (!currentActiveGradeState || !currentActiveGradeState.students || currentActiveGradeState.students.length === 0) {
-        loadSampleHighSchoolData();
-      }
     }
 
     // Run Startup Initialization
