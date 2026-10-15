@@ -16,6 +16,8 @@
   <!-- Firebase Cloud Database SDK (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <!-- GitHub Curriculum Repository Seed Data -->
+  <script src="curriculum_data.js"></script>
   <!-- Custom Tailwind Config -->
   <script>
     tailwind.config = {
@@ -145,6 +147,12 @@
 
       <!-- Right: Current Active Context Badge & Cloud DB Status Badge -->
       <div class="flex items-center gap-2.5 text-xs shrink-0">
+        <!-- Load Repo Data Button -->
+        <button id="btnLoadRepoData" type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 hover:bg-indigo-100 transition shadow-2xs cursor-pointer" title="GitHub 저장소의 2027학년도 최신 수강신청 데이터 불러오기">
+          <span>📂</span>
+          <span>저장소 최신 데이터 불러오기</span>
+        </button>
+
         <!-- Backend / Cloud Status Badge (Click to open settings) -->
         <button id="btnCloudStatus" type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 transition shadow-2xs" title="클라우드 DB 및 데이터 백업/복원 관리">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -478,8 +486,8 @@
 
             <select id="allGradesFilterCategory" class="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 shadow-2xs">
               <option value="all">전체 구분</option>
-              <option value="학교지정">학교지정</option>
-              <option value="학생선택">학생선택</option>
+              <option value="지정">지정</option>
+              <option value="선택">선택</option>
             </select>
 
             <select id="allGradesFilterStatus" class="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 shadow-2xs">
@@ -504,7 +512,7 @@
                 <th class="p-2.5 text-center w-16 border-r border-slate-200">학기</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">구분</th>
                 <th class="p-2.5 border-r border-slate-200 font-extrabold text-slate-900">과목명</th>
-                <th class="p-2.5 text-center w-16 border-r border-slate-200">시수</th>
+                <th class="p-2.5 text-center w-16 border-r border-slate-200">총 시수</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">개설 상태</th>
                 <th class="p-2.5 w-48 border-r border-slate-200 font-extrabold text-slate-900">담당 교사 (수정 가능)</th>
                 <th class="p-2.5 text-center w-20 border-r border-slate-200">수정 여부</th>
@@ -6974,7 +6982,7 @@
             }">
               <button type="button" 
                       onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
-                      class="px-3 py-1.5 text-xs flex items-center gap-1.5 focus:outline-hidden"
+                      class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
                       title="${y}학년도 작업으로 전환">
                 <span>${y}학년도</span>
                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
@@ -6983,11 +6991,21 @@
                   ${totalStudents}명
                 </span>
               </button>
-              ${!['2027', '2026'].includes(y) ? `
+              
+              <!-- 학년도 수정 버튼 -->
+              <button type="button" 
+                      onclick="window.handleEditAcademicYear('${y}', event)"
+                      class="px-1 py-1 text-[11px] opacity-70 hover:opacity-100 ${isActive ? 'hover:text-amber-200' : 'hover:text-blue-600'} transition cursor-pointer"
+                      title="${y}학년도 이름 수정">
+                ✏️
+              </button>
+
+              <!-- 학년도 삭제 버튼 (2개 이상일 때) -->
+              ${MultiState.yearsList.length > 1 ? `
                 <button type="button" 
                         onclick="window.handleDeleteAcademicYear('${y}', event)"
-                        class="pr-2 pl-0.5 py-1.5 text-xs opacity-60 hover:opacity-100 hover:text-rose-300 transition"
-                        title="${y}학년도 삭제">
+                        class="pr-2 pl-0.5 py-1 text-xs opacity-60 hover:opacity-100 ${isActive ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
+                        title="${y}학년도 및 해당 데이터 삭제">
                   ✕
                 </button>
               ` : ''}
@@ -7066,14 +7084,61 @@
     }
 
     window.switchAcademicContext = switchAcademicContext;
+
+    window.handleEditAcademicYear = function(oldYear, event) {
+      if (event) event.stopPropagation();
+      const input = prompt(`[${oldYear}학년도]를 변경할 새 학년도를 4자리 숫자로 입력하세요:`, oldYear);
+      if (!input) return;
+      const newYear = input.trim();
+      if (!/^\d{4}$/.test(newYear)) {
+        alert('학년도는 4자리 숫자로 입력해주세요 (예: 2028).');
+        return;
+      }
+      if (newYear === oldYear) return;
+      if (MultiState.yearsList.includes(newYear)) {
+        alert(`이미 존재하는 학년도입니다: ${newYear}학년도`);
+        return;
+      }
+
+      // 순서 유지하며 변경
+      MultiState.yearsList = MultiState.yearsList.map(y => y === oldYear ? newYear : y);
+
+      // 데이터 키 변경
+      MultiState.data[newYear] = MultiState.data[oldYear] || {
+        '2학년': createEmptyGradeState('2학년'),
+        '3학년': createEmptyGradeState('3학년'),
+        '전체': { curriculum: [], lastUpdated: null }
+      };
+      delete MultiState.data[oldYear];
+
+      if (MultiState.activeYear === oldYear) {
+        MultiState.activeYear = newYear;
+      }
+
+      saveAllState();
+      renderYearGradeNav();
+      alert(`✅ [${oldYear}학년도]가 [${newYear}학년도]로 성공적으로 변경되었습니다.`);
+    };
+
     window.handleDeleteAcademicYear = function(year, event) {
       if (event) event.stopPropagation();
-      if (!confirm(`[${year}학년도]의 모든 학년 데이터가 삭제됩니다. 계속하시겠습니까?`)) return;
+      if (MultiState.yearsList.length <= 1) {
+        alert('최소 1개의 학년도는 유지되어야 하므로 삭제할 수 없습니다.');
+        return;
+      }
+      if (!confirm(`[${year}학년도]의 모든 학생 명부, 수강신청 결과 및 그룹핑 배치가 완전히 삭제됩니다.\n정말 삭제하시겠습니까?`)) return;
+
       MultiState.yearsList = MultiState.yearsList.filter(y => y !== year);
       delete MultiState.data[year];
-      const nextYear = MultiState.yearsList[0] || '2027';
-      switchAcademicContext(nextYear, MultiState.activeGrade);
+
+      if (MultiState.activeYear === year) {
+        MultiState.activeYear = MultiState.yearsList[0] || '2027';
+      }
+
+      switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
+      renderYearGradeNav();
+      alert(`🗑️ [${year}학년도]가 삭제되었습니다.`);
     };
 
     function updateModalStats() {
@@ -7250,71 +7315,98 @@
     // 6. ALL GRADES CURRICULUM & TEACHER WORKLOAD CONSOLIDATION (전체 탭)
     // ==========================================
 
+    // 과목명 정규화 및 분반 추출 유틸리티
+    function getBaseSubjectName(subj) {
+      if (!subj) return '';
+      // 과목명 뒤의 -1, -2, -01, -A, -B 또는 (1반), (1분반), -1반 등 분반 접미사 제거
+      return String(subj)
+        .replace(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i, '')
+        .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i, '')
+        .trim();
+    }
+
+    function getSubjectDivision(subj) {
+      if (!subj) return '';
+      const m1 = String(subj).match(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i);
+      if (m1) return m1[1];
+      const m2 = String(subj).match(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i);
+      if (m2) return m2[1];
+      return '';
+    }
+
+    function normalizeSubjectKey(subj) {
+      if (!subj) return '';
+      // 1. 분반 접미사 제거한 기본 과목명
+      const base = getBaseSubjectName(subj);
+      // 2. 띄어쓰기 완전 제거 및 소문자화 (띄어쓰기가 달라도 매칭)
+      return base.replace(/\s+/g, '').toLowerCase();
+    }
+
     const sampleCurriculumData = [
-      // 1학년 1학기 (학교지정)
-      { semester: 1, grade: '1학년', category: '학교지정', subject: '공통국어1', hours: 4, teacher: '김국어' },
-      { semester: 1, grade: '1학년', category: '학교지정', subject: '공통수학1', hours: 4, teacher: '이수학' },
-      { semester: 1, grade: '1학년', category: '학교지정', subject: '공통영어1', hours: 4, teacher: '박영어' },
-      { semester: 1, grade: '1학년', category: '학교지정', subject: '한국사1', hours: 3, teacher: '최역사' },
-      { semester: 1, grade: '1학년', category: '학교지정', subject: '통합사회1', hours: 3, teacher: '정사회' },
-      { semester: 1, grade: '1학년', category: '학교지정', subject: '통합과학1', hours: 4, teacher: '강과학' },
-      { semester: 1, grade: '1학년', category: '학교지정', subject: '체육1', hours: 2, teacher: '조체육' },
-      { semester: 1, grade: '1학년', category: '학교지정', subject: '음악', hours: 2, teacher: '윤음악' },
+      // 1학년 1학기 (지정)
+      { semester: 1, grade: '1학년', category: '지정', subject: '공통국어1', hours: 4, teacher: '김국어' },
+      { semester: 1, grade: '1학년', category: '지정', subject: '공통수학1', hours: 4, teacher: '이수학' },
+      { semester: 1, grade: '1학년', category: '지정', subject: '공통영어1', hours: 4, teacher: '박영어' },
+      { semester: 1, grade: '1학년', category: '지정', subject: '한국사1', hours: 3, teacher: '최역사' },
+      { semester: 1, grade: '1학년', category: '지정', subject: '통합사회1', hours: 3, teacher: '정사회' },
+      { semester: 1, grade: '1학년', category: '지정', subject: '통합과학1', hours: 4, teacher: '강과학' },
+      { semester: 1, grade: '1학년', category: '지정', subject: '체육1', hours: 2, teacher: '조체육' },
+      { semester: 1, grade: '1학년', category: '지정', subject: '음악', hours: 2, teacher: '윤음악' },
 
-      // 1학년 2학기 (학교지정)
-      { semester: 2, grade: '1학년', category: '학교지정', subject: '공통국어2', hours: 4, teacher: '김국어' },
-      { semester: 2, grade: '1학년', category: '학교지정', subject: '공통수학2', hours: 4, teacher: '이수학' },
-      { semester: 2, grade: '1학년', category: '학교지정', subject: '공통영어2', hours: 4, teacher: '박영어' },
-      { semester: 2, grade: '1학년', category: '학교지정', subject: '한국사2', hours: 3, teacher: '최역사' },
-      { semester: 2, grade: '1학년', category: '학교지정', subject: '통합사회2', hours: 3, teacher: '정사회' },
-      { semester: 2, grade: '1학년', category: '학교지정', subject: '통합과학2', hours: 4, teacher: '강과학' },
-      { semester: 2, grade: '1학년', category: '학교지정', subject: '체육2', hours: 2, teacher: '조체육' },
-      { semester: 2, grade: '1학년', category: '학교지정', subject: '미술', hours: 2, teacher: '한미술' },
+      // 1학년 2학기 (지정)
+      { semester: 2, grade: '1학년', category: '지정', subject: '공통국어2', hours: 4, teacher: '김국어' },
+      { semester: 2, grade: '1학년', category: '지정', subject: '공통수학2', hours: 4, teacher: '이수학' },
+      { semester: 2, grade: '1학년', category: '지정', subject: '공통영어2', hours: 4, teacher: '박영어' },
+      { semester: 2, grade: '1학년', category: '지정', subject: '한국사2', hours: 3, teacher: '최역사' },
+      { semester: 2, grade: '1학년', category: '지정', subject: '통합사회2', hours: 3, teacher: '정사회' },
+      { semester: 2, grade: '1학년', category: '지정', subject: '통합과학2', hours: 4, teacher: '강과학' },
+      { semester: 2, grade: '1학년', category: '지정', subject: '체육2', hours: 2, teacher: '조체육' },
+      { semester: 2, grade: '1학년', category: '지정', subject: '미술', hours: 2, teacher: '한미술' },
 
-      // 2학년 1학기 (학교지정 + 학생선택)
-      { semester: 1, grade: '2학년', category: '학교지정', subject: '문학', hours: 4, teacher: '김국어' },
-      { semester: 1, grade: '2학년', category: '학교지정', subject: '수학I', hours: 4, teacher: '이수학' },
-      { semester: 1, grade: '2학년', category: '학교지정', subject: '영어I', hours: 4, teacher: '박영어' },
-      { semester: 1, grade: '2학년', category: '학생선택', subject: '물리학I', hours: 3, teacher: '강과학' },
-      { semester: 1, grade: '2학년', category: '학생선택', subject: '화학I', hours: 3, teacher: '송화학' },
-      { semester: 1, grade: '2학년', category: '학생선택', subject: '생명과학I', hours: 3, teacher: '윤생명' },
-      { semester: 1, grade: '2학년', category: '학생선택', subject: '지구과학I', hours: 3, teacher: '강과학' },
-      { semester: 1, grade: '2학년', category: '학생선택', subject: '생활과 윤리', hours: 3, teacher: '정사회' },
-      { semester: 1, grade: '2학년', category: '학생선택', subject: '세계지리', hours: 3, teacher: '배지리' },
-      { semester: 1, grade: '2학년', category: '학생선택', subject: '일본어I', hours: 3, teacher: '오일어' },
-      { semester: 1, grade: '2학년', category: '학생선택', subject: '중국어I', hours: 3, teacher: '신중어' },
+      // 2학년 1학기 (지정 + 선택)
+      { semester: 1, grade: '2학년', category: '지정', subject: '문학', hours: 4, teacher: '김국어' },
+      { semester: 1, grade: '2학년', category: '지정', subject: '수학I', hours: 4, teacher: '이수학' },
+      { semester: 1, grade: '2학년', category: '지정', subject: '영어I', hours: 4, teacher: '박영어' },
+      { semester: 1, grade: '2학년', category: '선택', subject: '물리학I', hours: 3, teacher: '강과학' },
+      { semester: 1, grade: '2학년', category: '선택', subject: '화학I', hours: 3, teacher: '송화학' },
+      { semester: 1, grade: '2학년', category: '선택', subject: '생명과학I', hours: 3, teacher: '윤생명' },
+      { semester: 1, grade: '2학년', category: '선택', subject: '지구과학I', hours: 3, teacher: '강과학' },
+      { semester: 1, grade: '2학년', category: '선택', subject: '생활과 윤리', hours: 3, teacher: '정사회' },
+      { semester: 1, grade: '2학년', category: '선택', subject: '세계지리', hours: 3, teacher: '배지리' },
+      { semester: 1, grade: '2학년', category: '선택', subject: '일본어I', hours: 3, teacher: '오일어' },
+      { semester: 1, grade: '2학년', category: '선택', subject: '중국어I', hours: 3, teacher: '신중어' },
 
-      // 2학년 2학기 (학교지정 + 학생선택)
-      { semester: 2, grade: '2학년', category: '학교지정', subject: '독서', hours: 4, teacher: '김국어' },
-      { semester: 2, grade: '2학년', category: '학교지정', subject: '수학II', hours: 4, teacher: '이수학' },
-      { semester: 2, grade: '2학년', category: '학교지정', subject: '영어II', hours: 4, teacher: '박영어' },
-      { semester: 2, grade: '2학년', category: '학생선택', subject: '물리학I', hours: 3, teacher: '강과학' },
-      { semester: 2, grade: '2학년', category: '학생선택', subject: '화학I', hours: 3, teacher: '송화학' },
-      { semester: 2, grade: '2학년', category: '학생선택', subject: '생명과학I', hours: 3, teacher: '윤생명' },
-      { semester: 2, grade: '2학년', category: '학생선택', subject: '윤리와 사상', hours: 3, teacher: '정사회' },
-      { semester: 2, grade: '2학년', category: '학생선택', subject: '한국지리', hours: 3, teacher: '배지리' },
-      { semester: 2, grade: '2학년', category: '학생선택', subject: '일본어I', hours: 3, teacher: '오일어' },
+      // 2학년 2학기 (지정 + 선택)
+      { semester: 2, grade: '2학년', category: '지정', subject: '독서', hours: 4, teacher: '김국어' },
+      { semester: 2, grade: '2학년', category: '지정', subject: '수학II', hours: 4, teacher: '이수학' },
+      { semester: 2, grade: '2학년', category: '지정', subject: '영어II', hours: 4, teacher: '박영어' },
+      { semester: 2, grade: '2학년', category: '선택', subject: '물리학I', hours: 3, teacher: '강과학' },
+      { semester: 2, grade: '2학년', category: '선택', subject: '화학I', hours: 3, teacher: '송화학' },
+      { semester: 2, grade: '2학년', category: '선택', subject: '생명과학I', hours: 3, teacher: '윤생명' },
+      { semester: 2, grade: '2학년', category: '선택', subject: '윤리와 사상', hours: 3, teacher: '정사회' },
+      { semester: 2, grade: '2학년', category: '선택', subject: '한국지리', hours: 3, teacher: '배지리' },
+      { semester: 2, grade: '2학년', category: '선택', subject: '일본어I', hours: 3, teacher: '오일어' },
 
-      // 3학년 1학기 (학생선택 중심)
-      { semester: 1, grade: '3학년', category: '학교지정', subject: '운동과 건강', hours: 2, teacher: '조체육' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '화법과 작문', hours: 3, teacher: '권국어' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '언어와 매체', hours: 3, teacher: '권국어' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '미적분', hours: 3, teacher: '황수학' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '확률과 통계', hours: 3, teacher: '황수학' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '기하', hours: 3, teacher: '황수학' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '영어 독해와 작문', hours: 3, teacher: '유영어' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '물리학II', hours: 3, teacher: '강과학' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '화학II', hours: 3, teacher: '송화학' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '생명과학II', hours: 3, teacher: '윤생명' },
-      { semester: 1, grade: '3학년', category: '학생선택', subject: '정치와 법', hours: 3, teacher: '정사회' },
+      // 3학년 1학기 (지정 + 선택)
+      { semester: 1, grade: '3학년', category: '지정', subject: '운동과 건강', hours: 2, teacher: '조체육' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '화법과 작문', hours: 3, teacher: '권국어' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '언어와 매체', hours: 3, teacher: '권국어' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '미적분', hours: 3, teacher: '황수학' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '확률과 통계', hours: 3, teacher: '황수학' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '기하', hours: 3, teacher: '황수학' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '영어 독해와 작문', hours: 3, teacher: '유영어' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '물리학II', hours: 3, teacher: '강과학' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '화학II', hours: 3, teacher: '송화학' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '생명과학II', hours: 3, teacher: '윤생명' },
+      { semester: 1, grade: '3학년', category: '선택', subject: '정치와 법', hours: 3, teacher: '정사회' },
 
-      // 3학년 2학기 (학생선택 중심)
-      { semester: 2, grade: '3학년', category: '학교지정', subject: '스포츠 생활', hours: 2, teacher: '조체육' },
-      { semester: 2, grade: '3학년', category: '학생선택', subject: '심화 국어', hours: 3, teacher: '권국어' },
-      { semester: 2, grade: '3학년', category: '학생선택', subject: '경제 수학', hours: 3, teacher: '황수학' },
-      { semester: 2, grade: '3학년', category: '학생선택', subject: '심화 영어I', hours: 3, teacher: '유영어' },
-      { semester: 2, grade: '3학년', category: '학생선택', subject: '과학과제 연구', hours: 3, teacher: '강과학' },
-      { semester: 2, grade: '3학년', category: '학생선택', subject: '사회문제 탐구', hours: 3, teacher: '정사회' }
+      // 3학년 2학기 (지정 + 선택)
+      { semester: 2, grade: '3학년', category: '지정', subject: '스포츠 생활', hours: 2, teacher: '조체육' },
+      { semester: 2, grade: '3학년', category: '선택', subject: '심화 국어', hours: 3, teacher: '권국어' },
+      { semester: 2, grade: '3학년', category: '선택', subject: '경제 수학', hours: 3, teacher: '황수학' },
+      { semester: 2, grade: '3학년', category: '선택', subject: '심화 영어I', hours: 3, teacher: '유영어' },
+      { semester: 2, grade: '3학년', category: '선택', subject: '과학과제 연구', hours: 3, teacher: '강과학' },
+      { semester: 2, grade: '3학년', category: '선택', subject: '사회문제 탐구', hours: 3, teacher: '정사회' }
     ];
 
     function getAllGradesCurriculum() {
@@ -7348,7 +7440,7 @@
       const opened = new Set();
       plan.groups.flat().forEach(token => {
         if (!token) return;
-        const clean = String(token).replace(/-[A-Z]$/, '').trim();
+        const clean = getBaseSubjectName(token);
         opened.add(clean);
         opened.add(String(token).trim());
       });
@@ -7367,7 +7459,8 @@
       let untouchedCount = 0;
 
       curriculum.forEach(item => {
-        if (item.category === '학교지정') {
+        // 지정 과목은 항상 개설
+        if (item.category === '지정' || item.category === '학교지정') {
           item.status = '개설';
           if (item.teacher === '폐강') {
             item.teacher = item.originalTeacher || '';
@@ -7376,9 +7469,8 @@
           return;
         }
 
-        // 학생선택 과목 대조
+        // 1학년은 기본 개설
         if (item.grade === '1학년') {
-          // 1학년 선택과목(있을 경우 기본 개설)
           item.status = '개설';
           openedCount++;
           return;
@@ -7391,9 +7483,10 @@
           return;
         }
 
-        const normSubj = item.subject.replace(/\s+/g, '');
+        // 띄어쓰기 및 분반(-1, -2 등) 무시 정규화 매칭
+        const normSubj = normalizeSubjectKey(item.subject);
         const isOpened = [...openedSet].some(s => {
-          const normOpen = s.replace(/\s+/g, '');
+          const normOpen = normalizeSubjectKey(s);
           return normOpen === normSubj || normOpen.includes(normSubj) || normSubj.includes(normOpen);
         });
 
@@ -7448,34 +7541,48 @@
             const gradeKey = keys.find(k => /학년|grade/i.test(k));
             const catKey = keys.find(k => /구분|이수구분|지정|선택/i.test(k));
             const subjKey = keys.find(k => /과목명|교과목명|과목|교과목/i.test(k));
-            const hoursKey = keys.find(k => /시수|단위수|학점수|단위|학점|hours/i.test(k));
+            
+            // 오직 '총 시수', '총시수' 컬럼만 엄격하게 인식 ('시수' 단독 열은 제외)
+            const hoursKey = keys.find(k => /총\s*시수|총시수|total\s*hours/i.test(k));
             const teacherKey = keys.find(k => /담당교사|교사명|담당|교사|teacher/i.test(k));
 
             const subjVal = String(row[subjKey] || row['과목명'] || '').trim();
             if (!subjVal) return; // Skip empty rows
 
-            // Parse Semester
+            // 1. 학기 파싱 (1, 2 숫자만 써 있거나 '1학기', '2학기' 등 유연 파싱)
             let semNum = 1;
-            const semRaw = String(row[semKey] || row['학기'] || '1');
-            if (semRaw.includes('2')) semNum = 2;
+            const semRaw = String(row[semKey] || row['학기'] || '1').trim();
+            const semMatch = semRaw.match(/[12]/);
+            if (semMatch && semMatch[0] === '2') semNum = 2;
+            else semNum = 1;
 
-            // Parse Grade
+            // 2. 학년 파싱 (1, 2, 3 숫자만 써 있거나 '1학년', '2학년', '3학년' 등 유연 파싱)
             let gradeStr = '2학년';
-            const gradeRaw = String(row[gradeKey] || row['학년'] || '');
-            if (gradeRaw.includes('1')) gradeStr = '1학년';
-            else if (gradeRaw.includes('2')) gradeStr = '2학년';
-            else if (gradeRaw.includes('3')) gradeStr = '3학년';
+            const gradeRaw = String(row[gradeKey] || row['학년'] || '').trim();
+            const gradeMatch = gradeRaw.match(/[123]/);
+            if (gradeMatch) {
+              gradeStr = gradeMatch[0] + '학년';
+            }
 
-            // Parse Category
-            let catStr = '학교지정';
-            const catRaw = String(row[catKey] || row['구분'] || '');
-            if (catRaw.includes('선택')) catStr = '학생선택';
+            // 3. 구분 파싱 ('지정', '선택'으로 완벽 인식)
+            let catStr = '지정';
+            const catRaw = String(row[catKey] || row['구분'] || '').trim();
+            if (catRaw.includes('선택')) {
+              catStr = '선택';
+            } else if (catRaw.includes('지정')) {
+              catStr = '지정';
+            }
 
-            // Parse Hours
-            const hoursRaw = parseFloat(String(row[hoursKey] || row['시수'] || '4').replace(/[^0-9.]/g, '')) || 4;
+            // 4. 총 시수 파싱 (오직 '총 시수' 또는 '총시수'만 인식)
+            const hoursCellVal = String((hoursKey ? row[hoursKey] : '') || row['총 시수'] || row['총시수'] || '0');
+            const hoursRaw = parseFloat(hoursCellVal.replace(/[^0-9.]/g, '')) || 0;
 
-            // Parse Teacher
+            // 5. 담당교사 파싱
             const teacherVal = String(row[teacherKey] || row['담당교사'] || '').trim();
+
+            // 6. 분반 정보 추출 (-1, -2 등은 동일 과목의 분반으로 인식)
+            const baseSubj = getBaseSubjectName(subjVal);
+            const division = getSubjectDivision(subjVal);
 
             parsedCurriculum.push({
               id: 'curr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + idx,
@@ -7483,6 +7590,8 @@
               grade: gradeStr,
               category: catStr,
               subject: subjVal,
+              baseSubject: baseSubj,
+              division: division,
               hours: hoursRaw,
               originalTeacher: teacherVal,
               teacher: teacherVal,
@@ -7492,13 +7601,13 @@
           });
 
           if (parsedCurriculum.length === 0) {
-            alert('인식 가능한 과목 데이터가 없습니다. 열 제목(학기, 학년, 구분, 과목명, 시수, 담당교사)을 확인해주세요.');
+            alert('인식 가능한 과목 데이터가 없습니다. 열 제목(학기, 학년, 구분, 과목명, 총 시수, 담당교사)을 확인해주세요.');
             return;
           }
 
           setAllGradesCurriculum(parsedCurriculum);
           applyStep2ToCurriculum(true); // Automatically run Step 2 matching
-          alert(`✅ [${parsedCurriculum.length}개] 과목 기초데이터를 성공적으로 불러왔습니다! 2단계 결과가 자동 대조되었습니다.`);
+          alert(`✅ [${parsedCurriculum.length}개] 과목 기초데이터를 성공적으로 불러왔습니다!\n(구분: 지정/선택, 시수: 총 시수, 과목 분반 및 띄어쓰기 자동 처리 완료)`);
         } catch (err) {
           console.error('parseAllGradesExcel error:', err);
           alert('엑셀 파일을 읽는 도중 오류가 발생했습니다: ' + err.message);
@@ -7514,6 +7623,8 @@
         grade: item.grade,
         category: item.category,
         subject: item.subject,
+        baseSubject: getBaseSubjectName(item.subject),
+        division: getSubjectDivision(item.subject),
         hours: item.hours,
         originalTeacher: item.teacher,
         teacher: item.teacher,
@@ -7582,10 +7693,10 @@
     function downloadCurriculumTemplate() {
       const sampleRows = sampleCurriculumData.map(item => ({
         '학기': item.semester,
-        '학년': item.grade,
+        '학년': parseInt(item.grade) || item.grade,
         '구분': item.category,
         '과목명': item.subject,
-        '시수': item.hours,
+        '총 시수': item.hours,
         '담당교사': item.teacher
       }));
 
@@ -7596,7 +7707,7 @@
         { wch: 10 }, // 학년
         { wch: 12 }, // 구분
         { wch: 22 }, // 과목명
-        { wch: 8 },  // 시수
+        { wch: 10 }, // 총 시수
         { wch: 14 }  // 담당교사
       ];
       XLSX.utils.book_append_sheet(wb, ws, '교육과정_기초데이터_양식');
@@ -7612,18 +7723,17 @@
 
       const wb = XLSX.utils.book_new();
 
-      // Sheet 1: 교사별 시수 종합 현황
+      // Sheet 1: 교사별 시수 종합표
       const teacherMap = {};
       curriculum.forEach(item => {
-        if (item.status === '폐강') return;
-        const t = (item.teacher || '').trim();
-        if (!t || t === '폐강') return;
+        const t = (item.teacher || '미배정').trim();
+        if (t === '폐강') return;
 
         if (!teacherMap[t]) {
           teacherMap[t] = {
             sem1Courses: [],
-            sem1Hours: 0,
             sem2Courses: [],
+            sem1Hours: 0,
             sem2Hours: 0
           };
         }
@@ -7674,11 +7784,12 @@
         '학기': `${c.semester}학기`,
         '구분': c.category,
         '과목명': c.subject,
-        '시수': c.hours,
+        '분반': c.division ? `${c.division}반` : '-',
+        '총 시수': c.hours,
         '개설상태': c.status,
         '담당교사': c.teacher,
         '수정여부': c.isModified ? '수정됨' : '원본',
-        '최초엑셀교사': c.originalTeacher
+        '최초원래교사': c.originalTeacher
       }));
 
       const ws2 = XLSX.utils.json_to_sheet(detailRows);
@@ -7686,9 +7797,9 @@
         { wch: 6 },
         { wch: 10 },
         { wch: 10 },
-        { wch: 12 },
+        { wch: 10 },
         { wch: 22 },
-        { wch: 8 },
+        { wch: 10 },
         { wch: 10 },
         { wch: 14 },
         { wch: 10 },
@@ -7696,7 +7807,6 @@
       ];
       XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
 
-      XLSX.writeFile(wb, `${MultiState.activeYear}학년도_전학년_교사시수_및_교육과정배정_종합.xlsx`);
     }
 
     function renderAllGradesDashboard(fullRedraw = true) {
@@ -7811,7 +7921,7 @@
 
         const s1Tags = d.sem1Courses.map(c => `
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
-            c.category === '학교지정' 
+            (c.category === '지정' || c.category === '학교지정')
               ? 'bg-slate-100 text-slate-700 border border-slate-300' 
               : 'bg-blue-50 text-blue-800 border border-blue-200'
           }" title="${c.category}">
@@ -7823,7 +7933,7 @@
 
         const s2Tags = d.sem2Courses.map(c => `
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
-            c.category === '학교지정' 
+            (c.category === '지정' || c.category === '학교지정')
               ? 'bg-slate-100 text-slate-700 border border-slate-300' 
               : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
           }" title="${c.category}">
@@ -7866,12 +7976,18 @@
       let filtered = curriculum.filter(item => {
         if (filterGrade !== 'all' && item.grade !== filterGrade) return false;
         if (filterSem !== 'all' && String(item.semester) !== filterSem) return false;
-        if (filterCat !== 'all' && item.category !== filterCat) return false;
+        if (filterCat !== 'all') {
+          const matchCat = (filterCat === '지정' && (item.category === '지정' || item.category === '학교지정')) ||
+                           (filterCat === '선택' && (item.category === '선택' || item.category === '학생선택')) ||
+                           item.category === filterCat;
+          if (!matchCat) return false;
+        }
         if (filterStatus !== 'all' && item.status !== filterStatus) return false;
         if (searchVal) {
-          const matchSubj = (item.subject || '').toLowerCase().includes(searchVal);
-          const matchTeacher = (item.teacher || '').toLowerCase().includes(searchVal);
-          if (!matchSubj && !matchTeacher) return false;
+          const cleanSearch = searchVal.replace(/\s+/g, '');
+          const cleanSubj = (item.subject || '').toLowerCase().replace(/\s+/g, '');
+          const cleanTeacher = (item.teacher || '').toLowerCase().replace(/\s+/g, '');
+          if (!cleanSubj.includes(cleanSearch) && !cleanTeacher.includes(cleanSearch)) return false;
         }
         return true;
       });
@@ -7896,9 +8012,14 @@
           ? 'bg-rose-50/50 text-slate-400' 
           : (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50');
 
-        const catBadge = c.category === '학교지정' 
-          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">학교지정</span>' 
-          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">학생선택</span>';
+        const isChoice = (c.category === '선택' || c.category === '학생선택');
+        const catBadge = isChoice 
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">선택</span>' 
+          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">지정</span>';
+
+        const divisionTag = c.division 
+          ? `<span class="ml-1 text-[10px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200" title="동일 과목의 분반 (${c.division}반)">${c.division}반</span>`
+          : '';
 
         const statusBadge = isClosed 
           ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-200 text-rose-900 border border-rose-300 animate-pulse">🚫 폐강</span>' 
@@ -7935,6 +8056,7 @@
             <td class="p-2 text-center border-r border-slate-200">${catBadge}</td>
             <td class="p-2 font-bold text-slate-900 border-r border-slate-200">
               <span class="${isClosed ? 'line-through text-slate-400' : ''}">${c.subject}</span>
+              ${divisionTag}
             </td>
             <td class="p-2 text-center font-black text-indigo-700 border-r border-slate-200">${c.hours}</td>
             <td class="p-2 text-center border-r border-slate-200">${statusBadge}</td>
@@ -7989,16 +8111,28 @@
 
     // Initialize MultiState & Load on Startup
     function loadAllState() {
+      let isLoadedFromLocal = false;
       try {
         let raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && parsed.data) {
-            Object.assign(MultiState, parsed);
+            const hasStudents = Object.values(parsed.data).some(y => 
+              y && Object.values(y).some(g => g && Array.isArray(g.students) && g.students.length > 0)
+            );
+            if (hasStudents) {
+              Object.assign(MultiState, parsed);
+              isLoadedFromLocal = true;
+            }
           }
         }
       } catch (e) {
         console.warn('loadAllState error:', e);
+      }
+
+      // 로컬스토리지에 데이터가 없거나 비어있는 경우 저장소 시드 데이터 자동 연동
+      if (!isLoadedFromLocal && window.INITIAL_CURRICULUM_DATA && window.INITIAL_CURRICULUM_DATA.data) {
+        Object.assign(MultiState, window.INITIAL_CURRICULUM_DATA);
       }
 
       if (!MultiState.yearsList.includes('2027')) MultiState.yearsList.unshift('2027');
@@ -8008,7 +8142,7 @@
         MultiState.activeYear = '2027';
       }
       if (!MultiState.activeGrade || !['2학년', '3학년', '전체'].includes(MultiState.activeGrade)) {
-        MultiState.activeGrade = '2학년';
+        MultiState.activeGrade = '3학년';
       }
 
       MultiState.yearsList.forEach(y => {
@@ -8019,6 +8153,17 @@
       });
 
       initAllGradesListeners();
+
+      // 저장소 데이터 수동 연동 버튼 이벤트
+      document.getElementById('btnLoadRepoData')?.addEventListener('click', () => {
+        if (window.INITIAL_CURRICULUM_DATA) {
+          applyExternalMultiState(window.INITIAL_CURRICULUM_DATA, false);
+          alert('✅ GitHub 저장소의 최신 수강신청 데이터(2027학년도 3학년)가 성공적으로 연동되었습니다!');
+        } else {
+          alert('연동할 저장소 데이터(curriculum_data.js)를 찾을 수 없습니다.');
+        }
+      });
+
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       cloudSync.init();
     }
