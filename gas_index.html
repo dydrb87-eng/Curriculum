@@ -8359,7 +8359,25 @@
 
         const openedSet = getStep2OpenedSubjects(MultiState.activeYear, item.grade, item.semester);
         if (openedSet === null) {
-          // 2단계 그룹핑이 아직 실행되지 않은 학년/학기
+          // 2단계 그룹핑 배치안이 아직 없는 경우:
+          // 만약 1단계 수강신청 조사 과목이 존재하는 학기라면, 조사에 아예 없는 선택과목은 자동 폐강 처리
+          const gData = MultiState.data[MultiState.activeYear]?.[item.grade];
+          const semSubjs = (item.semester === 1 ? gData?.sem1Subjects : gData?.sem2Subjects) || [];
+          if (semSubjs.length > 0) {
+            const normSubj = normalizeSubjectKey(item.subject);
+            const inSurvey = semSubjs.some(s => {
+              const ns = normalizeSubjectKey(s);
+              return ns === normSubj || ns.includes(normSubj) || normSubj.includes(ns);
+            });
+            if (!inSurvey) {
+              item.status = '폐강';
+              if (!preserveEdits || !item.isModified) {
+                item.teacher = '폐강';
+              }
+              closedCount++;
+              return;
+            }
+          }
           untouchedCount++;
           return;
         }
@@ -8446,11 +8464,11 @@
             }
 
             // 3. 구분 파싱 ('지정', '선택'으로 완벽 인식)
-            let catStr = '지정';
+            let catStr = (gradeStr === '1학년') ? '지정' : '선택';
             const catRaw = String(row[catKey] || row['구분'] || '').trim();
-            if (catRaw.includes('선택')) {
+            if (catRaw.includes('선택') || catRaw.includes('진로') || catRaw.includes('융합') || catRaw.includes('자율') || catRaw.includes('전문')) {
               catStr = '선택';
-            } else if (catRaw.includes('지정')) {
+            } else if (catRaw.includes('지정') || catRaw.includes('필수') || catRaw.includes('공통')) {
               catStr = '지정';
             }
 
@@ -8574,6 +8592,56 @@
         item.status = '개설';
         item.teacher = item.originalTeacher || '';
         item.isModified = false;
+      }
+
+      setAllGradesCurriculum(curriculum);
+      renderAllGradesDashboard();
+    };
+
+    window.toggleCurriculumItemCategory = function(itemId) {
+      const curriculum = getAllGradesCurriculum();
+      const item = curriculum.find(c => c.id === itemId);
+      if (!item) return;
+
+      const wasChoice = (item.category === '선택' || item.category === '학생선택');
+      item.category = wasChoice ? '지정' : '선택';
+      item.isModified = true;
+
+      // 만약 '선택'으로 바꾼 경우, 2단계 대조를 실행하여 미개설 과목이면 자동 폐강 처리
+      if (item.category === '선택') {
+        const openedSet = getStep2OpenedSubjects(MultiState.activeYear, item.grade, item.semester);
+        if (openedSet !== null) {
+          const normSubj = normalizeSubjectKey(item.subject);
+          const isOpened = [...openedSet].some(s => {
+            const normOpen = normalizeSubjectKey(s);
+            return normOpen === normSubj || normOpen.includes(normSubj) || normSubj.includes(normOpen);
+          });
+          if (!isOpened) {
+            item.status = '폐강';
+            item.teacher = '폐강';
+          }
+        } else {
+          // 2단계 결과가 없다면 1단계 조사 목록 확인
+          const gData = MultiState.data[MultiState.activeYear]?.[item.grade];
+          const semSubjs = (item.semester === 1 ? gData?.sem1Subjects : gData?.sem2Subjects) || [];
+          if (semSubjs.length > 0) {
+            const normSubj = normalizeSubjectKey(item.subject);
+            const inSurvey = semSubjs.some(s => {
+              const ns = normalizeSubjectKey(s);
+              return ns === normSubj || ns.includes(normSubj) || normSubj.includes(ns);
+            });
+            if (!inSurvey) {
+              item.status = '폐강';
+              item.teacher = '폐강';
+            }
+          }
+        }
+      } else {
+        // '지정'으로 바꾼 경우 필수 과목이므로 개설 복원
+        item.status = '개설';
+        if (item.teacher === '폐강') {
+          item.teacher = item.originalTeacher || '';
+        }
       }
 
       setAllGradesCurriculum(curriculum);
@@ -8909,8 +8977,8 @@
 
         const isChoice = (c.category === '선택' || c.category === '학생선택');
         const catBadge = isChoice 
-          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">선택</span>' 
-          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">지정</span>';
+          ? `<button type="button" onclick="window.toggleCurriculumItemCategory('${c.id}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition cursor-pointer" title="클릭하여 [지정]으로 전환">선택 ⇄</button>` 
+          : `<button type="button" onclick="window.toggleCurriculumItemCategory('${c.id}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition cursor-pointer" title="클릭하여 [선택]으로 전환">지정 ⇄</button>`;
 
         const divisionTag = c.division 
           ? `<span class="ml-1 text-[10px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200" title="동일 과목의 분반 (${c.division}반)">${c.division}반</span>`
