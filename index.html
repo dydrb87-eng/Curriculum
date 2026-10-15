@@ -209,7 +209,7 @@
                     <span id="priorCardTitle">[2학년] 사전 데이터 등록</span>
                     <span id="priorCardGradeBadge" class="text-[10px] font-extrabold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">2학년 명부 & 기이수 과목</span>
                   </h3>
-                  <p class="text-[11px] text-slate-500 mt-0.5">나이스(NEIS) 개설과목/편성학생 엑셀 파일 (.xlsx, .xls)</p>
+                  <p id="priorCardDesc" class="text-[11px] text-slate-500 mt-0.5">1학년 NEIS 파일 등록(수강생편성-학생편성현황.xlsx)</p>
                 </div>
               </div>
               <div id="priorStatusBadge" class="hidden">
@@ -1569,14 +1569,17 @@
       const priorLoadedFileName = document.getElementById('priorLoadedFileName');
       const priorCardTitle = document.getElementById('priorCardTitle');
       const priorCardGradeBadge = document.getElementById('priorCardGradeBadge');
+      const priorCardDesc = document.getElementById('priorCardDesc');
       const surveyCardTitle = document.getElementById('surveyCardTitle');
       const surveyCardGradeBadge = document.getElementById('surveyCardGradeBadge');
       const priorFileInput = document.getElementById('priorFileInput');
 
       const activeG = MultiState.activeGrade || '2학년';
+      const priorTargetGradeName = (activeG === '3학년') ? '2학년' : '1학년';
 
       if (priorCardTitle) priorCardTitle.textContent = `[${activeG}] 사전 데이터 등록`;
       if (priorCardGradeBadge) priorCardGradeBadge.textContent = `${activeG} 명부 & 기이수 과목`;
+      if (priorCardDesc) priorCardDesc.textContent = `${priorTargetGradeName} NEIS 파일 등록(수강생편성-학생편성현황.xlsx)`;
       if (surveyCardTitle) surveyCardTitle.textContent = `[${activeG}] 수강신청 조사 엑셀 파일`;
       if (surveyCardGradeBadge) surveyCardGradeBadge.textContent = `${activeG} 설문 결과`;
 
