@@ -86,6 +86,16 @@
         <button id="btnGasLoadSheet" class="hidden px-3.5 py-2 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors border border-emerald-300 flex items-center space-x-1.5 shadow-sm">
           <span>📊 구글 시트에서 가져오기</span>
         </button>
+        <!-- 1-Click Backup & Restore for Seamless Machine-to-Machine Transfer -->
+        <button id="btnHeaderExportSession" type="button" onclick="window.exportFullBackupJson();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-300 flex items-center space-x-1.5 shadow-xs cursor-pointer" title="현재까지 작업한 모든 데이터(학생 명단, 그룹핑, 고정핀, 저장된 안)를 파일(.json)로 다운로드합니다. 다른 컴퓨터로 작업 이동 시 필수!">
+          <span>💾</span>
+          <span>작업 저장 (백업)</span>
+        </button>
+        <label for="headerRestoreBackupJson" class="px-3.5 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-300 flex items-center space-x-1.5 shadow-xs cursor-pointer" title="이전에 저장한 백업 파일(.json)을 불러와 모든 작업 상태를 그대로 복원합니다.">
+          <span>📂</span>
+          <span>작업 불러오기</span>
+          <input type="file" id="headerRestoreBackupJson" accept=".json,.xlsx,.xls" class="hidden" onchange="if(this.files[0]) { if(this.files[0].name.toLowerCase().endsWith('.json')) { window.importBackupJsonFile(this.files[0]); } else { processUploadedFile(this.files[0]); } this.value=''; }" />
+        </label>
         <button id="btnSampleData" class="px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-300 flex items-center space-x-1.5 shadow-sm">
           <span>🧪 샘플 데이터로 체험하기</span>
         </button>
@@ -271,9 +281,9 @@
               <input 
                 type="file" 
                 id="fileInput" 
-                accept=".xlsx, .xls, .csv" 
+                accept=".xlsx, .xls, .csv, .json" 
                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
-                title="수강신청 엑셀 파일을 클릭하거나 드래그하세요"
+                title="수강신청 엑셀(.xlsx) 또는 작업 백업 파일(.json)을 클릭하거나 드래그하세요"
               />
               <div class="pointer-events-none flex flex-col items-center justify-center space-y-2">
                 <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform">
@@ -281,21 +291,24 @@
                 </div>
                 <div>
                   <p class="text-xs font-bold text-slate-800">
-                    수강신청 엑셀 파일을 클릭하거나 드래그하세요
+                    수강신청 엑셀 또는 백업 파일(.json)을 클릭하거나 드래그하세요
                   </p>
                   <p class="text-[11px] text-slate-400 mt-0.5">
-                    파일명 학년 자동 감지 및 이전 저장 파일 자동 복원 지원
+                    엑셀 파일(.xlsx) 및 다른 컴퓨터에서 백업한 파일(.json) 모두 지원
                   </p>
                 </div>
                 <span class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-md text-[11px] font-bold shadow-xs">
-                  📁 파일 선택 (.xlsx)
+                  📁 파일 선택 (.xlsx / .json)
                 </span>
               </div>
             </div>
           </div>
 
           <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span class="text-[11px] text-slate-400">이전 저장 파일 복원 지원</span>
+            <label for="dropzoneBackupInput" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer" title="다른 컴퓨터에서 저장한 백업 파일(.json)을 불러옵니다">
+              <span>📂 다른 PC의 백업 파일(.json) 불러오기</span>
+              <input type="file" id="dropzoneBackupInput" accept=".json" class="hidden" onchange="if(this.files[0]) { window.importBackupJsonFile(this.files[0]); this.value=''; }" />
+            </label>
             <button id="btnSampleData" type="button" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline">
               💡 샘플 수강신청 데이터 불러오기
             </button>
@@ -1158,9 +1171,12 @@
 
   <!-- ================= FOOTER ================= -->
   <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-auto">
-    <div class="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+    <div class="w-full px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
       <span>상지대관령고등학교 선택과목 그룹핑 자동화 시스템</span>
-      <span>데이터는 안전하게 사용자 브라우저 내부에서만 처리됩니다 (무서버 보안 보장)</span>
+      <span class="flex items-center gap-1.5 text-slate-500 font-medium">
+        <span>🔒 학생 개인정보 보호를 위해 서버에 저장되지 않고 현재 브라우저 메모리에 안전하게 보관됩니다.</span>
+        <span class="text-blue-600 font-bold">(다른 컴퓨터에서 이어 작업 시 상단 [💾 작업 저장] 파일로 이동 가능)</span>
+      </span>
     </div>
   </footer>
 
@@ -2149,6 +2165,10 @@
 
     function processUploadedFile(file) {
       if (!file) return;
+      if (file.name.toLowerCase().endsWith('.json')) {
+        window.importBackupJsonFile(file);
+        return;
+      }
       if (typeof XLSX === 'undefined') {
         alert('엑셀 처리 라이브러리를 준비 중입니다. 1~2초 후 다시 시도해주세요.');
         return;
@@ -7145,23 +7165,23 @@
       saveAllState();
     });
 
-    // Full JSON Export
-    document.getElementById('btnExportFullBackupJson')?.addEventListener('click', () => {
+    // Full JSON Export (Available globally for header and modal buttons)
+    window.exportFullBackupJson = function() {
       syncCurrentToMulti();
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(MultiState, null, 2));
       const now = new Date();
       const dateTag = String(now.getFullYear()).slice(2) + String(now.getMonth()+1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
       const dlAnchor = document.createElement('a');
       dlAnchor.setAttribute("href", dataStr);
-      dlAnchor.setAttribute("download", `상지대관령고_수강신청_전체데이터_${MultiState.activeYear}_${dateTag}.json`);
+      dlAnchor.setAttribute("download", `상지대관령고_수강신청_전체데이터_${MultiState.activeYear}_${MultiState.activeGrade}_${dateTag}.json`);
       document.body.appendChild(dlAnchor);
       dlAnchor.click();
       dlAnchor.remove();
-    });
+    };
+    document.getElementById('btnExportFullBackupJson')?.addEventListener('click', window.exportFullBackupJson);
 
-    // Restore from JSON
-    document.getElementById('inputRestoreBackupJson')?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
+    // Restore from JSON (Available globally for header, dropzone and modal)
+    window.importBackupJsonFile = function(file) {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -7170,6 +7190,13 @@
           if (json && (json.data || json.yearsList)) {
             applyExternalMultiState(json, true);
             closeCloudModal();
+          } else if (json && json.students) {
+            Object.assign(AppState, json);
+            syncCurrentToMulti();
+            saveAllState();
+            renderStep1();
+            renderStep2UI();
+            alert(`🎉 [${AppState.detectedGrade || '수강신청'}] 작업 데이터가 복원되었습니다!\n(학생: ${AppState.students.length}명)`);
           } else {
             alert('올바른 백업 JSON 파일 형식이 아닙니다.');
           }
@@ -7178,6 +7205,10 @@
         }
       };
       reader.readAsText(file);
+    };
+    document.getElementById('inputRestoreBackupJson')?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) window.importBackupJsonFile(file);
       e.target.value = '';
     });
 
@@ -7966,6 +7997,12 @@
       initAllGradesListeners();
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       cloudSync.init();
+
+      // If active grade has no students yet, auto-populate with previous survey data so user sees everything immediately!
+      const currentActiveGradeState = MultiState.data[MultiState.activeYear]?.[MultiState.activeGrade];
+      if (!currentActiveGradeState || !currentActiveGradeState.students || currentActiveGradeState.students.length === 0) {
+        loadSampleHighSchoolData();
+      }
     }
 
     // Run Startup Initialization
