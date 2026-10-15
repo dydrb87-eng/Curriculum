@@ -1252,8 +1252,9 @@
               </label>
               <div class="flex items-center gap-2">
                 <span id="planMemoSavedHint" class="text-[11px] text-emerald-600 font-bold hidden">✓ 메모 저장됨</span>
-                <button id="btnSavePlanMemo" type="button" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-bold transition border border-slate-200">
-                  메모 즉시 저장
+                <button id="btnSavePlanMemo" type="button" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="작성한 메모와 함께 현재 배치안을 후보안으로 저장합니다">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                  <span>현재 배치안 저장</span>
                 </button>
               </div>
             </div>
@@ -6367,7 +6368,10 @@
       }
     });
     memoTextarea?.addEventListener('blur', saveCurrentWorkMemo);
-    btnSaveMemo?.addEventListener('click', saveCurrentWorkMemo);
+    btnSaveMemo?.addEventListener('click', () => {
+      saveCurrentWorkMemo();
+      btnSavePlan?.click();
+    });
 
     window.handleSavedPlanMemoChange = function(planId, text) {
       const plan = AppState.savedPlans.find(p => p.id === planId || String(p.id) === String(planId));
@@ -6389,7 +6393,14 @@
     // ==========================================
 
     btnSavePlan.addEventListener('click', () => {
-      if (!AppState.currentPlan) return;
+      if (!AppState.currentPlan) {
+        alert('저장할 현재 배치안이 없습니다. 먼저 그룹핑 시뮬레이션을 실행해주세요.');
+        return;
+      }
+      const memoTextarea = document.getElementById('planWorkMemo');
+      if (memoTextarea && AppState.currentPlan) {
+        AppState.currentPlan.memo = memoTextarea.value;
+      }
       const sem = AppState.currentPlan.semester;
       const count = AppState.savedPlans.filter(p => p.semester === sem).length + 1;
       const planName = `${sem}학기 ${count}안 (충돌 ${AppState.currentPlan.conflictCount}명)`;
