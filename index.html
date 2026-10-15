@@ -127,9 +127,10 @@
             </button>
           </div>
         </div>
-        <label id="headerRestoreBackupLabel" for="headerRestoreBackupJson" class="px-3.5 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-300 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="클릭하거나 백업 파일(.json)을 직접 이 버튼 위로 드래그하여 작업 상태를 복원합니다.">
-          <span>📂</span>
+        <label id="headerRestoreBackupLabel" for="headerRestoreBackupJson" class="px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 rounded-lg transition-all border-2 border-dashed border-indigo-400 hover:border-indigo-600 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="클릭하거나 백업 파일(.json / .xlsx)을 직접 이 버튼 위로 드래그하여 작업 상태를 복원합니다.">
+          <span class="text-sm">📂</span>
           <span>작업 불러오기</span>
+          <span class="text-[10px] text-indigo-500 font-semibold hidden sm:inline">(드래그 가능)</span>
           <input type="file" id="headerRestoreBackupJson" accept=".json,.xlsx,.xls" class="hidden" onchange="if(this.files[0]) { if(this.files[0].name.toLowerCase().endsWith('.json')) { window.importBackupJsonFile(this.files[0]); } else { processUploadedFile(this.files[0]); } this.value=''; }" />
         </label>
 
@@ -651,9 +652,9 @@
               <div>
                 <h3 class="text-sm sm:text-base font-black text-amber-950 flex items-center gap-2">
                   <span>사전 데이터 대조 분석 결과</span>
-                  <span class="text-[10px] font-extrabold px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full">학생 명부 & 기이수 과목 교차 검증</span>
+                  <span class="text-[10px] font-extrabold px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full">학생 명부 & 기이수·동일과목 교차 검증</span>
                 </h3>
-                <p class="text-xs text-amber-800 mt-0.5">사전 등록된 학생 명부와 기이수 과목을 대조하여 미신청자 및 동일 과목 중복 수강 신청을 탐지했습니다.</p>
+                <p class="text-xs text-amber-800 mt-0.5">사전 등록된 학생 명부와 기이수 과목, 그리고 현재 학년 1·2학기 신청 내역을 대조하여 미신청자 및 동일 과목 중복 수강 신청을 탐지했습니다.</p>
               </div>
             </div>
             <div class="flex items-center space-x-2">
@@ -686,10 +687,10 @@
               <div>
                 <div class="flex items-center space-x-2">
                   <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                  <h4 class="text-xs font-bold text-slate-700">2. 기이수 과목 중복신청 의심</h4>
+                  <h4 class="text-xs font-bold text-slate-700">2. 동일·기이수 과목 중복신청 의심</h4>
                 </div>
                 <p id="duplicateCountDisplay" class="text-xl font-black text-amber-600 mt-1">0명</p>
-                <p class="text-[11px] text-slate-400 mt-0.5">사전에 이미 수강(이수)한 과목을 이번에 또 신청한 학생</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">이전 학년 기이수 과목 또는 현재 학년(1·2학기) 내 동일 과목을 중복 신청한 학생</p>
               </div>
               <span class="text-3xl">⚠️</span>
             </div>
@@ -729,10 +730,10 @@
             <div class="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-xs flex flex-col h-full">
               <div class="bg-amber-50 px-4 py-2.5 border-b border-amber-200 flex justify-between items-center gap-2">
                 <h5 class="text-xs font-bold text-amber-900 flex items-center gap-1.5 whitespace-nowrap">
-                  <span>⚠️ 기이수 과목 중복신청 의심 명단</span>
+                  <span>⚠️ 동일·기이수 과목 중복신청 의심 명단</span>
                   <span id="duplicateBadgeCount" class="px-2 py-0.5 bg-amber-200 text-amber-800 text-[10px] rounded-full font-black">0명</span>
                 </h5>
-                <span class="text-[11px] text-amber-700 truncate" title="과목명 띄어쓰기 및 학점수(예: (3)) 무시 자동 대조">과목명·학점수 무시 자동대조</span>
+                <span class="text-[11px] text-amber-700 truncate" title="이전 학년 기이수 및 현재 학년(1·2학기) 동일 과목 중복 자동 대조">기이수 & 현재 학년 내 중복 자동대조</span>
               </div>
               <div class="max-h-72 overflow-y-auto custom-scrollbar flex-1">
                 <table class="w-full text-xs text-center border-collapse">
@@ -743,7 +744,7 @@
                       <th class="p-2 w-12 border-r border-slate-200">반</th>
                       <th class="p-2 w-12 border-r border-slate-200">번호</th>
                       <th class="p-2 w-20 border-r border-slate-200">이름</th>
-                      <th class="p-2 text-left text-amber-900">중복 신청된 과목명</th>
+                      <th class="p-2 text-left text-amber-900">중복 신청 과목 및 사유</th>
                     </tr>
                   </thead>
                   <tbody id="duplicateStudentsTbody" class="divide-y divide-slate-100 text-slate-700">
@@ -1947,93 +1948,216 @@
     }
 
     function runCrossCheckAnalysis() {
-      if (!AppState.priorData || !AppState.students || AppState.students.length === 0) {
+      if (!AppState.students || AppState.students.length === 0) {
         crossCheckAlertPanel?.classList.add('hidden');
         return;
       }
 
+      const hasPrior = !!(AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0);
       const targetGrade = MultiState.activeGrade || AppState.detectedGrade || '2학년';
       const targetGradeNum = targetGrade.replace(/[^0-9]/g, '');
 
       // 1. Missing Students Analysis (사전 명부에는 있으나 수강신청 하지 않은 학생)
-      // 현재 탭에 등록된 전체 사전 명부 학생을 대상으로 대조 검사 수행 (기능상 학년 필터링 제외)
-      const relevantPrior = AppState.priorData.students || [];
-
       const missing = [];
-      relevantPrior.forEach(priorSt => {
-        const match = AppState.students.find(st => {
-          const cMatch = String(st.classNum).replace(/[^0-9]/g, '') === priorSt.classNum;
-          const nMatch = String(st.studentNum).replace(/[^0-9]/g, '') === priorSt.studentNum;
-          const nameMatch = st.name.trim() === priorSt.name.trim();
-          return (cMatch && nMatch && nameMatch) || (cMatch && nameMatch);
+      if (hasPrior) {
+        const relevantPrior = AppState.priorData.students || [];
+        relevantPrior.forEach(priorSt => {
+          const match = AppState.students.find(st => {
+            const cMatch = String(st.classNum).replace(/[^0-9]/g, '') === priorSt.classNum;
+            const nMatch = String(st.studentNum).replace(/[^0-9]/g, '') === priorSt.studentNum;
+            const nameMatch = st.name.trim() === priorSt.name.trim();
+            return (cMatch && nMatch && nameMatch) || (cMatch && nameMatch);
+          });
+
+          if (!match) {
+            missing.push({
+              grade: priorSt.grade || targetGrade,
+              classNum: priorSt.classNum,
+              studentNum: priorSt.studentNum,
+              name: priorSt.name
+            });
+          }
         });
 
-        if (!match) {
-          missing.push({
-            grade: priorSt.grade || targetGrade,
-            classNum: priorSt.classNum,
-            studentNum: priorSt.studentNum,
-            name: priorSt.name
-          });
-        }
-      });
+        missing.sort((a, b) => {
+          const cDiff = (parseInt(a.classNum, 10) || 0) - (parseInt(b.classNum, 10) || 0);
+          if (cDiff !== 0) return cDiff;
+          return (parseInt(a.studentNum, 10) || 0) - (parseInt(b.studentNum, 10) || 0);
+        });
+      }
 
-      missing.sort((a, b) => {
-        const cDiff = (parseInt(a.classNum, 10) || 0) - (parseInt(b.classNum, 10) || 0);
-        if (cDiff !== 0) return cDiff;
-        return (parseInt(a.studentNum, 10) || 0) - (parseInt(b.studentNum, 10) || 0);
-      });
-
-      // 2. Duplicate Enrollments Analysis (기이수 과목과 중복 수강 신청된 과목)
+      // 2. Duplicate Enrollments Analysis (동일 과목 및 기이수 과목 중복 수강 신청 탐지)
+      //    - 현재 학년 내 중복 (1학기 vs 2학기 동일 과목 중복 선택, 또는 동일 학기 내 중복)
+      //    - 이전 학년 기이수 과목과 중복 (사전 명부 기이수 과목 대조)
       const duplicates = [];
+
       AppState.students.forEach(st => {
         const cNum = String(st.classNum).replace(/[^0-9]/g, '');
         const sNum = String(st.studentNum).replace(/[^0-9]/g, '');
         const sName = st.name.trim();
         const stGradeNum = (st.grade ? String(st.grade).replace(/[^0-9]/g, '') : '') || targetGradeNum || '2';
 
-        const priorSt = AppState.priorData.students.find(p => {
-          const cMatch = p.classNum === cNum;
-          const nMatch = p.studentNum === sNum;
-          const nameMatch = p.name.trim() === sName;
-          return (cMatch && nMatch && nameMatch) || (cMatch && nameMatch);
+        const dupList = [];
+        const seenNormsThisStudent = new Set();
+
+        // ---------------------------------------------------------
+        // A. 현재 학년 내 중복 확인 (1학기 vs 2학기 동일 과목, 동일 학기 내 중복)
+        // ---------------------------------------------------------
+        const sem1Norms = (st.sem1 || []).map(s => ({ raw: s, norm: normalizeSubject(s) })).filter(x => x.norm);
+        const sem2Norms = (st.sem2 || []).map(s => ({ raw: s, norm: normalizeSubject(s) })).filter(x => x.norm);
+
+        // A-1. 1학기 내 동일 과목 2회 이상 중복 선택
+        const sem1CountMap = {};
+        sem1Norms.forEach(({ raw, norm }) => {
+          sem1CountMap[norm] = (sem1CountMap[norm] || 0) + 1;
         });
-
-        if (priorSt) {
-          const dupList = [];
-          const priorHas = (subj) => {
-            const norm = normalizeSubject(subj);
-            if (!norm) return false;
-            if (Array.isArray(priorSt.subjects)) {
-              return priorSt.subjects.includes(norm);
-            }
-            if (priorSt.subjects && typeof priorSt.subjects.has === 'function') {
-              return priorSt.subjects.has(norm);
-            }
-            return false;
-          };
-
-          (st.sem1 || []).forEach(subj => {
-            if (priorHas(subj)) {
-              dupList.push({ subject: subj, normalized: normalizeSubject(subj), gradeNum: stGradeNum, semester: 1 });
-            }
-          });
-          (st.sem2 || []).forEach(subj => {
-            if (priorHas(subj)) {
-              dupList.push({ subject: subj, normalized: normalizeSubject(subj), gradeNum: stGradeNum, semester: 2 });
-            }
-          });
-
-          if (dupList.length > 0) {
-            duplicates.push({
-              grade: targetGrade,
-              classNum: st.classNum,
-              studentNum: st.studentNum,
-              name: st.name,
-              dupList: dupList,
-              dupSubjStr: dupList.map(d => `${d.subject}(${d.gradeNum}-${d.semester})`).join(', ')
+        Object.entries(sem1CountMap).forEach(([norm, count]) => {
+          if (count > 1) {
+            const matchedRaw = sem1Norms.find(x => x.norm === norm)?.raw || norm;
+            dupList.push({
+              subject: matchedRaw,
+              normalized: norm,
+              gradeNum: stGradeNum,
+              semester: 1,
+              sourceType: 'current_same_sem',
+              sourceLabel: `현재 학년 1학기 내 중복(${count}회)`
             });
           }
+        });
+
+        // A-2. 2학기 내 동일 과목 2회 이상 중복 선택
+        const sem2CountMap = {};
+        sem2Norms.forEach(({ raw, norm }) => {
+          sem2CountMap[norm] = (sem2CountMap[norm] || 0) + 1;
+        });
+        Object.entries(sem2CountMap).forEach(([norm, count]) => {
+          if (count > 1) {
+            const matchedRaw = sem2Norms.find(x => x.norm === norm)?.raw || norm;
+            dupList.push({
+              subject: matchedRaw,
+              normalized: norm,
+              gradeNum: stGradeNum,
+              semester: 2,
+              sourceType: 'current_same_sem',
+              sourceLabel: `현재 학년 2학기 내 중복(${count}회)`
+            });
+          }
+        });
+
+        // A-3. 1학기 ↔ 2학기 간 동일 과목 중복 신청 (현재 학년 1·2학기 중복)
+        sem1Norms.forEach(({ raw: raw1, norm: norm1 }) => {
+          const inSem2 = sem2Norms.find(x => x.norm === norm1);
+          if (inSem2) {
+            const dupKey = `cross_sem_${norm1}`;
+            if (!seenNormsThisStudent.has(dupKey)) {
+              seenNormsThisStudent.add(dupKey);
+              dupList.push({
+                subject: raw1,
+                normalized: norm1,
+                gradeNum: stGradeNum,
+                semester: 1,
+                sourceType: 'current_cross_sem',
+                sourceLabel: `현재 학년 1·2학기 중복`
+              });
+              dupList.push({
+                subject: inSem2.raw,
+                normalized: norm1,
+                gradeNum: stGradeNum,
+                semester: 2,
+                sourceType: 'current_cross_sem',
+                sourceLabel: `현재 학년 1·2학기 중복`
+              });
+            }
+          }
+        });
+
+        // ---------------------------------------------------------
+        // B. 이전 학년 기이수 과목과 중복 대조 (사전 등록된 NEIS 명부)
+        // ---------------------------------------------------------
+        if (hasPrior) {
+          const priorSt = AppState.priorData.students.find(p => {
+            const cMatch = p.classNum === cNum;
+            const nMatch = p.studentNum === sNum;
+            const nameMatch = p.name.trim() === sName;
+            return (cMatch && nMatch && nameMatch) || (cMatch && nameMatch);
+          });
+
+          if (priorSt) {
+            const priorHas = (subj) => {
+              const norm = normalizeSubject(subj);
+              if (!norm) return false;
+              if (Array.isArray(priorSt.subjects)) {
+                return priorSt.subjects.includes(norm);
+              }
+              if (priorSt.subjects && typeof priorSt.subjects.has === 'function') {
+                return priorSt.subjects.has(norm);
+              }
+              return false;
+            };
+
+            (st.sem1 || []).forEach(subj => {
+              if (priorHas(subj)) {
+                const norm = normalizeSubject(subj);
+                const dupKey = `prior_1_${norm}`;
+                if (!seenNormsThisStudent.has(dupKey)) {
+                  seenNormsThisStudent.add(dupKey);
+                  dupList.push({
+                    subject: subj,
+                    normalized: norm,
+                    gradeNum: stGradeNum,
+                    semester: 1,
+                    sourceType: 'prior_grade',
+                    sourceLabel: `이전 학년 기이수 중복`
+                  });
+                }
+              }
+            });
+
+            (st.sem2 || []).forEach(subj => {
+              if (priorHas(subj)) {
+                const norm = normalizeSubject(subj);
+                const dupKey = `prior_2_${norm}`;
+                if (!seenNormsThisStudent.has(dupKey)) {
+                  seenNormsThisStudent.add(dupKey);
+                  dupList.push({
+                    subject: subj,
+                    normalized: norm,
+                    gradeNum: stGradeNum,
+                    semester: 2,
+                    sourceType: 'prior_grade',
+                    sourceLabel: `이전 학년 기이수 중복`
+                  });
+                }
+              }
+            });
+          }
+        }
+
+        if (dupList.length > 0) {
+          const summaryParts = [];
+          const groupedByNorm = {};
+          dupList.forEach(d => {
+            if (!groupedByNorm[d.normalized]) {
+              groupedByNorm[d.normalized] = {
+                subject: d.subject,
+                labels: new Set()
+              };
+            }
+            groupedByNorm[d.normalized].labels.add(d.sourceLabel);
+          });
+
+          Object.values(groupedByNorm).forEach(g => {
+            summaryParts.push(`${g.subject} (${Array.from(g.labels).join(', ')})`);
+          });
+
+          duplicates.push({
+            grade: targetGrade,
+            classNum: st.classNum,
+            studentNum: st.studentNum,
+            name: st.name,
+            dupList: dupList,
+            dupSubjStr: summaryParts.join(' / ')
+          });
         }
       });
 
@@ -2054,17 +2178,35 @@
     function renderCrossCheckResults() {
       if (!AppState.crossCheckResult) return;
       const { missingStudents, duplicateEnrollments } = AppState.crossCheckResult;
+      const hasPrior = !!(AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0);
+
+      if (!hasPrior && duplicateEnrollments.length === 0) {
+        crossCheckAlertPanel?.classList.add('hidden');
+        return;
+      }
 
       crossCheckAlertPanel?.classList.remove('hidden');
 
-      if (missingCountDisplay) missingCountDisplay.textContent = `${missingStudents.length}명`;
+      if (missingCountDisplay) {
+        missingCountDisplay.textContent = hasPrior ? `${missingStudents.length}명` : '사전 명부 미등록';
+      }
       if (duplicateCountDisplay) duplicateCountDisplay.textContent = `${duplicateEnrollments.length}명`;
-      if (missingBadgeCount) missingBadgeCount.textContent = `${missingStudents.length}명`;
+      if (missingBadgeCount) {
+        missingBadgeCount.textContent = hasPrior ? `${missingStudents.length}명` : '미등록';
+      }
       if (duplicateBadgeCount) duplicateBadgeCount.textContent = `${duplicateEnrollments.length}명`;
 
       // Render Missing Students Table
       if (missingStudentsTbody) {
-        if (missingStudents.length === 0) {
+        if (!hasPrior) {
+          missingStudentsTbody.innerHTML = `
+            <tr>
+              <td colspan="6" class="p-4 text-center text-slate-400 font-medium bg-slate-50/50">
+                ℹ️ 상단의 [사전 데이터 등록] 카드에서 이전 학년 NEIS 명부를 등록하면 미신청자를 자동 대조합니다.
+              </td>
+            </tr>
+          `;
+        } else if (missingStudents.length === 0) {
           missingStudentsTbody.innerHTML = `
             <tr>
               <td colspan="6" class="p-4 text-center text-emerald-600 font-bold bg-emerald-50/40">
@@ -2092,23 +2234,37 @@
           duplicateStudentsTbody.innerHTML = `
             <tr>
               <td colspan="6" class="p-4 text-center text-emerald-600 font-bold bg-emerald-50/40">
-                ✅ 기이수 과목과 중복된 수강 신청 내역이 없습니다! (중복 신청 0건)
+                ✅ 동일 과목(1·2학기) 및 이전 학년 기이수 과목과 중복된 수강 신청 내역이 없습니다! (중복 신청 0건)
               </td>
             </tr>
           `;
         } else {
-          duplicateStudentsTbody.innerHTML = duplicateEnrollments.map((st, idx) => `
-            <tr class="hover:bg-amber-50/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}">
-              <td class="p-2 border-r border-slate-200 font-medium text-slate-500">${idx + 1}</td>
-              <td class="p-2 border-r border-slate-200 font-medium">${st.grade}</td>
-              <td class="p-2 border-r border-slate-200 font-medium">${st.classNum}반</td>
-              <td class="p-2 border-r border-slate-200 font-medium">${st.studentNum}번</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">${st.name}</td>
-              <td class="p-2 text-left font-bold text-amber-900 bg-amber-50/70">
-                ${st.dupSubjStr}
-              </td>
-            </tr>
-          `).join('');
+          duplicateStudentsTbody.innerHTML = duplicateEnrollments.map((st, idx) => {
+            const badgesHtml = st.dupList.map(d => {
+              const isPrior = d.sourceType === 'prior_grade';
+              const badgeStyle = isPrior
+                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                : 'bg-amber-100 text-amber-900 border-amber-300';
+              return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${badgeStyle} mr-1 mb-0.5" title="${d.sourceLabel}">
+                ${d.subject} (${d.semester}학기 / ${d.sourceLabel})
+              </span>`;
+            }).filter((v, i, a) => a.indexOf(v) === i).join('');
+
+            return `
+              <tr class="hover:bg-amber-50/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}">
+                <td class="p-2 border-r border-slate-200 font-medium text-slate-500">${idx + 1}</td>
+                <td class="p-2 border-r border-slate-200 font-medium">${st.grade}</td>
+                <td class="p-2 border-r border-slate-200 font-medium">${st.classNum}반</td>
+                <td class="p-2 border-r border-slate-200 font-medium">${st.studentNum}번</td>
+                <td class="p-2 border-r border-slate-200 font-bold text-slate-900">${st.name}</td>
+                <td class="p-2 text-left font-bold text-amber-900 bg-amber-50/70">
+                  <div class="flex flex-wrap items-center">
+                    ${badgesHtml}
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
         }
       }
     }
@@ -2164,10 +2320,10 @@
 
       // Sheet 2: 중복 신청 의심자 명단
       const dupRows = [
-        [`[상지대관령고등학교] ${grade} 기이수 과목 중복 수강 신청 의심 학생 명단`],
-        [`출력일시: ${new Date().toLocaleString()} | 중복 신청 의심 학생 총: ${duplicateEnrollments.length}명 | 기이수 과목 대조 기준`],
+        [`[상지대관령고등학교] ${grade} 동일·기이수 과목 중복 수강 신청 의심 학생 명단`],
+        [`출력일시: ${new Date().toLocaleString()} | 중복 신청 의심 학생 총: ${duplicateEnrollments.length}명 | 기이수 및 학년 내 중복 대조 기준`],
         [],
-        ['연번', '학년', '반', '번호', '성명', '중복 신청된 과목명']
+        ['연번', '학년', '반', '번호', '성명', '중복 신청된 과목 및 사유']
       ];
       duplicateEnrollments.forEach((st, idx) => {
         dupRows.push([idx + 1, st.grade, `${st.classNum}반`, `${st.studentNum}번`, st.name, st.dupSubjStr]);
@@ -2180,7 +2336,7 @@
         { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
         { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }
       ];
-      wsDup['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 35 }];
+      wsDup['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 45 }];
       ExcelStyler.setRange(wsDup, 0, 0, 0, 5, ExcelStyler.titleStyle(true));
       ExcelStyler.setRange(wsDup, 1, 0, 1, 5, ExcelStyler.subtitleStyle(true));
       for (let c = 0; c < 6; c++) {
@@ -2200,7 +2356,7 @@
       for (let c = 0; c < 6; c++) {
         ExcelStyler.setCell(wsDup, dupSumR, c, ExcelStyler.summaryStyle(true, c === 5, c === 0));
       }
-      XLSX.utils.book_append_sheet(wb, wsDup, '기이수_중복신청_의심명단');
+      XLSX.utils.book_append_sheet(wb, wsDup, '동일_기이수_중복신청_명단');
 
       const outName = `[상지대관령고]_${grade}_사전데이터_대조_검증결과.xlsx`;
       XLSX.writeFile(wb, outName);
@@ -2869,8 +3025,10 @@
           if (isSelected) {
             const isDup = dupSubjNorms.has(normalizeSubject(s));
             if (isDup) {
+              const dupItem = dupSt ? dupSt.dupList.find(d => d.semester === sem && d.normalized === normalizeSubject(s)) : null;
+              const dupTip = dupItem ? `${dupItem.sourceLabel} 주의` : '중복 신청 주의';
               html += `<td class="p-2 text-center border-r border-slate-200 bg-amber-50" ${bgAttr}>
-                <span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-amber-100 text-amber-900 border border-amber-400" title="사전 이수 과목 중복신청 주의">선택 (중복주의)</span>
+                <span class="inline-block px-1.5 py-0.5 rounded font-bold text-[11px] bg-amber-100 text-amber-900 border border-amber-400 cursor-help" title="${dupTip}">선택 (중복주의)</span>
               </td>`;
             } else {
               html += `<td class="p-2 text-center border-r border-slate-200" ${bgAttr}>
