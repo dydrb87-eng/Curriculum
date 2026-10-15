@@ -2593,6 +2593,22 @@
               pinnedConfig: { '물리학': 1, '화학': 3, '생명과학': 2 },
               memo: '2학년 1학기 3개 그룹 확정안 (택3)',
               timestamp: new Date().toLocaleTimeString()
+            },
+            {
+              id: 'plan_saved_2',
+              name: '2학기 1안 (충돌 6명)',
+              semester: 2,
+              groups: [
+                ['경제', '기술‧가정', '동아시아 역사 기행', '세포와 물질대사', '정보', '중국어 회화'],
+                ['세계 문화와 영어', '수학과제 탐구', '실생활 영어 회화', '영미 문학 읽기', '운동과 건강'],
+                ['법과 사회', '심화체육전공실기', '윤리와 사상', '인공지능 수학'],
+                ['매체 의사소통', '역학과 에너지', '일본어 회화', '지구과학', '회계 원리']
+              ],
+              conflictCount: 6,
+              conflicts: [],
+              pinnedConfig: {},
+              memo: '2학년 2학기 4개 그룹 확정안 (택4)',
+              timestamp: new Date().toLocaleTimeString()
             }
           ];
 
@@ -6811,7 +6827,7 @@
       lastUpdated: new Date().toISOString()
     };
 
-    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V3';
+    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V4';
     const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
 
     // Cloud Sync Manager
@@ -7086,17 +7102,27 @@
         appBody.classList.remove('hidden');
         btnResetAll.classList.remove('hidden');
         if (thresholdInput) thresholdInput.value = AppState.step1Threshold || 3;
-        renderStep1();
-        renderStep2UI();
+
+        // Ensure savedPlans is never empty
+        if (!AppState.savedPlans || AppState.savedPlans.length === 0) {
+          const init = createInitialGradeState(targetGrade, targetYear);
+          AppState.savedPlans = JSON.parse(JSON.stringify(init.savedPlans || []));
+        }
+
         if (AppState.savedPlans && AppState.savedPlans.length > 0 && !AppState.currentPlan) {
           AppState.currentPlan = JSON.parse(JSON.stringify(AppState.savedPlans[0]));
         }
+
+        renderStep1();
+        renderStep2UI();
+
         if (AppState.currentPlan) {
           const analysis = analyzeGroupConflicts(AppState.currentPlan);
           AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
           AppState.currentPlan.conflicts = analysis.conflictDetails;
           renderStep2Results();
         }
+        renderSavedPlansList();
       } else {
         appBody.classList.add('hidden');
         btnResetAll.classList.add('hidden');
@@ -7330,18 +7356,46 @@
       saveAllState();
     });
 
-    // Full JSON Export (Available globally for header and modal buttons)
+    // Full JSON Export (Bundles ALL tabs, ALL grades, ALL years, ALL saved plans into single backup file)
     window.exportFullBackupJson = function() {
+      // 1. Sync current working grade to MultiState
       syncCurrentToMulti();
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(MultiState, null, 2));
+
+      // 2. Ensure both 2학년 and 3학년 have their full data populated in MultiState before exporting
+      const y = MultiState.activeYear || '2027';
+      if (!MultiState.data[y]) MultiState.data[y] = {};
+      if (!MultiState.data[y]['2학년'] || !MultiState.data[y]['2학년'].students || MultiState.data[y]['2학년'].students.length === 0) {
+        MultiState.data[y]['2학년'] = createInitialGradeState('2학년', y);
+      }
+      if (!MultiState.data[y]['3학년'] || !MultiState.data[y]['3학년'].students || MultiState.data[y]['3학년'].students.length === 0) {
+        MultiState.data[y]['3학년'] = createInitialGradeState('3학년', y);
+      }
+
+      // 3. Format filename: 2027학년도 수강신청 데이터_날짜_시간 (YYYYMMDD_HHMMSS)
       const now = new Date();
-      const dateTag = String(now.getFullYear()).slice(2) + String(now.getMonth()+1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      const dateStr = `${yyyy}${mm}${dd}`;
+      const timeStr = `${hh}${min}${ss}`;
+      const year = MultiState.activeYear || '2027';
+      const filename = `${year}학년도 수강신청 데이터_${dateStr}_${timeStr}.json`;
+
+      // 4. Trigger download using Blob
+      const jsonBlob = new Blob([JSON.stringify(MultiState, null, 2)], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(jsonBlob);
       const dlAnchor = document.createElement('a');
-      dlAnchor.setAttribute("href", dataStr);
-      dlAnchor.setAttribute("download", `상지대관령고_수강신청_전체데이터_${MultiState.activeYear}_${MultiState.activeGrade}_${dateTag}.json`);
+      dlAnchor.setAttribute("href", url);
+      dlAnchor.setAttribute("download", filename);
       document.body.appendChild(dlAnchor);
       dlAnchor.click();
-      dlAnchor.remove();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        dlAnchor.remove();
+      }, 500);
     };
     document.getElementById('btnExportFullBackupJson')?.addEventListener('click', window.exportFullBackupJson);
 
@@ -8133,7 +8187,7 @@
       try {
         let raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
-          raw = localStorage.getItem('SANGJI_COURSE_REG_MULTI_V2');
+          raw = localStorage.getItem('SANGJI_COURSE_REG_MULTI_V3') || localStorage.getItem('SANGJI_COURSE_REG_MULTI_V2');
         }
         if (raw) {
           const parsed = JSON.parse(raw);
@@ -8162,14 +8216,14 @@
         if (!MultiState.data[y]['전체']) MultiState.data[y]['전체'] = { curriculum: [], lastUpdated: null };
       });
 
-      // Auto-populate 2027 full datasets if empty or outdated (< 40 for 2학년, < 20 for 3학년)
+      // Auto-populate 2027 full datasets if empty or outdated (< 40 for 2학년, < 20 for 3학년, or missing savedPlans)
       ['2027'].forEach(y => {
         const g2 = MultiState.data[y]['2학년'];
-        if (!g2 || !g2.students || g2.students.length < 40) {
+        if (!g2 || !g2.students || g2.students.length < 40 || !g2.savedPlans || g2.savedPlans.length === 0) {
           MultiState.data[y]['2학년'] = createInitialGradeState('2학년', y);
         }
         const g3 = MultiState.data[y]['3학년'];
-        if (!g3 || !g3.students || g3.students.length < 20) {
+        if (!g3 || !g3.students || g3.students.length < 20 || !g3.savedPlans || g3.savedPlans.length === 0) {
           MultiState.data[y]['3학년'] = createInitialGradeState('3학년', y);
         }
       });
