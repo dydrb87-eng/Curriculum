@@ -158,10 +158,10 @@
 
         <div class="h-5 w-px bg-slate-300 shrink-0"></div>
 
-        <!-- 2. 대상 학년 탭 (2학년 / 3학년 / 전체 2행 배열) -->
+        <!-- 2. 대상 학년 탭 (2학년 / 3학년 2행 배열) -->
         <div class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
-          <div id="academicGradeTabs" class="flex items-center gap-1.5 shrink-0">
-            <!-- 2학년, 3학년, 전체 탭 버튼 동적 렌더링 -->
+          <div id="academicGradeTabs" class="flex flex-col gap-1 shrink-0">
+            <!-- 2학년, 3학년 탭 버튼 동적 렌더링 -->
           </div>
         </div>
 
@@ -182,6 +182,16 @@
         <div id="academicStepNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
           <div id="academicStepTabs" class="flex flex-col gap-1 shrink-0">
             <!-- 1단계: 수강신청 매트릭스 / 2단계: 그룹핑 & 분반 시뮬레이터 동적 렌더링 -->
+          </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
+
+        <!-- 5. 전체 시수종합 탭 (1,2단계 완료 후 다음 순서) -->
+        <div id="academicAllGradesNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div id="academicAllGradesContainer" class="flex items-center shrink-0">
+            <!-- 전체 시수종합 버튼 동적 렌더링 -->
           </div>
         </div>
 
@@ -8278,12 +8288,11 @@
         }).join('');
       }
 
-      // 2. Render Grade Tabs (2학년 / 3학년 2행 + 전체)
+      // 2. Render Grade Tabs (2학년 / 3학년 2행)
       if (gradeContainer) {
         const yData = MultiState.data[MultiState.activeYear] || {};
 
-        // 2학년, 3학년 buttons HTML (2 rows)
-        const gradeButtonsHtml = ['2학년', '3학년'].map(g => {
+        gradeContainer.innerHTML = ['2학년', '3학년'].map(g => {
           const isActive = g === MultiState.activeGrade;
           const gData = yData[g] || {};
           const count = (gData.students && Array.isArray(gData.students)) ? gData.students.length : 0;
@@ -8328,37 +8337,6 @@
             </button>
           `;
         }).join('');
-
-        // 전체 button HTML (spans height next to 2학년 / 3학년)
-        const isAllActive = MultiState.activeGrade === '전체';
-        const allData = yData['전체'] || {};
-        const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
-        const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
-        
-        const allBtnHtml = `
-          <button type="button" 
-                  onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
-                  class="self-stretch px-2.5 py-1 rounded-lg text-xs font-black flex flex-col items-center justify-center gap-0.5 transition cursor-pointer select-none ${
-                    isAllActive 
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
-                  }"
-                  title="${MultiState.activeYear}학년도 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
-            <span class="whitespace-nowrap">전체</span>
-            <span class="text-[9px] px-1 py-0.2 rounded-full font-bold whitespace-nowrap ${
-              isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-200 text-slate-600'
-            }">
-              ${curCount > 0 ? `교사 ${teacherSet.size}명` : '시수종합'}
-            </span>
-          </button>
-        `;
-
-        gradeContainer.innerHTML = `
-          <div class="flex flex-col gap-1 shrink-0">
-            ${gradeButtonsHtml}
-          </div>
-          ${allBtnHtml}
-        `;
       }
 
       // 3. Render Semester Tabs (1학기 / 2학기 2행)
@@ -8463,6 +8441,45 @@
             </button>
           `;
         }).join('');
+      }
+
+      // 5. Render All Grades (전체 시수종합 - 1,2단계 완료 후 다음 순서)
+      const allGradesContainer = document.getElementById('academicAllGradesContainer');
+      if (allGradesContainer) {
+        const isAllActive = MultiState.activeGrade === '전체';
+        const yData = MultiState.data[MultiState.activeYear] || {};
+        const allData = yData['전체'] || {};
+        const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
+        const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
+
+        allGradesContainer.innerHTML = `
+          <button type="button" 
+                  onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
+                  class="self-stretch px-3 py-1 rounded-lg text-xs font-black flex flex-col items-center justify-center gap-0.5 transition cursor-pointer select-none ${
+                    isAllActive 
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                  }"
+                  title="${MultiState.activeYear}학년도 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
+            <div class="flex items-center gap-1 whitespace-nowrap">
+              <span>📊 전체 시수종합</span>
+            </div>
+            <div class="flex items-center gap-1 text-[10px] whitespace-nowrap">
+              <span class="px-1.5 py-0.2 rounded-full font-bold ${
+                isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-200 text-slate-600'
+              }">
+                ${curCount > 0 ? `교사 ${teacherSet.size}명` : '교원수급'}
+              </span>
+              ${curCount > 0 ? `
+                <span class="px-1.5 py-0.2 rounded-full font-bold ${
+                  isAllActive ? 'bg-amber-300 text-slate-900 shadow-2xs' : 'bg-amber-100 text-amber-900'
+                }" title="${curCount}개 과목 편성됨">
+                  ${curCount}과목
+                </span>
+              ` : ''}
+            </div>
+          </button>
+        `;
       }
     }
 
