@@ -133,12 +133,12 @@
     </div>
   </header>
 
-  <!-- ================= ACADEMIC YEAR & GRADE NAVIGATION BAR ================= -->
+  <!-- ================= UNIFIED HIERARCHICAL NAVIGATION BAR (학년 - 학기 - 단계) ================= -->
   <nav class="bg-slate-100/95 border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-2.5 shadow-2xs sticky top-20 z-30 backdrop-blur-md">
     <div class="w-full flex flex-wrap items-center justify-between gap-3">
       
-      <!-- Left: Academic Year Tabs & Grade Tabs -->
-      <div class="flex items-center gap-3 sm:gap-4 overflow-x-auto py-0.5">
+      <!-- Left: Academic Year Tabs & Hierarchy (학년 ➔ 학기 ➔ 단계) -->
+      <div class="flex items-center gap-2.5 sm:gap-3.5 overflow-x-auto py-0.5 custom-scrollbar">
         
         <!-- 1. 학년도 선택 영역 (기본: 2027학년도) -->
         <div class="flex items-center gap-1.5 shrink-0">
@@ -158,15 +158,45 @@
 
         <div class="h-5 w-px bg-slate-300 shrink-0"></div>
 
-        <!-- 2. 대상 학년 탭 (2학년 / 3학년 독립 작업) -->
+        <!-- 2. 대상 학년 탭 (2학년 / 3학년 / 전체) -->
         <div class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
           <div class="flex items-center gap-1 px-1.5 text-xs font-black text-indigo-900 shrink-0">
             <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
-            <span>대상 학년:</span>
+            <span>학년:</span>
           </div>
-          <!-- 학년 탭 컨테이너 (2학년 / 3학년 동적 버튼) -->
+          <!-- 학년 탭 컨테이너 (2학년 / 3학년 / 전체 동적 버튼) -->
           <div id="academicGradeTabs" class="flex items-center gap-1 shrink-0">
-            <!-- 2학년, 3학년 탭 버튼 동적 렌더링 -->
+            <!-- 2학년, 3학년, 전체 탭 버튼 동적 렌더링 -->
+          </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="text-slate-400 font-bold text-xs shrink-0 select-none">➔</div>
+
+        <!-- 3. 학기 선택 탭 (1학기 / 2학기) -->
+        <div id="academicSemesterNavWrapper" class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div class="flex items-center gap-1 px-1.5 text-xs font-black text-sky-900 shrink-0">
+            <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>학기:</span>
+          </div>
+          <!-- 학기 탭 컨테이너 (1학기 / 2학기 동적 버튼) -->
+          <div id="academicSemesterTabs" class="flex items-center gap-1 shrink-0">
+            <!-- 1학기, 2학기 탭 버튼 동적 렌더링 -->
+          </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="text-slate-400 font-bold text-xs shrink-0 select-none">➔</div>
+
+        <!-- 4. 단계 선택 탭 (1단계 / 2단계) -->
+        <div id="academicStepNavWrapper" class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div class="flex items-center gap-1 px-1.5 text-xs font-black text-purple-900 shrink-0">
+            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <span>단계:</span>
+          </div>
+          <!-- 단계 탭 컨테이너 (1단계 / 2단계 동적 버튼) -->
+          <div id="academicStepTabs" class="flex items-center gap-1 shrink-0">
+            <!-- 1단계: 수강신청 매트릭스 / 2단계: 그룹핑 & 분반 시뮬레이터 동적 렌더링 -->
           </div>
         </div>
 
@@ -619,16 +649,10 @@
     <!-- CONTENT WRAPPER (Shown after file load) -->
     <div id="appBody" class="hidden space-y-8">
 
-      <!-- STEP NAVIGATION TABS -->
-      <div class="bg-slate-200/70 p-2 rounded-2xl border border-slate-300/80 shadow-inner flex flex-col sm:flex-row gap-2.5">
-        <button id="navTab1" type="button" class="tab-button flex-1 py-3.5 px-6 rounded-xl text-sm sm:text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-600/30 ring-2 ring-blue-400/50 flex items-center justify-center space-x-3 transition-all duration-200">
-          <span id="navTab1Badge" class="w-7 h-7 rounded-full bg-white text-blue-700 font-extrabold text-xs shadow-sm flex items-center justify-center">1</span>
-          <span class="tracking-tight">1단계: 수강신청 현황 매트릭스</span>
-        </button>
-        <button id="navTab2" type="button" class="tab-button flex-1 py-3.5 px-6 rounded-xl text-sm sm:text-base font-semibold bg-white text-slate-700 border border-slate-300/60 shadow-sm hover:bg-slate-50 hover:text-blue-700 flex items-center justify-center space-x-3 transition-all duration-200">
-          <span id="navTab2Badge" class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-center">2</span>
-          <span class="tracking-tight">2단계: 선택과목 그룹핑 &amp; 분반 시뮬레이터</span>
-        </button>
+      <!-- STEP NAVIGATION TABS (상단 네비게이션 바로 일원화되어 본문에서는 숨김 처리) -->
+      <div class="hidden">
+        <button id="navTab1" type="button"></button>
+        <button id="navTab2" type="button"></button>
       </div>
 
       <!-- ============================================================= -->
@@ -756,14 +780,10 @@
         
         <!-- Controls Bar -->
         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-          <!-- Semester Selector Tabs -->
-          <div class="inline-flex p-1.5 bg-slate-200/90 rounded-xl border border-slate-300 shadow-inner gap-2">
-            <button id="sem1TabBtn" class="px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-black rounded-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-300 transition-all cursor-pointer flex items-center gap-2">
-              <span>📅 1학기 선택현황</span>
-            </button>
-            <button id="sem2TabBtn" class="px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-bold rounded-lg text-slate-600 hover:text-blue-700 hover:bg-white/80 transition-all cursor-pointer flex items-center gap-2">
-              <span>📅 2학기 선택현황</span>
-            </button>
+          <!-- Semester Selector Tabs (상단 바로 일원화되어 본문에서는 숨김) -->
+          <div class="hidden">
+            <button id="sem1TabBtn"></button>
+            <button id="sem2TabBtn"></button>
           </div>
 
           <!-- Threshold input & Filters -->
@@ -935,17 +955,13 @@
         <!-- Top Toolbar & Settings Panel -->
         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <!-- Semester Toggle for Step 2 -->
+            <!-- Semester Toggle for Step 2 (상단 바로 일원화되어 본문에서는 숨김) -->
             <div class="flex items-center space-x-3">
-              <div class="inline-flex p-1.5 bg-slate-200/90 rounded-xl border border-slate-300 shadow-inner gap-2">
-                <button id="step2Sem1Btn" class="px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-black rounded-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-300 transition-all cursor-pointer flex items-center gap-2">
-                  <span>📅 1학기 그룹핑</span>
-                </button>
-                <button id="step2Sem2Btn" class="px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-bold rounded-lg text-slate-600 hover:text-blue-700 hover:bg-white/80 transition-all cursor-pointer flex items-center gap-2">
-                  <span>📅 2학기 그룹핑</span>
-                </button>
+              <div class="hidden">
+                <button id="step2Sem1Btn"></button>
+                <button id="step2Sem2Btn"></button>
               </div>
-              <span class="text-xs text-slate-500 font-medium" id="groupCountInfo"></span>
+              <span class="text-xs text-slate-600 font-bold flex items-center gap-1.5" id="groupCountInfo"></span>
             </div>
           </div>
 
@@ -2933,10 +2949,13 @@
     // 3. STEP 1: MATRIX VIEW LOGIC
     // ==========================================
 
-    navTab1.addEventListener('click', () => switchStepView(1));
-    navTab2.addEventListener('click', () => switchStepView(2));
+    navTab1?.addEventListener('click', () => switchStepView(1));
+    navTab2?.addEventListener('click', () => switchStepView(2));
 
     function switchStepView(step) {
+      if (MultiState.activeGrade === '전체') return;
+      MultiState.activeStep = step;
+
       const activeClasses = ['bg-gradient-to-r', 'from-blue-600', 'to-indigo-700', 'text-white', 'shadow-lg', 'shadow-blue-600/30', 'ring-2', 'ring-blue-400/50'];
       const inactiveClasses = ['bg-white', 'text-slate-700', 'border', 'border-slate-300/60', 'shadow-sm', 'hover:bg-slate-50', 'hover:text-blue-700'];
 
@@ -2944,72 +2963,96 @@
       const badge2 = document.getElementById('navTab2Badge');
 
       if (step === 1) {
-        navTab1.classList.remove(...inactiveClasses);
-        navTab1.classList.add(...activeClasses);
-        navTab1.classList.remove('font-semibold');
-        navTab1.classList.add('font-bold');
+        if (navTab1) {
+          navTab1.classList.remove(...inactiveClasses);
+          navTab1.classList.add(...activeClasses);
+          navTab1.classList.remove('font-semibold');
+          navTab1.classList.add('font-bold');
+        }
         if (badge1) {
           badge1.className = 'w-7 h-7 rounded-full bg-white text-blue-700 font-extrabold text-xs shadow-sm flex items-center justify-center';
         }
 
-        navTab2.classList.remove(...activeClasses);
-        navTab2.classList.add(...inactiveClasses);
-        navTab2.classList.remove('font-bold');
-        navTab2.classList.add('font-semibold');
+        if (navTab2) {
+          navTab2.classList.remove(...activeClasses);
+          navTab2.classList.add(...inactiveClasses);
+          navTab2.classList.remove('font-bold');
+          navTab2.classList.add('font-semibold');
+        }
         if (badge2) {
           badge2.className = 'w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-center';
         }
 
-        step1View.classList.remove('hidden');
-        step2View.classList.add('hidden');
+        step1View?.classList.remove('hidden');
+        step2View?.classList.add('hidden');
         renderStep1();
       } else {
-        navTab2.classList.remove(...inactiveClasses);
-        navTab2.classList.add(...activeClasses);
-        navTab2.classList.remove('font-semibold');
-        navTab2.classList.add('font-bold');
+        if (navTab2) {
+          navTab2.classList.remove(...inactiveClasses);
+          navTab2.classList.add(...activeClasses);
+          navTab2.classList.remove('font-semibold');
+          navTab2.classList.add('font-bold');
+        }
         if (badge2) {
           badge2.className = 'w-7 h-7 rounded-full bg-white text-blue-700 font-extrabold text-xs shadow-sm flex items-center justify-center';
         }
 
-        navTab1.classList.remove(...activeClasses);
-        navTab1.classList.add(...inactiveClasses);
-        navTab1.classList.remove('font-bold');
-        navTab1.classList.add('font-semibold');
+        if (navTab1) {
+          navTab1.classList.remove(...activeClasses);
+          navTab1.classList.add(...inactiveClasses);
+          navTab1.classList.remove('font-bold');
+          navTab1.classList.add('font-semibold');
+        }
         if (badge1) {
           badge1.className = 'w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-center';
         }
 
-        step2View.classList.remove('hidden');
-        step1View.classList.add('hidden');
+        step2View?.classList.remove('hidden');
+        step1View?.classList.add('hidden');
         renderStep2UI();
       }
+
+      renderYearGradeNav();
+      saveAllState();
     }
+    window.switchStepView = switchStepView;
+
+    function switchSemester(sem) {
+      if (MultiState.activeGrade === '전체') return;
+      AppState.currentSemester = sem;
+      updateStep1SemesterTabs(sem);
+      updateStep2SemesterTabs(sem);
+      if (MultiState.activeStep === 1) {
+        renderStep1();
+      } else {
+        initStep2Controls();
+        runOptimization();
+      }
+      renderYearGradeNav();
+      saveAllState();
+    }
+    window.switchSemester = switchSemester;
 
     function updateStep1SemesterTabs(sem) {
       const activeCls = 'px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-black rounded-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-300 transition-all cursor-pointer flex items-center gap-2';
       const inactiveCls = 'px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-bold rounded-lg text-slate-600 hover:text-blue-700 hover:bg-white/80 transition-all cursor-pointer flex items-center gap-2';
-      if (sem === 1) {
-        sem1TabBtn.className = activeCls;
-        sem2TabBtn.className = inactiveCls;
-      } else {
-        sem2TabBtn.className = activeCls;
-        sem1TabBtn.className = inactiveCls;
+      if (sem1TabBtn && sem2TabBtn) {
+        if (sem === 1) {
+          sem1TabBtn.className = activeCls;
+          sem2TabBtn.className = inactiveCls;
+        } else {
+          sem2TabBtn.className = activeCls;
+          sem1TabBtn.className = inactiveCls;
+        }
       }
     }
 
-    sem1TabBtn.addEventListener('click', () => {
-      AppState.currentSemester = 1;
-      updateStep1SemesterTabs(1);
-      renderStep1();
-      saveAllState();
+    sem1TabBtn?.addEventListener('click', () => {
+      switchSemester(1);
     });
 
-    sem2TabBtn.addEventListener('click', () => {
-      AppState.currentSemester = 2;
-      updateStep1SemesterTabs(2);
-      renderStep1();
-      saveAllState();
+    sem2TabBtn?.addEventListener('click', () => {
+      switchSemester(2);
     });
 
     thresholdInput.addEventListener('input', (e) => {
@@ -4300,27 +4343,23 @@
     function updateStep2SemesterTabs(sem) {
       const activeCls = 'px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-black rounded-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-300 transition-all cursor-pointer flex items-center gap-2';
       const inactiveCls = 'px-5 py-2.5 sm:px-6 sm:py-2.5 text-sm sm:text-base font-bold rounded-lg text-slate-600 hover:text-blue-700 hover:bg-white/80 transition-all cursor-pointer flex items-center gap-2';
-      if (sem === 1) {
-        step2Sem1Btn.className = activeCls;
-        step2Sem2Btn.className = inactiveCls;
-      } else {
-        step2Sem2Btn.className = activeCls;
-        step2Sem1Btn.className = inactiveCls;
+      if (step2Sem1Btn && step2Sem2Btn) {
+        if (sem === 1) {
+          step2Sem1Btn.className = activeCls;
+          step2Sem2Btn.className = inactiveCls;
+        } else {
+          step2Sem2Btn.className = activeCls;
+          step2Sem1Btn.className = inactiveCls;
+        }
       }
     }
 
-    step2Sem1Btn.addEventListener('click', () => {
-      AppState.currentSemester = 1;
-      updateStep2SemesterTabs(1);
-      initStep2Controls();
-      runOptimization();
+    step2Sem1Btn?.addEventListener('click', () => {
+      switchSemester(1);
     });
 
-    step2Sem2Btn.addEventListener('click', () => {
-      AppState.currentSemester = 2;
-      updateStep2SemesterTabs(2);
-      initStep2Controls();
-      runOptimization();
+    step2Sem2Btn?.addEventListener('click', () => {
+      switchSemester(2);
     });
 
     btnRegroup.addEventListener('click', () => {
@@ -7120,6 +7159,7 @@
 
       initStep2Controls();
       renderStep2Results();
+      renderYearGradeNav();
 
       const memoTextarea = document.getElementById('planWorkMemo');
       if (memoTextarea) {
@@ -7848,6 +7888,7 @@
     const MultiState = {
       activeYear: '2027', // 기본 2027학년도
       activeGrade: '2학년', // 기본 2학년 ('2학년' | '3학년' | '전체')
+      activeStep: 1, // 1: 1단계(수강신청 매트릭스), 2: 2단계(과목 그룹핑 & 분반)
       yearsList: ['2027', '2026'],
       data: {
         '2027': {
@@ -8154,8 +8195,16 @@
           AppState.currentPlan = JSON.parse(JSON.stringify(AppState.savedPlans[0]));
         }
 
-        renderStep1();
-        renderStep2UI();
+        const activeStep = MultiState.activeStep || 1;
+        if (activeStep === 1) {
+          if (step1View) step1View.classList.remove('hidden');
+          if (step2View) step2View.classList.add('hidden');
+          renderStep1();
+        } else {
+          if (step2View) step2View.classList.remove('hidden');
+          if (step1View) step1View.classList.add('hidden');
+          renderStep2UI();
+        }
 
         if (AppState.currentPlan) {
           const analysis = analyzeGroupConflicts(AppState.currentPlan);
@@ -8176,15 +8225,23 @@
     function renderYearGradeNav() {
       const yearContainer = document.getElementById('academicYearTabs');
       const gradeContainer = document.getElementById('academicGradeTabs');
+      const semesterContainer = document.getElementById('academicSemesterTabs');
+      const stepContainer = document.getElementById('academicStepTabs');
+      const semesterNavWrapper = document.getElementById('academicSemesterNavWrapper');
+      const stepNavWrapper = document.getElementById('academicStepNavWrapper');
       const currentWorkText = document.getElementById('currentWorkText');
 
+      const isAllGrades = MultiState.activeGrade === '전체';
+      const curSem = AppState.currentSemester || 1;
+      const curStep = MultiState.activeStep || 1;
+
       if (currentWorkText) {
-        currentWorkText.textContent = MultiState.activeGrade === '전체'
+        currentWorkText.textContent = isAllGrades
           ? `${MultiState.activeYear}학년도 전체 (전학년 교육과정 및 교사 시수)`
-          : `${MultiState.activeYear}학년도 ${MultiState.activeGrade}`;
+          : `${MultiState.activeYear}학년도 ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
       }
 
-      // Render Year Tabs
+      // 1. Render Year Tabs
       if (yearContainer) {
         yearContainer.innerHTML = MultiState.yearsList.map(y => {
           const isActive = y === MultiState.activeYear;
@@ -8236,7 +8293,7 @@
         }).join('');
       }
 
-      // Render Grade Tabs (2학년 / 3학년 / 전체)
+      // 2. Render Grade Tabs (2학년 / 3학년 / 전체)
       if (gradeContainer) {
         gradeContainer.innerHTML = ['2학년', '3학년', '전체'].map(g => {
           const isActive = g === MultiState.activeGrade;
@@ -8249,7 +8306,7 @@
             return `
               <button type="button" 
                       onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
-                      class="px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                      class="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
                         isActive 
                           ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
@@ -8259,7 +8316,7 @@
                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                   isActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-200 text-slate-600'
                 }">
-                  ${curCount > 0 ? `교사 ${teacherSet.size}명` : '종합/시수'}
+                  ${curCount > 0 ? `교사 ${teacherSet.size}명` : '시수종합'}
                 </span>
                 ${curCount > 0 ? `
                   <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
@@ -8277,10 +8334,16 @@
           const hasPrior = (gData.priorData && gData.priorData.students && gData.priorData.students.length > 0);
           const priorCount = hasPrior ? gData.priorData.students.length : 0;
 
+          // Calculate modifications count
+          let modCount = 0;
+          if (gData.students && Array.isArray(gData.students) && typeof isStudentChoicesModified === 'function') {
+            modCount = gData.students.filter(st => isStudentChoicesModified(st, 1) || isStudentChoicesModified(st, 2)).length;
+          }
+
           return `
             <button type="button" 
                     onclick="window.switchAcademicContext('${MultiState.activeYear}', '${g}')"
-                    class="px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                    class="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
                       isActive 
                         ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
@@ -8290,7 +8353,7 @@
               <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                 isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
               }">
-                설문 ${count}명
+                ${count}명
               </span>
               ${hasPrior ? `
                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
@@ -8299,6 +8362,115 @@
                   명부✓
                 </span>
               ` : ''}
+              ${modCount > 0 ? `
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                }" title="선택 수정 학생 ${modCount}명">
+                  수정 ${modCount}
+                </span>
+              ` : ''}
+            </button>
+          `;
+        }).join('');
+      }
+
+      // 3. Render Semester Tabs (1학기 / 2학기)
+      if (semesterNavWrapper) {
+        if (isAllGrades) {
+          semesterNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+          semesterNavWrapper.title = '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
+        } else {
+          semesterNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+          semesterNavWrapper.title = '';
+        }
+      }
+
+      if (semesterContainer) {
+        semesterContainer.innerHTML = [1, 2].map(sem => {
+          const isActive = !isAllGrades && curSem === sem;
+          
+          let semModCount = 0;
+          if (!isAllGrades && AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function') {
+            semModCount = AppState.students.filter(st => isStudentChoicesModified(st, sem)).length;
+          }
+
+          return `
+            <button type="button" 
+                    onclick="window.switchSemester(${sem})"
+                    ${isAllGrades ? 'disabled' : ''}
+                    class="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                      isActive
+                        ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-xs ring-2 ring-sky-400'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                    }"
+                    title="${sem}학기 선택 및 작업 전환">
+              <span>${sem}학기</span>
+              ${semModCount > 0 ? `
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                }" title="${sem}학기 수정 ${semModCount}건">
+                  수정 ${semModCount}
+                </span>
+              ` : ''}
+            </button>
+          `;
+        }).join('');
+      }
+
+      // 4. Render Step Tabs (1단계 / 2단계)
+      if (stepNavWrapper) {
+        if (isAllGrades) {
+          stepNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+          stepNavWrapper.title = '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
+        } else {
+          stepNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+          stepNavWrapper.title = '';
+        }
+      }
+
+      if (stepContainer) {
+        stepContainer.innerHTML = [
+          { step: 1, label: '1단계', desc: '선택 매트릭스' },
+          { step: 2, label: '2단계', desc: '그룹핑 & 시간표' }
+        ].map(item => {
+          const isActive = !isAllGrades && curStep === item.step;
+          
+          let badgeHtml = '';
+          if (!isAllGrades) {
+            if (item.step === 1) {
+              const modCount = (AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function')
+                ? AppState.students.filter(st => isStudentChoicesModified(st, curSem)).length
+                : 0;
+              if (modCount > 0) {
+                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                }">수정 ${modCount}</span>`;
+              }
+            } else if (item.step === 2) {
+              if (AppState.currentPlan) {
+                const conflicts = AppState.currentPlan.conflictCount || 0;
+                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  conflicts === 0 
+                    ? (isActive ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800')
+                    : (isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800')
+                }">${conflicts === 0 ? '충돌 0명' : `충돌 ${conflicts}명`}</span>`;
+              }
+            }
+          }
+
+          return `
+            <button type="button" 
+                    onclick="window.switchStepView(${item.step})"
+                    ${isAllGrades ? 'disabled' : ''}
+                    class="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                      isActive
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                    }"
+                    title="${item.label}: ${item.desc} 화면으로 전환">
+              <span>${item.label}</span>
+              <span class="text-[11px] font-semibold opacity-90 hidden md:inline">(${item.desc})</span>
+              ${badgeHtml}
             </button>
           `;
         }).join('');
