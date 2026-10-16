@@ -168,20 +168,20 @@
         <!-- Separator -->
         <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
 
-        <!-- 3. 단계 선택 탭 (1단계 / 2단계 2행 배열) -->
-        <div id="academicStepNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
-          <div id="academicStepTabs" class="flex flex-col gap-1 shrink-0">
-            <!-- 1단계: 수강신청 매트릭스 / 2단계: 그룹핑 & 분반 시뮬레이터 동적 렌더링 -->
+        <!-- 3. 학기 선택 탭 (1학기 / 2학기 2행 배열) -->
+        <div id="academicSemesterNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div id="academicSemesterTabs" class="flex flex-col gap-1 shrink-0">
+            <!-- 1학기, 2학기 탭 버튼 동적 렌더링 -->
           </div>
         </div>
 
         <!-- Separator -->
         <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
 
-        <!-- 4. 학기 선택 탭 (1학기 / 2학기 2행 배열) -->
-        <div id="academicSemesterNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
-          <div id="academicSemesterTabs" class="flex flex-col gap-1 shrink-0">
-            <!-- 1학기, 2학기 탭 버튼 동적 렌더링 -->
+        <!-- 4. 단계 선택 탭 (1단계 / 2단계 2행 배열) -->
+        <div id="academicStepNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div id="academicStepTabs" class="flex flex-col gap-1 shrink-0">
+            <!-- 1단계: 수강신청 매트릭스 / 2단계: 그룹핑 & 분반 시뮬레이터 동적 렌더링 -->
           </div>
         </div>
 
@@ -8233,7 +8233,7 @@
       if (currentWorkText) {
         currentWorkText.textContent = isAllGrades
           ? `${MultiState.activeYear}학년도 전체 (전학년 교육과정 및 교사 시수)`
-          : `${MultiState.activeYear}학년도 ${MultiState.activeGrade} · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'} · ${curSem}학기`;
+          : `${MultiState.activeYear}학년도 ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
       }
 
       // 1. Render Year Tabs
