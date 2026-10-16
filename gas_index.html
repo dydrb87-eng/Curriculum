@@ -158,44 +158,29 @@
 
         <div class="h-5 w-px bg-slate-300 shrink-0"></div>
 
-        <!-- 2. 대상 학년 탭 (2학년 / 3학년 / 전체) -->
-        <div class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
-          <div class="flex items-center gap-1 px-1.5 text-xs font-black text-indigo-900 shrink-0">
-            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
-            <span>학년:</span>
-          </div>
-          <!-- 학년 탭 컨테이너 (2학년 / 3학년 / 전체 동적 버튼) -->
-          <div id="academicGradeTabs" class="flex items-center gap-1 shrink-0">
+        <!-- 2. 대상 학년 탭 (2학년 / 3학년 / 전체 2행 배열) -->
+        <div class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
+          <div id="academicGradeTabs" class="flex items-center gap-1.5 shrink-0">
             <!-- 2학년, 3학년, 전체 탭 버튼 동적 렌더링 -->
           </div>
         </div>
 
         <!-- Separator -->
-        <div class="text-slate-400 font-bold text-xs shrink-0 select-none">➔</div>
+        <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
 
-        <!-- 3. 학기 선택 탭 (1학기 / 2학기) -->
-        <div id="academicSemesterNavWrapper" class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
-          <div class="flex items-center gap-1 px-1.5 text-xs font-black text-sky-900 shrink-0">
-            <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <span>학기:</span>
-          </div>
-          <!-- 학기 탭 컨테이너 (1학기 / 2학기 동적 버튼) -->
-          <div id="academicSemesterTabs" class="flex items-center gap-1 shrink-0">
+        <!-- 3. 학기 선택 탭 (1학기 / 2학기 2행 배열) -->
+        <div id="academicSemesterNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div id="academicSemesterTabs" class="flex flex-col gap-1 shrink-0">
             <!-- 1학기, 2학기 탭 버튼 동적 렌더링 -->
           </div>
         </div>
 
         <!-- Separator -->
-        <div class="text-slate-400 font-bold text-xs shrink-0 select-none">➔</div>
+        <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
 
-        <!-- 4. 단계 선택 탭 (1단계 / 2단계) -->
-        <div id="academicStepNavWrapper" class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
-          <div class="flex items-center gap-1 px-1.5 text-xs font-black text-purple-900 shrink-0">
-            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            <span>단계:</span>
-          </div>
-          <!-- 단계 탭 컨테이너 (1단계 / 2단계 동적 버튼) -->
-          <div id="academicStepTabs" class="flex items-center gap-1 shrink-0">
+        <!-- 4. 단계 선택 탭 (1단계 / 2단계 2행 배열) -->
+        <div id="academicStepNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div id="academicStepTabs" class="flex flex-col gap-1 shrink-0">
             <!-- 1단계: 수강신청 매트릭스 / 2단계: 그룹핑 & 분반 시뮬레이터 동적 렌더링 -->
           </div>
         </div>
@@ -8293,42 +8278,13 @@
         }).join('');
       }
 
-      // 2. Render Grade Tabs (2학년 / 3학년 / 전체)
+      // 2. Render Grade Tabs (2학년 / 3학년 2행 + 전체)
       if (gradeContainer) {
-        gradeContainer.innerHTML = ['2학년', '3학년', '전체'].map(g => {
+        const yData = MultiState.data[MultiState.activeYear] || {};
+
+        // 2학년, 3학년 buttons HTML (2 rows)
+        const gradeButtonsHtml = ['2학년', '3학년'].map(g => {
           const isActive = g === MultiState.activeGrade;
-          const yData = MultiState.data[MultiState.activeYear] || {};
-
-          if (g === '전체') {
-            const allData = yData['전체'] || {};
-            const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
-            const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
-            return `
-              <button type="button" 
-                      onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
-                      class="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
-                        isActive 
-                          ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
-                      }"
-                      title="${MultiState.activeYear}학년도 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
-                <span>전체</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-200 text-slate-600'
-                }">
-                  ${curCount > 0 ? `교사 ${teacherSet.size}명` : '시수종합'}
-                </span>
-                ${curCount > 0 ? `
-                  <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-amber-300 text-slate-900 shadow-2xs' : 'bg-amber-100 text-amber-900'
-                  }" title="${curCount}개 과목 편성됨">
-                    ${curCount}과목
-                  </span>
-                ` : ''}
-              </button>
-            `;
-          }
-
           const gData = yData[g] || {};
           const count = (gData.students && Array.isArray(gData.students)) ? gData.students.length : 0;
           const hasPrior = (gData.priorData && gData.priorData.students && gData.priorData.students.length > 0);
@@ -8343,27 +8299,27 @@
           return `
             <button type="button" 
                     onclick="window.switchAcademicContext('${MultiState.activeYear}', '${g}')"
-                    class="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
                       isActive 
                         ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
                     }"
                     title="${MultiState.activeYear}학년도 ${g} 작업 환경으로 전환">
-              <span>${g}</span>
-              <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              <span class="whitespace-nowrap">${g}</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold whitespace-nowrap ${
                 isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
               }">
                 ${count}명
               </span>
               ${hasPrior ? `
-                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                <span class="text-[10px] px-1 py-0.2 rounded font-bold whitespace-nowrap ${
                   isActive ? 'bg-emerald-400 text-slate-900 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
                 }" title="사전 명부 ${priorCount}명 등록됨">
                   명부✓
                 </span>
               ` : ''}
               ${modCount > 0 ? `
-                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
                   isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
                 }" title="선택 수정 학생 ${modCount}명">
                   수정 ${modCount}
@@ -8372,9 +8328,40 @@
             </button>
           `;
         }).join('');
+
+        // 전체 button HTML (spans height next to 2학년 / 3학년)
+        const isAllActive = MultiState.activeGrade === '전체';
+        const allData = yData['전체'] || {};
+        const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
+        const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
+        
+        const allBtnHtml = `
+          <button type="button" 
+                  onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
+                  class="self-stretch px-2.5 py-1 rounded-lg text-xs font-black flex flex-col items-center justify-center gap-0.5 transition cursor-pointer select-none ${
+                    isAllActive 
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                  }"
+                  title="${MultiState.activeYear}학년도 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
+            <span class="whitespace-nowrap">전체</span>
+            <span class="text-[9px] px-1 py-0.2 rounded-full font-bold whitespace-nowrap ${
+              isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-200 text-slate-600'
+            }">
+              ${curCount > 0 ? `교사 ${teacherSet.size}명` : '시수종합'}
+            </span>
+          </button>
+        `;
+
+        gradeContainer.innerHTML = `
+          <div class="flex flex-col gap-1 shrink-0">
+            ${gradeButtonsHtml}
+          </div>
+          ${allBtnHtml}
+        `;
       }
 
-      // 3. Render Semester Tabs (1학기 / 2학기)
+      // 3. Render Semester Tabs (1학기 / 2학기 2행)
       if (semesterNavWrapper) {
         if (isAllGrades) {
           semesterNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
@@ -8398,15 +8385,15 @@
             <button type="button" 
                     onclick="window.switchSemester(${sem})"
                     ${isAllGrades ? 'disabled' : ''}
-                    class="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                    class="px-3 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
                       isActive
                         ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-xs ring-2 ring-sky-400'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
                     }"
                     title="${sem}학기 선택 및 작업 전환">
-              <span>${sem}학기</span>
+              <span class="whitespace-nowrap">${sem}학기</span>
               ${semModCount > 0 ? `
-                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
                   isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
                 }" title="${sem}학기 수정 ${semModCount}건">
                   수정 ${semModCount}
@@ -8417,7 +8404,7 @@
         }).join('');
       }
 
-      // 4. Render Step Tabs (1단계 / 2단계)
+      // 4. Render Step Tabs (1단계 / 2단계 2행)
       if (stepNavWrapper) {
         if (isAllGrades) {
           stepNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
@@ -8442,14 +8429,14 @@
                 ? AppState.students.filter(st => isStudentChoicesModified(st, curSem)).length
                 : 0;
               if (modCount > 0) {
-                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
                   isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
                 }">수정 ${modCount}</span>`;
               }
             } else if (item.step === 2) {
               if (AppState.currentPlan) {
                 const conflicts = AppState.currentPlan.conflictCount || 0;
-                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
                   conflicts === 0 
                     ? (isActive ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800')
                     : (isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800')
@@ -8462,14 +8449,16 @@
             <button type="button" 
                     onclick="window.switchStepView(${item.step})"
                     ${isAllGrades ? 'disabled' : ''}
-                    class="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                    class="px-3 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
                       isActive
                         ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
                     }"
                     title="${item.label}: ${item.desc} 화면으로 전환">
-              <span>${item.label}</span>
-              <span class="text-[11px] font-semibold opacity-90 hidden md:inline">(${item.desc})</span>
+              <div class="flex items-center gap-1 whitespace-nowrap">
+                <span>${item.label}</span>
+                <span class="text-[11px] font-semibold opacity-85">(${item.desc})</span>
+              </div>
               ${badgeHtml}
             </button>
           `;
