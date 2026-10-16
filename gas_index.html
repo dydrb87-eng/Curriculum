@@ -99,22 +99,22 @@
           </button>
 
           <!-- Dropdown Menu -->
-          <div id="saveDropdownMenu" class="hidden absolute right-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+          <div id="saveDropdownMenu" class="hidden absolute right-0 top-full mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
             <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] text-slate-400 font-semibold">
-              저장 위치 및 다운로드 설정
+              저장 폴더 및 백업 방식 설정
             </div>
             <button type="button" onclick="window.saveWithNewLocation();" class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
               <span>📁</span>
               <div>
-                <div>저장 위치/파일 변경...</div>
-                <div class="text-[10px] text-slate-400 font-normal" id="dropdownPrevLocationHint">원하는 폴더를 직접 선택하여 저장</div>
+                <div>저장 폴더 지정/변경...</div>
+                <div class="text-[10px] text-slate-400 font-normal" id="dropdownPrevLocationHint">폴더를 지정하면 시간별 새 파일 자동 저장</div>
               </div>
             </button>
             <button type="button" onclick="window.resetSaveLocationToDefault();" class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer border-t border-slate-100">
               <span>📥</span>
               <div>
-                <div>브라우저 기본 다운로드로 저장</div>
-                <div class="text-[10px] text-slate-400 font-normal">다운로드 폴더에 자동 저장 (초기값)</div>
+                <div>기본 다운로드 폴더로 저장</div>
+                <div class="text-[10px] text-slate-400 font-normal">다운로드 폴더에 시간별 새 파일 자동 저장</div>
               </div>
             </button>
           </div>
@@ -168,20 +168,20 @@
         <!-- Separator -->
         <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
 
-        <!-- 3. 학기 선택 탭 (1학기 / 2학기 2행 배열) -->
-        <div id="academicSemesterNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
-          <div id="academicSemesterTabs" class="flex flex-col gap-1 shrink-0">
-            <!-- 1학기, 2학기 탭 버튼 동적 렌더링 -->
+        <!-- 3. 단계 선택 탭 (1단계 / 2단계 2행 배열) -->
+        <div id="academicStepNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div id="academicStepTabs" class="flex flex-col gap-1 shrink-0">
+            <!-- 1단계: 수강신청 매트릭스 / 2단계: 그룹핑 & 분반 시뮬레이터 동적 렌더링 -->
           </div>
         </div>
 
         <!-- Separator -->
         <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
 
-        <!-- 4. 단계 선택 탭 (1단계 / 2단계 2행 배열) -->
-        <div id="academicStepNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
-          <div id="academicStepTabs" class="flex flex-col gap-1 shrink-0">
-            <!-- 1단계: 수강신청 매트릭스 / 2단계: 그룹핑 & 분반 시뮬레이터 동적 렌더링 -->
+        <!-- 4. 학기 선택 탭 (1학기 / 2학기 2행 배열) -->
+        <div id="academicSemesterNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+          <div id="academicSemesterTabs" class="flex flex-col gap-1 shrink-0">
+            <!-- 1학기, 2학기 탭 버튼 동적 렌더링 -->
           </div>
         </div>
 
@@ -8233,7 +8233,7 @@
       if (currentWorkText) {
         currentWorkText.textContent = isAllGrades
           ? `${MultiState.activeYear}학년도 전체 (전학년 교육과정 및 교사 시수)`
-          : `${MultiState.activeYear}학년도 ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
+          : `${MultiState.activeYear}학년도 ${MultiState.activeGrade} · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'} · ${curSem}학기`;
       }
 
       // 1. Render Year Tabs
@@ -8685,17 +8685,18 @@
       }, 500);
     };
 
-    let rememberedSaveHandle = null;
+    let rememberedDirHandle = null;
 
-    async function getSavedFileHandle() {
-      if (rememberedSaveHandle) return rememberedSaveHandle;
+    async function getSavedDirHandle() {
+      if (rememberedDirHandle) return rememberedDirHandle;
       return new Promise((resolve) => {
         try {
           if (!window.indexedDB) return resolve(null);
-          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
+          const req = indexedDB.open('SangjiCourseRegHandleDB', 2);
           req.onupgradeneeded = (e) => {
-            if (!e.target.result.objectStoreNames.contains('handles')) {
-              e.target.result.createObjectStore('handles');
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('handles')) {
+              db.createObjectStore('handles');
             }
           };
           req.onsuccess = (e) => {
@@ -8703,10 +8704,10 @@
             try {
               const tx = db.transaction('handles', 'readonly');
               const store = tx.objectStore('handles');
-              const getReq = store.get('lastSaveHandle');
+              const getReq = store.get('savedDirHandle');
               getReq.onsuccess = () => {
-                rememberedSaveHandle = getReq.result || null;
-                resolve(rememberedSaveHandle);
+                rememberedDirHandle = getReq.result || null;
+                resolve(rememberedDirHandle);
               };
               getReq.onerror = () => resolve(null);
             } catch { resolve(null); }
@@ -8716,15 +8717,16 @@
       });
     }
 
-    async function setSavedFileHandle(handle) {
-      rememberedSaveHandle = handle;
+    async function setSavedDirHandle(handle) {
+      rememberedDirHandle = handle;
       return new Promise((resolve) => {
         try {
           if (!window.indexedDB || !handle) return resolve(false);
-          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
+          const req = indexedDB.open('SangjiCourseRegHandleDB', 2);
           req.onupgradeneeded = (e) => {
-            if (!e.target.result.objectStoreNames.contains('handles')) {
-              e.target.result.createObjectStore('handles');
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('handles')) {
+              db.createObjectStore('handles');
             }
           };
           req.onsuccess = (e) => {
@@ -8732,7 +8734,7 @@
             try {
               const tx = db.transaction('handles', 'readwrite');
               const store = tx.objectStore('handles');
-              store.put(handle, 'lastSaveHandle');
+              store.put(handle, 'savedDirHandle');
               tx.oncomplete = () => resolve(true);
               tx.onerror = () => resolve(false);
             } catch { resolve(false); }
@@ -8742,17 +8744,24 @@
       });
     }
 
-    async function clearSavedFileHandle() {
-      rememberedSaveHandle = null;
+    async function clearSavedDirHandle() {
+      rememberedDirHandle = null;
       return new Promise((resolve) => {
         try {
           if (!window.indexedDB) return resolve(false);
-          const req = indexedDB.open('SangjiCourseRegHandleDB', 1);
+          const req = indexedDB.open('SangjiCourseRegHandleDB', 2);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('handles')) {
+              db.createObjectStore('handles');
+            }
+          };
           req.onsuccess = (e) => {
             const db = e.target.result;
             try {
               const tx = db.transaction('handles', 'readwrite');
               const store = tx.objectStore('handles');
+              store.delete('savedDirHandle');
               store.delete('lastSaveHandle');
               tx.oncomplete = () => resolve(true);
               tx.onerror = () => resolve(false);
@@ -8763,34 +8772,19 @@
       });
     }
 
-    function updateSaveButtonTooltip(name) {
+    function updateSaveButtonTooltip(dirName) {
       const btn = document.getElementById('btnHeaderExportSession');
       const hint = document.getElementById('dropdownPrevLocationHint');
       if (btn) {
-        if (name) {
-          btn.title = `클릭 시 지정된 파일 [${name}]에 최신 작업 데이터를 바로 저장합니다`;
+        if (dirName) {
+          btn.title = `클릭 시 지정된 폴더 [${dirName}]에 시간별 새 백업 파일(.json)로 저장합니다 (덮어쓰지 않음)`;
         } else {
-          btn.title = `현재 전체 학년도/학년 작업 데이터를 브라우저 다운로드 폴더에 즉시 저장합니다 (.json)`;
+          btn.title = `클릭 시 브라우저 기본 다운로드 폴더에 시간별 새 백업 파일(.json)로 저장합니다 (덮어쓰지 않음)`;
         }
       }
       if (hint) {
-        hint.textContent = name ? `현재 설정된 위치: ${name}` : '원하는 폴더를 직접 선택하여 저장';
+        hint.textContent = dirName ? `현재 설정된 폴더: [${dirName}]` : '폴더를 지정하면 시간별 새 파일 자동 저장';
       }
-    }
-
-    async function writeToHandle(handle, jsonContent) {
-      if (!handle) return false;
-      if (typeof handle.queryPermission === 'function') {
-        let perm = await handle.queryPermission({ mode: 'readwrite' });
-        if (perm !== 'granted') {
-          perm = await handle.requestPermission({ mode: 'readwrite' });
-          if (perm !== 'granted') return false;
-        }
-      }
-      const writable = await handle.createWritable();
-      await writable.write(jsonContent);
-      await writable.close();
-      return true;
     }
 
     window.toggleSaveDropdown = function(event) {
@@ -8824,68 +8818,81 @@
 
     window.saveWithNewLocation = async function() {
       window.closeSaveDropdown();
-      const jsonStr = window.generateFullBackupJsonString();
-      const suggestedName = window.generateDefaultBackupFileName();
-
-      if (window.showSaveFilePicker) {
-        try {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: suggestedName,
-            types: [{
-              description: '수강신청 작업 백업 파일 (*.json)',
-              accept: { 'application/json': ['.json'] }
-            }]
-          });
-          if (handle) {
-            const ok = await writeToHandle(handle, jsonStr);
-            if (ok) {
-              await setSavedFileHandle(handle);
-              updateSaveButtonTooltip(handle.name);
-              alert(`✅ [${handle.name}] 파일에 성공적으로 저장되었습니다!\n\n앞으로 [작업 저장] 버튼을 누르면 이 파일/위치로 저장됩니다.`);
-              return;
-            }
-          }
-        } catch (err) {
-          if (err.name === 'AbortError') return; // User cancelled
-          console.warn('showSaveFilePicker error:', err);
-        }
+      if (!window.showDirectoryPicker) {
+        alert('현재 사용 중인 브라우저에서는 폴더 직접 지정 기능이 지원되지 않습니다.\n(Chrome 또는 Edge 최신 버전을 권장합니다)\n\n기본 다운로드 폴더에 시간별 새 파일로 저장됩니다.');
+        window.exportStandardDownload();
+        return;
       }
-      // Fallback
-      window.exportStandardDownload();
+
+      try {
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        if (dirHandle) {
+          await setSavedDirHandle(dirHandle);
+          updateSaveButtonTooltip(dirHandle.name);
+
+          // 지정 폴더에 시간별 새 파일 생성 및 저장 (덮어쓰지 않음)
+          const jsonStr = window.generateFullBackupJsonString();
+          const filename = window.generateDefaultBackupFileName();
+          const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(jsonStr);
+          await writable.close();
+
+          alert(`✅ 저장 폴더가 [${dirHandle.name}] 폴더로 설정되었습니다!\n\n📄 새 파일 저장 완료: ${filename}\n\n앞으로 [작업 저장]을 누르면 이 폴더에 시간별 새 파일이 계속 생성되며, 이전 파일은 덮어쓰지 않고 안전하게 보존됩니다.`);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return; // User cancelled
+        console.warn('showDirectoryPicker error:', err);
+        alert('폴더 접근 권한을 얻지 못했거나 취소되었습니다.');
+      }
     };
 
     window.resetSaveLocationToDefault = async function() {
       window.closeSaveDropdown();
-      await clearSavedFileHandle();
+      await clearSavedDirHandle();
       updateSaveButtonTooltip(null);
       window.exportStandardDownload();
+      alert('✅ 저장 위치가 [기본 다운로드 폴더]로 초기화되었습니다.\n시간별 새 파일(.json)이 다운로드 폴더에 저장됩니다.');
     };
 
     window.handleMainSaveButtonClick = async function() {
-      let handle = rememberedSaveHandle;
-      if (!handle) handle = await getSavedFileHandle();
+      const jsonStr = window.generateFullBackupJsonString();
+      const filename = window.generateDefaultBackupFileName();
 
-      if (handle && window.showSaveFilePicker) {
+      let dirHandle = rememberedDirHandle;
+      if (!dirHandle) dirHandle = await getSavedDirHandle();
+
+      if (dirHandle && window.showDirectoryPicker) {
         try {
-          const jsonStr = window.generateFullBackupJsonString();
-          const ok = await writeToHandle(handle, jsonStr);
-          if (ok) {
-            await setSavedFileHandle(handle);
-            updateSaveButtonTooltip(handle.name);
-            alert(`💾 지정하신 파일 [${handle.name}]에 최신 데이터가 성공적으로 저장되었습니다!`);
-            return;
+          // 폴더 권한 확인 및 요청
+          if (typeof dirHandle.queryPermission === 'function') {
+            let perm = await dirHandle.queryPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') {
+              perm = await dirHandle.requestPermission({ mode: 'readwrite' });
+              if (perm !== 'granted') throw new Error('Permission denied');
+            }
           }
+
+          // 해당 폴더 안에 시간별 새 파일 생성 (기존 파일 덮어쓰지 않음)
+          const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(jsonStr);
+          await writable.close();
+
+          updateSaveButtonTooltip(dirHandle.name);
+          alert(`💾 [${dirHandle.name}] 폴더에 새 백업 파일이 저장되었습니다!\n\n📄 파일명: ${filename}\n(기존 파일은 덮어쓰지 않고 안전하게 보존됩니다)`);
+          return;
         } catch (err) {
-          console.warn('handleMainSaveButtonClick handle error, falling back:', err);
+          console.warn('save to directory handle error, falling back:', err);
         }
       }
 
-      // If no handle is set (initial state), run default browser download
+      // 지정된 폴더가 없거나 지원되지 않는 환경에서는 기본 다운로드 폴더에 시간별 새 파일로 저장
       window.exportStandardDownload();
     };
 
     // Restore saved handle tooltip on start
-    getSavedFileHandle().then(handle => {
+    getSavedDirHandle().then(handle => {
       if (handle && handle.name) updateSaveButtonTooltip(handle.name);
     });
 
@@ -10094,10 +10101,10 @@
 
       initAllGradesListeners();
 
-      // 저장된 파일 핸들(저장 위치) 비동기 로드
-      getSavedFileHandle().then(handle => {
+      // 저장된 폴더 핸들(저장 위치) 비동기 로드
+      getSavedDirHandle().then(handle => {
         if (handle) {
-          rememberedSaveHandle = handle;
+          rememberedDirHandle = handle;
           updateSaveButtonTooltip(handle.name);
         }
       });
