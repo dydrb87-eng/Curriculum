@@ -5589,14 +5589,17 @@
       }
 
       // Update Historical Best Minimum Conflict Display & Restore Button
+      const history = AppState.simulationHistory?.[sem] || { runCount: 0, minConflictEver: null, minConflictPlan: null };
       if (statBestConflictCount) {
-        const bestVal = history.minConflictEver !== null ? history.minConflictEver : plan.conflictCount;
+        const bestVal = (history.minConflictEver !== null && history.minConflictEver !== undefined)
+          ? history.minConflictEver 
+          : (plan.conflictCount !== undefined && plan.conflictCount !== null ? plan.conflictCount : 0);
         const runs = history.runCount || 1;
         statBestConflictCount.textContent = `${bestVal}명 (총 ${runs}회 탐색)`;
       }
 
       if (btnRestoreBestPlan) {
-        if (history.minConflictPlan && history.minConflictEver !== null && plan.conflictCount > history.minConflictEver) {
+        if (history.minConflictPlan && history.minConflictEver !== null && history.minConflictEver !== undefined && plan.conflictCount > history.minConflictEver) {
           btnRestoreBestPlan.classList.remove('hidden');
           btnRestoreBestPlan.textContent = `🏆 최저치(${history.minConflictEver}명) 안 복원`;
         } else {
@@ -6955,9 +6958,20 @@
       };
 
       AppState.savedPlans.push(newSavedPlan);
-      AppState.currentPlan.id = newSavedPlan.id; // Link active plan to this saved plan
       savedPlansActiveTab = sem;
       renderSavedPlansList();
+
+      // [요구사항 반영] 배치안 저장 완료 후 시간표 작업 메모란 빈칸으로 초기화
+      if (memoTextarea) {
+        memoTextarea.value = '';
+      }
+      if (AppState.currentPlan) {
+        AppState.currentPlan.memo = '';
+        AppState.currentPlan.id = null;
+      }
+      const memoSavedHint = document.getElementById('planMemoSavedHint');
+      if (memoSavedHint) memoSavedHint.classList.add('hidden');
+
       saveAllState();
       alert(`⭐ [${planName}]이 저장되었습니다!\n아래 '저장된 그룹핑 후보안 목록'에서 개별 메모 작성, 다운로드 및 시간표 확인이 가능합니다.`);
     });
