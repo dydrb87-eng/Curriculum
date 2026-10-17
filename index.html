@@ -1355,6 +1355,136 @@
     </div>
   </footer>
 
+  <!-- ================= MODALS ================= -->
+  <!-- Cloud & Database Settings Modal -->
+  <div id="cloudSettingsModal" onclick="if(event.target.id === 'cloudSettingsModal') closeCloudModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl shadow-xs">
+            ☁️
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">클라우드 DB 및 데이터 백업·복원</h3>
+            <p class="text-xs text-slate-500">작업한 시간표 및 학생 선택과목 데이터를 안전하게 보존합니다.</p>
+          </div>
+        </div>
+        <button id="btnCloseCloudModal" type="button" onclick="closeCloudModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Current Status Card -->
+      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-xs">
+        <div class="flex items-center justify-between font-bold text-slate-800">
+          <span>💾 데이터 보존 상태:</span>
+          <span id="modalStorageStatus" class="px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">로컬 브라우저 자동 저장 활성</span>
+        </div>
+        <p id="modalStorageDetail" class="text-slate-500 text-[11px]">2027학년도 2학년, 3학년 및 모든 학년도 데이터가 브라우저에 안전하게 보존됩니다.</p>
+      </div>
+
+      <!-- Quick Action 1: JSON Export & Import (Universal Backup) -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+          <span>📦 간편 파일 백업 및 복원</span>
+          <span class="text-[10px] font-extrabold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">추천</span>
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button id="btnExportFullBackupJson" type="button" class="p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 flex items-center justify-center space-x-2 text-xs font-bold transition shadow-xs cursor-pointer">
+            <span>📥</span>
+            <span>전체 데이터 백업 다운로드 (.json)</span>
+          </button>
+          
+          <label class="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-300 flex items-center justify-center space-x-2 text-xs font-bold transition shadow-xs cursor-pointer">
+            <span>📤</span>
+            <span>백업 파일에서 복원하기 (.json)</span>
+            <input type="file" id="inputRestoreBackupJson" accept=".json" class="hidden" />
+          </label>
+        </div>
+        <p class="text-[11px] text-slate-400">다른 PC나 브라우저에서 작업할 때 백업 파일을 다운로드한 후 업로드하여 그대로 이어할 수 있습니다.</p>
+      </div>
+
+      <!-- Quick Action 2: Firebase Cloud Firestore Sync -->
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+          <span>🔥 Firebase Cloud Firestore 실시간 연동 (선택)</span>
+        </h4>
+        <p class="text-[11px] text-slate-500">Firebase 웹 프로젝트 설정을 입력하면 인터넷이 연결된 모든 기기에서 실시간으로 작업 환경이 동기화됩니다.</p>
+        <textarea id="inputFirebaseConfig" rows="3" placeholder='Firebase 설정 붙여넣기 (예: { "apiKey": "...", "projectId": "..." })' class="w-full text-xs font-mono p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none bg-slate-50/50"></textarea>
+        <div class="flex items-center gap-2">
+          <button id="btnSaveFirebaseConfig" type="button" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer">
+            클라우드 DB 연결 시작
+          </button>
+          <button id="btnClearFirebaseConfig" type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition cursor-pointer">
+            연결 해제
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Action 3: Reset Active Grade Data -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <button id="btnResetActiveGradeOnly" type="button" class="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline flex items-center gap-1 cursor-pointer">
+          <span>🗑️ 현재 [선택된 학년] 데이터만 초기화</span>
+        </button>
+        <button id="btnDismissCloudModal" type="button" onclick="closeCloudModal()" class="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer">
+          닫기
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Student Choice Edit Modal (학생 수강신청 과목 수정 모달) -->
+  <div id="studentChoiceEditModal" onclick="if(event.target.id === 'studentChoiceEditModal') window.closeStudentChoiceEditModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl shadow-xs">
+            📝
+          </div>
+          <div>
+            <h3 id="studentEditModalTitle" class="text-base font-bold text-slate-900">학생 수강신청 과목 수정</h3>
+            <p id="studentEditModalSubtitle" class="text-xs text-slate-500">과목 카드를 클릭하여 추가하거나 취소할 수 있습니다. 취소된 과목은 집계에서 자동 제외됩니다.</p>
+          </div>
+        </div>
+        <button id="btnCloseStudentEditModal" type="button" onclick="window.closeStudentChoiceEditModal();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Legend & Info Bar -->
+      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">선택 유지</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200 line-through">✕ 취소됨 (집계 제외)</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">★ 새로 추가</span>
+        </div>
+        <div id="studentEditSelectedCount" class="font-extrabold text-blue-900">
+          현재 선택: 0과목
+        </div>
+      </div>
+
+      <!-- Subject List Container (Scrollable) -->
+      <div id="studentEditSubjectsContainer" class="overflow-y-auto space-y-2 pr-1 flex-1 min-h-[220px]">
+        <!-- Rendered subject cards -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <button id="btnStudentEditRevert" type="button" onclick="window.handleStudentEditModalRevert();" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-slate-700 font-bold text-xs transition border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-2xs">
+          <span>↩</span>
+          <span>이 학생 원래 선택으로 복원</span>
+        </button>
+        <button id="btnStudentEditDone" type="button" onclick="window.closeStudentChoiceEditModal();" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm cursor-pointer">
+          완료 / 닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= APPLICATION JAVASCRIPT ================= -->
   <script>
     // Global Application State
@@ -3257,8 +3387,10 @@
       if (!st) return;
 
       if (sem === 1) {
+        if (!st.origSem1 && st.sem1) st.origSem1 = [...st.sem1];
         if (st.origSem1) st.sem1 = [...st.origSem1];
       } else {
+        if (!st.origSem2 && st.sem2) st.origSem2 = [...st.sem2];
         if (st.origSem2) st.sem2 = [...st.origSem2];
       }
 
@@ -3274,6 +3406,11 @@
       if (currentModalStudentId === studentId) {
         renderStudentChoiceEditModalContent();
       }
+    };
+
+    window.handleStudentEditModalRevert = function() {
+      if (!currentModalStudentId) return;
+      window.revertStudentChoices(currentModalStudentId, currentModalSemester);
     };
 
     window.revertAllStudentsChoices = function(semester) {
@@ -10165,135 +10302,6 @@
     // Run Startup Initialization
     loadAllState();
   </script>
-
-  <!-- Cloud & Database Settings Modal -->
-  <div id="cloudSettingsModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150">
-      
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl shadow-xs">
-            ☁️
-          </div>
-          <div>
-            <h3 class="text-base font-bold text-slate-900">클라우드 DB 및 데이터 백업·복원</h3>
-            <p class="text-xs text-slate-500">작업한 시간표 및 학생 선택과목 데이터를 안전하게 보존합니다.</p>
-          </div>
-        </div>
-        <button id="btnCloseCloudModal" type="button" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition">
-          ✕
-        </button>
-      </div>
-
-      <!-- Current Status Card -->
-      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-xs">
-        <div class="flex items-center justify-between font-bold text-slate-800">
-          <span>💾 데이터 보존 상태:</span>
-          <span id="modalStorageStatus" class="px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">로컬 브라우저 자동 저장 활성</span>
-        </div>
-        <p id="modalStorageDetail" class="text-slate-500 text-[11px]">2027학년도 2학년, 3학년 및 모든 학년도 데이터가 브라우저에 안전하게 보존됩니다.</p>
-      </div>
-
-      <!-- Quick Action 1: JSON Export & Import (Universal Backup) -->
-      <div class="space-y-2">
-        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-          <span>📦 간편 파일 백업 및 복원</span>
-          <span class="text-[10px] font-extrabold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">추천</span>
-        </h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <button id="btnExportFullBackupJson" type="button" class="p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 flex items-center justify-center space-x-2 text-xs font-bold transition shadow-xs">
-            <span>📥</span>
-            <span>전체 데이터 백업 다운로드 (.json)</span>
-          </button>
-          
-          <label class="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-300 flex items-center justify-center space-x-2 text-xs font-bold transition shadow-xs cursor-pointer">
-            <span>📤</span>
-            <span>백업 파일에서 복원하기 (.json)</span>
-            <input type="file" id="inputRestoreBackupJson" accept=".json" class="hidden" />
-          </label>
-        </div>
-        <p class="text-[11px] text-slate-400">다른 PC나 브라우저에서 작업할 때 백업 파일을 다운로드한 후 업로드하여 그대로 이어할 수 있습니다.</p>
-      </div>
-
-      <!-- Quick Action 2: Firebase Cloud Firestore Sync -->
-      <div class="space-y-2 pt-2 border-t border-slate-100">
-        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-          <span>🔥 Firebase Cloud Firestore 실시간 연동 (선택)</span>
-        </h4>
-        <p class="text-[11px] text-slate-500">Firebase 웹 프로젝트 설정을 입력하면 인터넷이 연결된 모든 기기에서 실시간으로 작업 환경이 동기화됩니다.</p>
-        <textarea id="inputFirebaseConfig" rows="3" placeholder='Firebase 설정 붙여넣기 (예: { "apiKey": "...", "projectId": "..." })' class="w-full text-xs font-mono p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none bg-slate-50/50"></textarea>
-        <div class="flex items-center gap-2">
-          <button id="btnSaveFirebaseConfig" type="button" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
-            클라우드 DB 연결 시작
-          </button>
-          <button id="btnClearFirebaseConfig" type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition">
-            연결 해제
-          </button>
-        </div>
-      </div>
-
-      <!-- Quick Action 3: Reset Active Grade Data -->
-      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-        <button id="btnResetActiveGradeOnly" type="button" class="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline flex items-center gap-1">
-          <span>🗑️ 현재 [선택된 학년] 데이터만 초기화</span>
-        </button>
-        <button id="btnDismissCloudModal" type="button" class="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-bold transition shadow-sm">
-          닫기
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Student Choice Edit Modal (학생 수강신청 과목 수정 모달) -->
-  <div id="studentChoiceEditModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl shadow-xs">
-            📝
-          </div>
-          <div>
-            <h3 id="studentEditModalTitle" class="text-base font-bold text-slate-900">학생 수강신청 과목 수정</h3>
-            <p id="studentEditModalSubtitle" class="text-xs text-slate-500">과목 카드를 클릭하여 추가하거나 취소할 수 있습니다. 취소된 과목은 집계에서 자동 제외됩니다.</p>
-          </div>
-        </div>
-        <button id="btnCloseStudentEditModal" type="button" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer">
-          ✕
-        </button>
-      </div>
-
-      <!-- Legend & Info Bar -->
-      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">선택 유지</span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200 line-through">✕ 취소됨 (집계 제외)</span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">★ 새로 추가</span>
-        </div>
-        <div id="studentEditSelectedCount" class="font-extrabold text-blue-900">
-          현재 선택: 0과목
-        </div>
-      </div>
-
-      <!-- Subject List Container (Scrollable) -->
-      <div id="studentEditSubjectsContainer" class="overflow-y-auto space-y-2 pr-1 flex-1 min-h-[220px]">
-        <!-- Rendered subject cards -->
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
-        <button id="btnStudentEditRevert" type="button" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-slate-700 font-bold text-xs transition border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-2xs">
-          <span>↩</span>
-          <span>이 학생 원래 선택으로 복원</span>
-        </button>
-        <button id="btnStudentEditDone" type="button" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm cursor-pointer">
-          완료 / 닫기
-        </button>
-      </div>
-    </div>
-  </div>
 
 </body>
 </html>
