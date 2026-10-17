@@ -537,7 +537,7 @@
               <span>👨‍🏫 교사별 학기 수업 시수 및 담당 과목 요약</span>
               <span id="allGradesTeacherBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">총 0명</span>
             </h4>
-            <p class="text-xs text-slate-500 mt-0.5">1·2·3학년 전과목을 종합하여 교사별 학기별 담당 과목과 총 시수를 집계합니다. <span class="text-indigo-600 font-semibold">(오른쪽 [↕️ 순서 정렬하기] 버튼으로 순서 재배치 가능)</span></p>
+            <p class="text-xs text-slate-500 mt-0.5">1·2·3학년 전과목을 종합하여 교사별 학기별 담당 과목과 총 시수를 집계합니다. <span class="text-indigo-600 font-bold">(💡 과목 뱃지를 마우스로 끌어 다른 교사에게 놓으면 담당 교사가 즉시 변경됩니다)</span></p>
           </div>
 
           <div class="flex items-center gap-2">
@@ -10507,6 +10507,87 @@
       }
     };
 
+    // ==========================================
+    // COURSE BADGE DRAG & DROP BETWEEN TEACHERS
+    // ==========================================
+    let draggedCourseData = null;
+
+    window.handleCourseBadgeDragStart = function(e, itemId, semester, fromTeacher, subject, hours) {
+      e.stopPropagation(); // 행 순서 드래그와 충돌 방지
+      draggedCourseData = { itemId, semester, fromTeacher, subject, hours };
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', JSON.stringify(draggedCourseData));
+      
+      const badge = e.currentTarget;
+      setTimeout(() => {
+        if (badge) badge.classList.add('opacity-40', 'scale-95');
+      }, 0);
+    };
+
+    window.handleCourseBadgeDragEnd = function(e) {
+      const badge = e.currentTarget;
+      if (badge) badge.classList.remove('opacity-40', 'scale-95');
+      draggedCourseData = null;
+      document.querySelectorAll('.course-drop-cell').forEach(cell => {
+        cell.classList.remove('bg-blue-100/70', 'bg-emerald-100/70', 'ring-2', 'ring-indigo-500', 'ring-emerald-500', 'ring-inset');
+      });
+    };
+
+    window.handleCourseDropCellDragOver = function(e, cellSemester, targetTeacher) {
+      if (!draggedCourseData) return;
+      if (draggedCourseData.semester !== cellSemester) return; // 다른 학기 칸은 드롭 불가
+      if (draggedCourseData.fromTeacher === targetTeacher) return; // 동일 교사는 무시
+
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+
+      const cell = e.currentTarget;
+      if (cellSemester === 1) {
+        cell.classList.add('bg-blue-100/70', 'ring-2', 'ring-indigo-500', 'ring-inset');
+      } else {
+        cell.classList.add('bg-emerald-100/70', 'ring-2', 'ring-emerald-500', 'ring-inset');
+      }
+    };
+
+    window.handleCourseDropCellDragLeave = function(e) {
+      const cell = e.currentTarget;
+      cell.classList.remove('bg-blue-100/70', 'bg-emerald-100/70', 'ring-2', 'ring-indigo-500', 'ring-emerald-500', 'ring-inset');
+    };
+
+    window.handleCourseDropCellDrop = function(e, cellSemester, targetTeacher) {
+      e.preventDefault();
+      e.stopPropagation();
+      const cell = e.currentTarget;
+      cell.classList.remove('bg-blue-100/70', 'bg-emerald-100/70', 'ring-2', 'ring-indigo-500', 'ring-emerald-500', 'ring-inset');
+
+      if (!draggedCourseData) return;
+      if (draggedCourseData.semester !== cellSemester) {
+        alert('⚠️ 학기가 다른 칸으로는 과목을 이동할 수 없습니다.');
+        return;
+      }
+      if (draggedCourseData.fromTeacher === targetTeacher) return;
+
+      const curriculum = getAllGradesCurriculum();
+      const item = curriculum.find(c => c.id === draggedCourseData.itemId);
+      if (!item) return;
+
+      const fromT = draggedCourseData.fromTeacher;
+      const subj = draggedCourseData.subject;
+      const hours = draggedCourseData.hours;
+
+      // 담당 교사 변경 및 상태 반영
+      item.teacher = targetTeacher;
+      item.isModified = (targetTeacher !== (item.originalTeacher || ''));
+      if (item.status === '폐강') item.status = '개설';
+
+      setAllGradesCurriculum(curriculum);
+      renderAllGradesDashboard();
+
+      console.log(`✅ [${cellSemester}학기 ${subj}(${hours}h)] 담당 교사 변경: [${fromT}] ➔ [${targetTeacher}]`);
+      draggedCourseData = null;
+    };
+
     function renderAllGradesTeacherSummary() {
       const tbody = document.getElementById('allGradesTeacherSummaryTbody');
       if (!tbody) return;
@@ -10531,9 +10612,11 @@
         }
 
         const tag = {
+          id: item.id,
           grade: item.grade,
           subject: item.subject,
           hours: item.hours,
+          semester: item.semester,
           category: item.category,
           isModified: item.isModified
         };
@@ -10592,26 +10675,44 @@
         const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
 
         const s1Tags = d.sem1Courses.map(c => `
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
+          <span class="course-drag-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
             (c.category === '지정' || c.category === '학교지정')
               ? 'bg-slate-100 text-slate-700 border border-slate-300' 
               : 'bg-blue-50 text-blue-800 border border-blue-200'
-          }" title="${c.category}">
-            <span class="text-[9px] text-slate-500 font-semibold">${c.grade.replace('학년', '')}학년</span>
-            <span>${c.subject}</span>
-            <span class="font-black text-indigo-700">(${c.hours}h)</span>
+          } cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-indigo-400 hover:shadow-xs transition select-none"
+          draggable="true"
+          data-course-id="${escapeHtml(c.id)}"
+          data-semester="1"
+          data-from-teacher="${escapeHtml(tName)}"
+          data-subject="${escapeHtml(c.subject)}"
+          data-hours="${c.hours}"
+          ondragstart="window.handleCourseBadgeDragStart(event, '${escapeHtml(c.id)}', 1, '${escapeHtml(tName)}', '${escapeHtml(c.subject)}', ${c.hours})"
+          ondragend="window.handleCourseBadgeDragEnd(event)"
+          title="마우스로 드래그하여 다른 교사에게 넘겨줄 수 있습니다 (${c.category})">
+            <span class="text-[9px] text-slate-500 font-semibold pointer-events-none">${c.grade.replace('학년', '')}학년</span>
+            <span class="pointer-events-none">${escapeHtml(c.subject)}</span>
+            <span class="font-black text-indigo-700 pointer-events-none">(${c.hours}h)</span>
           </span>
         `).join(' ');
 
         const s2Tags = d.sem2Courses.map(c => `
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
+          <span class="course-drag-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
             (c.category === '지정' || c.category === '학교지정')
               ? 'bg-slate-100 text-slate-700 border border-slate-300' 
               : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-          }" title="${c.category}">
-            <span class="text-[9px] text-slate-500 font-semibold">${c.grade.replace('학년', '')}학년</span>
-            <span>${c.subject}</span>
-            <span class="font-black text-emerald-700">(${c.hours}h)</span>
+          } cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-emerald-400 hover:shadow-xs transition select-none"
+          draggable="true"
+          data-course-id="${escapeHtml(c.id)}"
+          data-semester="2"
+          data-from-teacher="${escapeHtml(tName)}"
+          data-subject="${escapeHtml(c.subject)}"
+          data-hours="${c.hours}"
+          ondragstart="window.handleCourseBadgeDragStart(event, '${escapeHtml(c.id)}', 2, '${escapeHtml(tName)}', '${escapeHtml(c.subject)}', ${c.hours})"
+          ondragend="window.handleCourseBadgeDragEnd(event)"
+          title="마우스로 드래그하여 다른 교사에게 넘겨줄 수 있습니다 (${c.category})">
+            <span class="text-[9px] text-slate-500 font-semibold pointer-events-none">${c.grade.replace('학년', '')}학년</span>
+            <span class="pointer-events-none">${escapeHtml(c.subject)}</span>
+            <span class="font-black text-emerald-700 pointer-events-none">(${c.hours}h)</span>
           </span>
         `).join(' ');
 
@@ -10631,12 +10732,22 @@
               </div>
             </td>
             <td class="p-2.5 text-center font-black text-slate-900 border-r border-slate-200 cursor-grab active:cursor-grabbing">${escapeHtml(tName)}</td>
-            <td class="p-2.5 border-r border-slate-200">
-              <div class="flex flex-wrap gap-1">${s1Tags || '<span class="text-slate-300 italic">-</span>'}</div>
+            <td class="p-2.5 border-r border-slate-200 course-drop-cell transition-all"
+                data-teacher="${escapeHtml(tName)}"
+                data-semester="1"
+                ondragover="window.handleCourseDropCellDragOver(event, 1, '${escapeHtml(tName)}')"
+                ondragleave="window.handleCourseDropCellDragLeave(event)"
+                ondrop="window.handleCourseDropCellDrop(event, 1, '${escapeHtml(tName)}')">
+              <div class="flex flex-wrap gap-1 min-h-[26px] items-center pointer-events-none">${s1Tags || '<span class="text-slate-300 italic text-[11px] p-0.5 rounded border border-dashed border-slate-200">과목 드롭 가능</span>'}</div>
             </td>
             <td class="p-2.5 text-center font-black text-blue-700 border-r border-slate-200 bg-blue-50/40">${d.sem1Hours}h</td>
-            <td class="p-2.5 border-r border-slate-200">
-              <div class="flex flex-wrap gap-1">${s2Tags || '<span class="text-slate-300 italic">-</span>'}</div>
+            <td class="p-2.5 border-r border-slate-200 course-drop-cell transition-all"
+                data-teacher="${escapeHtml(tName)}"
+                data-semester="2"
+                ondragover="window.handleCourseDropCellDragOver(event, 2, '${escapeHtml(tName)}')"
+                ondragleave="window.handleCourseDropCellDragLeave(event)"
+                ondrop="window.handleCourseDropCellDrop(event, 2, '${escapeHtml(tName)}')">
+              <div class="flex flex-wrap gap-1 min-h-[26px] items-center pointer-events-none">${s2Tags || '<span class="text-slate-300 italic text-[11px] p-0.5 rounded border border-dashed border-slate-200">과목 드롭 가능</span>'}</div>
             </td>
             <td class="p-2.5 text-center font-black text-emerald-700 border-r border-slate-200 bg-emerald-50/40">${d.sem2Hours}h</td>
             <td class="p-2.5 text-center font-black text-slate-900 border-r border-slate-200 bg-slate-100/50">${totalHours}h</td>
