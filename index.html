@@ -624,6 +624,11 @@
               <input type="text" id="allGradesCourseSearchInput" placeholder="과목명/교사 검색" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-40 shadow-2xs">
               <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </div>
+
+            <button type="button" onclick="window.openAddCourseModal()" class="px-3 py-1.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer select-none ring-2 ring-indigo-400/40" title="편제표에 새 과목을 직접 추가합니다">
+              <span>➕</span>
+              <span>과목 추가</span>
+            </button>
           </div>
         </div>
 
@@ -1570,6 +1575,104 @@
         <button type="button" onclick="window.applyTeacherOrderModal();" class="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs transition shadow-sm cursor-pointer flex items-center gap-1.5">
           <span>✓</span>
           <span>순서 저장 및 적용</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Course Modal (과목 직접 추가 전용 팝업 모달) -->
+  <div id="addCourseModal" onclick="if(event.target.id === 'addCourseModal') window.closeAddCourseModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150 flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl shadow-xs">
+            📚
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">새 과목 직접 추가</h3>
+            <p class="text-xs text-slate-500">편제표에 새로운 과목을 등록합니다. 학년, 학기, 과목명 등을 입력하세요.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeAddCourseModal();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Form Body -->
+      <div class="space-y-4 text-xs">
+        <!-- Grade & Semester & Category in 3 cols -->
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">학년 <span class="text-rose-500">*</span></label>
+            <select id="modalAddCourseGrade" class="w-full px-2.5 py-2 text-xs font-semibold border border-slate-300 rounded-xl bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
+              <option value="1학년">1학년</option>
+              <option value="2학년">2학년</option>
+              <option value="3학년">3학년</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">학기 <span class="text-rose-500">*</span></label>
+            <select id="modalAddCourseSemester" class="w-full px-2.5 py-2 text-xs font-semibold border border-slate-300 rounded-xl bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
+              <option value="1">1학기</option>
+              <option value="2">2학기</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">구분 <span class="text-rose-500">*</span></label>
+            <select id="modalAddCourseCategory" class="w-full px-2.5 py-2 text-xs font-semibold border border-slate-300 rounded-xl bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
+              <option value="선택">선택 (학생선택)</option>
+              <option value="지정">지정 (학교지정)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Subject Name & Total Hours -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-2">
+            <label class="block font-bold text-slate-700 mb-1">과목명 <span class="text-rose-500">*</span></label>
+            <input type="text" id="modalAddCourseSubject" placeholder="예: 정보, 스포츠 생활, 세계사" onkeydown="if(event.key === 'Enter') { event.preventDefault(); window.submitAddCourseModal(); }" class="w-full px-3 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">주당 총 시수 <span class="text-rose-500">*</span></label>
+            <input type="number" id="modalAddCourseHours" value="4" min="0.5" max="40" step="0.5" onkeydown="if(event.key === 'Enter') { event.preventDefault(); window.submitAddCourseModal(); }" class="w-full px-2.5 py-2 text-xs font-black text-center border border-slate-300 rounded-xl bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs" />
+          </div>
+        </div>
+
+        <!-- Status & Teacher -->
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">개설 상태</label>
+            <select id="modalAddCourseStatus" class="w-full px-2.5 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
+              <option value="개설" selected>✅ 개설</option>
+              <option value="폐강">🚫 폐강</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block font-bold text-slate-700 mb-1">담당 교사명 <span class="text-slate-400 font-normal text-[11px]">(선택 / 미입력 시 미배정)</span></label>
+            <input type="text" id="modalAddCourseTeacher" list="curriculumTeacherDatalist" placeholder="교사명 입력 또는 목록 선택" onkeydown="if(event.key === 'Enter') { event.preventDefault(); window.submitAddCourseModal(); }" class="w-full px-3 py-2 text-xs font-semibold border border-slate-300 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs" />
+            <datalist id="curriculumTeacherDatalist"></datalist>
+          </div>
+        </div>
+
+        <!-- Continuous Addition Checkbox -->
+        <div class="pt-1 flex items-center justify-between">
+          <label class="flex items-center gap-2 text-xs text-slate-600 hover:text-slate-900 cursor-pointer select-none">
+            <input type="checkbox" id="modalAddCourseKeepOpen" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
+            <span class="font-medium">추가 후 창 유지 (연속 추가)</span>
+          </label>
+          <span class="text-[11px] text-slate-400">Enter 키를 눌러도 바로 추가됩니다.</span>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <button type="button" onclick="window.closeAddCourseModal();" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition border border-slate-300 cursor-pointer shadow-2xs">
+          취소 / 닫기
+        </button>
+        <button type="button" onclick="window.submitAddCourseModal();" class="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-extrabold text-xs transition shadow-sm cursor-pointer flex items-center gap-1.5">
+          <span>➕</span>
+          <span>편제표에 과목 추가</span>
         </button>
       </div>
     </div>
@@ -9968,6 +10071,149 @@
       console.log(`🗑️ 과목 삭제 완료: [${item.grade} ${item.semester}학기] ${item.subject} (${itemId})`);
     };
 
+    window.openAddCourseModal = function() {
+      const filterGrade = document.getElementById('allGradesFilterGrade')?.value;
+      const filterSem = document.getElementById('allGradesFilterSemester')?.value;
+      const filterCat = document.getElementById('allGradesFilterCategory')?.value;
+
+      const gradeSelect = document.getElementById('modalAddCourseGrade');
+      const semSelect = document.getElementById('modalAddCourseSemester');
+      const catSelect = document.getElementById('modalAddCourseCategory');
+
+      if (gradeSelect && filterGrade && filterGrade !== 'all') {
+        gradeSelect.value = filterGrade;
+      }
+      if (semSelect && filterSem && filterSem !== 'all') {
+        semSelect.value = filterSem;
+      }
+      if (catSelect && filterCat && filterCat !== 'all') {
+        catSelect.value = filterCat;
+      }
+
+      const subjInput = document.getElementById('modalAddCourseSubject');
+      if (subjInput) subjInput.value = '';
+      const teacherInput = document.getElementById('modalAddCourseTeacher');
+      if (teacherInput) teacherInput.value = '';
+      const hoursInput = document.getElementById('modalAddCourseHours');
+      if (hoursInput) hoursInput.value = '4';
+      const statusSelect = document.getElementById('modalAddCourseStatus');
+      if (statusSelect) statusSelect.value = '개설';
+
+      // Populate teacher autocomplete datalist
+      const datalist = document.getElementById('curriculumTeacherDatalist');
+      if (datalist) {
+        const curriculum = getAllGradesCurriculum();
+        const teachers = new Set();
+        curriculum.forEach(c => {
+          if (c.teacher && c.teacher !== '폐강' && c.teacher !== '미배정') {
+            teachers.add(c.teacher.trim());
+          }
+        });
+        datalist.innerHTML = Array.from(teachers)
+          .sort((a, b) => a.localeCompare(b, 'ko'))
+          .map(t => `<option value="${escapeHtml(t)}"></option>`)
+          .join('');
+      }
+
+      const modal = document.getElementById('addCourseModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        setTimeout(() => subjInput?.focus(), 60);
+      }
+    };
+
+    window.closeAddCourseModal = function() {
+      const modal = document.getElementById('addCourseModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.submitAddCourseModal = function() {
+      const grade = document.getElementById('modalAddCourseGrade')?.value || '1학년';
+      const semester = parseInt(document.getElementById('modalAddCourseSemester')?.value || '1', 10);
+      const category = document.getElementById('modalAddCourseCategory')?.value || '선택';
+      const subjectInput = document.getElementById('modalAddCourseSubject');
+      const subject = (subjectInput?.value || '').trim();
+      const hours = parseFloat(document.getElementById('modalAddCourseHours')?.value || '4') || 4;
+      const status = document.getElementById('modalAddCourseStatus')?.value || '개설';
+      const teacher = (document.getElementById('modalAddCourseTeacher')?.value || '').trim();
+      const keepOpen = document.getElementById('modalAddCourseKeepOpen')?.checked;
+
+      if (!subject) {
+        alert('과목명을 입력해주세요.');
+        subjectInput?.focus();
+        return;
+      }
+
+      if (hours <= 0) {
+        alert('주당 총 시수는 0보다 커야 합니다.');
+        return;
+      }
+
+      const curriculum = getAllGradesCurriculum();
+
+      // Check for duplicates in same grade & semester
+      const normSubj = normalizeSubjectKey(subject);
+      const isDuplicate = curriculum.some(c => 
+        c.grade === grade && c.semester === semester && normalizeSubjectKey(c.subject) === normSubj
+      );
+      if (isDuplicate) {
+        if (!confirm(`[${grade} ${semester}학기]에 '${subject}' 과목이 이미 편제표에 등록되어 있습니다.\n그래도 추가하시겠습니까? (분반 과목 등)`)) {
+          return;
+        }
+      }
+
+      const newItem = {
+        id: 'curr_manual_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        grade,
+        semester,
+        category,
+        subject,
+        baseSubject: getBaseSubjectName(subject),
+        division: getSubjectDivision(subject) || '',
+        hours,
+        originalTeacher: teacher,
+        teacher: (status === '폐강' && !teacher) ? '폐강' : teacher,
+        isModified: true,
+        status
+      };
+
+      curriculum.push(newItem);
+      setAllGradesCurriculum(curriculum);
+
+      // Reset filters so that the newly added course is immediately visible in the table
+      const filterGrade = document.getElementById('allGradesFilterGrade');
+      const filterSem = document.getElementById('allGradesFilterSemester');
+      const filterStatus = document.getElementById('allGradesFilterStatus');
+      const searchInput = document.getElementById('allGradesCourseSearchInput');
+
+      if (filterGrade && filterGrade.value !== 'all' && filterGrade.value !== grade) {
+        filterGrade.value = 'all';
+      }
+      if (filterSem && filterSem.value !== 'all' && filterSem.value !== String(semester)) {
+        filterSem.value = 'all';
+      }
+      if (filterStatus && filterStatus.value !== 'all' && filterStatus.value !== status) {
+        filterStatus.value = 'all';
+      }
+      if (searchInput && searchInput.value) {
+        searchInput.value = '';
+      }
+
+      renderAllGradesDashboard();
+
+      console.log(`➕ 새 과목 추가 완료: [${grade} ${semester}학기] ${subject} (${hours}h, 담당: ${teacher || '미배정'})`);
+
+      if (keepOpen) {
+        subjectInput.value = '';
+        const teacherEl = document.getElementById('modalAddCourseTeacher');
+        if (teacherEl) teacherEl.value = '';
+        subjectInput.focus();
+        alert(`✅ [${grade} ${semester}학기] '${subject}' 과목이 추가되었습니다!\n계속해서 다음 과목을 추가하실 수 있습니다.`);
+      } else {
+        window.closeAddCourseModal();
+      }
+    };
+
     window.toggleCurriculumItemCategory = function(itemId) {
       const curriculum = getAllGradesCurriculum();
       const item = curriculum.find(c => c.id === itemId);
@@ -10045,7 +10291,7 @@
       XLSX.writeFile(wb, '교육과정_기초데이터_표준양식.xlsx');
     }
 
-    // 교사별 학기 수업 시수 및 담당 과목 요약표 엑셀 워크시트 생성 (깔끔한 파스텔 톤 서식)
+    // 교사별 학기 수업 시수 및 담당 과목 요약표 엑셀 워크시트 생성 (깔끔한 파스텔 톤 서식, 1행에 과목 1개씩 전개)
     function createTeacherWorkloadSheet(curriculum, year) {
       const teacherMap = {};
       curriculum.forEach(item => {
@@ -10062,12 +10308,20 @@
           };
         }
 
-        const tag = `[${item.grade}] ${item.subject} (${item.hours}h)`;
+        const courseItem = {
+          grade: item.grade,
+          semester: item.semester,
+          subject: item.subject,
+          hours: item.hours || 0,
+          category: item.category,
+          tag: `[${item.grade}] ${item.subject} (${item.hours}h)`
+        };
+
         if (item.semester === 1) {
-          teacherMap[t].sem1Courses.push(tag);
+          teacherMap[t].sem1Courses.push(courseItem);
           teacherMap[t].sem1Hours += (item.hours || 0);
         } else {
-          teacherMap[t].sem2Courses.push(tag);
+          teacherMap[t].sem2Courses.push(courseItem);
           teacherMap[t].sem2Hours += (item.hours || 0);
         }
       });
@@ -10111,33 +10365,68 @@
         [`${year}학년도 교사별 학기 수업 시수 및 담당 과목 요약표`],
         [`출력일시: ${new Date().toLocaleDateString('ko-KR')} | 대상 교사: 총 ${teachersList.length}명 | 상지대관령고등학교`],
         [],
-        ['순서', '교사명', '1학기 담당 과목 (학년 / 시수)', '1학기 시수', '2학기 담당 과목 (학년 / 시수)', '2학기 시수', '연간 총시수', '학기당 평균시수']
+        ['순서', '교사명', '학기', '담당 과목 (학년 / 시수)', '1학기 시수', '2학기 시수', '연간 총시수', '학기당 평균시수']
       ];
 
       let sumSem1Hours = 0;
       let sumSem2Hours = 0;
+      let totalCourseCount = 0;
+      const dataRowsMeta = [];
 
-      teachersList.forEach((tName, idx) => {
+      teachersList.forEach((tName, teacherIdx) => {
         const d = teacherMap[tName];
         const tot = d.sem1Hours + d.sem2Hours;
         const avg = parseFloat((tot / 2).toFixed(1));
         sumSem1Hours += d.sem1Hours;
         sumSem2Hours += d.sem2Hours;
 
-        const sem1Text = d.sem1Courses.join('\n') || '-';
-        const sem2Text = d.sem2Courses.join('\n') || '-';
+        d.sem1Courses.sort((a, b) => (a.grade || '').localeCompare(b.grade || '', 'ko') || (a.subject || '').localeCompare(b.subject || '', 'ko'));
+        d.sem2Courses.sort((a, b) => (a.grade || '').localeCompare(b.grade || '', 'ko') || (a.subject || '').localeCompare(b.subject || '', 'ko'));
 
-        aoa.push([
-          idx + 1,
-          tName,
-          sem1Text,
-          d.sem1Hours,
-          sem2Text,
-          d.sem2Hours,
-          tot,
-          avg
-        ]);
+        const allTeacherCourses = [
+          ...d.sem1Courses.map(c => ({ semester: '1학기', semNum: 1, tag: c.tag, hours: c.hours })),
+          ...d.sem2Courses.map(c => ({ semester: '2학기', semNum: 2, tag: c.tag, hours: c.hours }))
+        ];
+
+        if (allTeacherCourses.length === 0) {
+          aoa.push([
+            teacherIdx + 1,
+            tName,
+            '-',
+            '(담당 과목 없음)',
+            d.sem1Hours,
+            d.sem2Hours,
+            tot,
+            avg
+          ]);
+          dataRowsMeta.push({
+            teacherIdx,
+            semNum: 0,
+            hasCourse: false
+          });
+        } else {
+          allTeacherCourses.forEach(c => {
+            totalCourseCount++;
+            aoa.push([
+              teacherIdx + 1,
+              tName,
+              c.semester,
+              c.tag,
+              d.sem1Hours,
+              d.sem2Hours,
+              tot,
+              avg
+            ]);
+            dataRowsMeta.push({
+              teacherIdx,
+              semNum: c.semNum,
+              hasCourse: true
+            });
+          });
+        }
       });
+
+      aoa[1] = [`출력일시: ${new Date().toLocaleDateString('ko-KR')} | 대상 교사: 총 ${teachersList.length}명 (총 ${totalCourseCount}건 배정) | 상지대관령고등학교`];
 
       const grandTotal = sumSem1Hours + sumSem2Hours;
       const grandAvg = parseFloat((grandTotal / 2).toFixed(1));
@@ -10145,8 +10434,8 @@
         '합계',
         `교사 ${teachersList.length}명`,
         '-',
+        `총 ${totalCourseCount}개 과목`,
         sumSem1Hours,
-        '-',
         sumSem2Hours,
         grandTotal,
         grandAvg
@@ -10157,9 +10446,9 @@
       ws['!cols'] = [
         { wch: 7 },   // 순서
         { wch: 13 },  // 교사명
-        { wch: 44 },  // 1학기 과목
+        { wch: 10 },  // 학기
+        { wch: 38 },  // 담당 과목 (학년 / 시수)
         { wch: 13 },  // 1학기 시수
-        { wch: 44 },  // 2학기 과목
         { wch: 13 },  // 2학기 시수
         { wch: 14 },  // 연간 총시수
         { wch: 16 }   // 학기당 평균시수
@@ -10171,10 +10460,8 @@
         { hpt: 8 },  // R2 Gap
         { hpt: 26 }, // R3 Header
       ];
-      for (let i = 0; i < teachersList.length; i++) {
-        const d = teacherMap[teachersList[i]];
-        const maxLines = Math.max(d.sem1Courses.length, d.sem2Courses.length, 1);
-        rowsConfig.push({ hpt: Math.max(22, maxLines * 16 + 8) });
+      for (let i = 0; i < dataRowsMeta.length; i++) {
+        rowsConfig.push({ hpt: 22 });
       }
       rowsConfig.push({ hpt: 26 }); // Total Row
       ws['!rows'] = rowsConfig;
@@ -10206,9 +10493,9 @@
       const headerStyles = [
         { fill: { fgColor: { rgb: '475569' } }, font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin },
         { fill: { fgColor: { rgb: '334155' } }, font: { name: fontKo, sz: 10.5, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin },
+        { fill: { fgColor: { rgb: '0284C7' } }, font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin },
         { fill: { fgColor: { rgb: '2563EB' } }, font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin },
         { fill: { fgColor: { rgb: '1D4ED8' } }, font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin },
-        { fill: { fgColor: { rgb: '059669' } }, font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin },
         { fill: { fgColor: { rgb: '047857' } }, font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin },
         { fill: { fgColor: { rgb: '4F46E5' } }, font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin },
         { fill: { fgColor: { rgb: '4338CA' } }, font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderThin }
@@ -10220,9 +10507,10 @@
 
       // R4 ~ Data Rows (연한 파스텔 톤)
       const dataStartR = 4;
-      for (let i = 0; i < teachersList.length; i++) {
+      for (let i = 0; i < dataRowsMeta.length; i++) {
         const r = dataStartR + i;
-        const isEven = (i % 2 === 0);
+        const meta = dataRowsMeta[i];
+        const isEven = (meta.teacherIdx % 2 === 0);
 
         // 연번
         const ref0 = XLSX.utils.encode_cell({ r, c: 0 });
@@ -10246,35 +10534,55 @@
           };
         }
 
-        // 1학기 과목 (연한 파스텔 블루)
+        // 학기
         const ref2 = XLSX.utils.encode_cell({ r, c: 2 });
         if (ws[ref2]) {
+          let semBg = isEven ? 'FFFFFF' : 'F8FAFC';
+          let semColor = '64748B';
+          if (meta.semNum === 1) {
+            semBg = isEven ? 'F0F7FF' : 'EBF5FF';
+            semColor = '1D4ED8';
+          } else if (meta.semNum === 2) {
+            semBg = isEven ? 'F0FDF4' : 'ECFDF5';
+            semColor = '047857';
+          }
           ws[ref2].s = {
-            fill: { fgColor: { rgb: isEven ? 'F0F7FF' : 'EBF5FF' } },
-            font: { name: fontKo, sz: 9.5, color: { rgb: '1E3A8A' } },
-            alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
-            border: borderThin
-          };
-        }
-
-        // 1학기 시수 (파스텔 블루)
-        const ref3 = XLSX.utils.encode_cell({ r, c: 3 });
-        if (ws[ref3]) {
-          ws[ref3].s = {
-            fill: { fgColor: { rgb: 'DBEAFE' } },
-            font: { name: fontKo, sz: 10, bold: true, color: { rgb: '1D4ED8' } },
+            fill: { fgColor: { rgb: semBg } },
+            font: { name: fontKo, sz: 10, bold: true, color: { rgb: semColor } },
             alignment: { horizontal: 'center', vertical: 'center' },
             border: borderThin
           };
         }
 
-        // 2학기 과목 (연한 파스텔 에메랄드/민트)
+        // 담당 과목
+        const ref3 = XLSX.utils.encode_cell({ r, c: 3 });
+        if (ws[ref3]) {
+          let subjBg = isEven ? 'FFFFFF' : 'F8FAFC';
+          let subjColor = '1E3A8A';
+          if (meta.semNum === 1) {
+            subjBg = isEven ? 'F0F7FF' : 'EBF5FF';
+            subjColor = '1E3A8A';
+          } else if (meta.semNum === 2) {
+            subjBg = isEven ? 'F0FDF4' : 'ECFDF5';
+            subjColor = '064E3B';
+          } else {
+            subjColor = '94A3B8';
+          }
+          ws[ref3].s = {
+            fill: { fgColor: { rgb: subjBg } },
+            font: { name: fontKo, sz: 10, bold: meta.hasCourse, italic: !meta.hasCourse, color: { rgb: subjColor } },
+            alignment: { horizontal: 'left', vertical: 'center' },
+            border: borderThin
+          };
+        }
+
+        // 1학기 시수 (파스텔 블루)
         const ref4 = XLSX.utils.encode_cell({ r, c: 4 });
         if (ws[ref4]) {
           ws[ref4].s = {
-            fill: { fgColor: { rgb: isEven ? 'F0FDF4' : 'ECFDF5' } },
-            font: { name: fontKo, sz: 9.5, color: { rgb: '064E3B' } },
-            alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+            fill: { fgColor: { rgb: 'DBEAFE' } },
+            font: { name: fontKo, sz: 10, bold: true, color: { rgb: '1D4ED8' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
             border: borderThin
           };
         }
@@ -10314,13 +10622,18 @@
       }
 
       // 합계 행 (연한 파스텔 크림/앰버)
-      const totalRowIdx = dataStartR + teachersList.length;
+      const totalRowIdx = dataStartR + dataRowsMeta.length;
       for (let c = 0; c < 8; c++) {
         const ref = XLSX.utils.encode_cell({ r: totalRowIdx, c });
         if (ws[ref]) {
           ws[ref].s = {
             fill: { fgColor: { rgb: 'FEF3C7' } },
-            font: { name: fontKo, sz: 10.5, bold: true, color: { rgb: (c === 3 ? '1D4ED8' : (c === 5 ? '047857' : (c >= 6 ? '4338CA' : '78350F'))) } },
+            font: { 
+              name: fontKo, 
+              sz: 10.5, 
+              bold: true, 
+              color: { rgb: (c === 4 ? '1D4ED8' : (c === 5 ? '047857' : (c >= 6 ? '4338CA' : '78350F'))) } 
+            },
             alignment: { horizontal: 'center', vertical: 'center' },
             border: borderTotal
           };
@@ -11246,9 +11559,14 @@
         tbody.innerHTML = `
           <tr>
             <td colspan="10" class="p-8 text-center text-slate-400 italic bg-white">
-              ${curriculum.length === 0 
-                ? '기초데이터 엑셀 파일을 업로드하거나 예시데이터를 불러오면 1·2·3학년 전과목 배정 상세가 표시됩니다.' 
-                : '선택하신 필터 조건과 일치하는 과목이 없습니다.'}
+              <p class="mb-3">
+                ${curriculum.length === 0 
+                  ? '기초데이터 엑셀 파일을 업로드하거나 예시데이터를 불러오면 1·2·3학년 전과목 배정 상세가 표시됩니다.' 
+                  : '선택하신 필터 조건과 일치하는 과목이 없습니다.'}
+              </p>
+              <button type="button" onclick="window.openAddCourseModal()" class="px-3.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                <span>➕</span><span>새 과목 직접 추가하기</span>
+              </button>
             </td>
           </tr>
         `;
