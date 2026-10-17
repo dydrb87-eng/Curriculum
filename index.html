@@ -1538,7 +1538,13 @@
       </div>
 
       <!-- Teacher List Container (Scrollable & Drag-and-Drop) -->
-      <div id="teacherOrderListContainer" class="overflow-y-auto space-y-1.5 pr-1 flex-1 min-h-[300px] max-h-[460px] custom-scrollbar">
+      <div id="teacherOrderListContainer" class="relative overflow-y-auto space-y-1.5 pr-1 flex-1 min-h-[300px] max-h-[460px] custom-scrollbar p-1">
+        <!-- Excel Shift-drag style Insertion Guide Line -->
+        <div id="teacherOrderDropLine" class="hidden pointer-events-none absolute left-1 right-1 z-30 flex items-center transition-all duration-75" style="transform: translateY(-50%);">
+          <div class="w-3.5 h-3.5 rounded-full bg-indigo-600 shadow-md ring-2 ring-white flex items-center justify-center text-[9px] text-white font-black shrink-0">◀</div>
+          <div class="flex-1 h-[3px] bg-indigo-600 rounded-full shadow-md"></div>
+          <div class="w-3.5 h-3.5 rounded-full bg-indigo-600 shadow-md ring-2 ring-white flex items-center justify-center text-[9px] text-white font-black shrink-0">▶</div>
+        </div>
         <!-- Rendered draggable cards -->
       </div>
 
@@ -10079,7 +10085,61 @@
       return allTeachers;
     };
 
-    // --- Modal Controllers ---
+    // ==========================================
+    // TEACHER ORDER MODAL (Pure DOM Drag & Excel-style Shift Insertion)
+    // ==========================================
+    let modalDraggedEl = null;
+    let modalInsertTargetEl = null;
+    let modalInsertPos = 'before'; // 'before' | 'after'
+    let modalCachedStats = {};
+    let modalOriginalSnapshotHTML = '';
+
+    function getTeacherStatsMap() {
+      const curriculum = getAllGradesCurriculum();
+      const map = {};
+      curriculum.forEach(item => {
+        if (item.status === '폐강') return;
+        const t = (item.teacher || '').trim();
+        if (!t || t === '폐강') return;
+
+        if (!map[t]) {
+          map[t] = { sem1: 0, sem2: 0, total: 0 };
+        }
+        const h = item.hours || 0;
+        if (item.semester === 1) map[t].sem1 += h;
+        else map[t].sem2 += h;
+        map[t].total += h;
+      });
+      return map;
+    }
+
+    window.getCurrentTeacherSummaryList = function() {
+      const teacherMap = getTeacherStatsMap();
+      const customOrder = getTeacherOrder();
+      const allTeachers = Object.keys(teacherMap);
+
+      if (customOrder.length > 0) {
+        allTeachers.sort((a, b) => {
+          const idxA = customOrder.indexOf(a);
+          const idxB = customOrder.indexOf(b);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          const totA = teacherMap[a]?.total || 0;
+          const totB = teacherMap[b]?.total || 0;
+          return totB - totA || a.localeCompare(b, 'ko');
+        });
+      } else {
+        allTeachers.sort((a, b) => {
+          const totA = teacherMap[a]?.total || 0;
+          const totB = teacherMap[b]?.total || 0;
+          return totB - totA || a.localeCompare(b, 'ko');
+        });
+      }
+      return allTeachers;
+    };
+
+    // --- Modal Open & Close ---
     window.openTeacherOrderModal = function() {
       const list = window.getCurrentTeacherSummaryList();
       if (list.length === 0) {
@@ -10087,184 +10147,84 @@
         return;
       }
 
-      teacherOrderWorkingList = [...list];
-      teacherOrderOriginalList = [...list];
-
+      modalCachedStats = getTeacherStatsMap();
       const searchInput = document.getElementById('teacherOrderModalSearch');
       if (searchInput) searchInput.value = '';
 
-      renderTeacherOrderModalList();
+      // 최초 1회만 DOM 목록 생성
+      buildTeacherOrderModalInitialDOM(list);
+
+      // 취소 복원용 스냅샷 저장
+      const container = document.getElementById('teacherOrderListContainer');
+      modalOriginalSnapshotHTML = container ? container.innerHTML : '';
+
+      // 컨테이너 드래그오버 & 드롭 리스너 바인딩
+      bindModalContainerEvents();
+
       document.getElementById('teacherOrderModal')?.classList.remove('hidden');
     };
 
     window.closeTeacherOrderModal = function() {
       document.getElementById('teacherOrderModal')?.classList.add('hidden');
-      teacherOrderModalDraggedName = null;
+      hideDropLine();
+      modalDraggedEl = null;
     };
 
+    // --- 적용하기: 화면에 놓인 순서대로 최종 저장 ---
     window.applyTeacherOrderModal = function() {
-      setTeacherOrder(teacherOrderWorkingList);
+      const container = document.getElementById('teacherOrderListContainer');
+      if (!container) return;
+
+      const finalOrder = Array.from(container.querySelectorAll('[data-teacher]'))
+        .map(el => el.getAttribute('data-teacher'))
+        .filter(Boolean);
+
+      setTeacherOrder(finalOrder);
       window.closeTeacherOrderModal();
       renderAllGradesTeacherSummary();
-      alert(`✅ 교사 순서 [총 ${teacherOrderWorkingList.length}명]가 성공적으로 적용 및 저장되었습니다!`);
+      alert(`✅ 교사 순서 [총 ${finalOrder.length}명]가 성공적으로 적용 및 저장되었습니다!`);
     };
 
     window.resetTeacherOrderModalList = function() {
-      teacherOrderWorkingList = [...teacherOrderOriginalList];
-      renderTeacherOrderModalList();
-    };
-
-    window.sortTeacherOrderModalList = function(sortType) {
-      const stats = getTeacherStatsMap();
-      if (sortType === 'hoursDesc') {
-        teacherOrderWorkingList.sort((a, b) => (stats[b]?.total || 0) - (stats[a]?.total || 0) || a.localeCompare(b, 'ko'));
-      } else if (sortType === 'hoursAsc') {
-        teacherOrderWorkingList.sort((a, b) => (stats[a]?.total || 0) - (stats[b]?.total || 0) || a.localeCompare(b, 'ko'));
-      } else if (sortType === 'nameAsc') {
-        teacherOrderWorkingList.sort((a, b) => a.localeCompare(b, 'ko'));
-      }
-      renderTeacherOrderModalList();
-    };
-
-    window.filterTeacherOrderModalList = function() {
-      renderTeacherOrderModalList();
-    };
-
-    window.moveTeacherOrderModalItem = function(teacherName, direction) {
-      const fromIdx = teacherOrderWorkingList.indexOf(teacherName);
-      if (fromIdx === -1) return;
-
-      if (direction === 'top') {
-        if (fromIdx === 0) return;
-        teacherOrderWorkingList.splice(fromIdx, 1);
-        teacherOrderWorkingList.unshift(teacherName);
-      } else if (direction === 'up') {
-        if (fromIdx === 0) return;
-        teacherOrderWorkingList.splice(fromIdx, 1);
-        teacherOrderWorkingList.splice(fromIdx - 1, 0, teacherName);
-      } else if (direction === 'down') {
-        if (fromIdx >= teacherOrderWorkingList.length - 1) return;
-        teacherOrderWorkingList.splice(fromIdx, 1);
-        teacherOrderWorkingList.splice(fromIdx + 1, 0, teacherName);
-      } else if (direction === 'bottom') {
-        if (fromIdx >= teacherOrderWorkingList.length - 1) return;
-        teacherOrderWorkingList.splice(fromIdx, 1);
-        teacherOrderWorkingList.push(teacherName);
-      }
-      renderTeacherOrderModalList();
-    };
-
-    // Modal 내 드래그 앤 드롭
-    window.handleModalDragStart = function(e, teacherName) {
-      teacherOrderModalDraggedName = teacherName;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', teacherName);
-      const itemEl = e.currentTarget;
-      setTimeout(() => {
-        itemEl.classList.add('opacity-40', 'bg-indigo-50', 'ring-2', 'ring-indigo-400');
-      }, 0);
-    };
-
-    window.handleModalDragOver = function(e) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      const itemEl = e.currentTarget;
-      const rect = itemEl.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      itemEl.classList.remove('border-t-2', 'border-b-2', 'border-indigo-600');
-      if (e.clientY < midY) {
-        itemEl.classList.add('border-t-2', 'border-indigo-600');
-      } else {
-        itemEl.classList.add('border-b-2', 'border-indigo-600');
-      }
-    };
-
-    window.handleModalDragLeave = function(e) {
-      const itemEl = e.currentTarget;
-      itemEl.classList.remove('border-t-2', 'border-b-2', 'border-indigo-600');
-    };
-
-    window.handleModalDrop = function(e, targetTeacherName) {
-      e.preventDefault();
-      const itemEl = e.currentTarget;
-      itemEl.classList.remove('border-t-2', 'border-b-2', 'border-indigo-600');
-
-      if (!teacherOrderModalDraggedName || teacherOrderModalDraggedName === targetTeacherName) {
-        return;
-      }
-
-      const rect = itemEl.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      const insertBefore = e.clientY < midY;
-
-      const fromIdx = teacherOrderWorkingList.indexOf(teacherOrderModalDraggedName);
-      if (fromIdx === -1) return;
-
-      teacherOrderWorkingList.splice(fromIdx, 1);
-      const toIdx = teacherOrderWorkingList.indexOf(targetTeacherName);
-      if (toIdx === -1) {
-        teacherOrderWorkingList.push(teacherOrderModalDraggedName);
-      } else {
-        teacherOrderWorkingList.splice(insertBefore ? toIdx : toIdx + 1, 0, teacherOrderModalDraggedName);
-      }
-
-      renderTeacherOrderModalList();
-    };
-
-    window.handleModalDragEnd = function(e) {
-      teacherOrderModalDraggedName = null;
-      document.querySelectorAll('#teacherOrderListContainer > div').forEach(el => {
-        el.classList.remove('opacity-40', 'bg-indigo-50', 'ring-2', 'ring-indigo-400', 'border-t-2', 'border-b-2', 'border-indigo-600');
-      });
-    };
-
-    function renderTeacherOrderModalList() {
       const container = document.getElementById('teacherOrderListContainer');
-      const badge = document.getElementById('teacherOrderModalCountBadge');
+      if (container && modalOriginalSnapshotHTML) {
+        container.innerHTML = modalOriginalSnapshotHTML;
+        updateModalVisualIndexes();
+      }
+    };
+
+    // 최초 1회만 DOM을 가볍게 생성
+    function buildTeacherOrderModalInitialDOM(teacherList) {
+      const container = document.getElementById('teacherOrderListContainer');
       if (!container) return;
 
-      const searchVal = (document.getElementById('teacherOrderModalSearch')?.value || '').trim().toLowerCase();
-      const stats = getTeacherStatsMap();
+      const dropLine = document.getElementById('teacherOrderDropLine');
+      const dropLineHTML = dropLine ? dropLine.outerHTML : `
+        <div id="teacherOrderDropLine" class="hidden pointer-events-none absolute left-1 right-1 z-30 flex items-center transition-all duration-75" style="transform: translateY(-50%);">
+          <div class="w-3.5 h-3.5 rounded-full bg-indigo-600 shadow-md ring-2 ring-white flex items-center justify-center text-[9px] text-white font-black shrink-0">◀</div>
+          <div class="flex-1 h-[3px] bg-indigo-600 rounded-full shadow-md"></div>
+          <div class="w-3.5 h-3.5 rounded-full bg-indigo-600 shadow-md ring-2 ring-white flex items-center justify-center text-[9px] text-white font-black shrink-0">▶</div>
+        </div>
+      `;
 
-      if (badge) badge.textContent = `총 ${teacherOrderWorkingList.length}명`;
-
-      let displayList = teacherOrderWorkingList.map((name, originalIdx) => ({ name, originalIdx }));
-      if (searchVal) {
-        displayList = displayList.filter(item => item.name.toLowerCase().includes(searchVal));
-      }
-
-      if (displayList.length === 0) {
-        container.innerHTML = `
-          <div class="p-8 text-center text-slate-400 italic bg-slate-50 rounded-2xl border border-slate-200">
-            ${teacherOrderWorkingList.length === 0 ? '표시할 교사가 없습니다.' : '검색 결과와 일치하는 교사가 없습니다.'}
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = displayList.map((item, viewIdx) => {
-        const tName = item.name;
-        const realIdx = item.originalIdx;
-        const info = stats[tName] || { sem1: 0, sem2: 0, total: 0 };
-
+      const cardsHTML = teacherList.map((tName, idx) => {
+        const info = modalCachedStats[tName] || { sem1: 0, sem2: 0, total: 0 };
         return `
-          <div class="flex items-center justify-between p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all select-none cursor-grab active:cursor-grabbing group shadow-2xs"
+          <div class="teacher-order-card flex items-center justify-between p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all select-none cursor-grab active:cursor-grabbing group shadow-2xs relative"
                draggable="true"
                data-teacher="${escapeHtml(tName)}"
-               ondragstart="window.handleModalDragStart(event, '${escapeHtml(tName)}')"
-               ondragover="window.handleModalDragOver(event)"
-               ondragleave="window.handleModalDragLeave(event)"
-               ondrop="window.handleModalDrop(event, '${escapeHtml(tName)}')"
+               data-total="${info.total}"
+               ondragstart="window.handleModalDragStart(event)"
                ondragend="window.handleModalDragEnd(event)">
             
-            <div class="flex items-center gap-2.5 min-w-0">
-              <span class="text-slate-400 group-hover:text-indigo-600 font-black text-sm select-none shrink-0" title="위아래로 드래그하여 순서 변경">⠿</span>
-              <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-extrabold text-[11px] flex items-center justify-center shrink-0 border border-slate-200">${realIdx + 1}</span>
+            <div class="flex items-center gap-2.5 min-w-0 pointer-events-none">
+              <span class="text-slate-400 group-hover:text-indigo-600 font-black text-sm select-none shrink-0" title="위아래로 드래그하여 끼워넣기">⠿</span>
+              <span class="order-idx-badge w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-extrabold text-[11px] flex items-center justify-center shrink-0 border border-slate-200">${idx + 1}</span>
               <span class="font-extrabold text-sm text-slate-900 truncate">${escapeHtml(tName)}</span>
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-              <span class="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+              <span class="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200 pointer-events-none">
                 1학기 <b class="text-blue-700">${info.sem1}h</b> · 2학기 <b class="text-emerald-700">${info.sem2}h</b> · <b class="text-indigo-700 font-black">${info.total}h</b>
               </span>
               <div class="inline-flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
@@ -10277,7 +10237,201 @@
           </div>
         `;
       }).join('');
+
+      container.innerHTML = dropLineHTML + cardsHTML;
+      updateModalVisualIndexes();
     }
+
+    // 순수 번호 텍스트(1, 2, 3...)만 빠르게 갱신 (0.1ms 소요)
+    function updateModalVisualIndexes() {
+      const container = document.getElementById('teacherOrderListContainer');
+      const badge = document.getElementById('teacherOrderModalCountBadge');
+      if (!container) return;
+
+      const cards = container.querySelectorAll('.teacher-order-card');
+      let visibleCount = 0;
+      cards.forEach((card) => {
+        if (card.style.display !== 'none') {
+          visibleCount++;
+          const idxEl = card.querySelector('.order-idx-badge');
+          if (idxEl) idxEl.textContent = visibleCount;
+        }
+      });
+      if (badge) badge.textContent = `총 ${cards.length}명`;
+    }
+
+    // --- 엑셀 Shift 드래그 스타일의 실시간 삽입 라인 표시 및 드래그앤드롭 ---
+    function bindModalContainerEvents() {
+      const container = document.getElementById('teacherOrderListContainer');
+      if (!container || container.dataset.dragEventsBound) return;
+      container.dataset.dragEventsBound = 'true';
+
+      container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (!modalDraggedEl) return;
+
+        const dropLine = document.getElementById('teacherOrderDropLine');
+        if (!dropLine) return;
+
+        const cards = Array.from(container.querySelectorAll('.teacher-order-card')).filter(c => c !== modalDraggedEl && c.style.display !== 'none');
+        if (cards.length === 0) return;
+
+        const mouseY = e.clientY;
+        let closestCard = null;
+        let closestDist = Infinity;
+        let insertBefore = true;
+
+        for (const card of cards) {
+          const rect = card.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          const dist = Math.abs(mouseY - midY);
+          if (dist < closestDist) {
+            closestDist = dist;
+            closestCard = card;
+            insertBefore = (mouseY < midY);
+          }
+        }
+
+        if (closestCard) {
+          modalInsertTargetEl = closestCard;
+          modalInsertPos = insertBefore ? 'before' : 'after';
+
+          const cardRect = closestCard.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const targetY = insertBefore
+            ? (cardRect.top - containerRect.top + container.scrollTop)
+            : (cardRect.bottom - containerRect.top + container.scrollTop);
+
+          dropLine.style.top = targetY + 'px';
+          dropLine.classList.remove('hidden');
+        }
+      });
+
+      container.addEventListener('dragleave', (e) => {
+        if (!container.contains(e.relatedTarget)) {
+          hideDropLine();
+        }
+      });
+
+      container.addEventListener('drop', (e) => {
+        e.preventDefault();
+        hideDropLine();
+
+        if (!modalDraggedEl || !modalInsertTargetEl) return;
+        if (modalDraggedEl === modalInsertTargetEl) return;
+
+        // 순수 DOM 이동 (insertBefore) - 지연 0ms
+        if (modalInsertPos === 'before') {
+          container.insertBefore(modalDraggedEl, modalInsertTargetEl);
+        } else {
+          container.insertBefore(modalDraggedEl, modalInsertTargetEl.nextElementSibling);
+        }
+
+        updateModalVisualIndexes();
+        modalDraggedEl = null;
+        modalInsertTargetEl = null;
+      });
+    }
+
+    function hideDropLine() {
+      const dropLine = document.getElementById('teacherOrderDropLine');
+      if (dropLine) dropLine.classList.add('hidden');
+    }
+
+    window.handleModalDragStart = function(e) {
+      modalDraggedEl = e.currentTarget;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', modalDraggedEl.dataset.teacher || '');
+      setTimeout(() => {
+        if (modalDraggedEl) {
+          modalDraggedEl.classList.add('opacity-30', 'bg-indigo-50/80', 'scale-[0.99]', 'border-indigo-400');
+        }
+      }, 0);
+    };
+
+    window.handleModalDragEnd = function(e) {
+      hideDropLine();
+      if (modalDraggedEl) {
+        modalDraggedEl.classList.remove('opacity-30', 'bg-indigo-50/80', 'scale-[0.99]', 'border-indigo-400');
+      }
+      modalDraggedEl = null;
+      modalInsertTargetEl = null;
+    };
+
+    // --- 버튼을 통한 순수 DOM 이동 ---
+    window.moveTeacherOrderModalItem = function(tName, direction) {
+      const container = document.getElementById('teacherOrderListContainer');
+      if (!container) return;
+
+      const el = container.querySelector(`.teacher-order-card[data-teacher="${CSS.escape(tName)}"]`);
+      if (!el) return;
+
+      if (direction === 'top') {
+        const first = container.querySelector('.teacher-order-card');
+        if (first && first !== el) container.insertBefore(el, first);
+      } else if (direction === 'up') {
+        let prev = el.previousElementSibling;
+        while (prev && !prev.classList.contains('teacher-order-card')) {
+          prev = prev.previousElementSibling;
+        }
+        if (prev) container.insertBefore(el, prev);
+      } else if (direction === 'down') {
+        let next = el.nextElementSibling;
+        while (next && !next.classList.contains('teacher-order-card')) {
+          next = next.nextElementSibling;
+        }
+        if (next) container.insertBefore(next, el);
+      } else if (direction === 'bottom') {
+        container.appendChild(el);
+      }
+
+      updateModalVisualIndexes();
+    };
+
+    // --- 빠른 프리셋 정렬 (DOM 노드 재배치) ---
+    window.sortTeacherOrderModalList = function(sortType) {
+      const container = document.getElementById('teacherOrderListContainer');
+      if (!container) return;
+
+      const cards = Array.from(container.querySelectorAll('.teacher-order-card'));
+      if (cards.length === 0) return;
+
+      cards.sort((a, b) => {
+        const nameA = a.dataset.teacher || '';
+        const nameB = b.dataset.teacher || '';
+        const totA = parseFloat(a.dataset.total) || 0;
+        const totB = parseFloat(b.dataset.total) || 0;
+
+        if (sortType === 'hoursDesc') return (totB - totA) || nameA.localeCompare(nameB, 'ko');
+        if (sortType === 'hoursAsc') return (totA - totB) || nameA.localeCompare(nameB, 'ko');
+        if (sortType === 'nameAsc') return nameA.localeCompare(nameB, 'ko');
+        return 0;
+      });
+
+      cards.forEach(card => container.appendChild(card));
+      updateModalVisualIndexes();
+    };
+
+    // --- 교사명 실시간 필터 (CSS display 토글 방식) ---
+    window.filterTeacherOrderModalList = function() {
+      const container = document.getElementById('teacherOrderListContainer');
+      if (!container) return;
+
+      const searchVal = (document.getElementById('teacherOrderModalSearch')?.value || '').trim().toLowerCase();
+      const cards = container.querySelectorAll('.teacher-order-card');
+
+      cards.forEach(card => {
+        const name = (card.dataset.teacher || '').toLowerCase();
+        if (!searchVal || name.includes(searchVal)) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      updateModalVisualIndexes();
+    };
 
     // --- Main Table Drag Handlers ---
     window.handleTeacherRowDragStart = function(e, teacherName) {
