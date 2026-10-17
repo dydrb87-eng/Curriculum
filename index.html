@@ -631,7 +631,7 @@
                 <th class="p-2.5 text-center w-16 border-r border-slate-200">학년</th>
                 <th class="p-2.5 text-center w-16 border-r border-slate-200">학기</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">구분</th>
-                <th class="p-2.5 border-r border-slate-200 font-extrabold text-slate-900">과목명</th>
+                <th class="p-2.5 w-60 border-r border-slate-200 font-extrabold text-slate-900">과목명 (수정 가능)</th>
                 <th class="p-2.5 text-center w-16 border-r border-slate-200">총 시수</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">개설 상태</th>
                 <th class="p-2.5 w-48 border-r border-slate-200 font-extrabold text-slate-900">담당 교사 (수정 가능)</th>
@@ -9177,32 +9177,46 @@
     // 6. ALL GRADES CURRICULUM & TEACHER WORKLOAD CONSOLIDATION (전체 탭)
     // ==========================================
 
+    // 특수문자/각주 기호/별표 정규식 (*, ※, †, ‡, ★, ☆, ▲, ■, ●, #, ^ 등)
+    const SUBJECT_SPECIAL_CHARS_REGEX = /[*※†‡★☆▲■●#^]/g;
+
     // 과목명 정규화 및 분반 추출 유틸리티
     function getBaseSubjectName(subj) {
       if (!subj) return '';
-      // 과목명 뒤의 -1, -2, -01, -A, -B 또는 (1반), (1분반), -1반 등 분반 접미사 제거
-      return String(subj)
+      // 1. 줄바꿈, 탭 정리
+      let s = String(subj).replace(/[\r\n\t]/g, ' ');
+      // 2. 별표 및 각주 기호 제거
+      s = s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
+      // 3. 과목명 뒤의 -1, -2, -01, -A, -B 또는 (1반), (1분반), -1반 등 분반 접미사 제거
+      s = s
         .replace(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i, '')
         .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i, '')
         .trim();
+      // 4. 분반 제거 후 남아있을 수 있는 별표/기호 재정리
+      return s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
     }
 
     function getSubjectDivision(subj) {
       if (!subj) return '';
-      const m1 = String(subj).match(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i);
+      let s = String(subj).replace(/[\r\n\t]/g, ' ').replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
+      const m1 = s.match(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i);
       if (m1) return m1[1];
-      const m2 = String(subj).match(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i);
+      const m2 = s.match(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i);
       if (m2) return m2[1];
       return '';
     }
 
     function normalizeSubjectKey(subj) {
       if (!subj) return '';
-      // 1. 분반 접미사 제거한 기본 과목명
+      // 1. 분반 접미사 및 별표 제거한 기본 과목명
       const base = getBaseSubjectName(subj);
-      // 2. 띄어쓰기 완전 제거 및 소문자화 (띄어쓰기가 달라도 매칭)
-      return base.replace(/\s+/g, '').toLowerCase();
+      // 2. 모든 공백(전각 공백 \u3000 포함) 및 특수기호 제거, 영문 소문자화
+      return base
+        .replace(/[\s\u3000]/g, '')
+        .replace(SUBJECT_SPECIAL_CHARS_REGEX, '')
+        .toLowerCase();
     }
+
 
     const sampleCurriculumData = [
       // 1학년 1학기 (지정)
@@ -9640,8 +9654,11 @@
             const hoursKey = keys.find(k => /총\s*시수|총시수|total\s*hours/i.test(k));
             const teacherKey = keys.find(k => /담당교사|교사명|담당|교사|teacher/i.test(k));
 
-            const subjVal = String(row[subjKey] || row['과목명'] || '').trim();
-            if (!subjVal) return; // Skip empty rows
+            const rawSubjVal = String(row[subjKey] || row['과목명'] || '').trim();
+            if (!rawSubjVal) return; // Skip empty rows
+
+            // 별표나 각주 기호(*, ※, † 등)를 깔끔하게 정돈한 과목명
+            const subjVal = rawSubjVal.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim() || rawSubjVal;
 
             // 1. 학기 파싱 (1, 2 숫자만 써 있거나 '1학기', '2학기' 등 유연 파싱)
             let semNum = 1;
@@ -9739,6 +9756,68 @@
       renderAllGradesDashboard();
       alert(`💡 테스트용 예시 기초데이터(${parsedCurriculum.length}개 과목)를 불러왔습니다!`);
     }
+
+    window.updateCurriculumItemSubject = function(itemId, newSubject) {
+      const curriculum = getAllGradesCurriculum();
+      const item = curriculum.find(c => c.id === itemId);
+      if (!item) return;
+
+      const trimmed = (newSubject || '').trim();
+      if (!trimmed) {
+        alert('과목명은 비워둘 수 없습니다.');
+        renderAllGradesCurriculumTable();
+        return;
+      }
+
+      const prevSubj = item.subject;
+      item.subject = trimmed;
+      item.baseSubject = getBaseSubjectName(trimmed);
+      item.division = getSubjectDivision(trimmed);
+      item.isModified = true;
+
+      // 변경된 과목명 기준으로 수강신청 결과와 재대조하여 개설/폐강 상태 갱신
+      if (item.category === '선택' || item.category === '학생선택') {
+        const normSubj = normalizeSubjectKey(trimmed);
+        const openedSet = getStep2OpenedSubjects(MultiState.activeYear, item.grade, item.semester);
+        if (openedSet !== null) {
+          const isOpened = [...openedSet].some(s => normalizeSubjectKey(s) === normSubj);
+          if (isOpened) {
+            item.status = '개설';
+            if (item.teacher === '폐강') item.teacher = item.originalTeacher || '';
+          } else {
+            item.status = '폐강';
+            item.teacher = '폐강';
+          }
+        } else {
+          const gData = MultiState.data[MultiState.activeYear]?.[item.grade];
+          let semSubjs = (item.semester === 1 ? gData?.sem1Subjects : gData?.sem2Subjects) || [];
+          if (!semSubjs || semSubjs.length === 0) {
+            const semKey = (item.semester === 1 ? 'sem1' : 'sem2');
+            const set = new Set();
+            (gData?.students || []).forEach(st => {
+              (st[semKey] || []).forEach(s => { if (s && s.trim()) set.add(s.trim()); });
+            });
+            semSubjs = Array.from(set);
+          }
+          if (semSubjs.length > 0) {
+            const inSurvey = semSubjs.some(s => normalizeSubjectKey(s) === normSubj);
+            const closedList = gData?.closedSubjects?.[item.semester] || [];
+            const isClosed = closedList.some(s => normalizeSubjectKey(s) === normSubj);
+            if (!inSurvey || isClosed) {
+              item.status = '폐강';
+              item.teacher = '폐강';
+            } else {
+              item.status = '개설';
+              if (item.teacher === '폐강') item.teacher = item.originalTeacher || '';
+            }
+          }
+        }
+      }
+
+      setAllGradesCurriculum(curriculum);
+      renderAllGradesDashboard(false);
+      console.log(`✅ 과목명 변경: [${prevSubj}] ➔ [${trimmed}] (상태: ${item.status})`);
+    };
 
     window.updateTeacherAssignment = function(itemId, newTeacher) {
       const curriculum = getAllGradesCurriculum();
@@ -9990,6 +10069,55 @@
 
     function renderAllGradesDashboard(fullRedraw = true) {
       const curriculum = getAllGradesCurriculum();
+
+      // 과거 별표/특수문자 불일치 등으로 자동 폐강 처리되었던 과목 자동 복원 동기화
+      let needsSync = false;
+      curriculum.forEach(item => {
+        if (item.category === '지정' || item.category === '학교지정' || item.grade === '1학년') {
+          if (item.status === '폐강') {
+            item.status = '개설';
+            if (item.teacher === '폐강') item.teacher = item.originalTeacher || '';
+            needsSync = true;
+          }
+          return;
+        }
+        if (item.status === '폐강' && !item.isModified) {
+          const normSubj = normalizeSubjectKey(item.subject);
+          const sem = item.semester;
+          const openedSet = getStep2OpenedSubjects(MultiState.activeYear, item.grade, sem);
+          if (openedSet !== null) {
+            if ([...openedSet].some(s => normalizeSubjectKey(s) === normSubj)) {
+              item.status = '개설';
+              if (item.teacher === '폐강') item.teacher = item.originalTeacher || '';
+              needsSync = true;
+            }
+          } else {
+            const gData = MultiState.data[MultiState.activeYear]?.[item.grade];
+            let semSubjs = (sem === 1 ? gData?.sem1Subjects : gData?.sem2Subjects) || [];
+            if (!semSubjs || semSubjs.length === 0) {
+              const semKey = (sem === 1 ? 'sem1' : 'sem2');
+              const set = new Set();
+              (gData?.students || []).forEach(st => {
+                (st[semKey] || []).forEach(s => { if (s && s.trim()) set.add(s.trim()); });
+              });
+              semSubjs = Array.from(set);
+            }
+            if (semSubjs.length > 0) {
+              const inSurvey = semSubjs.some(s => normalizeSubjectKey(s) === normSubj);
+              const closedList = gData?.closedSubjects?.[sem] || [];
+              const isClosedInStep1 = closedList.some(s => normalizeSubjectKey(s) === normSubj);
+              if (inSurvey && !isClosedInStep1) {
+                item.status = '개설';
+                if (item.teacher === '폐강') item.teacher = item.originalTeacher || '';
+                needsSync = true;
+              }
+            }
+          }
+        }
+      });
+      if (needsSync) {
+        setAllGradesCurriculum(curriculum);
+      }
 
       // Check for missing open subjects from 2, 3학년
       checkMissingOpenSubjectsInCurriculum(curriculum);
@@ -10552,6 +10680,7 @@
 
     window.handleCourseDropCellDragLeave = function(e) {
       const cell = e.currentTarget;
+      if (cell && e.relatedTarget && cell.contains(e.relatedTarget)) return;
       cell.classList.remove('bg-blue-100/70', 'bg-emerald-100/70', 'ring-2', 'ring-indigo-500', 'ring-emerald-500', 'ring-inset');
     };
 
@@ -10732,7 +10861,7 @@
                 ondragover="window.handleCourseDropCellDragOver(event, 1, '${escapeHtml(tName)}')"
                 ondragleave="window.handleCourseDropCellDragLeave(event)"
                 ondrop="window.handleCourseDropCellDrop(event, 1, '${escapeHtml(tName)}')">
-              <div class="flex flex-wrap gap-1 min-h-[26px] items-center pointer-events-none">${s1Tags || '<span class="text-slate-300 italic text-[11px] p-0.5 rounded border border-dashed border-slate-200">과목 드롭 가능</span>'}</div>
+              <div class="flex flex-wrap gap-1 min-h-[26px] items-center">${s1Tags || '<span class="text-slate-300 italic text-[11px] p-0.5 rounded border border-dashed border-slate-200 pointer-events-none">과목 드롭 가능</span>'}</div>
             </td>
             <td class="p-2.5 text-center font-black text-blue-700 border-r border-slate-200 bg-blue-50/40">${d.sem1Hours}h</td>
             <td class="p-2.5 border-r border-slate-200 course-drop-cell transition-all"
@@ -10741,7 +10870,7 @@
                 ondragover="window.handleCourseDropCellDragOver(event, 2, '${escapeHtml(tName)}')"
                 ondragleave="window.handleCourseDropCellDragLeave(event)"
                 ondrop="window.handleCourseDropCellDrop(event, 2, '${escapeHtml(tName)}')">
-              <div class="flex flex-wrap gap-1 min-h-[26px] items-center pointer-events-none">${s2Tags || '<span class="text-slate-300 italic text-[11px] p-0.5 rounded border border-dashed border-slate-200">과목 드롭 가능</span>'}</div>
+              <div class="flex flex-wrap gap-1 min-h-[26px] items-center">${s2Tags || '<span class="text-slate-300 italic text-[11px] p-0.5 rounded border border-dashed border-slate-200 pointer-events-none">과목 드롭 가능</span>'}</div>
             </td>
             <td class="p-2.5 text-center font-black text-emerald-700 border-r border-slate-200 bg-emerald-50/40">${d.sem2Hours}h</td>
             <td class="p-2.5 text-center font-black text-slate-900 border-r border-slate-200 bg-slate-100/50">${totalHours}h</td>
@@ -10843,9 +10972,16 @@
             <td class="p-2 text-center font-bold text-slate-800 border-r border-slate-200">${c.grade}</td>
             <td class="p-2 text-center font-medium text-slate-700 border-r border-slate-200">${c.semester}학기</td>
             <td class="p-2 text-center border-r border-slate-200">${catBadge}</td>
-            <td class="p-2 font-bold text-slate-900 border-r border-slate-200">
-              <span class="${isClosed ? 'line-through text-slate-400' : ''}">${c.subject}</span>
-              ${divisionTag}
+            <td class="p-1.5 border-r border-slate-200">
+              <div class="flex items-center gap-1">
+                <input type="text" 
+                       value="${escapeHtml(c.subject)}" 
+                       onchange="window.updateCurriculumItemSubject('${c.id}', this.value)" 
+                       class="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 outline-none transition ${isClosed ? 'line-through text-slate-400 bg-rose-50/40' : 'text-slate-900'}" 
+                       placeholder="과목명 입력" 
+                       title="클릭하여 과목명 직접 수정 (별표 제거, 오타 수정 등)" />
+                ${divisionTag}
+              </div>
             </td>
             <td class="p-2 text-center font-black text-indigo-700 border-r border-slate-200">${c.hours}</td>
             <td class="p-2 text-center border-r border-slate-200">${statusBadge}</td>
