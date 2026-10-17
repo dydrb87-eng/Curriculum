@@ -1680,6 +1680,25 @@
 
   <!-- ================= APPLICATION JAVASCRIPT ================= -->
   <script>
+    // ==========================================
+    // SECURITY & CODE PROTECTION (우클릭 및 소스보기/F12 차단)
+    // ==========================================
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      return false;
+    });
+    document.addEventListener('keydown', function(e) {
+      if (
+        e.key === 'F12' ||
+        ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c'))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    });
+
     // Global Application State
     const AppState = {
       detectedGrade: '2학년',
