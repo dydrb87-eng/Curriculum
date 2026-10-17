@@ -1184,6 +1184,20 @@
                   </tbody>
                 </table>
               </div>
+
+              <!-- 이전 단계 폐강 확정 과목 및 신청인원 표시 바 -->
+              <div id="conflictClosedSubjectsBox" class="mt-3 pt-3 border-t border-rose-200/80 flex flex-wrap items-center justify-between gap-2.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-black text-rose-900 flex items-center gap-1.5 shrink-0">
+                    <span class="text-rose-600">🚫</span>
+                    <span>이전 단계(1단계) 폐강 과목:</span>
+                  </span>
+                  <div id="conflictClosedSubjectsList" class="flex flex-wrap items-center gap-1.5">
+                    <!-- Dynamically Populated: e.g. 영미문학읽기(3명) -->
+                  </div>
+                </div>
+                <span class="text-[11px] text-rose-600/90 font-medium">※ 이전 1단계 과목별 수강 인원 조사에서 폐강 확정된 과목 목록입니다.</span>
+              </div>
             </div>
           </div>
 
@@ -5759,11 +5773,29 @@
       statConflictCount.textContent = `${plan.conflictCount}명`;
 
       const groupCardsSection = document.getElementById('groupCardsSection');
+      const closedList = AppState.closedSubjects?.[sem] || [];
 
       if (plan.conflictCount === 0) {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
         conflictStatusBadge.textContent = isTarget ? `충돌 0명 (목표 ${minN}~${maxN}명 중 0명)` : '충돌 없음 (최적)';
-        conflictAlertBox.classList.add('hidden');
+        
+        // 폐강 과목이 존재하는 경우, 폐강 목록 조회를 위해 상자를 표시하고 단정하게 유지
+        if (closedList.length > 0) {
+          conflictAlertBox.className = 'lg:col-span-2 w-full bg-rose-50/70 border border-rose-200 rounded-xl p-4 shadow-sm space-y-2 flex flex-col justify-between transition-all';
+          conflictAlertBox.classList.remove('hidden');
+          conflictDetailCount.className = 'bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-bold';
+          conflictDetailCount.textContent = '충돌 0건 (완벽)';
+          conflictTableBody.innerHTML = `
+            <tr>
+              <td colspan="5" class="p-3 text-center font-bold text-emerald-700 bg-white">
+                🎉 동일 그룹에 과목이 중복 배정된 충돌 학생이 없습니다!
+              </td>
+            </tr>
+          `;
+        } else {
+          conflictAlertBox.classList.add('hidden');
+        }
+
         if (groupCardsSection) {
           groupCardsSection.className = 'lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all';
         }
@@ -5786,6 +5818,7 @@
           conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200';
           conflictStatusBadge.textContent = `충돌 ${plan.conflictCount}명 발생 (최적 탐색)`;
         }
+        conflictDetailCount.className = 'bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full text-xs font-bold';
         conflictAlertBox.className = 'lg:col-span-2 w-full bg-rose-50/90 border border-rose-200 rounded-xl p-4 shadow-sm space-y-2 flex flex-col justify-between transition-all';
         conflictAlertBox.classList.remove('hidden');
       }
@@ -5803,6 +5836,34 @@
         `).join('');
         // Maintain accordion state (default: collapsed)
         window.toggleConflictTable(isConflictTableExpanded);
+      }
+
+      // Render Closed Subjects from Previous Step (1단계 폐강 과목 및 신청인원)
+      const closedContainer = document.getElementById('conflictClosedSubjectsList');
+      if (closedContainer) {
+        if (closedList.length === 0) {
+          closedContainer.innerHTML = `<span class="text-xs text-slate-500 italic bg-white/80 px-2.5 py-0.5 rounded-md border border-dashed border-rose-200">폐강 확정 과목 없음 (모든 선택과목 개설 대상)</span>`;
+        } else {
+          // 각 폐강 과목의 신청 인원 집계
+          const closedItems = closedList.map(subj => {
+            let count = 0;
+            (AppState.students || []).forEach(st => {
+              const selected = (sem === 1 ? st.sem1 : st.sem2) || [];
+              if (selected.includes(subj)) count++;
+            });
+            return { subject: subj, count };
+          });
+
+          // 신청인원 내림차순 정렬
+          closedItems.sort((a, b) => b.count - a.count || a.subject.localeCompare(b.subject, 'ko'));
+
+          closedContainer.innerHTML = closedItems.map(item => `
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-rose-900 border border-rose-300 shadow-2xs hover:bg-rose-50 transition" title="1단계 수강신청 인원: ${item.count}명">
+              <span class="font-extrabold">${escapeHtml(item.subject)}</span>
+              <span class="text-rose-600 font-black bg-rose-100 px-1.5 py-0.5 rounded text-[11px]">(${item.count}명)</span>
+            </span>
+          `).join('');
+        }
       }
 
       // Update Historical Best Minimum Conflict Display & Restore Button
