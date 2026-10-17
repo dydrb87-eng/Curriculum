@@ -10385,7 +10385,6 @@
       ];
       XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
 
-      const year = MultiState?.activeYear || '2027';
       XLSX.writeFile(wb, `${year}학년도_전학년_교사별시수_및_과목배정_종합.xlsx`);
     }
 
