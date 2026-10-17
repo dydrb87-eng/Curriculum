@@ -640,7 +640,7 @@
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">개설 상태</th>
                 <th class="p-2.5 w-48 border-r border-slate-200 font-extrabold text-slate-900">담당 교사 (수정 가능)</th>
                 <th class="p-2.5 text-center w-20 border-r border-slate-200">수정 여부</th>
-                <th class="p-2.5 text-center w-24">작업</th>
+                <th class="p-2.5 text-center w-36">작업</th>
               </tr>
             </thead>
             <tbody id="allGradesCurriculumTableBody" class="divide-y divide-slate-100 text-slate-700">
@@ -9954,6 +9954,20 @@
       renderAllGradesDashboard();
     };
 
+    window.deleteCurriculumItem = function(itemId) {
+      const curriculum = getAllGradesCurriculum();
+      const item = curriculum.find(c => c.id === itemId);
+      if (!item) return;
+
+      const confirmMsg = `⚠️ [${item.grade} ${item.semester}학기] '${item.subject}' 과목을 편제표에서 완전히 삭제하시겠습니까?\n\n- 담당 교사: ${item.teacher || '미배정'}\n- 주당 시수: ${item.hours}시간\n\n※ 삭제된 과목은 교사별 시수 집계 및 대시보드에서 즉시 제외됩니다.`;
+      if (!confirm(confirmMsg)) return;
+
+      const updated = curriculum.filter(c => c.id !== itemId);
+      setAllGradesCurriculum(updated);
+      renderAllGradesDashboard();
+      console.log(`🗑️ 과목 삭제 완료: [${item.grade} ${item.semester}학기] ${item.subject} (${itemId})`);
+    };
+
     window.toggleCurriculumItemCategory = function(itemId) {
       const curriculum = getAllGradesCurriculum();
       const item = curriculum.find(c => c.id === itemId);
@@ -11284,6 +11298,8 @@
           ? `<button type="button" onclick="window.toggleCurriculumItemStatus('${c.id}')" class="px-2 py-0.5 text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-300 transition" title="개설 상태로 전환">개설 전환</button>` 
           : `<button type="button" onclick="window.toggleCurriculumItemStatus('${c.id}')" class="px-2 py-0.5 text-[10px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 rounded border border-rose-300 transition" title="폐강 상태로 전환">폐강 전환</button>`;
 
+        const deleteBtn = `<button type="button" onclick="window.deleteCurriculumItem('${c.id}')" class="px-1.5 py-0.5 text-[10px] font-bold text-rose-600 hover:text-white hover:bg-rose-600 bg-rose-50 rounded border border-rose-200 transition cursor-pointer" title="이 과목을 편제표에서 완전히 삭제">🗑️ 삭제</button>`;
+
         return `
           <tr class="${rowBg} hover:bg-indigo-50/40 transition-colors">
             <td class="p-2 text-center font-medium text-slate-500 border-r border-slate-200">${idx + 1}</td>
@@ -11326,6 +11342,7 @@
               <div class="flex items-center justify-center gap-1">
                 ${resetBtn}
                 ${toggleBtn}
+                ${deleteBtn}
               </div>
             </td>
           </tr>
