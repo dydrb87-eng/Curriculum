@@ -1203,10 +1203,32 @@
 
         </div>
 
+        <!-- Timetable Work Memo & Action Card (학생별 그룹 배정 시간표 위에 위치) -->
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+            <label for="planWorkMemo" class="text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-pointer">
+              <span>📝 시간표 작업 메모 및 특이사항</span>
+              <span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(저장 시 함께 보존되며 엑셀 다운로드에도 포함됩니다)</span>
+              <span id="planMemoSavedHint" class="text-[11px] text-emerald-600 font-bold hidden ml-2">✓ 메모 저장됨</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button id="btnSavePlan2" type="button" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="작성한 메모와 함께 현재 배치 안을 저장합니다">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                <span>⭐ 현재 배치 저장</span>
+              </button>
+              <button id="btnExportAllPlans2" type="button" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="모든 저장된 안을 엑셀로 다운로드합니다">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>📥 모든 저장 안 다운로드</span>
+              </button>
+            </div>
+          </div>
+          <textarea id="planWorkMemo" rows="2" class="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 font-sans leading-relaxed resize-y bg-slate-50/50 hover:bg-white focus:bg-white transition" placeholder="시간표 편성 관련 협의 내용, 특정 학생 이동 내역, 교사 배치 참고 사항 등을 자유롭게 기록하세요."></textarea>
+        </div>
+
         <!-- Student Individual Timetable Schedule View -->
         <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
           <div class="border-b border-slate-100 pb-3 space-y-3">
-            <!-- Row 1: Title & Optimization / Save Controls -->
+            <!-- Row 1: Title & Optimization Controls -->
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
@@ -1216,7 +1238,7 @@
                 <p class="text-xs text-slate-500 mt-0.5">과목 헤더를 클릭하여 엑셀처럼 특정 과목 선택 학생을 상단/하단으로 정렬하거나 필터링할 수 있습니다.</p>
               </div>
 
-              <!-- Replicated Control Toolbar requested by user -->
+              <!-- Replicated Control Toolbar (충돌 목표 설정 및 새로고침) -->
               <div class="flex flex-wrap items-center gap-1.5">
                 <!-- 충돌 목표 설정 -->
                 <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 shadow-2xs mr-1">
@@ -1237,17 +1259,9 @@
                     초기화
                   </button>
                 </div>
-                <button id="btnRegroup2" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="설정한 조건 및 충돌 목표에 맞춰 새로운 조합을 탐색합니다">
+                <button id="btnRegroup2" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="설정한 조건 및 충돌 목표에 맞춰 새로운 조합을 탐색합니다">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                   <span>🔄 새로고침</span>
-                </button>
-                <button id="btnSavePlan2" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="현재 배치 안을 저장합니다">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                  <span>⭐ 현재 배치 저장</span>
-                </button>
-                <button id="btnExportAllPlans2" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="모든 저장된 안을 엑셀로 다운로드합니다">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  <span>📥 모든 저장 안 다운로드</span>
                 </button>
               </div>
             </div>
@@ -1316,24 +1330,6 @@
             <table id="studentScheduleTable" class="w-full text-xs text-left border-collapse select-none border-spacing-0">
               <!-- Dynamically Populated -->
             </table>
-          </div>
-
-          <!-- Bottom Memo / Notes Card -->
-          <div class="mt-4 pt-4 border-t border-slate-200 space-y-2">
-            <div class="flex items-center justify-between">
-              <label for="planWorkMemo" class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <span>📝 시간표 작업 메모 및 특이사항</span>
-                <span class="text-[10px] text-slate-400 font-normal">(저장 시 함께 보존되며 엑셀 다운로드에도 포함됩니다)</span>
-              </label>
-              <div class="flex items-center gap-2">
-                <span id="planMemoSavedHint" class="text-[11px] text-emerald-600 font-bold hidden">✓ 메모 저장됨</span>
-                <button id="btnSavePlanMemo" type="button" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="작성한 메모와 함께 현재 배치안을 후보안으로 저장합니다">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                  <span>현재 배치안 저장</span>
-                </button>
-              </div>
-            </div>
-            <textarea id="planWorkMemo" rows="3" class="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 font-sans leading-relaxed resize-y bg-slate-50/50 hover:bg-white focus:bg-white transition" placeholder="시간표 편성 관련 협의 내용, 특정 학생 이동 내역, 교사 배치 참고 사항 등을 자유롭게 기록하세요."></textarea>
           </div>
         </div>
 
@@ -4757,6 +4753,7 @@
     });
 
     btnSavePlan2?.addEventListener('click', () => {
+      if (typeof saveCurrentWorkMemo === 'function') saveCurrentWorkMemo();
       btnSavePlan?.click();
     });
 
