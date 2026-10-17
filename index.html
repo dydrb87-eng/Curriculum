@@ -632,7 +632,7 @@
                 <th class="p-2.5 text-center w-16 border-r border-slate-200">학기</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">구분</th>
                 <th class="p-2.5 w-60 border-r border-slate-200 font-extrabold text-slate-900">과목명 (수정 가능)</th>
-                <th class="p-2.5 text-center w-16 border-r border-slate-200">총 시수</th>
+                <th class="p-2.5 text-center w-24 border-r border-slate-200 font-extrabold text-slate-900">총 시수 (수정 가능)</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">개설 상태</th>
                 <th class="p-2.5 w-48 border-r border-slate-200 font-extrabold text-slate-900">담당 교사 (수정 가능)</th>
                 <th class="p-2.5 text-center w-20 border-r border-slate-200">수정 여부</th>
@@ -9819,6 +9819,26 @@
       console.log(`✅ 과목명 변경: [${prevSubj}] ➔ [${trimmed}] (상태: ${item.status})`);
     };
 
+    window.updateCurriculumItemHours = function(itemId, newHours) {
+      const curriculum = getAllGradesCurriculum();
+      const item = curriculum.find(c => c.id === itemId);
+      if (!item) return;
+
+      const parsedHours = parseFloat(newHours);
+      if (isNaN(parsedHours) || parsedHours < 0) {
+        alert('시수는 0 이상의 유효한 숫자를 입력해주세요.');
+        renderAllGradesCurriculumTable();
+        return;
+      }
+
+      item.hours = parsedHours;
+      item.isModified = true;
+
+      setAllGradesCurriculum(curriculum);
+      renderAllGradesDashboard(false);
+      console.log(`✅ [${item.subject}] 총 시수 변경: ${parsedHours}시간`);
+    };
+
     window.updateTeacherAssignment = function(itemId, newTeacher) {
       const curriculum = getAllGradesCurriculum();
       const item = curriculum.find(c => c.id === itemId);
@@ -10983,7 +11003,17 @@
                 ${divisionTag}
               </div>
             </td>
-            <td class="p-2 text-center font-black text-indigo-700 border-r border-slate-200">${c.hours}</td>
+            <td class="p-1.5 text-center border-r border-slate-200">
+              <input type="number" 
+                     min="0" 
+                     max="40" 
+                     step="0.5" 
+                     value="${c.hours}" 
+                     onchange="window.updateCurriculumItemHours('${c.id}', this.value)" 
+                     class="w-16 px-1.5 py-1 text-center text-xs font-black rounded-lg border border-slate-300 bg-white hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 outline-none text-indigo-700 transition" 
+                     placeholder="시수" 
+                     title="클릭하여 주당 총 시수 직접 수정" />
+            </td>
             <td class="p-2 text-center border-r border-slate-200">${statusBadge}</td>
             <td class="p-1.5 border-r border-slate-200">
               <input type="text" 
