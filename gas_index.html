@@ -88,37 +88,17 @@
         <button id="btnGasLoadSheet" class="hidden px-3.5 py-2 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors border border-emerald-300 flex items-center space-x-1.5 shadow-sm">
           <span>📊 구글 시트에서 가져오기</span>
         </button>
-        <!-- 1-Click Backup & Restore for Seamless Machine-to-Machine Transfer -->
-        <div class="relative inline-flex rounded-lg shadow-xs" id="saveButtonGroup">
-          <button id="btnHeaderExportSession" type="button" onclick="window.handleMainSaveButtonClick();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-l-lg transition-all border border-blue-300 flex items-center space-x-1.5 cursor-pointer select-none" title="현재 전체 학년도/학년 작업 데이터를 저장합니다 (.json)">
-            <span>💾</span>
-            <span id="saveButtonText">작업 저장</span>
-          </button>
-          <button id="btnSaveLocationDropdown" type="button" onclick="window.toggleSaveDropdown(event);" class="px-2 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-200 rounded-r-lg transition-all border-t border-b border-r border-blue-300 flex items-center justify-center cursor-pointer select-none" title="저장 위치 변경 및 다운로드 옵션">
-            <svg class="w-3.5 h-3.5 transition-transform duration-150" id="saveDropdownArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-          </button>
+        <!-- 저장 경로 지정 버튼 -->
+        <button id="btnSetSaveDirectory" type="button" onclick="window.selectSaveDirectory();" class="px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg transition-all border border-slate-300 flex items-center space-x-1.5 cursor-pointer select-none shadow-xs" title="작업 파일이 저장될 폴더 경로를 지정합니다 (최초 1회 설정 시 계속 유지)">
+          <span>📁</span>
+          <span id="saveDirButtonText">경로 지정</span>
+        </button>
 
-          <!-- Dropdown Menu -->
-          <div id="saveDropdownMenu" class="hidden absolute right-0 top-full mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
-            <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] text-slate-400 font-semibold">
-              저장 폴더 및 백업 방식 설정
-            </div>
-            <button type="button" onclick="window.saveWithNewLocation();" class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
-              <span>📁</span>
-              <div>
-                <div>저장 폴더 지정/변경...</div>
-                <div class="text-[10px] text-slate-400 font-normal" id="dropdownPrevLocationHint">폴더를 지정하면 시간별 새 파일 자동 저장</div>
-              </div>
-            </button>
-            <button type="button" onclick="window.resetSaveLocationToDefault();" class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 text-slate-700 font-semibold cursor-pointer border-t border-slate-100">
-              <span>📥</span>
-              <div>
-                <div>기본 다운로드 폴더로 저장</div>
-                <div class="text-[10px] text-slate-400 font-normal">다운로드 폴더에 시간별 새 파일 자동 저장</div>
-              </div>
-            </button>
-          </div>
-        </div>
+        <!-- 작업 저장 버튼 -->
+        <button id="btnHeaderExportSession" type="button" onclick="window.handleMainSaveButtonClick();" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-300 flex items-center space-x-1.5 cursor-pointer select-none shadow-xs" title="현재 전체 학년도/학년 작업 데이터를 지정된 경로에 즉시 저장합니다 (.json)">
+          <span>💾</span>
+          <span id="saveButtonText">작업 저장</span>
+        </button>
         <label id="headerRestoreBackupLabel" for="headerRestoreBackupJson" class="px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 rounded-lg transition-all border-2 border-dashed border-indigo-400 hover:border-indigo-600 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="클릭하거나 백업 파일(.json / .xlsx)을 직접 이 버튼 위로 드래그하여 작업 상태를 복원합니다.">
           <span class="text-sm">📂</span>
           <span>작업 불러오기</span>
@@ -3121,8 +3101,10 @@
 
       // Identify Column Indices based on Header Keywords
       let colClass = -1, colNum = -1, colName = -1, colCareer = -1;
-      let sem1HeaderIdx = -1, sem2HeaderIdx = -1;
+      let firstSem1Idx = -1, firstSem2Idx = -1;
       let targetCount1 = null, targetCount2 = null;
+      const explicitSem1Cols = [];
+      const explicitSem2Cols = [];
 
       headers.forEach((h, idx) => {
         if (/^반$|반\s*\(/.test(h)) colClass = idx;
@@ -3131,11 +3113,13 @@
         else if (/진로|관심/.test(h)) colCareer = idx;
 
         if (/1학기/.test(h)) {
-          sem1HeaderIdx = idx;
+          if (firstSem1Idx === -1) firstSem1Idx = idx;
+          explicitSem1Cols.push(idx);
           const m = h.match(/택\s*(\d+)/);
           if (m) targetCount1 = parseInt(m[1], 10);
         } else if (/2학기/.test(h)) {
-          sem2HeaderIdx = idx;
+          if (firstSem2Idx === -1) firstSem2Idx = idx;
+          explicitSem2Cols.push(idx);
           const m = h.match(/택\s*(\d+)/);
           if (m) targetCount2 = parseInt(m[1], 10);
         }
@@ -3155,27 +3139,35 @@
       const sem1Cols = [];
       const sem2Cols = [];
 
-      if (sem1HeaderIdx !== -1 && sem2HeaderIdx !== -1) {
-        // Collect 1st semester columns between sem1HeaderIdx and sem2HeaderIdx
-        for (let c = sem1HeaderIdx; c < sem2HeaderIdx; c++) {
+      // 패턴 1: 각 열의 헤더마다 [1학기], [2학기]가 명시된 양식 (현재 양식)
+      if (explicitSem1Cols.length > 1 || explicitSem2Cols.length > 1) {
+        explicitSem1Cols.forEach(c => {
+          if (hasElectiveData(c)) sem1Cols.push(c);
+        });
+        explicitSem2Cols.forEach(c => {
+          if (hasElectiveData(c)) sem2Cols.push(c);
+        });
+      }
+      // 패턴 2: 1학기 시작 열과 2학기 시작 열만 대표로 있고 다음 열들에는 학기명이 없는 양식 (구글 설문지/이전 양식)
+      else if (firstSem1Idx !== -1 && firstSem2Idx !== -1 && firstSem1Idx < firstSem2Idx) {
+        for (let c = firstSem1Idx; c < firstSem2Idx; c++) {
           if (hasElectiveData(c)) {
             sem1Cols.push(c);
             if (targetCount1 && sem1Cols.length >= targetCount1) break;
           }
         }
-
-        // Collect 2nd semester columns from sem2HeaderIdx onward
-        for (let c = sem2HeaderIdx; c < headers.length; c++) {
+        for (let c = firstSem2Idx; c < headers.length; c++) {
           if (hasElectiveData(c)) {
             sem2Cols.push(c);
             if (targetCount2 && sem2Cols.length >= targetCount2) break;
           }
         }
-      } else {
-        // Fallback: search individual headers
+      }
+      // 패턴 3: 기타 폴백 (학기 키워드가 있는 열 직접 수집)
+      else {
         headers.forEach((h, idx) => {
-          if (/1학기/.test(h)) sem1Cols.push(idx);
-          else if (/2학기/.test(h)) sem2Cols.push(idx);
+          if (/1학기/.test(h) && hasElectiveData(idx)) sem1Cols.push(idx);
+          else if (/2학기/.test(h) && hasElectiveData(idx)) sem2Cols.push(idx);
         });
       }
 
@@ -8579,7 +8571,7 @@
 
       // Update UI Elements
       if (currentWorkText) {
-        currentWorkText.textContent = `${targetYear}학년도 ${targetGrade}`;
+        currentWorkText.textContent = `${targetYear} ${targetGrade}`;
       }
 
       if (gradeBadge) {
@@ -8648,8 +8640,8 @@
 
       if (currentWorkText) {
         currentWorkText.textContent = isAllGrades
-          ? `${MultiState.activeYear}학년도 전체 (전학년 교육과정 및 교사 시수)`
-          : `${MultiState.activeYear}학년도 ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
+          ? `${MultiState.activeYear} 전체 (전학년 교육과정 및 교사 시수)`
+          : `${MultiState.activeYear} ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
       }
 
       // 1. Render Year Tabs
@@ -8673,8 +8665,8 @@
               <button type="button" 
                       onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
                       class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
-                      title="${y}학년도 작업으로 전환">
-                <span>${y}학년도</span>
+                      title="${y} 작업으로 전환">
+                <span>${y}</span>
                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                   isActive ? 'bg-white text-blue-700 shadow-2xs' : 'bg-slate-100 text-slate-500'
                 }">
@@ -8686,7 +8678,7 @@
               <button type="button" 
                       onclick="window.handleEditAcademicYear('${y}', event)"
                       class="px-1 py-1 text-[11px] opacity-70 hover:opacity-100 ${isActive ? 'hover:text-amber-200' : 'hover:text-blue-600'} transition cursor-pointer"
-                      title="${y}학년도 이름 수정">
+                      title="${y} 이름 수정">
                 ✏️
               </button>
 
@@ -8695,7 +8687,7 @@
                 <button type="button" 
                         onclick="window.handleDeleteAcademicYear('${y}', event)"
                         class="pr-2 pl-0.5 py-1 text-xs opacity-60 hover:opacity-100 ${isActive ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
-                        title="${y}학년도 및 해당 데이터 삭제">
+                        title="${y} 및 해당 데이터 삭제">
                   ✕
                 </button>
               ` : ''}
@@ -8876,7 +8868,7 @@
                       ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
                   }"
-                  title="${MultiState.activeYear}학년도 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
+                  title="${MultiState.activeYear} 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
             <div class="flex items-center gap-1 whitespace-nowrap">
               <span>📊 전체 시수종합</span>
             </div>
@@ -8903,16 +8895,16 @@
 
     window.handleEditAcademicYear = function(oldYear, event) {
       if (event) event.stopPropagation();
-      const input = prompt(`[${oldYear}학년도]를 변경할 새 학년도를 4자리 숫자로 입력하세요:`, oldYear);
+      const input = prompt(`[${oldYear}]의 새 이름을 입력하세요:\n(숫자, 한글 등 제약 없이 입력 가능)`, oldYear);
       if (!input) return;
       const newYear = input.trim();
-      if (!/^\d{4}$/.test(newYear)) {
-        alert('학년도는 4자리 숫자로 입력해주세요 (예: 2028).');
+      if (!newYear) {
+        alert('이름을 입력해주세요.');
         return;
       }
       if (newYear === oldYear) return;
       if (MultiState.yearsList.includes(newYear)) {
-        alert(`이미 존재하는 학년도입니다: ${newYear}학년도`);
+        alert(`이미 존재하는 이름입니다: ${newYear}`);
         return;
       }
 
@@ -8933,16 +8925,16 @@
 
       saveAllState();
       renderYearGradeNav();
-      alert(`✅ [${oldYear}학년도]가 [${newYear}학년도]로 성공적으로 변경되었습니다.`);
+      alert(`✅ [${oldYear}]이(가) [${newYear}](으)로 성공적으로 변경되었습니다.`);
     };
 
     window.handleDeleteAcademicYear = function(year, event) {
       if (event) event.stopPropagation();
       if (MultiState.yearsList.length <= 1) {
-        alert('최소 1개의 학년도는 유지되어야 하므로 삭제할 수 없습니다.');
+        alert('최소 1개의 학년도(분류)는 유지되어야 하므로 삭제할 수 없습니다.');
         return;
       }
-      if (!confirm(`[${year}학년도]의 모든 학생 명부, 수강신청 결과 및 그룹핑 배치가 완전히 삭제됩니다.\n정말 삭제하시겠습니까?`)) return;
+      if (!confirm(`[${year}]의 모든 학생 명부, 수강신청 결과 및 그룹핑 배치가 완전히 삭제됩니다.\n정말 삭제하시겠습니까?`)) return;
 
       MultiState.yearsList = MultiState.yearsList.filter(y => y !== year);
       delete MultiState.data[year];
@@ -8954,7 +8946,7 @@
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
       renderYearGradeNav();
-      alert(`🗑️ [${year}학년도]가 삭제되었습니다.`);
+      alert(`🗑️ [${year}]이(가) 삭제되었습니다.`);
     };
 
     function updateModalStats() {
@@ -8965,7 +8957,7 @@
         const yData = MultiState.data[y] || {};
         const c2 = (yData['2학년'] && yData['2학년'].students) ? yData['2학년'].students.length : 0;
         const c3 = (yData['3학년'] && yData['3학년'].students) ? yData['3학년'].students.length : 0;
-        counts.push(`${y}학년도: 2학년(${c2}명) · 3학년(${c3}명)`);
+        counts.push(`${y}: 2학년(${c2}명) · 3학년(${c3}명)`);
       });
       detail.textContent = counts.join(' | ');
     }
@@ -8976,7 +8968,7 @@
       if (Array.isArray(externalData.yearsList) && externalData.yearsList.length > 0) {
         MultiState.yearsList = [...externalData.yearsList];
       } else {
-        const keys = Object.keys(MultiState.data).filter(k => /^\d{4}$/.test(k));
+        const keys = Object.keys(MultiState.data).filter(k => k && k !== '전체');
         MultiState.yearsList = keys.length > 0 ? keys : ['2027'];
       }
       if (!MultiState.yearsList.includes(externalData.activeYear)) {
@@ -9044,17 +9036,20 @@
 
     // Add Academic Year button
     document.getElementById('btnAddYear')?.addEventListener('click', () => {
-      const nextYear = String(Math.max(...MultiState.yearsList.map(Number)) + 1);
-      const input = prompt('추가할 학년도를 4자리 숫자로 입력하세요 (예: 2028):', nextYear);
+      const numericYears = MultiState.yearsList.map(Number).filter(n => !isNaN(n) && n > 2000);
+      const defaultSuggest = numericYears.length > 0 ? String(Math.max(...numericYears) + 1) : '';
+      const input = prompt('추가할 학년도(또는 분류명)를 입력하세요:\n(숫자, 한글 등 제약 없이 입력 가능)', defaultSuggest);
       if (!input) return;
       const y = input.trim();
-      if (!/^\d{4}$/.test(y)) {
-        alert('올바른 4자리 연도를 입력해주세요.');
+      if (!y) {
+        alert('입력 내용이 비어 있습니다.');
         return;
       }
-      if (!MultiState.yearsList.includes(y)) {
-        MultiState.yearsList.unshift(y);
+      if (MultiState.yearsList.includes(y)) {
+        alert(`이미 존재하는 항목입니다: ${y}`);
+        return;
       }
+      MultiState.yearsList.unshift(y);
       switchAcademicContext(y, MultiState.activeGrade);
       saveAllState();
     });
@@ -9081,7 +9076,8 @@
       const dateStr = `${yyyy}${mm}${dd}`;
       const timeStr = `${hh}${min}${ss}`;
       const year = MultiState.activeYear || '2027';
-      return `${year}학년도 수강신청 데이터_${dateStr}_${timeStr}.json`;
+      const yearLabel = year.endsWith('학년도') ? year : `${year}학년도`;
+      return `${yearLabel} 수강신청 및 그룹핑 데이터_${dateStr}_${timeStr}.json`;
     };
 
     window.exportStandardDownload = function() {
@@ -9188,55 +9184,59 @@
       });
     }
 
-    function updateSaveButtonTooltip(dirName) {
-      const btn = document.getElementById('btnHeaderExportSession');
-      const hint = document.getElementById('dropdownPrevLocationHint');
-      if (btn) {
-        if (dirName) {
-          btn.title = `클릭 시 지정된 폴더 [${dirName}]에 시간별 새 백업 파일(.json)로 저장합니다 (덮어쓰지 않음)`;
-        } else {
-          btn.title = `클릭 시 브라우저 기본 다운로드 폴더에 시간별 새 백업 파일(.json)로 저장합니다 (덮어쓰지 않음)`;
-        }
+    // 알림 토스트 (모달 방해 없이 즉각적인 시각 피드백 제공)
+    function showSaveToast(message, isSuccess = true) {
+      let toast = document.getElementById('sangjiSaveToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'sangjiSaveToast';
+        toast.className = 'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold transition-all duration-300 transform -translate-y-4 opacity-0 pointer-events-none';
+        document.body.appendChild(toast);
       }
-      if (hint) {
-        hint.textContent = dirName ? `현재 설정된 폴더: [${dirName}]` : '폴더를 지정하면 시간별 새 파일 자동 저장';
-      }
+      toast.className = `fixed top-5 right-5 z-[9999] px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold transition-all duration-300 transform translate-y-0 opacity-100 ${
+        isSuccess ? 'bg-slate-900 text-white border border-slate-700' : 'bg-rose-600 text-white'
+      }`;
+      toast.innerHTML = message;
+
+      if (window._sangjiSaveToastTimer) clearTimeout(window._sangjiSaveToastTimer);
+      window._sangjiSaveToastTimer = setTimeout(() => {
+        toast.className = toast.className.replace('translate-y-0 opacity-100', '-translate-y-4 opacity-0 pointer-events-none');
+      }, 2800);
     }
 
-    window.toggleSaveDropdown = function(event) {
-      if (event) event.stopPropagation();
-      const menu = document.getElementById('saveDropdownMenu');
-      const arrow = document.getElementById('saveDropdownArrow');
-      if (!menu) return;
-      const isHidden = menu.classList.contains('hidden');
-      if (isHidden) {
-        menu.classList.remove('hidden');
-        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    function updateSaveDirectoryUI(dirName) {
+      const dirText = document.getElementById('saveDirButtonText');
+      const dirBtn = document.getElementById('btnSetSaveDirectory');
+      const saveBtn = document.getElementById('btnHeaderExportSession');
+      if (dirName) {
+        const shortName = dirName.length > 10 ? dirName.slice(0, 9) + '…' : dirName;
+        if (dirText) dirText.textContent = `경로: ${shortName}`;
+        if (dirBtn) {
+          dirBtn.title = `현재 지정된 폴더: [${dirName}]\n클릭하면 저장 경로를 다른 폴더로 변경할 수 있습니다.`;
+          dirBtn.classList.add('border-blue-400', 'bg-blue-50/60', 'text-blue-800');
+          dirBtn.classList.remove('text-slate-700', 'bg-slate-50', 'border-slate-300');
+        }
+        if (saveBtn) {
+          saveBtn.title = `클릭 시 [${dirName}] 폴더에 시간별 새 파일로 즉시 저장합니다.`;
+        }
       } else {
-        menu.classList.add('hidden');
-        if (arrow) arrow.style.transform = 'rotate(0deg)';
+        if (dirText) dirText.textContent = '경로 지정';
+        if (dirBtn) {
+          dirBtn.title = '작업 파일이 저장될 폴더 경로를 지정합니다 (최초 1회 설정 시 계속 유지)';
+          dirBtn.classList.remove('border-blue-400', 'bg-blue-50/60', 'text-blue-800');
+          dirBtn.classList.add('text-slate-700', 'bg-slate-50', 'border-slate-300');
+        }
+        if (saveBtn) {
+          saveBtn.title = '클릭 시 지정된 경로에 작업 데이터를 바로 저장합니다. (미지정 시 폴더 선택)';
+        }
       }
-    };
+    }
+    window.updateSaveButtonTooltip = updateSaveDirectoryUI;
 
-    window.closeSaveDropdown = function() {
-      const menu = document.getElementById('saveDropdownMenu');
-      const arrow = document.getElementById('saveDropdownArrow');
-      if (menu) menu.classList.add('hidden');
-      if (arrow) arrow.style.transform = 'rotate(0deg)';
-    };
-
-    window.addEventListener('click', (e) => {
-      const group = document.getElementById('saveButtonGroup');
-      if (group && !group.contains(e.target)) {
-        window.closeSaveDropdown();
-      }
-    });
-
-    window.saveWithNewLocation = async function() {
-      window.closeSaveDropdown();
+    // 경로 지정 메뉴 (최초 1회 지정 시 IndexedDB에 영구 저장)
+    window.selectSaveDirectory = async function() {
       if (!window.showDirectoryPicker) {
-        alert('현재 사용 중인 브라우저에서는 폴더 직접 지정 기능이 지원되지 않습니다.\n(Chrome 또는 Edge 최신 버전을 권장합니다)\n\n기본 다운로드 폴더에 시간별 새 파일로 저장됩니다.');
-        window.exportStandardDownload();
+        alert('현재 사용 중인 브라우저에서는 폴더 직접 지정 기능이 지원되지 않습니다.\n(Chrome 또는 Edge 최신 버전을 권장합니다)\n\n작업 저장 시 브라우저 기본 다운로드 폴더에 자동 저장됩니다.');
         return;
       }
 
@@ -9244,17 +9244,8 @@
         const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
         if (dirHandle) {
           await setSavedDirHandle(dirHandle);
-          updateSaveButtonTooltip(dirHandle.name);
-
-          // 지정 폴더에 시간별 새 파일 생성 및 저장 (덮어쓰지 않음)
-          const jsonStr = window.generateFullBackupJsonString();
-          const filename = window.generateDefaultBackupFileName();
-          const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
-          const writable = await fileHandle.createWritable();
-          await writable.write(jsonStr);
-          await writable.close();
-
-          alert(`✅ 저장 폴더가 [${dirHandle.name}] 폴더로 설정되었습니다!\n\n📄 새 파일 저장 완료: ${filename}\n\n앞으로 [작업 저장]을 누르면 이 폴더에 시간별 새 파일이 계속 생성되며, 이전 파일은 덮어쓰지 않고 안전하게 보존됩니다.`);
+          updateSaveDirectoryUI(dirHandle.name);
+          alert(`✅ 저장 경로가 [${dirHandle.name}] 폴더로 지정되었습니다!\n\n앞으로 [작업 저장] 버튼을 누르면 이 폴더에 바로바로 새 파일로 안전하게 저장됩니다.`);
         }
       } catch (err) {
         if (err.name === 'AbortError') return; // User cancelled
@@ -9262,15 +9253,9 @@
         alert('폴더 접근 권한을 얻지 못했거나 취소되었습니다.');
       }
     };
+    window.saveWithNewLocation = window.selectSaveDirectory;
 
-    window.resetSaveLocationToDefault = async function() {
-      window.closeSaveDropdown();
-      await clearSavedDirHandle();
-      updateSaveButtonTooltip(null);
-      window.exportStandardDownload();
-      alert('✅ 저장 위치가 [기본 다운로드 폴더]로 초기화되었습니다.\n시간별 새 파일(.json)이 다운로드 폴더에 저장됩니다.');
-    };
-
+    // 작업 저장 버튼 (누르면 바로바로 저장)
     window.handleMainSaveButtonClick = async function() {
       const jsonStr = window.generateFullBackupJsonString();
       const filename = window.generateDefaultBackupFileName();
@@ -9278,9 +9263,24 @@
       let dirHandle = rememberedDirHandle;
       if (!dirHandle) dirHandle = await getSavedDirHandle();
 
+      // 저장 경로가 아직 지정되지 않은 경우 최초 1회 폴더 선택 대화상자 표시
+      if (!dirHandle && window.showDirectoryPicker) {
+        try {
+          alert('📁 작업 데이터를 저장할 폴더를 먼저 지정해주세요.\n(한 번 지정하면 이후부터는 버튼 클릭 시 바로바로 자동 저장됩니다)');
+          dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+          if (dirHandle) {
+            await setSavedDirHandle(dirHandle);
+            updateSaveDirectoryUI(dirHandle.name);
+          }
+        } catch (err) {
+          if (err.name === 'AbortError') return; // 취소한 경우 저장 진행 안함
+          console.warn('showDirectoryPicker error during save:', err);
+        }
+      }
+
+      // 지정된 폴더가 있으면 해당 폴더에 즉시 저장
       if (dirHandle && window.showDirectoryPicker) {
         try {
-          // 폴더 권한 확인 및 요청
           if (typeof dirHandle.queryPermission === 'function') {
             let perm = await dirHandle.queryPermission({ mode: 'readwrite' });
             if (perm !== 'granted') {
@@ -9289,27 +9289,48 @@
             }
           }
 
-          // 해당 폴더 안에 시간별 새 파일 생성 (기존 파일 덮어쓰지 않음)
+          // 해당 폴더 안에 시간별 새 파일 생성
           const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
           const writable = await fileHandle.createWritable();
           await writable.write(jsonStr);
           await writable.close();
 
-          updateSaveButtonTooltip(dirHandle.name);
-          alert(`💾 [${dirHandle.name}] 폴더에 새 백업 파일이 저장되었습니다!\n\n📄 파일명: ${filename}\n(기존 파일은 덮어쓰지 않고 안전하게 보존됩니다)`);
+          updateSaveDirectoryUI(dirHandle.name);
+
+          // 버튼 시각 피드백
+          const btnText = document.getElementById('saveButtonText');
+          if (btnText) {
+            const originalText = btnText.textContent;
+            btnText.textContent = '저장 완료! ✓';
+            setTimeout(() => {
+              btnText.textContent = originalText;
+            }, 1800);
+          }
+
+          // 상단 플로팅 토스트 표시 (화면 흐름을 끊지 않고 즉시 확인)
+          showSaveToast(`💾 <b>[${dirHandle.name}]</b> 폴더에 바로 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
           return;
         } catch (err) {
           console.warn('save to directory handle error, falling back:', err);
         }
       }
 
-      // 지정된 폴더가 없거나 지원되지 않는 환경에서는 기본 다운로드 폴더에 시간별 새 파일로 저장
+      // 폴더 미지정 상태이거나 File System Access 미지원 브라우저인 경우 표준 다운로드
       window.exportStandardDownload();
+      const btnText = document.getElementById('saveButtonText');
+      if (btnText) {
+        const originalText = btnText.textContent;
+        btnText.textContent = '저장 완료! ✓';
+        setTimeout(() => {
+          btnText.textContent = originalText;
+        }, 1800);
+      }
+      showSaveToast(`📥 다운로드 폴더에 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
     };
 
-    // Restore saved handle tooltip on start
+    // 저장된 폴더 핸들이 있으면 시작 시 UI에 반영
     getSavedDirHandle().then(handle => {
-      if (handle && handle.name) updateSaveButtonTooltip(handle.name);
+      if (handle && handle.name) updateSaveDirectoryUI(handle.name);
     });
 
     window.exportFullBackupJson = window.handleMainSaveButtonClick;
