@@ -124,14 +124,14 @@
         <div class="flex items-center gap-1.5 shrink-0">
           <div class="flex items-center gap-1 text-xs font-bold text-slate-700 mr-1 shrink-0">
             <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <span>학년도:</span>
+            <span>기준 날짜:</span>
           </div>
-          <!-- 학년도 탭 컨테이너 (JS 동적 렌더링 - 2027학년도 기본) -->
+          <!-- 학년도/기준 날짜 탭 컨테이너 (JS 동적 렌더링) -->
           <div id="academicYearTabs" class="flex items-center gap-1.5 shrink-0">
-            <!-- 2027학년도, 2026학년도 버튼 동적 생성 -->
+            <!-- 버튼 동적 생성 -->
           </div>
-          <!-- 새 학년도 추가 버튼 -->
-          <button id="btnAddYear" type="button" class="px-2 py-1.5 text-xs font-bold rounded-lg bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-400 shadow-2xs transition flex items-center gap-1 shrink-0" title="새 학년도 탭 추가">
+          <!-- 새 기준 날짜 추가 버튼 -->
+          <button id="btnAddYear" type="button" class="px-2 py-1.5 text-xs font-bold rounded-lg bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-400 shadow-2xs transition flex items-center gap-1 shrink-0" title="새 기준 날짜 추가">
             <span class="text-blue-600 font-extrabold">+</span> <span>추가</span>
           </button>
         </div>
@@ -9034,11 +9034,11 @@
       alert('Firebase 클라우드 연동이 해제되었습니다. 로컬 자동 저장 모드로 전환됩니다.');
     });
 
-    // Add Academic Year button
+    // Add Academic Year / Reference Date button
     document.getElementById('btnAddYear')?.addEventListener('click', () => {
       const numericYears = MultiState.yearsList.map(Number).filter(n => !isNaN(n) && n > 2000);
       const defaultSuggest = numericYears.length > 0 ? String(Math.max(...numericYears) + 1) : '';
-      const input = prompt('추가할 학년도(또는 분류명)를 입력하세요:\n(숫자, 한글 등 제약 없이 입력 가능)', defaultSuggest);
+      const input = prompt('추가할 기준 날짜(또는 학년도/명칭)를 입력하세요:\n(예: 2026.10.19, 2027 등 숫자, 한글 제약 없음)', defaultSuggest);
       if (!input) return;
       const y = input.trim();
       if (!y) {
@@ -9075,9 +9075,7 @@
       const ss = String(now.getSeconds()).padStart(2, '0');
       const dateStr = `${yyyy}${mm}${dd}`;
       const timeStr = `${hh}${min}${ss}`;
-      const year = MultiState.activeYear || '2027';
-      const yearLabel = year.endsWith('학년도') ? year : `${year}학년도`;
-      return `${yearLabel} 수강신청 및 그룹핑 데이터_${dateStr}_${timeStr}.json`;
+      return `수강신청 및 그룹핑 데이터_${dateStr}_${timeStr}.json`;
     };
 
     window.exportStandardDownload = function() {
