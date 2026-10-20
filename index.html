@@ -2327,9 +2327,10 @@
         totalRecords: totalCourseRecords
       };
 
-      if (!MultiState.data[activeYear]) MultiState.data[activeYear] = {};
-      if (!MultiState.data[activeYear][activeG]) MultiState.data[activeYear][activeG] = createEmptyGradeState(activeG);
-      MultiState.data[activeYear][activeG].priorData = priorDataObj;
+      const curAcadData = getAcadData();
+      if (!curAcadData[activeYear]) curAcadData[activeYear] = {};
+      if (!curAcadData[activeYear][activeG]) curAcadData[activeYear][activeG] = createEmptyGradeState(activeG);
+      curAcadData[activeYear][activeG].priorData = priorDataObj;
       AppState.priorData = priorDataObj;
 
       updatePriorDataUI();
@@ -2347,9 +2348,10 @@
       AppState.priorData = null;
       AppState.crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
 
-      if (MultiState.data[activeY] && MultiState.data[activeY][activeG]) {
-        MultiState.data[activeY][activeG].priorData = null;
-        MultiState.data[activeY][activeG].crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
+      const curAcadData = getAcadData();
+      if (curAcadData[activeY] && curAcadData[activeY][activeG]) {
+        curAcadData[activeY][activeG].priorData = null;
+        curAcadData[activeY][activeG].crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
       }
 
       updatePriorDataUI();
@@ -2403,9 +2405,10 @@
         totalRecords
       };
 
-      if (!MultiState.data[activeY]) MultiState.data[activeY] = {};
-      if (!MultiState.data[activeY][activeG]) MultiState.data[activeY][activeG] = createEmptyGradeState(activeG);
-      MultiState.data[activeY][activeG].priorData = AppState.priorData;
+      const curAcadData = getAcadData();
+      if (!curAcadData[activeY]) curAcadData[activeY] = {};
+      if (!curAcadData[activeY][activeG]) curAcadData[activeY][activeG] = createEmptyGradeState(activeG);
+      curAcadData[activeY][activeG].priorData = AppState.priorData;
 
       updatePriorDataUI();
 
@@ -3553,8 +3556,10 @@
     // ==========================================
 
     btnResetAll.addEventListener('click', () => {
-      if (confirm(`현재 [${MultiState.activeYear}학년도 ${MultiState.activeGrade}]의 분석 데이터를 초기화하시겠습니까?`)) {
-        MultiState.data[MultiState.activeYear][MultiState.activeGrade] = createEmptyGradeState(MultiState.activeGrade);
+      if (confirm(`현재 [${MultiState.activeYear} ${MultiState.activeGrade}]의 분석 데이터를 초기화하시겠습니까?`)) {
+        const acadData = getAcadData();
+        if (!acadData[MultiState.activeYear]) acadData[MultiState.activeYear] = {};
+        acadData[MultiState.activeYear][MultiState.activeGrade] = createEmptyGradeState(MultiState.activeGrade);
         switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
         saveAllState();
       }
@@ -8467,7 +8472,7 @@
     function renderImportGroupPlansAndPreview() {
       const activeGrade = MultiState.activeGrade || '2학년';
       const activeSem = AppState.currentSemester || 1;
-      const targetYearData = MultiState.data[selectedImportDate]?.[activeGrade];
+      const targetYearData = getAcadData()[selectedImportDate]?.[activeGrade];
 
       const planContainer = document.getElementById('importGroupPlanSelectContainer');
       const previewContainer = document.getElementById('importGroupPreviewContainer');
@@ -8915,14 +8920,40 @@
       activeStep: 1, // 1: 1단계(수강신청 매트릭스), 2: 2단계(과목 그룹핑 & 분반)
       yearsList: ['2027.10.11.'], // 현재 학년도의 기준 날짜 목록
       data: {
-        '2027.10.11.': {
-          '2학년': null,
-          '3학년': null,
-          '전체': null
+        '2027학년도': {
+          '2027.10.11.': {
+            '2학년': null,
+            '3학년': null,
+            '전체': null
+          }
         }
       },
       lastUpdated: new Date().toISOString()
     };
+
+    // 학년도별 데이터 격리 접근 헬퍼 (하위 탭 이름이 동일해도 학년도 간 충돌 0% 보장)
+    function getAcadData(acadYear = null) {
+      const ay = acadYear || MultiState.activeAcademicYear || '2027학년도';
+      if (!MultiState.data || typeof MultiState.data !== 'object') MultiState.data = {};
+      if (!MultiState.data[ay] || typeof MultiState.data[ay] !== 'object') MultiState.data[ay] = {};
+      return MultiState.data[ay];
+    }
+    window.getAcadData = getAcadData;
+
+    // 이전 버전(단일 flat 구조)의 데이터를 학년도별 격리 구조로 자동 마이그레이션 (하위 호환성 100%)
+    function migrateDataStructure(dataObj, fallbackAY = '2027학년도') {
+      if (!dataObj || typeof dataObj !== 'object') return {};
+      const keys = Object.keys(dataObj);
+      if (keys.length === 0) return {};
+      
+      const hasAcademicYearKeys = keys.some(k => k.includes('학년도'));
+      if (!hasAcademicYearKeys) {
+        const migrated = {};
+        migrated[fallbackAY] = JSON.parse(JSON.stringify(dataObj));
+        return migrated;
+      }
+      return JSON.parse(JSON.stringify(dataObj));
+    }
 
     const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V6';
     const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
@@ -9059,12 +9090,13 @@
     const cloudSync = new CourseCloudSync();
 
     function syncCurrentToMulti() {
+      const acadData = getAcadData();
       const y = MultiState.activeYear;
       const g = MultiState.activeGrade;
-      if (!MultiState.data[y]) MultiState.data[y] = {};
+      if (!acadData[y]) acadData[y] = {};
       if (g === '전체') return; // '전체' 탭은 독자적 커리큘럼 데이터 구조를 유지하므로 AppState 덮어쓰기 방지
       
-      MultiState.data[y][g] = {
+      acadData[y][g] = {
         detectedGrade: AppState.detectedGrade || g,
         fileName: AppState.fileName || '',
         students: JSON.parse(JSON.stringify(AppState.students || [])),
@@ -9123,17 +9155,18 @@
         MultiState.yearsList.push(targetYear);
       }
 
-      if (!MultiState.data[targetYear]) {
-        MultiState.data[targetYear] = {};
+      const acadData = getAcadData();
+      if (!acadData[targetYear]) {
+        acadData[targetYear] = {};
       }
-      if (!MultiState.data[targetYear]['2학년']) {
-        MultiState.data[targetYear]['2학년'] = createEmptyGradeState('2학년');
+      if (!acadData[targetYear]['2학년']) {
+        acadData[targetYear]['2학년'] = createEmptyGradeState('2학년');
       }
-      if (!MultiState.data[targetYear]['3학년']) {
-        MultiState.data[targetYear]['3학년'] = createEmptyGradeState('3학년');
+      if (!acadData[targetYear]['3학년']) {
+        acadData[targetYear]['3학년'] = createEmptyGradeState('3학년');
       }
-      if (!MultiState.data[targetYear]['전체']) {
-        MultiState.data[targetYear]['전체'] = {
+      if (!acadData[targetYear]['전체']) {
+        acadData[targetYear]['전체'] = {
           curriculum: [],
           lastUpdated: null
         };
@@ -9176,11 +9209,12 @@
       if (allGradesSection) allGradesSection.classList.add('hidden');
       if (uploadSection) uploadSection.classList.remove('hidden');
 
-      if (!MultiState.data[targetYear][targetGrade]) {
-        MultiState.data[targetYear][targetGrade] = createEmptyGradeState(targetGrade);
+      const curAcadData = getAcadData();
+      if (!curAcadData[targetYear][targetGrade]) {
+        curAcadData[targetYear][targetGrade] = createEmptyGradeState(targetGrade);
       }
 
-      const targetData = MultiState.data[targetYear][targetGrade];
+      const targetData = curAcadData[targetYear][targetGrade];
       
       // Clone targetData into AppState
       Object.assign(AppState, JSON.parse(JSON.stringify(targetData)));
@@ -9292,7 +9326,13 @@
     };
 
     window.handleAddAcademicYearGroup = function() {
-      const suggestYear = String(new Date().getFullYear() + 1) + '학년도';
+      // 기존에 존재하는 학년도들 중 최대 연도 + 1년 자동 계산 (예: 2027학년도 -> 2028학년도)
+      const existingNumeric = (MultiState.academicYearsList || [])
+        .map(y => parseInt(String(y).replace(/[^0-9]/g, ''), 10))
+        .filter(n => !isNaN(n) && n > 2000);
+      const maxYear = existingNumeric.length > 0 ? Math.max(...existingNumeric) : new Date().getFullYear();
+      const suggestYear = String(maxYear + 1) + '학년도';
+
       const input = prompt('추가할 새 기준 학년도를 입력하세요:\n(예: 2028학년도, 2027학년도 등)', suggestYear);
       if (!input) return;
       const acadYear = input.trim();
@@ -9319,9 +9359,10 @@
       const baseDate = acadYear.replace(/[^0-9]/g, '') + '.10.11.';
       MultiState.datesByAcademicYear[acadYear] = [baseDate];
 
-      // 새 학년도의 첫 날짜 기본 데이터 객체 초기화
-      if (!MultiState.data[baseDate]) {
-        MultiState.data[baseDate] = {
+      // 새 학년도의 첫 날짜 기본 데이터 객체 초기화 (완전 격리 구조)
+      const newAcadData = getAcadData(acadYear);
+      if (!newAcadData[baseDate]) {
+        newAcadData[baseDate] = {
           '2학년': createEmptyGradeState('2학년'),
           '3학년': createEmptyGradeState('3학년'),
           '전체': { curriculum: [], lastUpdated: null }
@@ -9366,6 +9407,10 @@
         MultiState.curriculumByAcademicYear[newAcadYear] = MultiState.curriculumByAcademicYear[oldAcadYear];
         delete MultiState.curriculumByAcademicYear[oldAcadYear];
       }
+      if (MultiState.data && MultiState.data[oldAcadYear]) {
+        MultiState.data[newAcadYear] = MultiState.data[oldAcadYear];
+        delete MultiState.data[oldAcadYear];
+      }
       if (MultiState.activeAcademicYear === oldAcadYear) {
         MultiState.activeAcademicYear = newAcadYear;
       }
@@ -9386,6 +9431,7 @@
       MultiState.academicYearsList = MultiState.academicYearsList.filter(y => y !== acadYear);
       delete MultiState.datesByAcademicYear[acadYear];
       delete MultiState.curriculumByAcademicYear[acadYear];
+      if (MultiState.data) delete MultiState.data[acadYear];
 
       if (MultiState.activeAcademicYear === acadYear) {
         window.switchAcademicYearGroup(MultiState.academicYearsList[0]);
@@ -9457,7 +9503,8 @@ function renderYearGradeNav() {
       if (yearContainer) {
         yearContainer.innerHTML = MultiState.yearsList.map(y => {
           const isActive = y === MultiState.activeYear;
-          const yData = MultiState.data[y] || {};
+          const acadData = getAcadData();
+          const yData = acadData[y] || {};
           let totalStudents = 0;
           ['2학년', '3학년'].forEach(g => {
             if (yData[g] && yData[g].students) {
@@ -9515,7 +9562,8 @@ function renderYearGradeNav() {
 
       // 2. Render Grade Tabs (2학년 / 3학년 2행)
       if (gradeContainer) {
-        const yData = MultiState.data[MultiState.activeYear] || {};
+        const acadData = getAcadData();
+        const yData = acadData[MultiState.activeYear] || {};
 
         gradeContainer.innerHTML = ['2학년', '3학년'].map(g => {
           const isActive = g === MultiState.activeGrade;
@@ -9672,7 +9720,7 @@ function renderYearGradeNav() {
       const allGradesContainer = document.getElementById('academicAllGradesContainer');
       if (allGradesContainer) {
         const isAllActive = MultiState.activeGrade === '전체';
-        const yData = MultiState.data[MultiState.activeYear] || {};
+        const yData = getAcadData()[MultiState.activeYear] || {};
         const allData = yData['전체'] || {};
         const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
         const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
@@ -9819,13 +9867,14 @@ function renderYearGradeNav() {
       if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
       MultiState.datesByAcademicYear[acadYear] = [...MultiState.yearsList];
 
-      // 데이터 키 변경
-      MultiState.data[newYear] = MultiState.data[oldYear] || {
+      // 데이터 키 변경 (격리 구조)
+      const acadData = getAcadData();
+      acadData[newYear] = acadData[oldYear] || {
         '2학년': createEmptyGradeState('2학년'),
         '3학년': createEmptyGradeState('3학년'),
         '전체': { curriculum: [], lastUpdated: null }
       };
-      delete MultiState.data[oldYear];
+      delete acadData[oldYear];
 
       if (MultiState.activeYear === oldYear) {
         MultiState.activeYear = newYear;
@@ -9845,7 +9894,8 @@ function renderYearGradeNav() {
       if (!confirm(`[${year}]의 모든 학생 명부, 수강신청 결과 및 그룹핑 배치가 완전히 삭제됩니다.\n정말 삭제하시겠습니까?`)) return;
 
       MultiState.yearsList = MultiState.yearsList.filter(y => y !== year);
-      delete MultiState.data[year];
+      const acadData = getAcadData();
+      delete acadData[year];
 
       const acadYear = MultiState.activeAcademicYear || '2027학년도';
       if (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[acadYear]) {
@@ -9866,8 +9916,9 @@ function renderYearGradeNav() {
       const detail = document.getElementById('modalStorageDetail');
       if (!detail) return;
       const counts = [];
+      const acadData = getAcadData();
       MultiState.yearsList.forEach(y => {
-        const yData = MultiState.data[y] || {};
+        const yData = acadData[y] || {};
         const c2 = (yData['2학년'] && yData['2학년'].students) ? yData['2학년'].students.length : 0;
         const c3 = (yData['3학년'] && yData['3학년'].students) ? yData['3학년'].students.length : 0;
         counts.push(`${y}: 2학년(${c2}명) · 3학년(${c3}명)`);
@@ -9877,12 +9928,14 @@ function renderYearGradeNav() {
 
     function applyExternalMultiState(externalData, showSuccessMsg = true) {
       if (!externalData || !externalData.data) return;
-      MultiState.data = JSON.parse(JSON.stringify(externalData.data));
+      const targetAY = externalData.activeAcademicYear || MultiState.activeAcademicYear || '2027학년도';
+      MultiState.data = migrateDataStructure(externalData.data, targetAY);
       if (Array.isArray(externalData.yearsList) && externalData.yearsList.length > 0) {
         MultiState.yearsList = [...externalData.yearsList];
       } else {
-        const keys = Object.keys(MultiState.data).filter(k => k && k !== '전체');
-        MultiState.yearsList = keys.length > 0 ? keys : ['2027'];
+        const curAcadData = getAcadData(targetAY);
+        const keys = Object.keys(curAcadData).filter(k => k && k !== '전체');
+        MultiState.yearsList = keys.length > 0 ? keys : ['2027.10.11.'];
       }
       if (!MultiState.yearsList.includes(externalData.activeYear)) {
         MultiState.activeYear = MultiState.yearsList[0] || '2027';
@@ -9983,13 +10036,22 @@ function renderYearGradeNav() {
         return;
       }
 
+      const acadData = getAcadData();
       const prevYear = MultiState.activeYear;
-      const prevCurriculum = (prevYear && MultiState.data[prevYear]?.['전체']?.curriculum) || [];
+      const prevCurriculum = (prevYear && acadData[prevYear]?.['전체']?.curriculum) || [];
 
       MultiState.yearsList.push(y);
       const currAY = MultiState.activeAcademicYear || '2027학년도';
       if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
       MultiState.datesByAcademicYear[currAY] = MultiState.yearsList;
+
+      if (!acadData[y]) {
+        acadData[y] = {
+          '2학년': createEmptyGradeState('2학년'),
+          '3학년': createEmptyGradeState('3학년'),
+          '전체': { curriculum: [], lastUpdated: null }
+        };
+      }
 
       switchAcademicContext(y, MultiState.activeGrade);
 
@@ -10010,8 +10072,6 @@ function renderYearGradeNav() {
 
     window.generateFullBackupJsonString = function() {
       syncCurrentToMulti();
-      const y = MultiState.activeYear || '2027';
-      if (!MultiState.data[y]) MultiState.data[y] = {};
       return JSON.stringify(MultiState, null, 2);
     };
 
@@ -10352,12 +10412,14 @@ function renderYearGradeNav() {
 
     // Reset active grade only
     document.getElementById('btnResetActiveGradeOnly')?.addEventListener('click', () => {
-      if (!confirm(`현재 [${MultiState.activeYear}학년도 ${MultiState.activeGrade}]의 학생 명단, 선택과목 매트릭스, 그룹핑 결과를 모두 초기화하시겠습니까?`)) return;
-      MultiState.data[MultiState.activeYear][MultiState.activeGrade] = createEmptyGradeState(MultiState.activeGrade);
+      if (!confirm(`현재 [${MultiState.activeYear} ${MultiState.activeGrade}]의 학생 명단, 선택과목 매트릭스, 그룹핑 결과를 모두 초기화하시겠습니까?`)) return;
+      const acadData = getAcadData();
+      if (!acadData[MultiState.activeYear]) acadData[MultiState.activeYear] = {};
+      acadData[MultiState.activeYear][MultiState.activeGrade] = createEmptyGradeState(MultiState.activeGrade);
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
       closeCloudModal();
-      alert(`[${MultiState.activeYear}학년도 ${MultiState.activeGrade}] 데이터가 초기화되었습니다.`);
+      alert(`[${MultiState.activeYear} ${MultiState.activeGrade}] 데이터가 초기화되었습니다.`);
     });
 
     // ==========================================
@@ -10483,8 +10545,9 @@ function renderYearGradeNav() {
 
       // 하위 호환성 마이그레이션: 기존 날짜 탭의 전체 데이터에서 복원
       const y = MultiState?.activeYear;
-      if (y && MultiState.data && MultiState.data[y] && MultiState.data[y]['전체'] && Array.isArray(MultiState.data[y]['전체'].curriculum) && MultiState.data[y]['전체'].curriculum.length > 0) {
-        MultiState.curriculumByAcademicYear[acadYear] = MultiState.data[y]['전체'].curriculum;
+      const acadData = getAcadData(acadYear);
+      if (y && acadData[y] && acadData[y]['전체'] && Array.isArray(acadData[y]['전체'].curriculum) && acadData[y]['전체'].curriculum.length > 0) {
+        MultiState.curriculumByAcademicYear[acadYear] = acadData[y]['전체'].curriculum;
         return MultiState.curriculumByAcademicYear[acadYear];
       }
 
@@ -10498,12 +10561,13 @@ function renderYearGradeNav() {
       MultiState.curriculumByAcademicYear[acadYear] = newCurriculum;
 
       // 하위 호환성 동기화: 날짜 탭들에도 기록
+      const acadData = getAcadData(acadYear);
       const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[acadYear]) || MultiState.yearsList || [];
       dateList.forEach(d => {
-        if (!MultiState.data[d]) MultiState.data[d] = {};
-        if (!MultiState.data[d]['전체']) MultiState.data[d]['전체'] = {};
-        MultiState.data[d]['전체'].curriculum = newCurriculum;
-        MultiState.data[d]['전체'].lastUpdated = new Date().toISOString();
+        if (!acadData[d]) acadData[d] = {};
+        if (!acadData[d]['전체']) acadData[d]['전체'] = {};
+        acadData[d]['전체'].curriculum = newCurriculum;
+        acadData[d]['전체'].lastUpdated = new Date().toISOString();
       });
 
       saveAllState();
@@ -10524,7 +10588,7 @@ function renderYearGradeNav() {
     }
 
     function getStep2OpenedSubjects(year, gradeStr, semesterNum) {
-      const yData = MultiState.data[year] || {};
+      const yData = getAcadData()[year] || {};
       const gData = yData[gradeStr] || {};
       const closedList = gData.closedSubjects?.[semesterNum] || [];
       const closedNorms = new Set(closedList.map(s => normalizeSubjectKey(s)));
@@ -10564,7 +10628,7 @@ function renderYearGradeNav() {
       const missing = [];
 
       ['2학년', '3학년'].forEach(gradeStr => {
-        const gData = MultiState.data[activeY]?.[gradeStr];
+        const gData = getAcadData()[activeY]?.[gradeStr];
         if (!gData || !gData.students || gData.students.length === 0) return;
 
         [1, 2].forEach(sem => {
@@ -10744,7 +10808,7 @@ function renderYearGradeNav() {
         }
 
         const normSubj = normalizeSubjectKey(item.subject);
-        const gData = MultiState.data[MultiState.activeYear]?.[item.grade];
+        const gData = getAcadData()[MultiState.activeYear]?.[item.grade];
         const sem = item.semester;
 
         // 해당 학년/학기의 1단계 수강신청 조사 과목 목록 수집
@@ -11044,7 +11108,7 @@ function renderYearGradeNav() {
             item.teacher = '폐강';
           }
         } else {
-          const gData = MultiState.data[MultiState.activeYear]?.[item.grade];
+          const gData = getAcadData()[MultiState.activeYear]?.[item.grade];
           let semSubjs = (item.semester === 1 ? gData?.sem1Subjects : gData?.sem2Subjects) || [];
           if (!semSubjs || semSubjs.length === 0) {
             const semKey = (item.semester === 1 ? 'sem1' : 'sem2');
@@ -11325,7 +11389,7 @@ function renderYearGradeNav() {
           }
         } else {
           // 2단계 결과가 없다면 1단계 조사 목록 확인
-          const gData = MultiState.data[MultiState.activeYear]?.[item.grade];
+          const gData = getAcadData()[MultiState.activeYear]?.[item.grade];
           let semSubjs = (item.semester === 1 ? gData?.sem1Subjects : gData?.sem2Subjects) || [];
           if (!semSubjs || semSubjs.length === 0) {
             const semKey = (item.semester === 1 ? 'sem1' : 'sem2');
@@ -11970,7 +12034,7 @@ function renderYearGradeNav() {
               needsSync = true;
             }
           } else {
-            const gData = MultiState.data[MultiState.activeYear]?.[item.grade];
+            const gData = getAcadData()[MultiState.activeYear]?.[item.grade];
             let semSubjs = (sem === 1 ? gData?.sem1Subjects : gData?.sem2Subjects) || [];
             if (!semSubjs || semSubjs.length === 0) {
               const semKey = (sem === 1 ? 'sem1' : 'sem2');
@@ -13274,10 +13338,10 @@ function renderYearGradeNav() {
             if (parsed.curriculumByAcademicYear && typeof parsed.curriculumByAcademicYear === 'object') {
               MultiState.curriculumByAcademicYear = JSON.parse(JSON.stringify(parsed.curriculumByAcademicYear));
             }
-            if (parsed.data && typeof parsed.data === 'object' && Object.keys(parsed.data).length > 0) {
-              MultiState.data = JSON.parse(JSON.stringify(parsed.data));
-            }
             const curAY = MultiState.activeAcademicYear || '2027학년도';
+            if (parsed.data && typeof parsed.data === 'object' && Object.keys(parsed.data).length > 0) {
+              MultiState.data = migrateDataStructure(parsed.data, curAY);
+            }
             if (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[curAY] && MultiState.datesByAcademicYear[curAY].length > 0) {
               MultiState.yearsList = [...MultiState.datesByAcademicYear[curAY]];
             } else if (Array.isArray(parsed.yearsList) && parsed.yearsList.length > 0) {
@@ -13298,6 +13362,9 @@ function renderYearGradeNav() {
         console.warn('loadAllState localStorage load error:', e);
       }
 
+      const curAY = MultiState.activeAcademicYear || '2027학년도';
+      const curAcadData = getAcadData(curAY);
+
       // 최초 접속(로컬 저장소 없음) 시 기본 구조 보장
       if (!hasLoadedLocalData) {
         if (!MultiState.yearsList || MultiState.yearsList.length === 0) {
@@ -13307,19 +13374,19 @@ function renderYearGradeNav() {
         MultiState.activeGrade = '2학년';
 
         MultiState.yearsList.forEach(y => {
-          if (!MultiState.data[y]) MultiState.data[y] = {};
-          MultiState.data[y]['2학년'] = createEmptyGradeState('2학년');
-          MultiState.data[y]['3학년'] = createEmptyGradeState('3학년');
-          MultiState.data[y]['전체'] = { curriculum: [], lastUpdated: null };
+          if (!curAcadData[y]) curAcadData[y] = {};
+          curAcadData[y]['2학년'] = createEmptyGradeState('2학년');
+          curAcadData[y]['3학년'] = createEmptyGradeState('3학년');
+          curAcadData[y]['전체'] = { curriculum: [], lastUpdated: null };
         });
       }
 
-      // activeYear에 대한 빈 데이터 객체 기본 보장
+      // activeYear에 대한 빈 데이터 객체 기본 보장 (격리 구조)
       const actY = MultiState.activeYear;
-      if (!MultiState.data[actY]) MultiState.data[actY] = {};
-      if (!MultiState.data[actY]['2학년']) MultiState.data[actY]['2학년'] = createEmptyGradeState('2학년');
-      if (!MultiState.data[actY]['3학년']) MultiState.data[actY]['3학년'] = createEmptyGradeState('3학년');
-      if (!MultiState.data[actY]['전체']) MultiState.data[actY]['전체'] = { curriculum: [], lastUpdated: null };
+      if (!curAcadData[actY]) curAcadData[actY] = {};
+      if (!curAcadData[actY]['2학년']) curAcadData[actY]['2학년'] = createEmptyGradeState('2학년');
+      if (!curAcadData[actY]['3학년']) curAcadData[actY]['3학년'] = createEmptyGradeState('3학년');
+      if (!curAcadData[actY]['전체']) curAcadData[actY]['전체'] = { curriculum: [], lastUpdated: null };
 
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       cloudSync.init();
