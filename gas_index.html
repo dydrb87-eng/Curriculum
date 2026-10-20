@@ -350,9 +350,7 @@
                 <span>📂 백업 파일(.json) 불러오기</span>
                 <input type="file" id="dropzoneBackupInput" accept=".json" class="hidden" onchange="if(this.files[0]) { window.importBackupJsonFile(this.files[0]); this.value=''; }" />
               </label>
-              <button id="btnRestoreLocalStorage" type="button" class="hidden text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded cursor-pointer" title="이 브라우저에 임시 보존된 이전 작업 내용을 복원합니다">
-                🔄 브라우저 임시 작업 복원
-              </button>
+
             </div>
             <span class="text-[11px] text-slate-500 font-medium">
               💡 저장된 JSON 백업 파일 또는 엑셀 파일을 불러오면 바로 작업이 시작됩니다.
@@ -8958,7 +8956,7 @@
     const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V6';
     const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
 
-    // Cloud Sync Manager
+    // Cloud Sync Manager (보안 원칙: 웹상/원격에 데이터를 자동 보관하지 않음)
     class CourseCloudSync {
       constructor() {
         this.firebaseApp = null;
@@ -8966,125 +8964,10 @@
         this.isSyncing = false;
         this.status = 'local';
       }
-
-      async init() {
-        // 1. Firebase 체크
-        try {
-          const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
-          if (savedConfig && window.firebase) {
-            const config = JSON.parse(savedConfig);
-            if (config.apiKey && config.projectId) {
-              if (!firebase.apps.length) {
-                this.firebaseApp = firebase.initializeApp(config);
-              } else {
-                this.firebaseApp = firebase.app();
-              }
-              this.firestoreDb = firebase.firestore();
-              this.status = 'firebase';
-              this.updateUiBadge('firebase');
-              this.subscribeRemote();
-              console.log('✅ Firebase Firestore 클라우드 DB 연결됨:', config.projectId);
-              return;
-            }
-          }
-        } catch (e) {
-          console.warn('Firebase init error:', e);
-        }
-
-        // 2. Node.js 백엔드 서버 체크
-        try {
-          const res = await fetch('/api/course-data', { method: 'GET', signal: AbortSignal.timeout(1000) });
-          if (res.ok) {
-            this.status = 'server';
-            this.updateUiBadge('server');
-            return;
-          }
-        } catch (e) {}
-
-        this.status = 'local';
-        this.updateUiBadge('local');
-      }
-
-      updateUiBadge(mode) {
-        const btn = document.getElementById('btnCloudStatus');
-        if (!btn) return;
-        const modalStatus = document.getElementById('modalStorageStatus');
-        if (!btn) return;
-
-        if (mode === 'firebase') {
-          btn.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-sky-100 text-sky-800 border border-sky-300 hover:bg-sky-200 transition shadow-2xs cursor-pointer';
-          btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span> <span id="cloudStatusText">클라우드 DB 동기화됨</span> <span class="text-[10px] text-sky-700 bg-white/70 px-1 py-0.2 rounded-sm">설정</span>`;
-          if (modalStatus) {
-            modalStatus.className = 'px-2.5 py-0.5 rounded-full font-bold bg-sky-100 text-sky-800 border border-sky-200';
-            modalStatus.textContent = 'Firebase Cloud Firestore 실시간 연동 활성';
-          }
-        } else if (mode === 'server') {
-          btn.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 transition shadow-2xs cursor-pointer';
-          btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> <span id="cloudStatusText">서버 DB 연결됨</span> <span class="text-[10px] text-emerald-700 bg-white/70 px-1 py-0.2 rounded-sm">설정</span>`;
-          if (modalStatus) {
-            modalStatus.className = 'px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
-            modalStatus.textContent = '로컬 백엔드 서버 DB 연동 활성';
-          }
-        } else {
-          btn.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition shadow-2xs cursor-pointer';
-          btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> <span id="cloudStatusText">브라우저 자동 보존 중</span> <span class="text-[10px] text-emerald-700 bg-white/70 px-1 py-0.2 rounded-sm">설정</span>`;
-          if (modalStatus) {
-            modalStatus.className = 'px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
-            modalStatus.textContent = '로컬 브라우저 자동 저장 활성 (안전 보존)';
-          }
-        }
-      }
-
-      async save(multiState) {
-        if (this.isSyncing) return;
-        this.isSyncing = true;
-
-        if (this.firestoreDb) {
-          try {
-            await this.firestoreDb.collection('course_registrations').doc('sangji_high_school').set({
-              multiState: multiState,
-              lastUpdated: new Date().toISOString()
-            });
-          } catch (e) {
-            console.warn('Firestore save error:', e);
-          }
-        }
-
-        if (this.status === 'server') {
-          try {
-            await fetch('/api/course-data', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(multiState)
-            });
-          } catch (e) {}
-        }
-
-        setTimeout(() => { this.isSyncing = false; }, 300);
-      }
-
-      subscribeRemote() {
-        if (!this.firestoreDb) return;
-        try {
-          this.firestoreDb.collection('course_registrations').doc('sangji_high_school')
-            .onSnapshot(doc => {
-              if (doc.exists && !this.isSyncing) {
-                const data = doc.data();
-                if (data && data.multiState && data.lastUpdated) {
-                  const localRaw = localStorage.getItem(STORAGE_KEY);
-                  const local = localRaw ? JSON.parse(localRaw) : null;
-                  const localTime = local?.lastUpdated || 0;
-                  if (new Date(data.lastUpdated) > new Date(localTime)) {
-                    console.log('🔄 원격 클라우드 DB로부터 최신 작업 상태를 반영합니다.');
-                    applyExternalMultiState(data.multiState, false);
-                  }
-                }
-              }
-            }, err => console.warn('Firestore listener err:', err));
-        } catch (e) {
-          console.warn('Firestore subscription error:', e);
-        }
-      }
+      async init() { this.status = 'local'; }
+      updateUiBadge() {}
+      async save() {}
+      subscribeRemote() {}
     }
 
     const cloudSync = new CourseCloudSync();
@@ -9134,8 +9017,7 @@
         MultiState.datesByAcademicYear[curAY] = [...MultiState.yearsList];
 
         MultiState.lastUpdated = new Date().toISOString();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(MultiState));
-        cloudSync.save(MultiState);
+        // 메모리 상에서만 안전하게 상태를 유지 (웹상/브라우저 영구 보관 배제, 사용자가 JSON 파일로 내보내기/불러오기 전담)
         renderYearGradeNav();
         updateModalStats();
       } catch (e) {
@@ -13304,9 +13186,16 @@ function renderYearGradeNav() {
       document.getElementById('allGradesCourseSearchInput')?.addEventListener('input', renderAllGradesCurriculumTable);
     }
 
-    // Initialize MultiState & Load on Startup
+    // Initialize MultiState & Load on Startup (항상 완전한 빈 화면으로 시작 - 웹상 데이터 0%)
     function loadAllState() {
       initAllGradesListeners();
+
+      // 브라우저 로컬 저장소에 남아있을 수 있는 이전 캐시 완전 소거 (웹상에 데이터 보존 금지)
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('SANGJI_COURSE_REG_MULTI_V5');
+        localStorage.removeItem(FIREBASE_CONFIG_KEY);
+      } catch (e) {}
 
       // 저장된 폴더 핸들(저장 위치) 비동기 로드
       getSavedDirHandle().then(handle => {
@@ -13316,79 +13205,41 @@ function renderYearGradeNav() {
         }
       });
 
-      // 브라우저 로컬 저장소(localStorage)에서 사용자 작업 내용 로드
-      let hasLoadedLocalData = false;
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('SANGJI_COURSE_REG_MULTI_V5');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === 'object') {
-            if (Array.isArray(parsed.customTeacherOrder)) {
-              MultiState.customTeacherOrder = [...parsed.customTeacherOrder];
-            }
-            if (Array.isArray(parsed.academicYearsList) && parsed.academicYearsList.length > 0) {
-              MultiState.academicYearsList = [...parsed.academicYearsList];
-            }
-            if (parsed.activeAcademicYear) {
-              MultiState.activeAcademicYear = parsed.activeAcademicYear;
-            }
-            if (parsed.datesByAcademicYear && typeof parsed.datesByAcademicYear === 'object') {
-              MultiState.datesByAcademicYear = JSON.parse(JSON.stringify(parsed.datesByAcademicYear));
-            }
-            if (parsed.curriculumByAcademicYear && typeof parsed.curriculumByAcademicYear === 'object') {
-              MultiState.curriculumByAcademicYear = JSON.parse(JSON.stringify(parsed.curriculumByAcademicYear));
-            }
-            const curAY = MultiState.activeAcademicYear || '2027학년도';
-            if (parsed.data && typeof parsed.data === 'object' && Object.keys(parsed.data).length > 0) {
-              MultiState.data = migrateDataStructure(parsed.data, curAY);
-            }
-            if (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[curAY] && MultiState.datesByAcademicYear[curAY].length > 0) {
-              MultiState.yearsList = [...MultiState.datesByAcademicYear[curAY]];
-            } else if (Array.isArray(parsed.yearsList) && parsed.yearsList.length > 0) {
-              MultiState.yearsList = [...parsed.yearsList];
-            }
-            if (parsed.activeYear && MultiState.yearsList.includes(parsed.activeYear)) {
-              MultiState.activeYear = parsed.activeYear;
-            } else {
-              MultiState.activeYear = MultiState.yearsList[0] || '2027.10.11.';
-            }
-            if (parsed.activeGrade) {
-              MultiState.activeGrade = parsed.activeGrade;
-            }
-            hasLoadedLocalData = true;
+      // 항상 완전히 깨끗한 초기 빈 상태로 시작 (사용자가 JSON 또는 엑셀 파일을 불러와야만 데이터 표시)
+      MultiState.academicYearsList = ['2027학년도'];
+      MultiState.activeAcademicYear = '2027학년도';
+      MultiState.datesByAcademicYear = { '2027학년도': ['2027.10.11.'] };
+      MultiState.curriculumByAcademicYear = { '2027학년도': [] };
+      MultiState.customTeacherOrder = [];
+      MultiState.yearsList = ['2027.10.11.'];
+      MultiState.activeYear = '2027.10.11.';
+      MultiState.activeGrade = '2학년';
+      MultiState.activeStep = 1;
+      MultiState.data = {
+        '2027학년도': {
+          '2027.10.11.': {
+            '2학년': createEmptyGradeState('2학년'),
+            '3학년': createEmptyGradeState('3학년'),
+            '전체': { curriculum: [], lastUpdated: null }
           }
         }
-      } catch (e) {
-        console.warn('loadAllState localStorage load error:', e);
-      }
+      };
 
-      const curAY = MultiState.activeAcademicYear || '2027학년도';
-      const curAcadData = getAcadData(curAY);
+      Object.assign(AppState, createEmptyGradeState('2학년'));
 
-      // 최초 접속(로컬 저장소 없음) 시 기본 구조 보장
-      if (!hasLoadedLocalData) {
-        if (!MultiState.yearsList || MultiState.yearsList.length === 0) {
-          MultiState.yearsList = ['2027.10.11.'];
-        }
-        MultiState.activeYear = MultiState.yearsList[0] || '2027.10.11.';
-        MultiState.activeGrade = '2학년';
+      const uploadSection = document.getElementById('uploadSection');
+      const appBody = document.getElementById('appBody');
+      const allGradesSection = document.getElementById('allGradesSection');
+      const btnResetAll = document.getElementById('btnResetAll');
 
-        MultiState.yearsList.forEach(y => {
-          if (!curAcadData[y]) curAcadData[y] = {};
-          curAcadData[y]['2학년'] = createEmptyGradeState('2학년');
-          curAcadData[y]['3학년'] = createEmptyGradeState('3학년');
-          curAcadData[y]['전체'] = { curriculum: [], lastUpdated: null };
-        });
-      }
+      if (uploadSection) uploadSection.classList.remove('hidden');
+      if (appBody) appBody.classList.add('hidden');
+      if (allGradesSection) allGradesSection.classList.add('hidden');
+      if (btnResetAll) btnResetAll.classList.add('hidden');
 
-      // activeYear에 대한 빈 데이터 객체 기본 보장 (격리 구조)
-      const actY = MultiState.activeYear;
-      if (!curAcadData[actY]) curAcadData[actY] = {};
-      if (!curAcadData[actY]['2학년']) curAcadData[actY]['2학년'] = createEmptyGradeState('2학년');
-      if (!curAcadData[actY]['3학년']) curAcadData[actY]['3학년'] = createEmptyGradeState('3학년');
-      if (!curAcadData[actY]['전체']) curAcadData[actY]['전체'] = { curriculum: [], lastUpdated: null };
-
-      switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
+      switchAcademicContext('2027.10.11.', '2학년', false);
+      renderYearGradeNav();
+      updateModalStats();
       cloudSync.init();
     }
 
