@@ -143,10 +143,10 @@
             <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <span>기준 날짜:</span>
           </div>
-          <div id="academicYearTabs" class="flex items-center gap-1 shrink-0">
+          <div id="academicYearTabs" class="flex flex-col gap-1 shrink-0 max-h-[72px] overflow-y-auto pr-0.5 custom-scrollbar">
             <!-- 기준 날짜 탭 버튼 동적 렌더링 (드래그 순서 변경 지원) -->
           </div>
-          <button id="btnAddYear" type="button" class="px-2 py-1 text-xs font-bold rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-400 shadow-2xs transition flex items-center gap-0.5 shrink-0 cursor-pointer" title="현재 학년도에 새 기준 날짜 추가 (오른쪽에 추가됨)">
+          <button id="btnAddYear" type="button" class="px-2 py-1 text-xs font-bold rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-400 shadow-2xs transition flex items-center justify-center gap-0.5 shrink-0 cursor-pointer self-stretch" title="현재 학년도에 새 기준 날짜 추가 (오른쪽에 추가됨)">
             <span class="text-blue-600 font-extrabold">+</span> <span>추가</span>
           </button>
         </div>
@@ -9441,7 +9441,7 @@ function renderYearGradeNav() {
               <button type="button" 
                       draggable="false"
                       onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
-                      class="px-2 py-1.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
+                      class="px-2 py-0.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
                       title="${y} 작업으로 전환">
                 <span>${y}</span>
                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
@@ -9696,6 +9696,8 @@ function renderYearGradeNav() {
             t.classList.remove('opacity-40', 'scale-95');
             t.style.borderLeft = '';
             t.style.borderRight = '';
+            t.style.borderTop = '';
+            t.style.borderBottom = '';
           });
         });
 
@@ -9705,29 +9707,33 @@ function renderYearGradeNav() {
           if (!draggedYearTab || draggedYearTab === y) return;
 
           const rect = tab.getBoundingClientRect();
-          const isAfter = (e.clientX > rect.left + rect.width / 2);
+          const isAfter = (e.clientY > rect.top + rect.height / 2);
           if (isAfter) {
-            tab.style.borderRight = '3px solid #3B82F6';
-            tab.style.borderLeft = '';
+            tab.style.borderBottom = '3px solid #3B82F6';
+            tab.style.borderTop = '';
           } else {
-            tab.style.borderLeft = '3px solid #3B82F6';
-            tab.style.borderRight = '';
+            tab.style.borderTop = '3px solid #3B82F6';
+            tab.style.borderBottom = '';
           }
         });
 
         tab.addEventListener('dragleave', () => {
+          tab.style.borderTop = '';
+          tab.style.borderBottom = '';
           tab.style.borderLeft = '';
           tab.style.borderRight = '';
         });
 
         tab.addEventListener('drop', (e) => {
           e.preventDefault();
+          tab.style.borderTop = '';
+          tab.style.borderBottom = '';
           tab.style.borderLeft = '';
           tab.style.borderRight = '';
           if (!draggedYearTab || draggedYearTab === y) return;
 
           const rect = tab.getBoundingClientRect();
-          const isAfter = (e.clientX > rect.left + rect.width / 2);
+          const isAfter = (e.clientY > rect.top + rect.height / 2);
 
           const fromIdx = MultiState.yearsList.indexOf(draggedYearTab);
           if (fromIdx === -1) return;
@@ -12198,9 +12204,9 @@ function renderYearGradeNav() {
       if (searchInput) searchInput.value = '';
 
       // 최초 DOM 목록 생성 및 교사 칩 렌더링
-      const customOrder = (MultiState && MultiState.customTeacherOrder && Array.isArray(MultiState.customTeacherOrder) && MultiState.customTeacherOrder.length > 0)
-        ? MultiState.customTeacherOrder
-        : list;
+      const customOrder = (MultiState && MultiState.customTeacherOrder && Array.isArray(MultiState.customTeacherOrder))
+        ? [...MultiState.customTeacherOrder]
+        : [];
       buildTeacherOrderModalInitialDOM(customOrder);
       renderTeacherModalChips(customOrder);
 
@@ -12241,9 +12247,15 @@ function renderYearGradeNav() {
         .map(el => el.getAttribute('data-teacher'))
         .filter(Boolean);
 
-      window.setCustomTeacherOrderList(finalOrder);
+      setTeacherOrder(finalOrder);
+      renderAllGradesTeacherSummary();
       window.closeTeacherOrderModal();
-      alert(`✅ 교사 순서 [총 ${finalOrder.length}명]가 성공적으로 적용 및 저장되었습니다!`);
+      alert(`✅ 교사 순서 [총 ${finalOrder.length}명]가 성공적으로 적용 및 저장되었습니다!\n(지정된 교사 우선 ➔ 미지정 교사는 가나다순으로 자동 배치됩니다)`);
+    };
+
+    window.setCustomTeacherOrderList = function(finalOrder) {
+      setTeacherOrder(finalOrder);
+      renderAllGradesTeacherSummary();
     };
 
     window.resetTeacherOrderModalList = function() {
@@ -12267,6 +12279,21 @@ function renderYearGradeNav() {
           <div class="w-3.5 h-3.5 rounded-full bg-indigo-600 shadow-md ring-2 ring-white flex items-center justify-center text-[9px] text-white font-black shrink-0">▶</div>
         </div>
       `;
+
+      if (!teacherList || teacherList.length === 0) {
+        container.innerHTML = dropLineHTML + `
+          <div id="teacherOrderEmptyState" class="p-8 text-center text-slate-400 text-xs select-none">
+            <span class="block text-2xl mb-1">✍️</span>
+            <span class="font-bold text-slate-600 text-sm">지정된 우선 순위 교사가 없습니다.</span><br>
+            위 입력창에서 <b>교사명을 입력하고 Enter</b>를 누르거나,<br>
+            아래 <b>[전체 교사 목록 정보]</b>에서 교사를 클릭하여 원하는 순서를 등록하세요.<br>
+            <span class="text-indigo-600 font-semibold mt-1 inline-block">※ 지정되지 않은 교사는 가나다순(ㄱ-ㅎ)으로 뒤에 자동 배치됩니다.</span>
+          </div>
+        `;
+        const countBadge = document.getElementById('teacherOrderModalCountBadge');
+        if (countBadge) countBadge.textContent = '총 0명 지정';
+        return;
+      }
 
       const cardsHTML = teacherList.map((tName, idx) => {
         const info = modalCachedStats[tName] || { sem1: 0, sem2: 0, total: 0 };
@@ -12319,7 +12346,7 @@ function renderYearGradeNav() {
           if (idxEl) idxEl.textContent = visibleCount;
         }
       });
-      if (badge) badge.textContent = `총 ${cards.length}명`;
+      if (badge) badge.textContent = `총 ${cards.length}명 지정`;
     }
 
     // --- 엑셀 Shift 드래그 스타일의 실시간 삽입 라인 표시 및 드래그앤드롭 ---
@@ -12784,24 +12811,14 @@ function renderYearGradeNav() {
 
       const customOrder = getTeacherOrder();
       let teachersList = Object.keys(teacherMap);
-      if (customOrder.length > 0) {
-        teachersList.sort((a, b) => {
-          const idxA = customOrder.indexOf(a);
-          const idxB = customOrder.indexOf(b);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          const totA = teacherMap[a].sem1Hours + teacherMap[a].sem2Hours;
-          const totB = teacherMap[b].sem1Hours + teacherMap[b].sem2Hours;
-          return totB - totA || a.localeCompare(b, 'ko');
-        });
-      } else {
-        teachersList.sort((a, b) => {
-          const totA = teacherMap[a].sem1Hours + teacherMap[a].sem2Hours;
-          const totB = teacherMap[b].sem1Hours + teacherMap[b].sem2Hours;
-          return totB - totA || a.localeCompare(b, 'ko');
-        });
-      }
+      teachersList.sort((a, b) => {
+        const idxA = customOrder.indexOf(a);
+        const idxB = customOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b, 'ko');
+      });
 
       if (searchVal) {
         teachersList = teachersList.filter(t => t.toLowerCase().includes(searchVal));
