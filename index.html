@@ -8844,14 +8844,20 @@
           });
 
           return `
-            <div class="inline-flex items-center rounded-lg transition-all ${
+            <div class="inline-flex items-center rounded-lg transition-all select-none ${
               isActive 
                 ? 'bg-blue-600 text-white shadow-xs font-bold ring-2 ring-blue-400/40' 
                 : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
-            }">
+            }"
+            draggable="true"
+            data-year="${escapeHtml(y)}"
+            style="cursor: grab;"
+            title="드래그하여 탭 순서를 변경할 수 있습니다">
+              <span class="pl-2 pr-0.5 text-xs select-none opacity-40 hover:opacity-100 cursor-grab" title="드래그하여 순서 변경">⋮⋮</span>
               <button type="button" 
+                      draggable="false"
                       onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
-                      class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
+                      class="px-2 py-1.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
                       title="${y} 작업으로 전환">
                 <span>${y}</span>
                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
@@ -8863,6 +8869,7 @@
               
               <!-- 학년도 수정 버튼 -->
               <button type="button" 
+                      draggable="false"
                       onclick="window.handleEditAcademicYear('${y}', event)"
                       class="px-1 py-1 text-[11px] opacity-70 hover:opacity-100 ${isActive ? 'hover:text-amber-200' : 'hover:text-blue-600'} transition cursor-pointer"
                       title="${y} 이름 수정">
@@ -8872,6 +8879,7 @@
               <!-- 학년도 삭제 버튼 (2개 이상일 때) -->
               ${MultiState.yearsList.length > 1 ? `
                 <button type="button" 
+                        draggable="false"
                         onclick="window.handleDeleteAcademicYear('${y}', event)"
                         class="pr-2 pl-0.5 py-1 text-xs opacity-60 hover:opacity-100 ${isActive ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
                         title="${y} 및 해당 데이터 삭제">
@@ -9076,6 +9084,81 @@
           </button>
         `;
       }
+
+      // 기준 날짜 탭 드래그 앤 드롭 순서 변경 바인딩
+      attachYearTabsDragAndDrop();
+    }
+
+    let draggedYearTab = null;
+
+    function attachYearTabsDragAndDrop() {
+      const yearContainer = document.getElementById('academicYearTabs');
+      if (!yearContainer) return;
+
+      const tabs = yearContainer.querySelectorAll('[data-year]');
+      tabs.forEach(tab => {
+        const y = tab.getAttribute('data-year');
+
+        tab.addEventListener('dragstart', (e) => {
+          draggedYearTab = y;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', y);
+          tab.classList.add('opacity-40', 'scale-95');
+        });
+
+        tab.addEventListener('dragend', () => {
+          draggedYearTab = null;
+          tabs.forEach(t => {
+            t.classList.remove('opacity-40', 'scale-95');
+            t.style.borderLeft = '';
+            t.style.borderRight = '';
+          });
+        });
+
+        tab.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (!draggedYearTab || draggedYearTab === y) return;
+
+          const rect = tab.getBoundingClientRect();
+          const isAfter = (e.clientX > rect.left + rect.width / 2);
+          if (isAfter) {
+            tab.style.borderRight = '3px solid #3B82F6';
+            tab.style.borderLeft = '';
+          } else {
+            tab.style.borderLeft = '3px solid #3B82F6';
+            tab.style.borderRight = '';
+          }
+        });
+
+        tab.addEventListener('dragleave', () => {
+          tab.style.borderLeft = '';
+          tab.style.borderRight = '';
+        });
+
+        tab.addEventListener('drop', (e) => {
+          e.preventDefault();
+          tab.style.borderLeft = '';
+          tab.style.borderRight = '';
+          if (!draggedYearTab || draggedYearTab === y) return;
+
+          const rect = tab.getBoundingClientRect();
+          const isAfter = (e.clientX > rect.left + rect.width / 2);
+
+          const fromIdx = MultiState.yearsList.indexOf(draggedYearTab);
+          if (fromIdx === -1) return;
+
+          // Remove dragged item
+          const [movedItem] = MultiState.yearsList.splice(fromIdx, 1);
+          // Calculate new index after removal
+          const toIdx = MultiState.yearsList.indexOf(y);
+          const insertIdx = isAfter ? toIdx + 1 : toIdx;
+
+          MultiState.yearsList.splice(insertIdx, 0, movedItem);
+          saveAllState();
+          renderYearGradeNav();
+        });
+      });
     }
 
     window.switchAcademicContext = switchAcademicContext;
@@ -9240,7 +9323,7 @@
       const prevYear = MultiState.activeYear;
       const prevCurriculum = (prevYear && MultiState.data[prevYear]?.['전체']?.curriculum) || [];
 
-      MultiState.yearsList.unshift(y);
+      MultiState.yearsList.push(y);
       switchAcademicContext(y, MultiState.activeGrade);
 
       if (prevCurriculum && prevCurriculum.length > 0) {
