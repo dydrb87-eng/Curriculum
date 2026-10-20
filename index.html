@@ -393,6 +393,11 @@
             <span>📂 기초데이터 엑셀 업로드</span>
           </button>
 
+          <button id="btnExportCurrentCurriculum" type="button" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="현재 수정 반영된 최신 기초데이터를 다시 업로드할 수 있는 표준 엑셀 파일로 다운로드합니다 (다른 기준 날짜 탭에서 재업로드 가능)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>📥 최신 데이터 다운로드(재업로드용)</span>
+          </button>
+
           <button id="btnApplyStep2ToAllGrades" type="button" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="2단계 활성 배치안의 과목을 대조하여 폐강/개설을 스마트 동기화합니다 (수정된 교사 보존)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             <span>🔄 2단계 결과 대조 적용</span>
@@ -2639,11 +2644,55 @@
       }
       const { missingStudents, duplicateEnrollments } = AppState.crossCheckResult;
       const wb = XLSX.utils.book_new();
-      const grade = AppState.detectedGrade || '1학년';
+      const rawGrade = AppState.detectedGrade || '1학년';
+      const grade = rawGrade.includes('학년') ? rawGrade : `${rawGrade}학년`;
+
+      const fontKo = '맑은 고딕';
+      const pastelBorder = {
+        top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
+      const pastelBorderThick = {
+        top: { style: 'medium', color: { rgb: '94A3B8' } },
+        bottom: { style: 'medium', color: { rgb: '94A3B8' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
+
+      const setCellStyle = (ws, r, c, style) => {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+        ws[ref].s = style;
+      };
+
+      const setRangeStyle = (ws, startR, startC, endR, endC, style) => {
+        for (let r = startR; r <= endR; r++) {
+          for (let c = startC; c <= endC; c++) {
+            setCellStyle(ws, r, c, style);
+          }
+        }
+      };
+
+      const makeRowHeights = (dataLen) => {
+        const r = [
+          { hpt: 30 }, // Row 0 Title
+          { hpt: 18 }, // Row 1 Subtitle
+          { hpt: 8 },  // Row 2 Gap
+          { hpt: 25 }, // Row 3 Header
+        ];
+        for (let i = 0; i < dataLen; i++) {
+          r.push({ hpt: 22 });
+        }
+        r.push({ hpt: 8 });  // Gap
+        r.push({ hpt: 24 }); // Total
+        return r;
+      };
 
       // Sheet 1: 미신청자 명단
       const missRows = [
-        [`[상지대관령고등학교] ${grade} 수강신청 미신청 학생 명단`],
+        [`${grade} 수강신청 미신청 학생 명단`],
         [`출력일시: ${new Date().toLocaleString()} | 미신청 학생 총: ${missingStudents.length}명 | 사전 등록 학생 명부 기준`],
         [],
         ['연번', '학년', '반', '번호', '성명', '신청 상태']
@@ -2660,30 +2709,95 @@
         { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }
       ];
       wsMiss['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 16 }];
-      ExcelStyler.setRange(wsMiss, 0, 0, 0, 5, ExcelStyler.titleStyle(true));
-      ExcelStyler.setRange(wsMiss, 1, 0, 1, 5, ExcelStyler.subtitleStyle(true));
+      wsMiss['!rows'] = makeRowHeights(missingStudents.length);
+
+      // Sheet 1 파스텔 스타일 적용 (부드러운 소프트 블루 & 로즈)
+      const missTitleStyle = {
+        font: { name: fontKo, sz: 14, bold: true, color: { rgb: '1E3A8A' } },
+        fill: { fgColor: { rgb: 'DBEAFE' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: pastelBorder
+      };
+      const missSubStyle = {
+        font: { name: fontKo, sz: 9.5, color: { rgb: '475569' } },
+        fill: { fgColor: { rgb: 'F8FAFC' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: pastelBorder
+      };
+      setRangeStyle(wsMiss, 0, 0, 0, 5, missTitleStyle);
+      setRangeStyle(wsMiss, 1, 0, 1, 5, missSubStyle);
+
       for (let c = 0; c < 6; c++) {
-        ExcelStyler.setCell(wsMiss, 3, c, ExcelStyler.headerStyle('1E40AF', c === 5, c === 0));
+        const isStatusCol = (c === 5);
+        setCellStyle(wsMiss, 3, c, {
+          font: { name: fontKo, sz: 10.5, bold: true, color: { rgb: isStatusCol ? '991B1B' : '1E40AF' } },
+          fill: { fgColor: { rgb: isStatusCol ? 'FEE2E2' : 'E0E7FF' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorderThick
+        });
       }
+
       missingStudents.forEach((_, idx) => {
         const r = 4 + idx;
         const isEven = idx % 2 === 1;
-        ExcelStyler.setCell(wsMiss, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-        ExcelStyler.setCell(wsMiss, r, 1, ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(wsMiss, r, 2, ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(wsMiss, r, 3, ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(wsMiss, r, 4, ExcelStyler.dataBold(isEven, false, false));
-        ExcelStyler.setCell(wsMiss, r, 5, ExcelStyler.dataWarning(true, false));
+        const bg = isEven ? 'F8FAFC' : 'FFFFFF';
+        setCellStyle(wsMiss, r, 0, {
+          font: { name: fontKo, sz: 9.5, color: { rgb: '64748B' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsMiss, r, 1, {
+          font: { name: fontKo, sz: 10, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsMiss, r, 2, {
+          font: { name: fontKo, sz: 10, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsMiss, r, 3, {
+          font: { name: fontKo, sz: 10, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsMiss, r, 4, {
+          font: { name: fontKo, sz: 10.5, bold: true, color: { rgb: '0F172A' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsMiss, r, 5, {
+          font: { name: fontKo, sz: 10, bold: true, color: { rgb: 'DC2626' } },
+          fill: { fgColor: { rgb: 'FFF1F2' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: 'FECDD3' } },
+            bottom: { style: 'thin', color: { rgb: 'FECDD3' } },
+            left: { style: 'thin', color: { rgb: 'FECDD3' } },
+            right: { style: 'thin', color: { rgb: 'FECDD3' } }
+          }
+        });
       });
+
       const missSumR = 4 + missingStudents.length + 1;
       for (let c = 0; c < 6; c++) {
-        ExcelStyler.setCell(wsMiss, missSumR, c, ExcelStyler.summaryStyle(true, c === 5, c === 0));
+        setCellStyle(wsMiss, missSumR, c, {
+          font: { name: fontKo, sz: 10, bold: true, color: { rgb: '1E293B' } },
+          fill: { fgColor: { rgb: 'F1F5F9' } },
+          alignment: { horizontal: (c === 5 ? 'right' : 'center'), vertical: 'center' },
+          border: pastelBorderThick
+        });
       }
       XLSX.utils.book_append_sheet(wb, wsMiss, '수강신청_미신청자_명단');
 
       // Sheet 2: 중복 신청 의심자 명단
       const dupRows = [
-        [`[상지대관령고등학교] ${grade} 동일·기이수 과목 중복 수강 신청 의심 학생 명단`],
+        [`${grade} 수강신청 중복 신청 학생 명단`],
         [`출력일시: ${new Date().toLocaleString()} | 중복 신청 의심 학생 총: ${duplicateEnrollments.length}명 | 기이수 및 학년 내 중복 대조 기준`],
         [],
         ['연번', '학년', '반', '번호', '성명', '중복 신청된 과목 및 사유']
@@ -2700,28 +2814,101 @@
         { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }
       ];
       wsDup['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 45 }];
-      ExcelStyler.setRange(wsDup, 0, 0, 0, 5, ExcelStyler.titleStyle(true));
-      ExcelStyler.setRange(wsDup, 1, 0, 1, 5, ExcelStyler.subtitleStyle(true));
+      wsDup['!rows'] = makeRowHeights(duplicateEnrollments.length);
+
+      // Sheet 2 파스텔 스타일 적용 (부드러운 피치/앰버)
+      const dupTitleStyle = {
+        font: { name: fontKo, sz: 14, bold: true, color: { rgb: '78350F' } },
+        fill: { fgColor: { rgb: 'FEF3C7' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: pastelBorder
+      };
+      const dupSubStyle = {
+        font: { name: fontKo, sz: 9.5, color: { rgb: '92400E' } },
+        fill: { fgColor: { rgb: 'FFFBEB' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: pastelBorder
+      };
+      setRangeStyle(wsDup, 0, 0, 0, 5, dupTitleStyle);
+      setRangeStyle(wsDup, 1, 0, 1, 5, dupSubStyle);
+
       for (let c = 0; c < 6; c++) {
-        ExcelStyler.setCell(wsDup, 3, c, ExcelStyler.headerStyle('C2410C', c === 5, c === 0));
+        const isDetailCol = (c === 5);
+        setCellStyle(wsDup, 3, c, {
+          font: { name: fontKo, sz: 10.5, bold: true, color: { rgb: isDetailCol ? '9A3412' : '92400E' } },
+          fill: { fgColor: { rgb: isDetailCol ? 'FFEDD5' : 'FEF3C7' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorderThick
+        });
       }
+
       duplicateEnrollments.forEach((_, idx) => {
         const r = 4 + idx;
         const isEven = idx % 2 === 1;
-        ExcelStyler.setCell(wsDup, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-        ExcelStyler.setCell(wsDup, r, 1, ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(wsDup, r, 2, ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(wsDup, r, 3, ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(wsDup, r, 4, ExcelStyler.dataBold(isEven, false, false));
-        ExcelStyler.setCell(wsDup, r, 5, ExcelStyler.dataLeft(isEven, true, false));
+        const bg = isEven ? 'FFFDF7' : 'FFFFFF';
+        setCellStyle(wsDup, r, 0, {
+          font: { name: fontKo, sz: 9.5, color: { rgb: '64748B' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsDup, r, 1, {
+          font: { name: fontKo, sz: 10, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsDup, r, 2, {
+          font: { name: fontKo, sz: 10, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsDup, r, 3, {
+          font: { name: fontKo, sz: 10, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsDup, r, 4, {
+          font: { name: fontKo, sz: 10.5, bold: true, color: { rgb: '0F172A' } },
+          fill: { fgColor: { rgb: bg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: pastelBorder
+        });
+        setCellStyle(wsDup, r, 5, {
+          font: { name: fontKo, sz: 9.5, color: { rgb: 'C2410C' } },
+          fill: { fgColor: { rgb: isEven ? 'FFFBF5' : 'FFF7ED' } },
+          alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+          border: {
+            top: { style: 'thin', color: { rgb: 'FED7AA' } },
+            bottom: { style: 'thin', color: { rgb: 'FED7AA' } },
+            left: { style: 'thin', color: { rgb: 'FED7AA' } },
+            right: { style: 'thin', color: { rgb: 'FED7AA' } }
+          }
+        });
       });
+
       const dupSumR = 4 + duplicateEnrollments.length + 1;
       for (let c = 0; c < 6; c++) {
-        ExcelStyler.setCell(wsDup, dupSumR, c, ExcelStyler.summaryStyle(true, c === 5, c === 0));
+        setCellStyle(wsDup, dupSumR, c, {
+          font: { name: fontKo, sz: 10, bold: true, color: { rgb: '78350F' } },
+          fill: { fgColor: { rgb: 'FEF3C7' } },
+          alignment: { horizontal: (c === 5 ? 'right' : 'center'), vertical: 'center' },
+          border: pastelBorderThick
+        });
       }
       XLSX.utils.book_append_sheet(wb, wsDup, '동일_기이수_중복신청_명단');
 
-      const outName = `[상지대관령고]_${grade}_사전데이터_대조_검증결과.xlsx`;
+      // 파일명: 수강신청 미신청자 및 중복 신청자 명단_날짜_시간(N학년)
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const MM = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const dateStr = `${yyyy}${MM}${dd}_${hh}${mm}`;
+      const outName = `수강신청 미신청자 및 중복 신청자 명단_${dateStr}(${grade}).xlsx`;
       XLSX.writeFile(wb, outName);
     }
 
@@ -9049,8 +9236,21 @@
         alert(`이미 존재하는 항목입니다: ${y}`);
         return;
       }
+
+      const prevYear = MultiState.activeYear;
+      const prevCurriculum = (prevYear && MultiState.data[prevYear]?.['전체']?.curriculum) || [];
+
       MultiState.yearsList.unshift(y);
       switchAcademicContext(y, MultiState.activeGrade);
+
+      if (prevCurriculum && prevCurriculum.length > 0) {
+        if (confirm(`💡 새 기준 날짜 [${y}] 생성 안내:\n\n이전 기준 날짜 [${prevYear}]의 '전체 시수종합' 최신 데이터(${prevCurriculum.length}개 과목)를 새 탭으로 복사해 오시겠습니까?\n\n- [확인]: 이전 탭의 최신 수정본을 즉시 복사하여 작업 시작\n- [취소]: 빈 상태로 시작 (다운로드한 엑셀 파일을 나중에 업로드 가능)`)) {
+          const clonedCurriculum = JSON.parse(JSON.stringify(prevCurriculum));
+          setAllGradesCurriculum(clonedCurriculum);
+          renderAllGradesDashboard();
+        }
+      }
+
       saveAllState();
     });
 
@@ -9833,8 +10033,40 @@
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
+
+          // 1. 스마트 시트 자동 감지: 과목 데이터가 들어있는 최적의 시트를 탐색
+          let targetSheetName = workbook.SheetNames[0];
+          let bestScore = -1;
+
+          for (const sName of workbook.SheetNames) {
+            let score = 0;
+            if (/기초데이터|과목|편제|curriculum/i.test(sName)) score += 50;
+            if (/상세|detail|배정/i.test(sName)) score += 40;
+
+            const ws = workbook.Sheets[sName];
+            const sampleJson = XLSX.utils.sheet_to_json(ws, { header: 1, range: 0, defval: '' });
+            if (sampleJson && sampleJson.length > 0) {
+              const headerRow = sampleJson[0].map(h => String(h || '').trim());
+              const hasSubj = headerRow.some(h => /과목명|교과목명|과목|교과목/i.test(h));
+              const hasHours = headerRow.some(h => /시수|hours/i.test(h));
+              const hasGrade = headerRow.some(h => /학년|grade/i.test(h));
+              const hasSem = headerRow.some(h => /학기|sem/i.test(h));
+              const hasTeacher = headerRow.some(h => /교사|teacher|담당/i.test(h));
+
+              if (hasSubj) score += 30;
+              if (hasHours) score += 20;
+              if (hasGrade) score += 15;
+              if (hasSem) score += 15;
+              if (hasTeacher) score += 15;
+            }
+
+            if (score > bestScore) {
+              bestScore = score;
+              targetSheetName = sName;
+            }
+          }
+
+          const worksheet = workbook.Sheets[targetSheetName];
           const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
           if (!rawRows || rawRows.length === 0) {
@@ -9853,9 +10085,14 @@
             const catKey = keys.find(k => /구분|이수구분|지정|선택/i.test(k));
             const subjKey = keys.find(k => /과목명|교과목명|과목|교과목/i.test(k));
             
-            // 오직 '총 시수', '총시수' 컬럼만 엄격하게 인식 ('시수' 단독 열은 제외)
-            const hoursKey = keys.find(k => /총\s*시수|총시수|total\s*hours/i.test(k));
+            // '총 시수', '총시수' 우선 탐색, 없으면 일반 '시수' 인식
+            const hoursKey = keys.find(k => /총s*시수|총시수|totals*hours/i.test(k)) || keys.find(k => /^시수$/i.test(k));
             const teacherKey = keys.find(k => /담당교사|교사명|담당|교사|teacher/i.test(k));
+
+            // 개설상태 및 원본 교사 복원 열
+            const statusKey = keys.find(k => /개설상태|개설s*상태|상태|status/i.test(k));
+            const origTeacherKey = keys.find(k => /최초원래교사|원래교사|원래s*담당|originalteacher/i.test(k));
+            const modKey = keys.find(k => /수정여부|수정s*여부|ismodified/i.test(k));
 
             const rawSubjVal = String(row[subjKey] || row['과목명'] || '').trim();
             if (!rawSubjVal) return; // Skip empty rows
@@ -9863,14 +10100,14 @@
             // 별표나 각주 기호(*, ※, † 등)를 깔끔하게 정돈한 과목명
             const subjVal = rawSubjVal.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim() || rawSubjVal;
 
-            // 1. 학기 파싱 (1, 2 숫자만 써 있거나 '1학기', '2학기' 등 유연 파싱)
+            // 1. 학기 파싱
             let semNum = 1;
             const semRaw = String(row[semKey] || row['학기'] || '1').trim();
             const semMatch = semRaw.match(/[12]/);
             if (semMatch && semMatch[0] === '2') semNum = 2;
             else semNum = 1;
 
-            // 2. 학년 파싱 (1, 2, 3 숫자만 써 있거나 '1학년', '2학년', '3학년' 등 유연 파싱)
+            // 2. 학년 파싱
             let gradeStr = '2학년';
             const gradeRaw = String(row[gradeKey] || row['학년'] || '').trim();
             const gradeMatch = gradeRaw.match(/[123]/);
@@ -9878,7 +10115,7 @@
               gradeStr = gradeMatch[0] + '학년';
             }
 
-            // 3. 구분 파싱 ('지정', '선택'으로 완벽 인식)
+            // 3. 구분 파싱
             let catStr = (gradeStr === '1학년') ? '지정' : '선택';
             const catRaw = String(row[catKey] || row['구분'] || '').trim();
             if (catRaw.includes('선택') || catRaw.includes('진로') || catRaw.includes('융합') || catRaw.includes('자율') || catRaw.includes('전문')) {
@@ -9887,14 +10124,22 @@
               catStr = '지정';
             }
 
-            // 4. 총 시수 파싱 (오직 '총 시수' 또는 '총시수'만 인식)
-            const hoursCellVal = String((hoursKey ? row[hoursKey] : '') || row['총 시수'] || row['총시수'] || '0');
+            // 4. 총 시수 파싱
+            const hoursCellVal = String((hoursKey ? row[hoursKey] : '') || row['총 시수'] || row['총시수'] || row['시수'] || '0');
             const hoursRaw = parseFloat(hoursCellVal.replace(/[^0-9.]/g, '')) || 0;
 
-            // 5. 담당교사 파싱
-            const teacherVal = String(row[teacherKey] || row['담당교사'] || '').trim();
+            // 5. 담당교사 및 수정/폐강 상태 파싱 (재업로드 시 완벽 복원)
+            const teacherVal = String((teacherKey ? row[teacherKey] : '') || row['담당교사'] || '').trim();
+            const statusRaw = String((statusKey ? row[statusKey] : '') || row['개설상태'] || '').trim();
+            const origTeacherRaw = String((origTeacherKey ? row[origTeacherKey] : '') || row['최초원래교사'] || '').trim();
+            const modRaw = String((modKey ? row[modKey] : '') || row['수정여부'] || '').trim();
 
-            // 6. 분반 정보 추출 (-1, -2 등은 동일 과목의 분반으로 인식)
+            const isClosed = (statusRaw === '폐강' || teacherVal === '폐강');
+            const statusVal = isClosed ? '폐강' : '개설';
+            const originalTeacherVal = origTeacherRaw || teacherVal;
+            const isModifiedVal = (modRaw === '수정됨') || (teacherVal !== originalTeacherVal) || isClosed;
+
+            // 6. 분반 정보 추출
             const baseSubj = getBaseSubjectName(subjVal);
             const division = getSubjectDivision(subjVal);
 
@@ -9907,10 +10152,10 @@
               baseSubject: baseSubj,
               division: division,
               hours: hoursRaw,
-              originalTeacher: teacherVal,
-              teacher: teacherVal,
-              isModified: false,
-              status: '개설'
+              originalTeacher: originalTeacherVal,
+              teacher: isClosed ? '폐강' : teacherVal,
+              isModified: isModifiedVal,
+              status: statusVal
             });
           });
 
@@ -9919,16 +10164,25 @@
             return;
           }
 
+          // 재업로드된 파일에 이미 수정된 교사/폐강 정보가 있는지 감지
+          const hasPreservedEdits = parsedCurriculum.some(c => c.isModified || c.status === '폐강' || (c.teacher && c.teacher !== c.originalTeacher));
+
           setAllGradesCurriculum(parsedCurriculum);
-          applyStep2ToCurriculum(false, true); // Automatically run Step 2 matching (preserveEdits=false, silent=true)
+          applyStep2ToCurriculum(hasPreservedEdits, true); // preserveEdits if uploaded file already had custom edits
           const missing = checkMissingOpenSubjectsInCurriculum(parsedCurriculum);
           renderAllGradesDashboard();
 
-          if (missing.length > 0) {
-            alert(`✅ [${parsedCurriculum.length}개] 과목 기초데이터를 성공적으로 불러왔습니다!\n\n⚠️ [편제표 누락 과목 확인]\n2·3학년 수강신청에서 개설된 과목 중 기초데이터 엑셀에 없는 과목이 [${missing.length}개] 발견되었습니다.\n상단 주황색 안내 상자에서 누락 과목을 확인하거나 [일괄 추가]할 수 있습니다.`);
-          } else {
-            alert(`✅ [${parsedCurriculum.length}개] 과목 기초데이터를 성공적으로 불러왔습니다!\n(구분: 지정/선택, 시수: 총 시수, 과목 분반 및 띄어쓰기 자동 처리 완료)`);
+          const closedCount = parsedCurriculum.filter(c => c.status === '폐강').length;
+          const assignedCount = parsedCurriculum.filter(c => c.teacher && c.teacher !== '폐강' && c.teacher !== '미배정').length;
+
+          let successMsg = `✅ [시트: ${targetSheetName}]에서 총 [${parsedCurriculum.length}개] 과목 기초데이터를 성공적으로 불러왔습니다!`;
+          if (hasPreservedEdits) {
+            successMsg += `\n(수정 반영 내역 보존: 담당교사 배정 ${assignedCount}건, 폐강 ${closedCount}건이 유지되었습니다.)`;
           }
+          if (missing.length > 0) {
+            successMsg += `\n\n⚠️ [편제표 누락 과목 확인]\n2·3학년 수강신청에서 개설된 과목 중 기초데이터 엑셀에 없는 과목이 [${missing.length}개] 발견되었습니다.\n상단 주황색 안내 상자에서 누락 과목을 확인하거나 [일괄 추가]할 수 있습니다.`;
+          }
+          alert(successMsg);
         } catch (err) {
           console.error('parseAllGradesExcel error:', err);
           alert('엑셀 파일을 읽는 도중 오류가 발생했습니다: ' + err.message);
@@ -10305,7 +10559,160 @@
       renderAllGradesDashboard();
     };
 
-    function downloadCurriculumTemplate() {
+    // 현재 수정 반영된 최신 기초데이터 엑셀 다운로드 (다른 기준 날짜 탭에 재업로드 완벽 호환 양식)
+    window.exportCurrentCurriculumExcel = function() {
+      const curriculum = getAllGradesCurriculum();
+      const year = MultiState?.activeYear || '2027';
+
+      if (!curriculum || curriculum.length === 0) {
+        if (confirm('현재 등록된 기초데이터 과목이 없습니다.\n표준 빈 양식 엑셀을 다운로드하시겠습니까?')) {
+          downloadCurriculumTemplate(true);
+        }
+        return;
+      }
+
+      const fontKo = '맑은 고딕';
+      const borderThin = {
+        top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
+      const borderHeader = {
+        top: { style: 'medium', color: { rgb: '94A3B8' } },
+        bottom: { style: 'medium', color: { rgb: '94A3B8' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
+
+      // 1. 헤더 및 데이터 행 구성 (기초데이터 엑셀 업로드와 100% 호환되는 표준 컬럼)
+      const rows = [
+        ['학기', '학년', '구분', '과목명', '총 시수', '담당교사', '개설상태', '수정여부', '최초원래교사']
+      ];
+
+      curriculum.forEach(item => {
+        rows.push([
+          item.semester,
+          parseInt(item.grade) || item.grade,
+          item.category || '선택',
+          item.subject,
+          item.hours || 0,
+          item.teacher || '',
+          item.status || '개설',
+          item.isModified ? '수정됨' : '원본',
+          item.originalTeacher || ''
+        ]);
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+
+      // 열 너비 설정
+      ws['!cols'] = [
+        { wch: 8 },  // 학기
+        { wch: 10 }, // 학년
+        { wch: 10 }, // 구분
+        { wch: 24 }, // 과목명
+        { wch: 10 }, // 총 시수
+        { wch: 14 }, // 담당교사
+        { wch: 10 }, // 개설상태
+        { wch: 10 }, // 수정여부
+        { wch: 14 }  // 최초원래교사
+      ];
+
+      // 행 높이 설정
+      const rowHeights = [{ hpt: 26 }]; // Header
+      for (let i = 0; i < curriculum.length; i++) {
+        rowHeights.push({ hpt: 22 });
+      }
+      ws['!rows'] = rowHeights;
+
+      // 헤더 파스텔 스타일 적용
+      const headerColors = ['E0E7FF', 'E0E7FF', 'E0E7FF', 'DBEAFE', 'DBEAFE', 'D1FAE5', 'FEE2E2', 'F1F5F9', 'F1F5F9'];
+      const headerTextColors = ['3730A3', '3730A3', '3730A3', '1E40AF', '1E40AF', '047857', '991B1B', '475569', '475569'];
+
+      for (let c = 0; c < 9; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 0, c });
+        if (ws[ref]) {
+          ws[ref].s = {
+            fill: { fgColor: { rgb: headerColors[c] || 'E0E7FF' } },
+            font: { name: fontKo, sz: 10.5, bold: true, color: { rgb: headerTextColors[c] || '1E40AF' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: borderHeader
+          };
+        }
+      }
+
+      // 데이터 행 파스텔 스타일 적용
+      curriculum.forEach((item, idx) => {
+        const r = 1 + idx;
+        const isEven = idx % 2 === 1;
+        const bg = isEven ? 'F8FAFC' : 'FFFFFF';
+        const isClosed = (item.status === '폐강' || item.teacher === '폐강');
+
+        for (let c = 0; c < 9; c++) {
+          const ref = XLSX.utils.encode_cell({ r, c });
+          if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+
+          let cellBg = bg;
+          let fontColor = '1E293B';
+          let isBold = false;
+          let align = 'center';
+
+          if (c === 3) { // 과목명
+            align = 'left';
+            isBold = true;
+            fontColor = isClosed ? '94A3B8' : '0F172A';
+          } else if (c === 5) { // 담당교사
+            if (item.teacher === '폐강') {
+              cellBg = 'FEE2E2';
+              fontColor = 'DC2626';
+              isBold = true;
+            } else if (item.isModified) {
+              cellBg = 'EFF6FF';
+              fontColor = '1D4ED8';
+              isBold = true;
+            }
+          } else if (c === 6) { // 개설상태
+            if (isClosed) {
+              cellBg = 'FEE2E2';
+              fontColor = 'DC2626';
+              isBold = true;
+            } else {
+              cellBg = 'DCFCE7';
+              fontColor = '16A34A';
+              isBold = true;
+            }
+          }
+
+          ws[ref].s = {
+            fill: { fgColor: { rgb: cellBg } },
+            font: { name: fontKo, sz: 10, bold: isBold, color: { rgb: fontColor } },
+            alignment: { horizontal: align, vertical: 'center' },
+            border: borderThin
+          };
+        }
+      });
+
+      XLSX.utils.book_append_sheet(wb, ws, '교육과정_기초데이터');
+
+      // 파일명: [기준날짜]_교육과정_기초데이터_최신본.xlsx
+      const cleanYear = year.replace(/[\/\\:*?"<>|]/g, '_');
+      const fileName = `[${cleanYear}]_교육과정_기초데이터_최신본.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      alert(`📥 [${year}] 최신 수정 기초데이터(${curriculum.length}개 과목)가 엑셀로 다운로드되었습니다!\n파일명: ${fileName}\n\n💡 다른 '기준 날짜' 탭을 만든 후, '전체 시수종합'에서 이 파일 그대로 [📂 기초데이터 엑셀 업로드]하시면 수정한 내용이 완벽하게 반영됩니다.`);
+    };
+
+    function downloadCurriculumTemplate(forceSample = false) {
+      const curriculum = getAllGradesCurriculum();
+      if (!forceSample && curriculum && curriculum.length > 0) {
+        if (confirm(`💡 현재 수정된 최신 기초데이터(${curriculum.length}개 과목)가 등록되어 있습니다.\n\n- [확인]: 수정이 반영된 '최신 데이터' 다운로드 (다른 탭에 재업로드 가능)\n- [취소]: 초기 '표준 빈 양식' 다운로드`)) {
+          window.exportCurrentCurriculumExcel();
+          return;
+        }
+      }
+
       const sampleRows = sampleCurriculumData.map(item => ({
         '학기': item.semester,
         '학년': parseInt(item.grade) || item.grade,
@@ -11803,6 +12210,7 @@
       const applyBtn = document.getElementById('btnApplyStep2ToAllGrades');
       const templateBtn = document.getElementById('btnDownloadCurriculumTemplate');
       const sampleBtn = document.getElementById('btnSampleCurriculumData');
+      const exportCurrentBtn = document.getElementById('btnExportCurrentCurriculum');
       const exportBtn = document.getElementById('btnExportAllGradesExcel');
       const allGradesDropZone = document.getElementById('allGradesDropZone');
       const allGradesDropFileInput = document.getElementById('allGradesDropFileInput');
@@ -11905,7 +12313,12 @@
         checkMissingOpenSubjectsInCurriculum();
         renderAllGradesDashboard();
       });
-      templateBtn?.addEventListener('click', downloadCurriculumTemplate);
+      exportCurrentBtn?.addEventListener('click', () => {
+        if (typeof window.exportCurrentCurriculumExcel === 'function') {
+          window.exportCurrentCurriculumExcel();
+        }
+      });
+      templateBtn?.addEventListener('click', () => downloadCurriculumTemplate(false));
       sampleBtn?.addEventListener('click', loadSampleCurriculumData);
       exportBtn?.addEventListener('click', exportAllGradesConsolidatedExcel);
 
