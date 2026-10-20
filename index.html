@@ -1098,6 +1098,10 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>🔄 새로고침</span>
                   </button>
+                  <button id="btnOpenImportGroupModal" type="button" onclick="window.openImportGroupModal()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="다른 '기준 날짜'에서 동일 학년의 N그룹별 과목 배치를 불러옵니다">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                    <span>📥 그룹 불러오기</span>
+                  </button>
                   <button id="btnSavePlan" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="현재 배치 안을 저장합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                     <span>⭐ 현재 배치 저장</span>
@@ -1444,6 +1448,81 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Import Groups Modal (다른 기준 날짜에서 그룹 배치 불러오기) -->
+  <div id="importGroupModal" onclick="if(event.target.id === 'importGroupModal') window.closeImportGroupModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl shadow-xs">
+            📥
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900">다른 기준 날짜에서 그룹 배치 불러오기</h3>
+              <span id="importGroupContextBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800"></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">선택한 기준 날짜의 동일 학년·학기 N그룹별 과목 배치를 현재 화면으로 불러옵니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeImportGroupModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="닫기">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="overflow-y-auto space-y-4 flex-1 pr-1">
+        <!-- 1. Select Reference Date -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">
+            1. 불러올 기준 날짜 선택
+          </label>
+          <div id="importGroupDateList" class="flex flex-wrap gap-2">
+            <!-- Buttons dynamically generated -->
+          </div>
+        </div>
+
+        <!-- 2. Select Plan (if multiple) -->
+        <div id="importGroupPlanSelectContainer" class="hidden">
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">
+            2. 배치안 선택
+          </label>
+          <div id="importGroupPlanList" class="flex flex-wrap gap-2">
+            <!-- Plan option buttons dynamically generated -->
+          </div>
+        </div>
+
+        <!-- 3. Preview Groups -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              3. 불러올 그룹별 과목 배치 미리보기
+            </label>
+            <span id="importGroupSummaryInfo" class="text-xs font-semibold text-slate-500"></span>
+          </div>
+          <div id="importGroupPreviewContainer" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 min-h-[160px] max-h-[300px] overflow-y-auto space-y-3">
+            <!-- Group cards preview -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <span class="text-[11px] text-slate-500">
+          💡 불러오기 적용 시 현재 화면의 그룹 과목 배치가 대체되며 충돌 인원이 재계산됩니다.
+        </span>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.closeImportGroupModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
+            취소
+          </button>
+          <button id="btnConfirmApplyImportedGroup" type="button" onclick="window.confirmApplyImportedGroup()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5">
+            <span>📥 이 그룹 배치 적용하기</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -8286,7 +8365,312 @@
       alert(`📥 엑셀 파일이 다운로드되었습니다!\n(${outFileName})\n\n💡 이 파일을 나중에 다시 웹앱에 업로드하면 이전 작업 상태가 그대로 복원됩니다.`);
     }
 
-    // Loading helpers
+    // ==========================================
+    // 2.5 GROUP IMPORT FROM OTHER REFERENCE DATES (그룹 불러오기)
+    // ==========================================
+
+    let selectedImportDate = null;
+    let selectedImportPlanId = 'active';
+    let previewGroupsData = null;
+
+    window.openImportGroupModal = function() {
+      const activeGrade = MultiState.activeGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+      const currentYear = MultiState.activeYear;
+
+      const badge = document.getElementById('importGroupContextBadge');
+      if (badge) badge.textContent = `${activeGrade} · ${activeSem}학기`;
+
+      const otherYears = MultiState.yearsList.filter(y => y !== currentYear);
+      const dateListContainer = document.getElementById('importGroupDateList');
+      const previewContainer = document.getElementById('importGroupPreviewContainer');
+      const confirmBtn = document.getElementById('btnConfirmApplyImportedGroup');
+
+      if (!dateListContainer) return;
+
+      if (MultiState.yearsList.length <= 1) {
+        dateListContainer.innerHTML = `<p class="text-xs text-slate-400 py-2">등록된 다른 기준 날짜가 없습니다. 상단 '기준 날짜: + 추가'로 다른 기준 날짜를 추가해주세요.</p>`;
+        if (previewContainer) previewContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">선택할 기준 날짜가 없습니다.</p>`;
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        document.getElementById('importGroupModal')?.classList.remove('hidden');
+        return;
+      }
+
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+
+      selectedImportDate = otherYears[0] || MultiState.yearsList[0];
+      selectedImportPlanId = 'active';
+
+      renderImportGroupDateButtons();
+      renderImportGroupPlansAndPreview();
+
+      const modal = document.getElementById('importGroupModal');
+      if (modal) modal.classList.remove('hidden');
+    };
+
+    window.closeImportGroupModal = function() {
+      const modal = document.getElementById('importGroupModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    function renderImportGroupDateButtons() {
+      const currentYear = MultiState.activeYear;
+      const container = document.getElementById('importGroupDateList');
+      if (!container) return;
+
+      container.innerHTML = MultiState.yearsList.map(y => {
+        const isCurrent = (y === currentYear);
+        const isSelected = (y === selectedImportDate);
+        return `
+          <button type="button" 
+                  onclick="window.selectImportGroupDate('${escapeHtml(y)}')"
+                  class="px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
+                    isSelected 
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-xs' 
+                      : (isCurrent ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-white hover:bg-purple-50 text-slate-700 border-slate-300')
+                  }">
+            <span>${escapeHtml(y)}</span>
+            ${isCurrent ? '<span class="text-[10px] px-1 py-0.2 rounded bg-slate-200 text-slate-600">현재</span>' : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    window.selectImportGroupDate = function(y) {
+      selectedImportDate = y;
+      selectedImportPlanId = 'active';
+      renderImportGroupDateButtons();
+      renderImportGroupPlansAndPreview();
+    };
+
+    function renderImportGroupPlansAndPreview() {
+      const activeGrade = MultiState.activeGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+      const targetYearData = MultiState.data[selectedImportDate]?.[activeGrade];
+
+      const planContainer = document.getElementById('importGroupPlanSelectContainer');
+      const previewContainer = document.getElementById('importGroupPreviewContainer');
+      const summaryInfo = document.getElementById('importGroupSummaryInfo');
+      const confirmBtn = document.getElementById('btnConfirmApplyImportedGroup');
+
+      if (!targetYearData) {
+        if (previewContainer) previewContainer.innerHTML = `<p class="text-xs text-rose-500 text-center py-6">선택한 기준 날짜 [${selectedImportDate}]에 [${activeGrade}] 데이터가 없습니다.</p>`;
+        if (summaryInfo) summaryInfo.textContent = '';
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        previewGroupsData = null;
+        return;
+      }
+
+      // 1. 계획 목록 추출: currentPlan + savedPlans (동일 학년)
+      const availablePlans = [];
+      if (targetYearData.currentPlan && targetYearData.currentPlan.groups && targetYearData.currentPlan.groups.length > 0) {
+        if (!targetYearData.currentPlan.semester || targetYearData.currentPlan.semester === activeSem) {
+          availablePlans.push({
+            id: 'active',
+            name: '기본 활성 배치안',
+            semester: targetYearData.currentPlan.semester || activeSem,
+            groups: targetYearData.currentPlan.groups,
+            conflictCount: targetYearData.currentPlan.conflictCount || 0
+          });
+        }
+      }
+
+      if (targetYearData.savedPlans && Array.isArray(targetYearData.savedPlans)) {
+        targetYearData.savedPlans.forEach(p => {
+          if (p.groups && p.groups.length > 0 && (!p.semester || p.semester === activeSem)) {
+            availablePlans.push({
+              id: p.id,
+              name: p.name || '저장된 안',
+              semester: p.semester || activeSem,
+              groups: p.groups,
+              conflictCount: p.conflictCount || 0
+            });
+          }
+        });
+      }
+
+      // 만약 해당 학기 플랜이 없지만 다른 학기 플랜이라도 있는 경우 유연하게 표시
+      if (availablePlans.length === 0 && targetYearData.currentPlan && targetYearData.currentPlan.groups && targetYearData.currentPlan.groups.length > 0) {
+        availablePlans.push({
+          id: 'active_other_sem',
+          name: `활성 배치안 (${targetYearData.currentPlan.semester || 1}학기)`,
+          semester: targetYearData.currentPlan.semester || 1,
+          groups: targetYearData.currentPlan.groups,
+          conflictCount: targetYearData.currentPlan.conflictCount || 0
+        });
+      }
+
+      if (availablePlans.length === 0) {
+        if (previewContainer) {
+          previewContainer.innerHTML = `<div class="text-center py-8 text-slate-400 space-y-1">
+            <p class="text-xs font-bold text-slate-600">[${selectedImportDate}] [${activeGrade} ${activeSem}학기]에 생성된 그룹 배치 데이터가 없습니다.</p>
+            <p class="text-[11px]">해당 기준 날짜로 이동하여 2단계에서 그룹을 먼저 생성해주세요.</p>
+          </div>`;
+        }
+        if (summaryInfo) summaryInfo.textContent = '';
+        if (planContainer) planContainer.classList.add('hidden');
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        previewGroupsData = null;
+        return;
+      }
+
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+
+      // 배치안 다중 선택 UI
+      if (availablePlans.length > 1) {
+        if (planContainer) {
+          planContainer.classList.remove('hidden');
+          const planListDiv = document.getElementById('importGroupPlanList');
+          if (planListDiv) {
+            planListDiv.innerHTML = availablePlans.map(p => {
+              const isSelected = (String(p.id) === String(selectedImportPlanId));
+              return `
+                <button type="button" 
+                        onclick="window.selectImportGroupPlan('${p.id}')"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                          isSelected 
+                            ? 'bg-purple-100 text-purple-800 border-purple-400 ring-2 ring-purple-300' 
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        }">
+                  <span>${escapeHtml(p.name)}</span>
+                  <span class="text-[10px] text-slate-400 font-normal">(${p.groups.length}그룹)</span>
+                </button>
+              `;
+            }).join('');
+          }
+        }
+      } else {
+        if (planContainer) planContainer.classList.add('hidden');
+        selectedImportPlanId = availablePlans[0].id;
+      }
+
+      const chosenPlan = availablePlans.find(p => String(p.id) === String(selectedImportPlanId)) || availablePlans[0];
+      previewGroupsData = chosenPlan.groups;
+
+      // 현재 학년의 학생 수강신청 조사 과목 목록 (과목 일치 여부 비교)
+      const currentSemSubjs = (activeSem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
+      const currentSubjSet = new Set(currentSemSubjs.map(s => normalizeSubject(s)));
+
+      let totalImportCourses = 0;
+      let matchedCourses = 0;
+
+      previewContainer.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          ${previewGroupsData.map((grp, gIdx) => {
+            totalImportCourses += grp.length;
+            return `
+              <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                  <span class="text-xs font-black text-slate-800 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                    <span>${gIdx + 1}그룹</span>
+                  </span>
+                  <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                    ${grp.length}과목
+                  </span>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  ${grp.map(subj => {
+                    const isKnown = currentSubjSet.has(normalizeSubject(subj));
+                    if (isKnown) matchedCourses++;
+                    return `
+                      <span class="text-[11px] px-2 py-0.5 rounded-md font-bold border transition ${
+                        isKnown 
+                          ? 'bg-blue-50 text-blue-800 border-blue-200' 
+                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                      }" title="${isKnown ? '현재 수강신청 조사 과목과 일치' : '현재 수강신청 조사에 없는 과목'}">
+                        ${escapeHtml(subj)}
+                        ${!isKnown ? '<span class="text-[9px] text-amber-600">⚠️</span>' : ''}
+                      </span>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      if (summaryInfo) {
+        summaryInfo.textContent = `총 ${previewGroupsData.length}개 그룹 · ${totalImportCourses}개 과목 (현재 일치: ${matchedCourses}개)`;
+      }
+    }
+
+    window.selectImportGroupPlan = function(pId) {
+      selectedImportPlanId = pId;
+      renderImportGroupPlansAndPreview();
+    };
+
+    window.confirmApplyImportedGroup = function() {
+      if (!previewGroupsData || previewGroupsData.length === 0) {
+        alert('적용할 그룹 데이터가 없습니다.');
+        return;
+      }
+
+      const activeGrade = MultiState.activeGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+
+      if (!confirm(`[${selectedImportDate}]의 ${activeGrade} ${activeSem}학기 [${previewGroupsData.length}개 그룹] 배치를 현재 화면에 적용하시겠습니까?\n\n- 현재 화면의 그룹 및 과목 배치가 대체됩니다.\n- 적용 후 학생들의 시간표 및 충돌 인원이 즉시 재계산됩니다.`)) {
+        return;
+      }
+
+      // AppState.currentPlan 업데이트
+      if (!AppState.currentPlan) {
+        AppState.currentPlan = {
+          id: Date.now(),
+          semester: activeSem,
+          groups: [],
+          conflicts: [],
+          conflictCount: 0,
+          customAssignments: {},
+          memo: '',
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+
+      // 그룹 깊은 복사
+      AppState.currentPlan.groups = JSON.parse(JSON.stringify(previewGroupsData));
+      AppState.currentPlan.semester = activeSem;
+      AppState.currentPlan.timestamp = new Date().toLocaleTimeString();
+
+      // 그룹 수 설정 동기화
+      if (activeSem === 1) {
+        AppState.sem1GroupCount = previewGroupsData.length;
+      } else {
+        AppState.sem2GroupCount = previewGroupsData.length;
+      }
+      const groupCountInput = document.getElementById('groupCountInput');
+      if (groupCountInput) groupCountInput.value = previewGroupsData.length;
+
+      // 충돌 재분석 및 렌더링
+      const analysis = analyzeGroupConflicts(AppState.currentPlan);
+      AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
+      AppState.currentPlan.conflicts = analysis.conflictDetails;
+
+      renderStep2Results();
+      saveAllState();
+
+      window.closeImportGroupModal();
+
+      alert(`✅ [${selectedImportDate}]의 그룹 배치가 성공적으로 적용되었습니다!\n- 배치 그룹: 총 ${previewGroupsData.length}개 그룹\n- 충돌 인원: ${analysis.conflictStudentCount}명`);
+    };
+
+        // Loading helpers
     function showLoading(msg) {
       const overlay = document.getElementById('loadingOverlay');
       if (overlay) {
