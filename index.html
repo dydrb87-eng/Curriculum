@@ -116,74 +116,74 @@
     <div class="w-full flex flex-wrap items-center justify-between gap-3">
       
       <!-- Left: Academic Year Tabs & Hierarchy (학년 ➔ 학기 ➔ 단계) -->
-      <div class="flex items-center gap-2.5 sm:gap-3.5 overflow-x-auto py-0.5 custom-scrollbar">
+      <div class="flex items-start gap-2.5 sm:gap-3.5 overflow-x-auto py-0.5 custom-scrollbar">
         
         <!-- 1-1. 상위: 기준 학년도 (2027학년도, 2028학년도 ...) -->
-        <div class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
-          <div class="flex items-center gap-1 text-xs font-bold text-indigo-900 px-1 shrink-0">
+        <div class="flex items-start gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs min-h-[66px]">
+          <div class="flex items-center gap-1 text-xs font-bold text-indigo-900 px-1 shrink-0 h-[26px]">
             <span class="text-sm">🎓</span>
             <span>기준 학년도:</span>
           </div>
           <div id="academicYearGroupTabs" class="flex flex-col gap-1 shrink-0 max-h-[72px] overflow-y-auto pr-0.5 custom-scrollbar">
             <!-- 기준 학년도 탭 버튼 동적 렌더링 -->
           </div>
-          <button id="btnAddAcademicYearGroup" type="button" onclick="window.handleAddAcademicYearGroup()" class="px-2 py-1 text-xs font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center justify-center gap-0.5 shrink-0 cursor-pointer self-stretch" title="새 기준 학년도 추가 (예: 2028학년도)">
+          <button id="btnAddAcademicYearGroup" type="button" onclick="window.handleAddAcademicYearGroup()" class="px-2 py-1 text-xs font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center justify-center gap-0.5 shrink-0 cursor-pointer h-[26px]" title="새 기준 학년도 추가 (예: 2028학년도)">
             <span class="text-indigo-600 font-extrabold">+</span> <span>추가</span>
           </button>
         </div>
 
         <!-- Separator -->
-        <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
+        <div class="text-slate-300 font-bold text-sm shrink-0 select-none h-[66px] flex items-center justify-center">➔</div>
 
         <!-- 1-2. 하위: 기준 날짜 (2027.10.11., 2027.10.21. ...) -->
-        <div class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
-          <div class="flex items-center gap-1 text-xs font-bold text-slate-700 px-1 shrink-0">
+        <div class="flex items-start gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs min-h-[66px]">
+          <div class="flex items-center gap-1 text-xs font-bold text-slate-700 px-1 shrink-0 h-[26px]">
             <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <span>기준 날짜:</span>
           </div>
           <div id="academicYearTabs" class="flex flex-col gap-1 shrink-0 max-h-[72px] overflow-y-auto pr-0.5 custom-scrollbar">
             <!-- 기준 날짜 탭 버튼 동적 렌더링 (드래그 순서 변경 지원) -->
           </div>
-          <button id="btnAddYear" type="button" class="px-2 py-1 text-xs font-bold rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-400 shadow-2xs transition flex items-center justify-center gap-0.5 shrink-0 cursor-pointer self-stretch" title="현재 학년도에 새 기준 날짜 추가 (오른쪽에 추가됨)">
+          <button id="btnAddYear" type="button" class="px-2 py-1 text-xs font-bold rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-400 shadow-2xs transition flex items-center justify-center gap-0.5 shrink-0 cursor-pointer h-[26px]" title="현재 학년도에 새 기준 날짜 추가 (오른쪽에 추가됨)">
             <span class="text-blue-600 font-extrabold">+</span> <span>추가</span>
           </button>
         </div>
 
-        <div class="h-5 w-px bg-slate-300 shrink-0"></div>
+        <div class="h-[66px] flex items-center justify-center shrink-0"><div class="h-6 w-px bg-slate-300"></div></div>
 
         <!-- 2. 대상 학년 탭 (2학년 / 3학년 2행 배열) -->
-        <div class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
+        <div class="flex items-start shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs min-h-[66px]">
           <div id="academicGradeTabs" class="flex flex-col gap-1 shrink-0">
             <!-- 2학년, 3학년 탭 버튼 동적 렌더링 -->
           </div>
         </div>
 
         <!-- Separator -->
-        <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
+        <div class="text-slate-300 font-bold text-sm shrink-0 select-none h-[66px] flex items-center justify-center">➔</div>
 
         <!-- 3. 학기 선택 탭 (1학기 / 2학기 2행 배열) -->
-        <div id="academicSemesterNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+        <div id="academicSemesterNavWrapper" class="flex items-start shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all min-h-[66px]">
           <div id="academicSemesterTabs" class="flex flex-col gap-1 shrink-0">
             <!-- 1학기, 2학기 탭 버튼 동적 렌더링 -->
           </div>
         </div>
 
         <!-- Separator -->
-        <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
+        <div class="text-slate-300 font-bold text-sm shrink-0 select-none h-[66px] flex items-center justify-center">➔</div>
 
         <!-- 4. 단계 선택 탭 (1단계 / 2단계 2행 배열) -->
-        <div id="academicStepNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
+        <div id="academicStepNavWrapper" class="flex items-start shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all min-h-[66px]">
           <div id="academicStepTabs" class="flex flex-col gap-1 shrink-0">
             <!-- 1단계: 수강신청 매트릭스 / 2단계: 그룹핑 & 분반 시뮬레이터 동적 렌더링 -->
           </div>
         </div>
 
         <!-- Separator -->
-        <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
+        <div class="text-slate-300 font-bold text-sm shrink-0 select-none h-[66px] flex items-center justify-center">➔</div>
 
         <!-- 5. 전체 시수종합 탭 (1,2단계 완료 후 다음 순서) -->
-        <div id="academicAllGradesNavWrapper" class="flex items-center shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all">
-          <div id="academicAllGradesContainer" class="flex items-center shrink-0">
+        <div id="academicAllGradesNavWrapper" class="flex items-start shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all min-h-[66px]">
+          <div id="academicAllGradesContainer" class="flex items-start shrink-0 h-full">
             <!-- 전체 시수종합 버튼 동적 렌더링 -->
           </div>
         </div>
@@ -9392,7 +9392,7 @@ function renderYearGradeNav() {
         acadGroupContainer.innerHTML = MultiState.academicYearsList.map(ay => {
           const isAct = (ay === MultiState.activeAcademicYear);
           return `
-            <div class="inline-flex items-center rounded-lg transition-all ${
+            <div class="inline-flex items-center rounded-lg transition-all h-[26px] ${
               isAct 
                 ? 'bg-indigo-600 text-white shadow-xs font-bold ring-2 ring-indigo-400/40' 
                 : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
@@ -9435,7 +9435,7 @@ function renderYearGradeNav() {
           });
 
           return `
-            <div class="inline-flex items-center rounded-lg transition-all select-none ${
+            <div class="inline-flex items-center rounded-lg transition-all select-none h-[26px] ${
               isActive 
                 ? 'bg-blue-600 text-white shadow-xs font-bold ring-2 ring-blue-400/40' 
                 : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
@@ -9502,7 +9502,7 @@ function renderYearGradeNav() {
           return `
             <button type="button" 
                     onclick="window.switchAcademicContext('${MultiState.activeYear}', '${g}')"
-                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
+                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
                       isActive 
                         ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
@@ -9649,7 +9649,7 @@ function renderYearGradeNav() {
         allGradesContainer.innerHTML = `
           <button type="button" 
                   onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
-                  class="self-stretch px-3 py-1 rounded-lg text-xs font-black flex flex-col items-center justify-center gap-0.5 transition cursor-pointer select-none ${
+                  class="h-[56px] px-3 py-1 rounded-lg text-xs font-black flex flex-col items-center justify-center gap-0.5 transition cursor-pointer select-none ${
                     isAllActive 
                       ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
