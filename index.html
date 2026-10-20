@@ -3007,15 +3007,7 @@
       XLSX.utils.book_append_sheet(wb, wsDup, '동일_기이수_중복신청_명단');
 
       // 파일명: 수강신청 미신청자 및 중복 신청자 명단_날짜_시간(N학년)
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const MM = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      const dateStr = `${yyyy}${MM}${dd}_${hh}${mm}`;
-      const acadYear = getActiveAcademicYearName();
-      const outName = `[${acadYear}]_수강신청 미신청자 및 중복 신청자 명단_${dateStr}(${grade}).xlsx`;
+      const outName = buildExportFileName(`수강신청 미신청자 및 중복 신청자 명단(${grade})`, "xlsx");
       window.saveExcelFile(wb, outName);
     }
 
@@ -3163,8 +3155,7 @@
       });
 
       XLSX.utils.book_append_sheet(wb, ws, '중복과목_변경신청서');
-      const acadYear = getActiveAcademicYearName();
-      const filename = `[상지대관령고]_${acadYear}_${grade}_중복신청_과목변경_신청서(학생배부용).xlsx`;
+      const filename = buildExportFileName(`${grade} 중복신청 과목변경 신청서(학생배부용)`, "xlsx");
       window.saveExcelFile(wb, filename);
     };
 
@@ -4778,14 +4769,7 @@
       XLSX.utils.book_append_sheet(wb, ws, `과목별_개설_폐강현황`);
 
       // 다운로드 날짜 기입 (_YYMMDD 포맷, 예: _260101)
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const dateSuffix = `_${yy}${mm}${dd}`;
-
-      const acadYear = getActiveAcademicYearName();
-      const fileName = `[상지대관령고]_${acadYear}_${AppState.detectedGrade}_과목별_개설_폐강현황표(1학기_2학기)${dateSuffix}.xlsx`;
+      const fileName = buildExportFileName(`${AppState.detectedGrade} 과목별 개설 폐강현황표`, "xlsx");
       window.saveExcelFile(wb, fileName);
     }
 
@@ -4964,8 +4948,7 @@
         XLSX.utils.book_append_sheet(wb, ws, `${sem}학기 선택현황`);
       });
 
-      const acadYear = getActiveAcademicYearName();
-      const fileName = `[상지대관령고]_${acadYear}_${AppState.detectedGrade}_선택과목_1단계_현황표.xlsx`;
+      const fileName = buildExportFileName(`${AppState.detectedGrade} 선택과목 1단계 현황표`, "xlsx");
       window.saveExcelFile(wb, fileName);
     }
 
@@ -8324,8 +8307,8 @@
         const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
         XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
-        const acadYear = getActiveAcademicYearName();
-        const outFileName = `[상지대관령고]_${acadYear}_${AppState.detectedGrade}_${plan.name.replace(/[\s\(\):]/g, '_')}_시간표.xlsx`;
+        const cleanPlanName = plan.name.replace(/[\s\(\):]/g, "_");
+        const outFileName = buildExportFileName(`${AppState.detectedGrade} ${cleanPlanName} 시간표`, "xlsx");
         window.saveExcelFile(wb, outFileName);
         alert(`📥 [${plan.name}] 엑셀 파일이 다운로드되었습니다!\n(${outFileName})`);
       } catch (err) {
@@ -8392,8 +8375,7 @@
       const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
       XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
-      const acadYear = getActiveAcademicYearName();
-      const outFileName = `[상지대관령고]_${acadYear}_${AppState.detectedGrade}_선택과목_그룹핑_최종결과.xlsx`;
+      const outFileName = buildExportFileName(`${AppState.detectedGrade} 선택과목 그룹핑 최종결과`, "xlsx");
       window.saveExcelFile(wb, outFileName);
       alert(`📥 엑셀 파일이 다운로드되었습니다!\n(${outFileName})\n\n💡 이 파일을 나중에 다시 웹앱에 업로드하면 이전 작업 상태가 그대로 복원됩니다.`);
     }
@@ -8897,6 +8879,26 @@
       return (y || "2027") + "학년도";
     }
     window.getActiveAcademicYearName = getActiveAcademicYearName;
+
+    function getFormattedTimestamp() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      const hh = String(now.getHours()).padStart(2, "0");
+      const min = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      return `${yyyy}${mm}${dd}_${hh}${min}${ss}`;
+    }
+    window.getFormattedTimestamp = getFormattedTimestamp;
+
+    function buildExportFileName(title, ext = "xlsx") {
+      const acadYear = getActiveAcademicYearName();
+      const ts = getFormattedTimestamp();
+      const cleanExt = ext.replace(/^\./, "");
+      return `${acadYear} ${title}_${ts}.${cleanExt}`;
+    }
+    window.buildExportFileName = buildExportFileName;
 
     const MultiState = {
       academicYearsList: ['2027학년도'], // 상위: 기준 학년도 목록
@@ -9969,19 +9971,7 @@ function renderYearGradeNav() {
     };
 
     window.generateDefaultBackupFileName = function() {
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const hh = String(now.getHours()).padStart(2, '0');
-      const min = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
-      const dateStr = `${yyyy}${mm}${dd}`;
-      const timeStr = `${hh}${min}${ss}`;
-      const acadYear = (typeof getActiveAcademicYearName === "function")
-        ? getActiveAcademicYearName()
-        : ((typeof MultiState !== "undefined" && MultiState && MultiState.activeAcademicYear) || "2027학년도");
-      return `[${acadYear}]_수강신청 및 그룹핑 데이터_${dateStr}_${timeStr}.json`;
+      return buildExportFileName("수강신청 및 그룹핑 데이터", "json");
     };
 
     window.exportStandardDownload = function() {
@@ -11459,9 +11449,7 @@ function renderYearGradeNav() {
 
       XLSX.utils.book_append_sheet(wb, ws, '교육과정_기초데이터');
 
-      // 파일명: [기준학년도]_교육과정_기초데이터_최신본.xlsx
-      const acadYear = getActiveAcademicYearName();
-      const fileName = `[${acadYear}]_교육과정_기초데이터_최신본.xlsx`;
+      const fileName = buildExportFileName("교육과정 기초데이터 최신본", "xlsx");
       window.saveExcelFile(wb, fileName);
 
       alert(`📥 [${year}] 최신 수정 기초데이터(${curriculum.length}개 과목)가 엑셀로 다운로드되었습니다!\n파일명: ${fileName}\n\n💡 다른 '기준 날짜' 탭을 만든 후, '전체 시수종합'에서 이 파일 그대로 [📂 기초데이터 엑셀 업로드]하시면 수정한 내용이 완벽하게 반영됩니다.`);
@@ -11496,8 +11484,8 @@ function renderYearGradeNav() {
         { wch: 14 }  // 담당교사
       ];
       XLSX.utils.book_append_sheet(wb, ws, '교육과정_기초데이터_양식');
-      const acadYear = getActiveAcademicYearName();
-      window.saveExcelFile(wb, `[${acadYear}]_교육과정_기초데이터_표준양식.xlsx`);
+      const standardFileName = buildExportFileName("교육과정 기초데이터 표준양식", "xlsx");
+      window.saveExcelFile(wb, standardFileName);
     }
 
     // 교사별 학기 수업 시수 및 담당 과목 요약표 엑셀 워크시트 생성 (깔끔한 파스텔 톤 서식, 1행에 과목 1개씩 전개)
@@ -11859,8 +11847,7 @@ function renderYearGradeNav() {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, '교사별_수업시수_요약');
 
-      const acadYear = getActiveAcademicYearName();
-      const fileName = `${acadYear}_교사별_학기수업시수_및_담당과목_요약.xlsx`;
+      const fileName = buildExportFileName("교사별 학기수업시수 및 담당과목 요약", "xlsx");
       window.saveExcelFile(wb, fileName);
       console.log(`✅ [${fileName}] 파스텔톤 서식 엑셀 다운로드 완료`);
     };
@@ -11909,8 +11896,8 @@ function renderYearGradeNav() {
       ];
       XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
 
-      const acadYear = getActiveAcademicYearName();
-      window.saveExcelFile(wb, `${acadYear}_전학년_교사별시수_및_과목배정_종합.xlsx`);
+      const allGradesFileName = buildExportFileName("전학년 교사별시수 및 과목배정 종합", "xlsx");
+      window.saveExcelFile(wb, allGradesFileName);
     }
 
     function renderAllGradesDashboard(fullRedraw = true) {
