@@ -120,18 +120,33 @@
       <!-- Left: Academic Year Tabs & Hierarchy (학년 ➔ 학기 ➔ 단계) -->
       <div class="flex items-center gap-2.5 sm:gap-3.5 overflow-x-auto py-0.5 custom-scrollbar">
         
-        <!-- 1. 학년도 선택 영역 (기본: 2027학년도) -->
-        <div class="flex items-center gap-1.5 shrink-0">
-          <div class="flex items-center gap-1 text-xs font-bold text-slate-700 mr-1 shrink-0">
-            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <!-- 1-1. 상위: 기준 학년도 (2027학년도, 2028학년도 ...) -->
+        <div class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
+          <div class="flex items-center gap-1 text-xs font-bold text-indigo-900 px-1 shrink-0">
+            <span class="text-sm">🎓</span>
+            <span>기준 학년도:</span>
+          </div>
+          <div id="academicYearGroupTabs" class="flex items-center gap-1 shrink-0">
+            <!-- 기준 학년도 탭 버튼 동적 렌더링 -->
+          </div>
+          <button id="btnAddAcademicYearGroup" type="button" onclick="window.handleAddAcademicYearGroup()" class="px-2 py-1 text-xs font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center gap-0.5 shrink-0 cursor-pointer" title="새 기준 학년도 추가 (예: 2028학년도)">
+            <span class="text-indigo-600 font-extrabold">+</span> <span>추가</span>
+          </button>
+        </div>
+
+        <!-- Separator -->
+        <div class="text-slate-300 font-bold text-sm shrink-0 select-none">➔</div>
+
+        <!-- 1-2. 하위: 기준 날짜 (2027.10.11., 2027.10.21. ...) -->
+        <div class="flex items-center gap-1.5 shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
+          <div class="flex items-center gap-1 text-xs font-bold text-slate-700 px-1 shrink-0">
+            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <span>기준 날짜:</span>
           </div>
-          <!-- 학년도/기준 날짜 탭 컨테이너 (JS 동적 렌더링) -->
-          <div id="academicYearTabs" class="flex items-center gap-1.5 shrink-0">
-            <!-- 버튼 동적 생성 -->
+          <div id="academicYearTabs" class="flex items-center gap-1 shrink-0">
+            <!-- 기준 날짜 탭 버튼 동적 렌더링 (드래그 순서 변경 지원) -->
           </div>
-          <!-- 새 기준 날짜 추가 버튼 -->
-          <button id="btnAddYear" type="button" class="px-2 py-1.5 text-xs font-bold rounded-lg bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-400 shadow-2xs transition flex items-center gap-1 shrink-0" title="새 기준 날짜 추가">
+          <button id="btnAddYear" type="button" class="px-2 py-1 text-xs font-bold rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-400 shadow-2xs transition flex items-center gap-0.5 shrink-0 cursor-pointer" title="현재 학년도에 새 기준 날짜 추가 (오른쪽에 추가됨)">
             <span class="text-blue-600 font-extrabold">+</span> <span>추가</span>
           </button>
         </div>
@@ -1594,29 +1609,54 @@
         </button>
       </div>
 
-      <!-- Quick Preset Sort & Search Bar -->
-      <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 shrink-0">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-xs font-bold text-slate-600 mr-1">빠른 정렬:</span>
-            <button type="button" onclick="window.sortTeacherOrderModalList('hoursDesc')" class="px-2.5 py-1 bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded-lg text-xs font-semibold border border-slate-300 transition shadow-2xs cursor-pointer">
-              총시수 높은순
+      <!-- Teacher Order Direct Input & Chip Selection Area -->
+      <div class="p-3.5 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 border border-indigo-200 rounded-2xl shrink-0 space-y-3">
+        <!-- 1. Input with Enter key -->
+        <div>
+          <label class="block text-xs font-bold text-indigo-950 mb-1 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <span>✍️</span>
+              <span>교사명 직접 입력 (입력하고 Enter 치면 순서에 추가됩니다)</span>
+            </span>
+            <span class="text-[11px] text-indigo-700 font-semibold">※ 지정한 순서대로 우선 배치 ➔ 미지정 교사는 가나다순 자동 배치</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <input type="text" id="teacherOrderDirectInput" placeholder="교사명 입력 후 Enter (예: 김철수)" class="flex-1 px-3 py-2 text-xs font-bold rounded-xl border border-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white shadow-2xs placeholder:font-normal">
+            <button type="button" onclick="window.addTeacherFromDirectInput()" class="px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition cursor-pointer shrink-0">
+              + 추가
             </button>
-            <button type="button" onclick="window.sortTeacherOrderModalList('hoursAsc')" class="px-2.5 py-1 bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded-lg text-xs font-semibold border border-slate-300 transition shadow-2xs cursor-pointer">
-              총시수 낮은순
-            </button>
-            <button type="button" onclick="window.sortTeacherOrderModalList('nameAsc')" class="px-2.5 py-1 bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded-lg text-xs font-semibold border border-slate-300 transition shadow-2xs cursor-pointer">
-              이름 가나다순
-            </button>
-            <button type="button" onclick="window.resetTeacherOrderModalList()" class="px-2.5 py-1 bg-white hover:bg-rose-50 hover:text-rose-700 text-slate-600 rounded-lg text-xs font-semibold border border-slate-300 transition shadow-2xs cursor-pointer" title="모달을 열었을 때의 원래 순서로 복원">
-              ↩ 변경 취소
+            <button type="button" onclick="window.clearCustomTeacherOrder()" class="px-3 py-2 text-xs font-bold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-xl shadow-2xs transition cursor-pointer shrink-0" title="지정된 순서를 초기화하고 가나다 기본순으로 복원">
+              순서 초기화
             </button>
           </div>
-          <span id="teacherOrderModalCountBadge" class="text-xs font-extrabold text-indigo-700 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-md">총 0명</span>
         </div>
-        <div class="relative">
-          <input type="text" id="teacherOrderModalSearch" oninput="window.filterTeacherOrderModalList()" placeholder="교사명 검색..." class="w-full px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs bg-white">
+
+        <!-- 2. Available Teachers Chip Info (Click to Add) -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
+              <span>👥 전체 교사 목록 정보</span>
+              <span class="text-[11px] text-indigo-600 font-medium">(클릭하면 위 순서에 즉시 추가/제거됩니다)</span>
+            </span>
+            <span id="teacherChipsAvailableCount" class="text-[11px] font-bold text-slate-500"></span>
+          </div>
+          <div id="teacherModalChipsContainer" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 bg-white/90 rounded-xl border border-indigo-100 shadow-2xs custom-scrollbar">
+            <!-- Teacher chips dynamically generated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Search & Sorting Shortcuts -->
+      <div class="flex items-center justify-between gap-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
+        <div class="relative flex-1">
+          <input type="text" id="teacherOrderModalSearch" oninput="window.filterTeacherOrderModalList()" placeholder="목록에서 교사명 빠른 검색..." class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white shadow-2xs">
           <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" onclick="window.sortTeacherOrderModalList('hoursDesc')" class="px-2 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition" title="총 시수 내림차순 정렬">총시수 높은순 ↓</button>
+          <button type="button" onclick="window.sortTeacherOrderModalList('hoursAsc')" class="px-2 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition" title="총 시수 오름차순 정렬">총시수 낮은순 ↑</button>
+          <button type="button" onclick="window.sortTeacherOrderModalList('nameAsc')" class="px-2 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition" title="교사명 가나다순 정렬">가나다순</button>
+          <span id="teacherOrderModalCountBadge" class="text-xs font-extrabold text-indigo-700 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-md ml-1">총 0명</span>
         </div>
       </div>
 
@@ -2988,7 +3028,7 @@
       const mm = String(now.getMinutes()).padStart(2, '0');
       const dateStr = `${yyyy}${MM}${dd}_${hh}${mm}`;
       const outName = `수강신청 미신청자 및 중복 신청자 명단_${dateStr}(${grade}).xlsx`;
-      XLSX.writeFile(wb, outName);
+      window.saveExcelFile(wb, outName);
     }
 
     // 학생 배부용 중복신청 과목 변경 확인 및 신청서 엑셀 다운로드 (출력용 공적 문서 양식)
@@ -3136,7 +3176,7 @@
 
       XLSX.utils.book_append_sheet(wb, ws, '중복과목_변경신청서');
       const filename = `[상지대관령고]_${activeYear}학년도_${grade}_중복신청_과목변경_신청서(학생배부용).xlsx`;
-      XLSX.writeFile(wb, filename);
+      window.saveExcelFile(wb, filename);
     };
 
     // Prior Data Event Listeners
@@ -4756,7 +4796,7 @@
       const dateSuffix = `_${yy}${mm}${dd}`;
 
       const fileName = `[상지대관령고]_${AppState.detectedGrade}_과목별_개설_폐강현황표(1학기_2학기)${dateSuffix}.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      window.saveExcelFile(wb, fileName);
     }
 
     // Step 1 Single Excel Export (1학기 & 2학기 탭 구성)
@@ -4935,7 +4975,7 @@
       });
 
       const fileName = `[상지대관령고]_${AppState.detectedGrade}_선택과목_1단계_현황표.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      window.saveExcelFile(wb, fileName);
     }
 
     // ==========================================
@@ -8294,7 +8334,7 @@
         XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
         const outFileName = `[상지대관령고]_${AppState.detectedGrade}_${plan.name.replace(/[\s\(\):]/g, '_')}_시간표.xlsx`;
-        XLSX.writeFile(wb, outFileName);
+        window.saveExcelFile(wb, outFileName);
         alert(`📥 [${plan.name}] 엑셀 파일이 다운로드되었습니다!\n(${outFileName})`);
       } catch (err) {
         console.error('exportSinglePlanExcel error:', err);
@@ -8361,7 +8401,7 @@
       XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
       const outFileName = `[상지대관령고]_${AppState.detectedGrade}_선택과목_그룹핑_최종결과.xlsx`;
-      XLSX.writeFile(wb, outFileName);
+      window.saveExcelFile(wb, outFileName);
       alert(`📥 엑셀 파일이 다운로드되었습니다!\n(${outFileName})\n\n💡 이 파일을 나중에 다시 웹앱에 업로드하면 이전 작업 상태가 그대로 복원됩니다.`);
     }
 
@@ -8855,17 +8895,26 @@
     }
 
     const MultiState = {
-      activeYear: '2027', // 기본 2027학년도
+      academicYearsList: ['2027학년도'], // 상위: 기준 학년도 목록
+      activeAcademicYear: '2027학년도', // 현재 활성 기준 학년도
+      datesByAcademicYear: {
+        '2027학년도': ['2027.10.11.', '2027.10.21.']
+      },
+      curriculumByAcademicYear: {
+        '2027학년도': [] // '전체 시수 종합' 기초 데이터 (해당 학년도 하위 모든 날짜 탭에서 100% 공유)
+      },
+      customTeacherOrder: [], // 교사별 요약표 출력 순서 (모든 탭에서 영구 전역 공유)
+      activeYear: '2027.10.11.', // 하위: 현재 활성 기준 날짜
       activeGrade: '2학년', // 기본 2학년 ('2학년' | '3학년' | '전체')
       activeStep: 1, // 1: 1단계(수강신청 매트릭스), 2: 2단계(과목 그룹핑 & 분반)
-      yearsList: ['2027', '2026'],
+      yearsList: ['2027.10.11.', '2027.10.21.'], // 현재 학년도의 기준 날짜 목록
       data: {
-        '2027': {
+        '2027.10.11.': {
           '2학년': null,
           '3학년': null,
           '전체': null
         },
-        '2026': {
+        '2027.10.21.': {
           '2학년': null,
           '3학년': null,
           '전체': null
@@ -9196,7 +9245,119 @@
       updateModalStats();
     }
 
-    function renderYearGradeNav() {
+        // ==========================================
+    // CRITERIA ACADEMIC YEAR (상위: 기준 학년도) HANDLERS
+    // ==========================================
+
+    window.switchAcademicYearGroup = function(targetAcadYear) {
+      if (!targetAcadYear || targetAcadYear === MultiState.activeAcademicYear) return;
+
+      MultiState.activeAcademicYear = targetAcadYear;
+
+      // 해당 학년도의 날짜 목록 로드
+      if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
+      if (!MultiState.datesByAcademicYear[targetAcadYear] || MultiState.datesByAcademicYear[targetAcadYear].length === 0) {
+        // 기본 날짜 1개 생성
+        const baseDate = targetAcadYear.replace(/[^0-9]/g, '') + '.10.11.';
+        MultiState.datesByAcademicYear[targetAcadYear] = [baseDate];
+      }
+
+      MultiState.yearsList = MultiState.datesByAcademicYear[targetAcadYear];
+      const targetDate = MultiState.yearsList[0];
+
+      // 학년도 내 첫 번째 날짜로 컨텍스트 전환
+      switchAcademicContext(targetDate, MultiState.activeGrade);
+      saveAllState();
+      renderYearGradeNav();
+    };
+
+    window.handleAddAcademicYearGroup = function() {
+      const suggestYear = String(new Date().getFullYear() + 1) + '학년도';
+      const input = prompt('추가할 새 기준 학년도를 입력하세요:\n(예: 2028학년도, 2027학년도 등)', suggestYear);
+      if (!input) return;
+      const acadYear = input.trim();
+      if (!acadYear) return;
+
+      if (!MultiState.academicYearsList) MultiState.academicYearsList = ['2027학년도'];
+      if (MultiState.academicYearsList.includes(acadYear)) {
+        alert(`이미 존재하는 기준 학년도입니다: ${acadYear}`);
+        return;
+      }
+
+      MultiState.academicYearsList.push(acadYear);
+      if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
+      const baseDate = acadYear.replace(/[^0-9]/g, '') + '.10.11.';
+      MultiState.datesByAcademicYear[acadYear] = [baseDate];
+
+      // 이전 학년도의 기초데이터 복사 여부 안내
+      const prevAcadYear = MultiState.activeAcademicYear;
+      const prevCurr = (MultiState.curriculumByAcademicYear && MultiState.curriculumByAcademicYear[prevAcadYear]) || [];
+
+      if (!MultiState.curriculumByAcademicYear) MultiState.curriculumByAcademicYear = {};
+      if (prevCurr && prevCurr.length > 0) {
+        if (confirm(`💡 새 기준 학년도 [${acadYear}] 생성 안내:\n\n이전 학년도 [${prevAcadYear}]의 교육과정 기초데이터(${prevCurr.length}개 과목 및 배정 교사)를 복사해 오시겠습니까?\n\n- [확인]: 이전 학년도 편제표 및 교사 배정을 그대로 가져와 시작\n- [취소]: 빈 편제표로 시작`)) {
+          MultiState.curriculumByAcademicYear[acadYear] = JSON.parse(JSON.stringify(prevCurr));
+        } else {
+          MultiState.curriculumByAcademicYear[acadYear] = [];
+        }
+      } else {
+        MultiState.curriculumByAcademicYear[acadYear] = [];
+      }
+
+      window.switchAcademicYearGroup(acadYear);
+    };
+
+    window.handleEditAcademicYearGroup = function(oldAcadYear, event) {
+      if (event) event.stopPropagation();
+      const input = prompt(`[${oldAcadYear}]의 이름을 수정하세요:`, oldAcadYear);
+      if (!input) return;
+      const newAcadYear = input.trim();
+      if (!newAcadYear || newAcadYear === oldAcadYear) return;
+
+      if (MultiState.academicYearsList.includes(newAcadYear)) {
+        alert(`이미 존재하는 학년도 이름입니다: ${newAcadYear}`);
+        return;
+      }
+
+      MultiState.academicYearsList = MultiState.academicYearsList.map(y => y === oldAcadYear ? newAcadYear : y);
+      if (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[oldAcadYear]) {
+        MultiState.datesByAcademicYear[newAcadYear] = MultiState.datesByAcademicYear[oldAcadYear];
+        delete MultiState.datesByAcademicYear[oldAcadYear];
+      }
+      if (MultiState.curriculumByAcademicYear && MultiState.curriculumByAcademicYear[oldAcadYear]) {
+        MultiState.curriculumByAcademicYear[newAcadYear] = MultiState.curriculumByAcademicYear[oldAcadYear];
+        delete MultiState.curriculumByAcademicYear[oldAcadYear];
+      }
+      if (MultiState.activeAcademicYear === oldAcadYear) {
+        MultiState.activeAcademicYear = newAcadYear;
+      }
+
+      saveAllState();
+      renderYearGradeNav();
+      alert(`✅ 기준 학년도 이름이 [${newAcadYear}](으)로 변경되었습니다.`);
+    };
+
+    window.handleDeleteAcademicYearGroup = function(acadYear, event) {
+      if (event) event.stopPropagation();
+      if (MultiState.academicYearsList.length <= 1) {
+        alert('최소 1개의 기준 학년도는 유지되어야 하므로 삭제할 수 없습니다.');
+        return;
+      }
+      if (!confirm(`[${acadYear}] 기준 학년도와 해당 학년도 하위의 모든 날짜 탭 및 데이터가 완전히 삭제됩니다.\n정말 삭제하시겠습니까?`)) return;
+
+      MultiState.academicYearsList = MultiState.academicYearsList.filter(y => y !== acadYear);
+      delete MultiState.datesByAcademicYear[acadYear];
+      delete MultiState.curriculumByAcademicYear[acadYear];
+
+      if (MultiState.activeAcademicYear === acadYear) {
+        window.switchAcademicYearGroup(MultiState.academicYearsList[0]);
+      } else {
+        saveAllState();
+        renderYearGradeNav();
+      }
+    };
+
+function renderYearGradeNav() {
       const yearContainer = document.getElementById('academicYearTabs');
       const gradeContainer = document.getElementById('academicGradeTabs');
       const semesterContainer = document.getElementById('academicSemesterTabs');
@@ -9215,7 +9376,46 @@
           : `${MultiState.activeYear} ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
       }
 
-      // 1. Render Year Tabs
+      // 0. Render Academic Year Group Tabs (상위 기준 학년도)
+      const acadGroupContainer = document.getElementById('academicYearGroupTabs');
+      if (acadGroupContainer) {
+        if (!MultiState.academicYearsList) MultiState.academicYearsList = ['2027학년도'];
+        if (!MultiState.activeAcademicYear) MultiState.activeAcademicYear = MultiState.academicYearsList[0];
+
+        acadGroupContainer.innerHTML = MultiState.academicYearsList.map(ay => {
+          const isAct = (ay === MultiState.activeAcademicYear);
+          return `
+            <div class="inline-flex items-center rounded-lg transition-all ${
+              isAct 
+                ? 'bg-indigo-600 text-white shadow-xs font-bold ring-2 ring-indigo-400/40' 
+                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
+            }">
+              <button type="button" 
+                      onclick="window.switchAcademicYearGroup('${ay}')"
+                      class="px-2.5 py-1 text-xs flex items-center gap-1 focus:outline-hidden cursor-pointer"
+                      title="${ay} 교육과정으로 전환">
+                <span>${ay}</span>
+              </button>
+              <button type="button" 
+                      onclick="window.handleEditAcademicYearGroup('${ay}', event)"
+                      class="px-1 py-0.5 text-[10px] opacity-70 hover:opacity-100 ${isAct ? 'hover:text-amber-200' : 'hover:text-indigo-600'} transition cursor-pointer"
+                      title="${ay} 이름 수정">
+                ✏️
+              </button>
+              ${MultiState.academicYearsList.length > 1 ? `
+                <button type="button" 
+                        onclick="window.handleDeleteAcademicYearGroup('${ay}', event)"
+                        class="pr-1.5 pl-0.5 py-0.5 text-[10px] opacity-60 hover:opacity-100 ${isAct ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
+                        title="${ay} 삭제">
+                  ✕
+                </button>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 1. Render Reference Date Tabs (하위 기준 날짜)
       if (yearContainer) {
         yearContainer.innerHTML = MultiState.yearsList.map(y => {
           const isActive = y === MultiState.activeYear;
@@ -9597,6 +9797,21 @@
         MultiState.activeYear = MultiState.yearsList[0] || '2027';
       }
 
+      if (Array.isArray(externalData.customTeacherOrder)) {
+        MultiState.customTeacherOrder = [...externalData.customTeacherOrder];
+      }
+      if (Array.isArray(externalData.academicYearsList)) {
+        MultiState.academicYearsList = [...externalData.academicYearsList];
+      }
+      if (externalData.activeAcademicYear) {
+        MultiState.activeAcademicYear = externalData.activeAcademicYear;
+      }
+      if (externalData.datesByAcademicYear && typeof externalData.datesByAcademicYear === 'object') {
+        MultiState.datesByAcademicYear = JSON.parse(JSON.stringify(externalData.datesByAcademicYear));
+      }
+      if (externalData.curriculumByAcademicYear && typeof externalData.curriculumByAcademicYear === 'object') {
+        MultiState.curriculumByAcademicYear = JSON.parse(JSON.stringify(externalData.curriculumByAcademicYear));
+      }
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
       renderYearGradeNav();
@@ -9708,6 +9923,10 @@
       const prevCurriculum = (prevYear && MultiState.data[prevYear]?.['전체']?.curriculum) || [];
 
       MultiState.yearsList.push(y);
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+      if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
+      MultiState.datesByAcademicYear[currAY] = MultiState.yearsList;
+
       switchAcademicContext(y, MultiState.activeGrade);
 
       if (prevCurriculum && prevCurriculum.length > 0) {
@@ -9763,6 +9982,49 @@
     };
 
     let rememberedDirHandle = null;
+
+    // ==========================================
+    // GLOBAL EXCEL FILE EXPORTER (상단 '경로' 폴더에 자동 저장, 미지정 시 기본 다운로드)
+    // ==========================================
+    window.saveExcelFile = async function(wb, filename) {
+      let dirHandle = rememberedDirHandle;
+      if (!dirHandle && typeof getSavedDirHandle === 'function') {
+        dirHandle = await getSavedDirHandle();
+      }
+
+      if (dirHandle && window.showDirectoryPicker) {
+        try {
+          if (typeof dirHandle.queryPermission === 'function') {
+            let perm = await dirHandle.queryPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') {
+              perm = await dirHandle.requestPermission({ mode: 'readwrite' });
+              if (perm !== 'granted') throw new Error('Permission denied');
+            }
+          }
+
+          const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(new Uint8Array(excelBuffer));
+          await writable.close();
+
+          if (typeof showSaveToast === 'function') {
+            showSaveToast(`📊 <b>[${dirHandle.name}]</b> 폴더에 엑셀 파일이 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
+          } else {
+            console.log(`✅ [${dirHandle.name}]에 엑셀 파일 저장 완료: ${filename}`);
+          }
+          return;
+        } catch (err) {
+          console.warn('saveExcelFile directory handle error, falling back to browser download:', err);
+        }
+      }
+
+      // 지정 경로가 없거나 실패 시 브라우저 기본 다운로드 폴더로 저장
+      XLSX.writeFile(wb, filename);
+      if (typeof showSaveToast === 'function') {
+        showSaveToast(`📥 다운로드 폴더에 엑셀 파일이 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
+      }
+    };
 
     async function getSavedDirHandle() {
       if (rememberedDirHandle) return rememberedDirHandle;
@@ -10155,40 +10417,54 @@
       { semester: 2, grade: '3학년', category: '선택', subject: '사회문제 탐구', hours: 3, teacher: '정사회' }
     ];
 
+    // 기초 데이터 공유 정책: 동일 학년도 하위 모든 날짜 탭에서 100% 실시간 공유
     function getAllGradesCurriculum() {
-      const y = MultiState.activeYear;
-      if (!MultiState.data[y]) MultiState.data[y] = {};
-      if (!MultiState.data[y]['전체']) MultiState.data[y]['전체'] = { curriculum: [], lastUpdated: null };
-      if (!Array.isArray(MultiState.data[y]['전체'].curriculum)) MultiState.data[y]['전체'].curriculum = [];
-      return MultiState.data[y]['전체'].curriculum;
+      const acadYear = MultiState?.activeAcademicYear || '2027학년도';
+      if (!MultiState.curriculumByAcademicYear) MultiState.curriculumByAcademicYear = {};
+
+      if (MultiState.curriculumByAcademicYear[acadYear] && Array.isArray(MultiState.curriculumByAcademicYear[acadYear])) {
+        return MultiState.curriculumByAcademicYear[acadYear];
+      }
+
+      // 하위 호환성 마이그레이션: 기존 날짜 탭의 전체 데이터에서 복원
+      const y = MultiState?.activeYear;
+      if (y && MultiState.data && MultiState.data[y] && MultiState.data[y]['전체'] && Array.isArray(MultiState.data[y]['전체'].curriculum) && MultiState.data[y]['전체'].curriculum.length > 0) {
+        MultiState.curriculumByAcademicYear[acadYear] = MultiState.data[y]['전체'].curriculum;
+        return MultiState.curriculumByAcademicYear[acadYear];
+      }
+
+      MultiState.curriculumByAcademicYear[acadYear] = [];
+      return MultiState.curriculumByAcademicYear[acadYear];
     }
 
     function setAllGradesCurriculum(newCurriculum) {
-      const y = MultiState.activeYear;
-      if (!MultiState.data[y]) MultiState.data[y] = {};
-      const prevOrder = Array.isArray(MultiState.data[y]['전체']?.teacherOrder) ? MultiState.data[y]['전체'].teacherOrder : [];
-      MultiState.data[y]['전체'] = {
-        curriculum: newCurriculum,
-        teacherOrder: prevOrder,
-        lastUpdated: new Date().toISOString()
-      };
+      const acadYear = MultiState?.activeAcademicYear || '2027학년도';
+      if (!MultiState.curriculumByAcademicYear) MultiState.curriculumByAcademicYear = {};
+      MultiState.curriculumByAcademicYear[acadYear] = newCurriculum;
+
+      // 하위 호환성 동기화: 날짜 탭들에도 기록
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[acadYear]) || MultiState.yearsList || [];
+      dateList.forEach(d => {
+        if (!MultiState.data[d]) MultiState.data[d] = {};
+        if (!MultiState.data[d]['전체']) MultiState.data[d]['전체'] = {};
+        MultiState.data[d]['전체'].curriculum = newCurriculum;
+        MultiState.data[d]['전체'].lastUpdated = new Date().toISOString();
+      });
+
       saveAllState();
     }
 
-    function getTeacherOrder(year = MultiState.activeYear) {
-      const yData = MultiState.data[year] || {};
-      const allData = yData['전체'] || {};
-      return Array.isArray(allData.teacherOrder) ? allData.teacherOrder : [];
+    // 교사 순서 정렬: 전역(모든 탭 공유) 관리
+    function getTeacherOrder() {
+      if (MultiState && Array.isArray(MultiState.customTeacherOrder)) {
+        return MultiState.customTeacherOrder;
+      }
+      return [];
     }
 
-    function setTeacherOrder(newOrder, year = MultiState.activeYear) {
-      if (!MultiState.data[year]) MultiState.data[year] = {};
-      const curr = getAllGradesCurriculum();
-      MultiState.data[year]['전체'] = {
-        curriculum: curr,
-        teacherOrder: [...newOrder],
-        lastUpdated: new Date().toISOString()
-      };
+    function setTeacherOrder(newOrder) {
+      if (!MultiState) return;
+      MultiState.customTeacherOrder = Array.isArray(newOrder) ? [...newOrder] : [];
       saveAllState();
     }
 
@@ -11166,7 +11442,7 @@
       // 파일명: [기준날짜]_교육과정_기초데이터_최신본.xlsx
       const cleanYear = year.replace(/[\/\\:*?"<>|]/g, '_');
       const fileName = `[${cleanYear}]_교육과정_기초데이터_최신본.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      window.saveExcelFile(wb, fileName);
 
       alert(`📥 [${year}] 최신 수정 기초데이터(${curriculum.length}개 과목)가 엑셀로 다운로드되었습니다!\n파일명: ${fileName}\n\n💡 다른 '기준 날짜' 탭을 만든 후, '전체 시수종합'에서 이 파일 그대로 [📂 기초데이터 엑셀 업로드]하시면 수정한 내용이 완벽하게 반영됩니다.`);
     };
@@ -11200,7 +11476,7 @@
         { wch: 14 }  // 담당교사
       ];
       XLSX.utils.book_append_sheet(wb, ws, '교육과정_기초데이터_양식');
-      XLSX.writeFile(wb, '교육과정_기초데이터_표준양식.xlsx');
+      window.saveExcelFile(wb, '교육과정_기초데이터_표준양식.xlsx');
     }
 
     // 교사별 학기 수업 시수 및 담당 과목 요약표 엑셀 워크시트 생성 (깔끔한 파스텔 톤 서식, 1행에 과목 1개씩 전개)
@@ -11238,26 +11514,16 @@
         }
       });
 
-      const customOrder = getTeacherOrder(year);
+      const customOrder = getTeacherOrder();
       let teachersList = Object.keys(teacherMap);
-      if (customOrder.length > 0) {
-        teachersList.sort((a, b) => {
-          const idxA = customOrder.indexOf(a);
-          const idxB = customOrder.indexOf(b);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          const totA = teacherMap[a].sem1Hours + teacherMap[a].sem2Hours;
-          const totB = teacherMap[b].sem1Hours + teacherMap[b].sem2Hours;
-          return totB - totA || a.localeCompare(b, 'ko');
-        });
-      } else {
-        teachersList.sort((a, b) => {
-          const totA = teacherMap[a].sem1Hours + teacherMap[a].sem2Hours;
-          const totB = teacherMap[b].sem1Hours + teacherMap[b].sem2Hours;
-          return totB - totA || a.localeCompare(b, 'ko');
-        });
-      }
+      teachersList.sort((a, b) => {
+        const idxA = customOrder.indexOf(a);
+        const idxB = customOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b, 'ko');
+      });
 
       const fontKo = '맑은 고딕';
       const borderThin = {
@@ -11573,7 +11839,7 @@
       XLSX.utils.book_append_sheet(wb, ws, '교사별_수업시수_요약');
 
       const fileName = `${year}학년도_교사별_학기수업시수_및_담당과목_요약.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      window.saveExcelFile(wb, fileName);
       console.log(`✅ [${fileName}] 파스텔톤 서식 엑셀 다운로드 완료`);
     };
 
@@ -11621,7 +11887,7 @@
       ];
       XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
 
-      XLSX.writeFile(wb, `${year}학년도_전학년_교사별시수_및_과목배정_종합.xlsx`);
+      window.saveExcelFile(wb, `${year}학년도_전학년_교사별시수_및_과목배정_종합.xlsx`);
     }
 
     function renderAllGradesDashboard(fullRedraw = true) {
@@ -11744,31 +12010,126 @@
       return map;
     }
 
+    // 교사 목록 정렬 함수 (사용자 지정 순서 1순위, 나머지 가나다순 2순위, 모든 탭 전역 공유)
     window.getCurrentTeacherSummaryList = function() {
       const teacherMap = getTeacherStatsMap();
-      const customOrder = getTeacherOrder();
+      const customOrder = (MultiState && Array.isArray(MultiState.customTeacherOrder))
+        ? MultiState.customTeacherOrder
+        : getTeacherOrder();
       const allTeachers = Object.keys(teacherMap);
 
       if (customOrder.length > 0) {
-        allTeachers.sort((a, b) => {
-          const idxA = customOrder.indexOf(a);
-          const idxB = customOrder.indexOf(b);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          const totA = teacherMap[a]?.total || 0;
-          const totB = teacherMap[b]?.total || 0;
-          return totB - totA || a.localeCompare(b, 'ko');
-        });
+        const inOrder = customOrder.filter(name => allTeachers.includes(name));
+        const notInOrder = allTeachers.filter(name => !customOrder.includes(name)).sort((a, b) => a.localeCompare(b, 'ko'));
+        return [...inOrder, ...notInOrder];
       } else {
-        allTeachers.sort((a, b) => {
-          const totA = teacherMap[a]?.total || 0;
-          const totB = teacherMap[b]?.total || 0;
-          return totB - totA || a.localeCompare(b, 'ko');
-        });
+        // 기본 정렬: 가나다순
+        return allTeachers.sort((a, b) => a.localeCompare(b, 'ko'));
       }
-      return allTeachers;
     };
+
+    window.addTeacherFromDirectInput = function() {
+      const input = document.getElementById('teacherOrderDirectInput');
+      if (!input) return;
+      const tName = (input.value || '').trim();
+      if (!tName) return;
+
+      const currentOrder = Array.from(document.querySelectorAll('#teacherOrderListContainer [data-teacher]'))
+        .map(el => el.getAttribute('data-teacher'))
+        .filter(Boolean);
+
+      if (currentOrder.includes(tName)) {
+        alert(`[${tName}] 교사는 이미 순서 목록에 포함되어 있습니다.`);
+        input.value = '';
+        input.focus();
+        return;
+      }
+
+      currentOrder.push(tName);
+      buildTeacherOrderModalInitialDOM(currentOrder);
+      renderTeacherModalChips(currentOrder);
+      input.value = '';
+      input.focus();
+
+      const container = document.getElementById('teacherOrderListContainer');
+      if (container) container.scrollTop = container.scrollHeight;
+    };
+
+    window.addTeacherToOrderFromChip = function(tName) {
+      const currentOrder = Array.from(document.querySelectorAll('#teacherOrderListContainer [data-teacher]'))
+        .map(el => el.getAttribute('data-teacher'))
+        .filter(Boolean);
+
+      if (currentOrder.includes(tName)) {
+        const updated = currentOrder.filter(t => t !== tName);
+        buildTeacherOrderModalInitialDOM(updated);
+        renderTeacherModalChips(updated);
+      } else {
+        currentOrder.push(tName);
+        buildTeacherOrderModalInitialDOM(currentOrder);
+        renderTeacherModalChips(currentOrder);
+      }
+    };
+
+    window.removeTeacherFromOrderModal = function(tName, event) {
+      if (event) event.stopPropagation();
+      const currentOrder = Array.from(document.querySelectorAll('#teacherOrderListContainer [data-teacher]'))
+        .map(el => el.getAttribute('data-teacher'))
+        .filter(Boolean);
+
+      const updated = currentOrder.filter(t => t !== tName);
+      buildTeacherOrderModalInitialDOM(updated);
+      renderTeacherModalChips(updated);
+    };
+
+    window.clearCustomTeacherOrder = function() {
+      if (!confirm('지정된 교사 정렬 순서를 초기화하고 가나다 기본순으로 되돌리시겠습니까?')) return;
+      setTeacherOrder([]);
+      const allList = window.getCurrentTeacherSummaryList();
+      buildTeacherOrderModalInitialDOM(allList);
+      renderTeacherModalChips([]);
+      renderAllGradesTeacherSummary();
+      alert('🔄 교사 정렬 순서가 초기화되었습니다 (가나다 기본순).');
+    };
+
+    function renderTeacherModalChips(currentOrdered = []) {
+      const chipsContainer = document.getElementById('teacherModalChipsContainer');
+      const countBadge = document.getElementById('teacherChipsAvailableCount');
+      if (!chipsContainer) return;
+
+      const curriculum = getAllGradesCurriculum();
+      const allTeachersSet = new Set();
+      curriculum.forEach(c => {
+        if (c.teacher && c.teacher !== '폐강' && c.teacher !== '미배정') {
+          allTeachersSet.add(c.teacher.trim());
+        }
+      });
+
+      const allTeachers = Array.from(allTeachersSet).sort((a, b) => a.localeCompare(b, 'ko'));
+      if (countBadge) countBadge.textContent = `총 ${allTeachers.length}명`;
+
+      if (allTeachers.length === 0) {
+        chipsContainer.innerHTML = '<span class="text-xs text-slate-400 italic">편제표에 등록된 담당 교사가 없습니다.</span>';
+        return;
+      }
+
+      chipsContainer.innerHTML = allTeachers.map(t => {
+        const isIncluded = currentOrdered.includes(t);
+        const orderIdx = isIncluded ? (currentOrdered.indexOf(t) + 1) : null;
+        return `
+          <button type="button" 
+                  onclick="window.addTeacherToOrderFromChip('${escapeHtml(t)}')"
+                  class="px-2 py-0.5 rounded-lg text-xs font-bold transition border cursor-pointer flex items-center gap-1 select-none ${
+                    isIncluded 
+                      ? 'bg-indigo-100 text-indigo-900 border-indigo-300 ring-1 ring-indigo-300' 
+                      : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 shadow-2xs'
+                  }"
+                  title="${isIncluded ? `${orderIdx}번째 순서로 지정됨 (클릭 시 순서에서 제거)` : '클릭하여 순서에 추가'}">
+            <span>${isIncluded ? `✓ ${orderIdx}. ` : '+ '}${escapeHtml(t)}</span>
+          </button>
+        `;
+      }).join('');
+    }
 
     // ==========================================
     // TEACHER ORDER MODAL (Pure DOM Drag & Excel-style Shift Insertion)
@@ -11836,8 +12197,24 @@
       const searchInput = document.getElementById('teacherOrderModalSearch');
       if (searchInput) searchInput.value = '';
 
-      // 최초 1회만 DOM 목록 생성
-      buildTeacherOrderModalInitialDOM(list);
+      // 최초 DOM 목록 생성 및 교사 칩 렌더링
+      const customOrder = (MultiState && MultiState.customTeacherOrder && Array.isArray(MultiState.customTeacherOrder) && MultiState.customTeacherOrder.length > 0)
+        ? MultiState.customTeacherOrder
+        : list;
+      buildTeacherOrderModalInitialDOM(customOrder);
+      renderTeacherModalChips(customOrder);
+
+      // 직접 입력창 엔터키 리스너 바인딩
+      const directInput = document.getElementById('teacherOrderDirectInput');
+      if (directInput) {
+        directInput.value = '';
+        directInput.onkeydown = function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            window.addTeacherFromDirectInput();
+          }
+        };
+      }
 
       // 취소 복원용 스냅샷 저장
       const container = document.getElementById('teacherOrderListContainer');
@@ -11864,9 +12241,8 @@
         .map(el => el.getAttribute('data-teacher'))
         .filter(Boolean);
 
-      setTeacherOrder(finalOrder);
+      window.setCustomTeacherOrderList(finalOrder);
       window.closeTeacherOrderModal();
-      renderAllGradesTeacherSummary();
       alert(`✅ 교사 순서 [총 ${finalOrder.length}명]가 성공적으로 적용 및 저장되었습니다!`);
     };
 
@@ -11917,6 +12293,7 @@
                 <button type="button" onclick="window.moveTeacherOrderModalItem('${escapeHtml(tName)}', 'up')" class="p-1 text-[11px] text-slate-500 hover:text-indigo-600 hover:bg-white rounded transition cursor-pointer" title="한 칸 위로 이동">▲</button>
                 <button type="button" onclick="window.moveTeacherOrderModalItem('${escapeHtml(tName)}', 'down')" class="p-1 text-[11px] text-slate-500 hover:text-indigo-600 hover:bg-white rounded transition cursor-pointer" title="한 칸 아래로 이동">▼</button>
                 <button type="button" onclick="window.moveTeacherOrderModalItem('${escapeHtml(tName)}', 'bottom')" class="p-1 text-[11px] text-slate-500 hover:text-indigo-600 hover:bg-white rounded transition cursor-pointer" title="맨 아래로 이동">⏬</button>
+                <button type="button" onclick="window.removeTeacherFromOrderModal('${escapeHtml(tName)}', event)" class="p-1 text-[11px] text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition cursor-pointer font-bold" title="순서에서 제거">✕</button>
               </div>
             </div>
           </div>
@@ -12829,6 +13206,23 @@
         const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('SANGJI_COURSE_REG_MULTI_V5');
         if (raw) {
           const parsed = JSON.parse(raw);
+          if (parsed) {
+            if (Array.isArray(parsed.customTeacherOrder)) {
+              MultiState.customTeacherOrder = [...parsed.customTeacherOrder];
+            }
+            if (Array.isArray(parsed.academicYearsList)) {
+              MultiState.academicYearsList = [...parsed.academicYearsList];
+            }
+            if (parsed.activeAcademicYear) {
+              MultiState.activeAcademicYear = parsed.activeAcademicYear;
+            }
+            if (parsed.datesByAcademicYear && typeof parsed.datesByAcademicYear === 'object') {
+              MultiState.datesByAcademicYear = JSON.parse(JSON.stringify(parsed.datesByAcademicYear));
+            }
+            if (parsed.curriculumByAcademicYear && typeof parsed.curriculumByAcademicYear === 'object') {
+              MultiState.curriculumByAcademicYear = JSON.parse(JSON.stringify(parsed.curriculumByAcademicYear));
+            }
+          }
           if (parsed && parsed.data) {
             const hasStudents = Object.values(parsed.data).some(y => 
               y && Object.values(y).some(g => g && Array.isArray(g.students) && g.students.length > 0)
