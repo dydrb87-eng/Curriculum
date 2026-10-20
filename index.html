@@ -16,8 +16,6 @@
   <!-- Firebase Cloud Database SDK (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <!-- GitHub Curriculum Repository Seed Data -->
-  <script src="curriculum_data.js"></script>
   <!-- Custom Tailwind Config -->
   <script>
     tailwind.config = {
@@ -126,10 +124,10 @@
             <span class="text-sm">🎓</span>
             <span>기준 학년도:</span>
           </div>
-          <div id="academicYearGroupTabs" class="flex items-center gap-1 shrink-0">
+          <div id="academicYearGroupTabs" class="flex flex-col gap-1 shrink-0 max-h-[72px] overflow-y-auto pr-0.5 custom-scrollbar">
             <!-- 기준 학년도 탭 버튼 동적 렌더링 -->
           </div>
-          <button id="btnAddAcademicYearGroup" type="button" onclick="window.handleAddAcademicYearGroup()" class="px-2 py-1 text-xs font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center gap-0.5 shrink-0 cursor-pointer" title="새 기준 학년도 추가 (예: 2028학년도)">
+          <button id="btnAddAcademicYearGroup" type="button" onclick="window.handleAddAcademicYearGroup()" class="px-2 py-1 text-xs font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center justify-center gap-0.5 shrink-0 cursor-pointer self-stretch" title="새 기준 학년도 추가 (예: 2028학년도)">
             <span class="text-indigo-600 font-extrabold">+</span> <span>추가</span>
           </button>
         </div>
@@ -194,18 +192,7 @@
 
       <!-- Right: Current Active Context Badge & Cloud DB Status Badge -->
       <div class="flex items-center gap-2.5 text-xs shrink-0">
-        <!-- Load Repo Data Button -->
-        <button id="btnLoadRepoData" type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 hover:bg-indigo-100 transition shadow-2xs cursor-pointer" title="GitHub 저장소의 2027학년도 최신 수강신청 데이터 불러오기">
-          <span>📂</span>
-          <span>저장소 최신 데이터 불러오기</span>
-        </button>
 
-        <!-- Backend / Cloud Status Badge (Click to open settings) -->
-        <button id="btnCloudStatus" type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 transition shadow-2xs" title="클라우드 DB 및 데이터 백업/복원 관리">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span id="cloudStatusText">데이터 자동 보존 중</span>
-          <span class="text-[10px] text-emerald-700 bg-white/70 px-1 py-0.2 rounded-sm">설정</span>
-        </button>
 
         <!-- Current Active Work Environment Badge -->
         <span id="currentWorkBadge" class="px-3 py-1 rounded-full font-extrabold bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs flex items-center gap-1.5">
@@ -3027,7 +3014,8 @@
       const hh = String(now.getHours()).padStart(2, '0');
       const mm = String(now.getMinutes()).padStart(2, '0');
       const dateStr = `${yyyy}${MM}${dd}_${hh}${mm}`;
-      const outName = `수강신청 미신청자 및 중복 신청자 명단_${dateStr}(${grade}).xlsx`;
+      const acadYear = getActiveAcademicYearName();
+      const outName = `[${acadYear}]_수강신청 미신청자 및 중복 신청자 명단_${dateStr}(${grade}).xlsx`;
       window.saveExcelFile(wb, outName);
     }
 
@@ -3175,7 +3163,8 @@
       });
 
       XLSX.utils.book_append_sheet(wb, ws, '중복과목_변경신청서');
-      const filename = `[상지대관령고]_${activeYear}학년도_${grade}_중복신청_과목변경_신청서(학생배부용).xlsx`;
+      const acadYear = getActiveAcademicYearName();
+      const filename = `[상지대관령고]_${acadYear}_${grade}_중복신청_과목변경_신청서(학생배부용).xlsx`;
       window.saveExcelFile(wb, filename);
     };
 
@@ -4795,7 +4784,8 @@
       const dd = String(now.getDate()).padStart(2, '0');
       const dateSuffix = `_${yy}${mm}${dd}`;
 
-      const fileName = `[상지대관령고]_${AppState.detectedGrade}_과목별_개설_폐강현황표(1학기_2학기)${dateSuffix}.xlsx`;
+      const acadYear = getActiveAcademicYearName();
+      const fileName = `[상지대관령고]_${acadYear}_${AppState.detectedGrade}_과목별_개설_폐강현황표(1학기_2학기)${dateSuffix}.xlsx`;
       window.saveExcelFile(wb, fileName);
     }
 
@@ -4974,7 +4964,8 @@
         XLSX.utils.book_append_sheet(wb, ws, `${sem}학기 선택현황`);
       });
 
-      const fileName = `[상지대관령고]_${AppState.detectedGrade}_선택과목_1단계_현황표.xlsx`;
+      const acadYear = getActiveAcademicYearName();
+      const fileName = `[상지대관령고]_${acadYear}_${AppState.detectedGrade}_선택과목_1단계_현황표.xlsx`;
       window.saveExcelFile(wb, fileName);
     }
 
@@ -8333,7 +8324,8 @@
         const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
         XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
-        const outFileName = `[상지대관령고]_${AppState.detectedGrade}_${plan.name.replace(/[\s\(\):]/g, '_')}_시간표.xlsx`;
+        const acadYear = getActiveAcademicYearName();
+        const outFileName = `[상지대관령고]_${acadYear}_${AppState.detectedGrade}_${plan.name.replace(/[\s\(\):]/g, '_')}_시간표.xlsx`;
         window.saveExcelFile(wb, outFileName);
         alert(`📥 [${plan.name}] 엑셀 파일이 다운로드되었습니다!\n(${outFileName})`);
       } catch (err) {
@@ -8400,7 +8392,8 @@
       const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
       XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
-      const outFileName = `[상지대관령고]_${AppState.detectedGrade}_선택과목_그룹핑_최종결과.xlsx`;
+      const acadYear = getActiveAcademicYearName();
+      const outFileName = `[상지대관령고]_${acadYear}_${AppState.detectedGrade}_선택과목_그룹핑_최종결과.xlsx`;
       window.saveExcelFile(wb, outFileName);
       alert(`📥 엑셀 파일이 다운로드되었습니다!\n(${outFileName})\n\n💡 이 파일을 나중에 다시 웹앱에 업로드하면 이전 작업 상태가 그대로 복원됩니다.`);
     }
@@ -8894,6 +8887,17 @@
       };
     }
 
+    function getActiveAcademicYearName() {
+      if (typeof MultiState !== "undefined" && MultiState && MultiState.activeAcademicYear) {
+        return MultiState.activeAcademicYear.trim();
+      }
+      const y = (typeof MultiState !== "undefined" && MultiState && MultiState.activeYear) 
+        ? String(MultiState.activeYear).replace(/[^0-9]/g, "").slice(0, 4) 
+        : "2027";
+      return (y || "2027") + "학년도";
+    }
+    window.getActiveAcademicYearName = getActiveAcademicYearName;
+
     const MultiState = {
       academicYearsList: ['2027학년도'], // 상위: 기준 학년도 목록
       activeAcademicYear: '2027학년도', // 현재 활성 기준 학년도
@@ -8975,6 +8979,7 @@
 
       updateUiBadge(mode) {
         const btn = document.getElementById('btnCloudStatus');
+        if (!btn) return;
         const modalStatus = document.getElementById('modalStorageStatus');
         if (!btn) return;
 
@@ -9392,7 +9397,7 @@ function renderYearGradeNav() {
             }">
               <button type="button" 
                       onclick="window.switchAcademicYearGroup('${ay}')"
-                      class="px-2.5 py-1 text-xs flex items-center gap-1 focus:outline-hidden cursor-pointer"
+                      class="px-2.5 py-0.5 text-xs flex items-center gap-1 focus:outline-hidden cursor-pointer"
                       title="${ay} 교육과정으로 전환">
                 <span>${ay}</span>
               </button>
@@ -9967,7 +9972,10 @@ function renderYearGradeNav() {
       const ss = String(now.getSeconds()).padStart(2, '0');
       const dateStr = `${yyyy}${mm}${dd}`;
       const timeStr = `${hh}${min}${ss}`;
-      return `수강신청 및 그룹핑 데이터_${dateStr}_${timeStr}.json`;
+      const acadYear = (typeof getActiveAcademicYearName === "function")
+        ? getActiveAcademicYearName()
+        : ((typeof MultiState !== "undefined" && MultiState && MultiState.activeAcademicYear) || "2027학년도");
+      return `[${acadYear}]_수강신청 및 그룹핑 데이터_${dateStr}_${timeStr}.json`;
     };
 
     window.exportStandardDownload = function() {
@@ -11445,9 +11453,9 @@ function renderYearGradeNav() {
 
       XLSX.utils.book_append_sheet(wb, ws, '교육과정_기초데이터');
 
-      // 파일명: [기준날짜]_교육과정_기초데이터_최신본.xlsx
-      const cleanYear = year.replace(/[\/\\:*?"<>|]/g, '_');
-      const fileName = `[${cleanYear}]_교육과정_기초데이터_최신본.xlsx`;
+      // 파일명: [기준학년도]_교육과정_기초데이터_최신본.xlsx
+      const acadYear = getActiveAcademicYearName();
+      const fileName = `[${acadYear}]_교육과정_기초데이터_최신본.xlsx`;
       window.saveExcelFile(wb, fileName);
 
       alert(`📥 [${year}] 최신 수정 기초데이터(${curriculum.length}개 과목)가 엑셀로 다운로드되었습니다!\n파일명: ${fileName}\n\n💡 다른 '기준 날짜' 탭을 만든 후, '전체 시수종합'에서 이 파일 그대로 [📂 기초데이터 엑셀 업로드]하시면 수정한 내용이 완벽하게 반영됩니다.`);
@@ -11482,7 +11490,8 @@ function renderYearGradeNav() {
         { wch: 14 }  // 담당교사
       ];
       XLSX.utils.book_append_sheet(wb, ws, '교육과정_기초데이터_양식');
-      window.saveExcelFile(wb, '교육과정_기초데이터_표준양식.xlsx');
+      const acadYear = getActiveAcademicYearName();
+      window.saveExcelFile(wb, `[${acadYear}]_교육과정_기초데이터_표준양식.xlsx`);
     }
 
     // 교사별 학기 수업 시수 및 담당 과목 요약표 엑셀 워크시트 생성 (깔끔한 파스텔 톤 서식, 1행에 과목 1개씩 전개)
@@ -11844,7 +11853,8 @@ function renderYearGradeNav() {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, '교사별_수업시수_요약');
 
-      const fileName = `${year}학년도_교사별_학기수업시수_및_담당과목_요약.xlsx`;
+      const acadYear = getActiveAcademicYearName();
+      const fileName = `${acadYear}_교사별_학기수업시수_및_담당과목_요약.xlsx`;
       window.saveExcelFile(wb, fileName);
       console.log(`✅ [${fileName}] 파스텔톤 서식 엑셀 다운로드 완료`);
     };
@@ -11893,7 +11903,8 @@ function renderYearGradeNav() {
       ];
       XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
 
-      window.saveExcelFile(wb, `${year}학년도_전학년_교사별시수_및_과목배정_종합.xlsx`);
+      const acadYear = getActiveAcademicYearName();
+      window.saveExcelFile(wb, `${acadYear}_전학년_교사별시수_및_과목배정_종합.xlsx`);
     }
 
     function renderAllGradesDashboard(fullRedraw = true) {
@@ -13260,15 +13271,6 @@ function renderYearGradeNav() {
         console.warn('checkLocalBackup error:', e);
       }
 
-      // 저장소 데이터 수동 연동 버튼 이벤트
-      document.getElementById('btnLoadRepoData')?.addEventListener('click', () => {
-        if (window.INITIAL_CURRICULUM_DATA) {
-          applyExternalMultiState(window.INITIAL_CURRICULUM_DATA, false);
-          alert('✅ GitHub 저장소의 최신 수강신청 데이터가 성공적으로 연동되었습니다!');
-        } else {
-          alert('연동할 저장소 데이터(curriculum_data.js)를 찾을 수 없습니다.');
-        }
-      });
 
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       cloudSync.init();
