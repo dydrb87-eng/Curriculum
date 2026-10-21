@@ -1383,7 +1383,7 @@
             </div>
           </div>
 
-          <div class="overflow-x-auto custom-scrollbar border border-slate-300 rounded-2xl shadow-sm bg-white">
+          <div class="overflow-auto max-h-[75vh] custom-scrollbar border border-slate-300 rounded-2xl shadow-sm bg-white">
             <table id="studentScheduleTable" class="w-full text-xs text-left border-collapse select-none border-spacing-0">
               <!-- Dynamically Populated -->
             </table>
@@ -7958,12 +7958,12 @@
         { headerBg: 'bg-teal-100/90 text-teal-950 border-teal-300', numBg: 'bg-teal-600 text-white', thSubjBg: 'bg-teal-50/70 text-teal-900', badgeCls: 'bg-teal-100 text-teal-900 border-teal-300', cellChosenBg: 'bg-teal-50/50' }
       ];
 
-      // Header Row 1: Groups with colspans and conflict badges
-      let h1 = '<tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0 z-30">';
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('classNum')" style="position: sticky; left: 0px; min-width: 44px; max-width: 44px; z-index: 40;" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[1px_0_0_0_#cbd5e1]" title="클릭하여 반 순서 정렬">반${getColSortIcon('classNum')}</th>`;
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('studentNum')" style="position: sticky; left: 44px; min-width: 44px; max-width: 44px; z-index: 40;" class="p-2.5 text-center border-r border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[1px_0_0_0_#cbd5e1]" title="클릭하여 번호 순서 정렬">번호${getColSortIcon('studentNum')}</th>`;
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('name')" style="position: sticky; left: 88px; min-width: 105px; max-width: 120px; z-index: 40;" class="p-2.5 text-left border-r-2 border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]" title="클릭하여 이름 순서 정렬">이름${getColSortIcon('name')}</th>`;
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('career')" class="p-2.5 text-left border-r-4 border-slate-400 bg-slate-100 min-w-[130px] max-w-[170px] cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 진로 순서 정렬">진로·관심${getColSortIcon('career')}</th>`;
+      // Header Row 1: Groups with colspans and conflict badges (틀고정 sticky top-0)
+      let h1 = '<tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 h-[39px]">';
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('classNum')" style="position: sticky; top: 0; left: 0px; min-width: 44px; max-width: 44px; z-index: 45;" class="p-2 text-center border-r border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[1px_0_0_0_#cbd5e1]" title="클릭하여 반 순서 정렬">반${getColSortIcon('classNum')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('studentNum')" style="position: sticky; top: 0; left: 44px; min-width: 44px; max-width: 44px; z-index: 45;" class="p-2 text-center border-r border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[1px_0_0_0_#cbd5e1]" title="클릭하여 번호 순서 정렬">번호${getColSortIcon('studentNum')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('name')" style="position: sticky; top: 0; left: 88px; min-width: 105px; max-width: 120px; z-index: 45;" class="p-2 text-left border-r-2 border-slate-300 bg-slate-100 cursor-pointer hover:bg-slate-200 transition select-none shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]" title="클릭하여 이름 순서 정렬">이름${getColSortIcon('name')}</th>`;
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('career')" style="position: sticky; top: 0; z-index: 35;" class="p-2 text-left border-r-4 border-slate-400 bg-slate-100 min-w-[130px] max-w-[170px] cursor-pointer hover:bg-slate-200 transition select-none" title="클릭하여 진로 순서 정렬">진로·관심${getColSortIcon('career')}</th>`;
 
       const groupStudentCounts = plan.groups.map((_, gIdx) => {
         let count = 0;
@@ -7983,7 +7983,7 @@
           ? '<span class="ml-1.5 text-[10px] font-semibold text-emerald-800 bg-white/95 px-1.5 py-0.2 rounded-full border border-emerald-300 shadow-2xs">중복 0</span>'
           : `<span class="ml-1.5 text-[10px] font-black text-rose-800 bg-white/95 px-1.5 py-0.2 rounded-full border border-rose-300 shadow-2xs animate-pulse">중복 ${gConf}명</span>`;
 
-        h1 += `<th colspan="${colCount}" class="p-2.5 text-center border-r-4 border-slate-400 font-extrabold ${theme.headerBg}">
+        h1 += `<th colspan="${colCount}" style="position: sticky; top: 0; z-index: 35;" class="p-2 text-center border-r-4 border-slate-400 font-extrabold ${theme.headerBg}">
           <div class="flex items-center justify-center gap-1.5">
             <span class="w-5 h-5 rounded-md ${theme.numBg} text-[11px] font-black flex items-center justify-center shadow-2xs">${gIdx + 1}</span>
             <span class="text-xs font-black tracking-wide">${gIdx + 1}그룹(${groupStudentCounts[gIdx]}명)</span>
@@ -7992,20 +7992,20 @@
         </th>`;
       });
 
-      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('status')" class="p-2.5 text-center bg-slate-100 min-w-[90px] border-l-4 border-slate-400 cursor-pointer hover:bg-slate-200 transition select-none font-bold" title="클릭하여 충돌/정상 상태 정렬">
+      h1 += `<th rowspan="2" onclick="window.handleColHeaderClick('status')" style="position: sticky; top: 0; z-index: 35;" class="p-2 text-center bg-slate-100 min-w-[90px] border-l-4 border-slate-400 cursor-pointer hover:bg-slate-200 transition select-none font-bold" title="클릭하여 충돌/정상 상태 정렬">
         선택 상태${getColSortIcon('status')}
       </th>`;
-      h1 += `<th rowspan="2" class="p-2.5 text-center bg-slate-100 min-w-[220px] border-l-2 border-slate-300 font-bold whitespace-nowrap select-none" title="다른 선택과목 변경 추천 또는 상담 특이사항 메모">
+      h1 += `<th rowspan="2" style="position: sticky; top: 0; z-index: 35;" class="p-2 text-center bg-slate-100 min-w-[220px] border-l-2 border-slate-300 font-bold whitespace-nowrap select-none" title="다른 선택과목 변경 추천 또는 상담 특이사항 메모">
         과목 변경 추천 / 상담 메모
       </th>`;
       h1 += '</tr>';
 
-      // Header Row 2: Subjects under each group (clickable for Excel-style sort)
-      let h2 = '<tr class="bg-slate-50 text-slate-800 font-bold border-b-2 border-slate-400 sticky top-10 z-20 text-[11px]">';
+      // Header Row 2: Subjects under each group (과목명 틀고정 sticky top-[39px])
+      let h2 = '<tr class="bg-slate-50 text-slate-800 font-bold border-b-2 border-slate-400 text-[11px] h-[37px]">';
       plan.groups.forEach((groupSubjs, gIdx) => {
         const theme = groupThemes[gIdx % groupThemes.length];
         if (groupSubjs.length === 0) {
-          h2 += `<th class="p-2 text-center border-r-4 border-slate-400 text-slate-400 italic ${theme.thSubjBg}">과목 없음</th>`;
+          h2 += `<th style="position: sticky; top: 39px; z-index: 30;" class="p-2 text-center border-r-4 border-slate-400 text-slate-400 italic ${theme.thSubjBg}">과목 없음</th>`;
         } else {
           groupSubjs.forEach((sName, sIdx) => {
             const isLastInGroup = sIdx === groupSubjs.length - 1;
@@ -8050,7 +8050,8 @@
               : '';
 
             h2 += `<th onclick="window.handleSubjectHeaderClick('${sName}', ${gIdx})" 
-                      class="p-2 text-center ${borderCls} ${thBg} whitespace-nowrap min-w-[82px] cursor-pointer select-none transition-all" 
+                      style="position: sticky; top: 39px; z-index: 30;"
+                      class="p-2 text-center ${borderCls} ${thBg} whitespace-nowrap min-w-[82px] cursor-pointer select-none transition-all shadow-[0_2px_2px_-1px_rgba(0,0,0,0.1)]" 
                       title="${thTitle}">
               <div class="flex items-center justify-center gap-0.5">
                 ${selectedBadge}
