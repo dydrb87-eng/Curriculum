@@ -100,7 +100,7 @@
         <label id="headerRestoreBackupLabel" for="headerRestoreBackupJson" class="px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 rounded-lg transition-all border-2 border-dashed border-indigo-400 hover:border-indigo-600 flex items-center space-x-1.5 shadow-xs cursor-pointer select-none" title="클릭하거나 백업 파일(.json / .xlsx)을 직접 이 버튼 위로 드래그하여 작업 상태를 복원합니다.">
           <span class="text-sm">📂</span>
           <span>작업 불러오기</span>
-          <span class="text-[10px] text-indigo-500 font-semibold hidden sm:inline">(드래그 가능)</span>
+          
           <input type="file" id="headerRestoreBackupJson" accept=".json,.xlsx,.xls" class="hidden" onchange="if(this.files[0]) { if(this.files[0].name.toLowerCase().endsWith('.json')) { window.importBackupJsonFile(this.files[0]); } else { processUploadedFile(this.files[0]); } this.value=''; }" />
         </label>
 
@@ -412,11 +412,16 @@
             <span>📋 과목 기준 데이터 정리</span>
           </button>
 
-          <label id="lblUploadPublisherExcel" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="과목별 출판사 정보가 담긴 엑셀 파일을 업로드하여 과목 기준 데이터에 자동 반영합니다">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-            <span id="txtPublisherUploadStatus">📖 출판사 엑셀 등록</span>
-            <input type="file" id="publisherFileInput" accept=".xlsx, .xls, .csv" class="hidden" />
-          </label>
+          <div id="publisherButtonGroup" class="inline-flex items-center rounded-xl shadow-xs border-2 border-dashed border-purple-400 hover:border-purple-600 bg-purple-50 text-purple-900 transition overflow-hidden">
+            <label id="lblUploadPublisherExcel" for="publisherFileInput" class="px-3 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:bg-purple-100/80 transition select-none" title="출판사 엑셀 파일(.xlsx, .xls)을 클릭하여 선택하거나 여기로 드래그하여 등록합니다">
+              <span class="text-sm">📖</span>
+              <span id="txtPublisherUploadStatus">출판사 엑셀 등록</span>
+              <input type="file" id="publisherFileInput" accept=".xlsx, .xls, .csv" class="hidden" />
+            </label>
+            <button id="btnOpenPublisherModal" type="button" onclick="window.openPublisherManagerModal()" class="px-2.5 py-2 text-purple-700 hover:text-purple-950 hover:bg-purple-200/80 border-l border-purple-200 transition cursor-pointer flex items-center justify-center" title="과목별 출판사 목록 직접 확인 및 편집 열기">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1621,6 +1626,86 @@
           </button>
           <button id="btnConfirmApplyImportedMemo" type="button" onclick="window.applyImportedMemo()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5">
             <span>✅ 이 메모 불러오기</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Publisher Manager Modal (과목별 출판사 등록 및 직접 관리) -->
+  <div id="publisherManagerModal" onclick="if(event.target.id === 'publisherManagerModal') window.closePublisherManagerModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl shadow-xs">
+            📖
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900">과목별 출판사 관리 및 직접 편집</h3>
+              <span id="publisherManagerYearBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">2027학년도</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">과목 기준 데이터 정리의 과목 목록을 바탕으로 출판사를 확인, 수정하거나 직접 기입할 수 있습니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closePublisherManagerModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="닫기">
+          ✕
+        </button>
+      </div>
+
+      <!-- Controls & Search Filter -->
+      <div class="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center rounded-xl bg-white border border-slate-200 p-0.5 text-xs font-bold shadow-2xs">
+            <button type="button" onclick="window.filterPublisherTable('all')" class="pub-filter-btn px-2.5 py-1 rounded-lg text-purple-700 bg-purple-50 transition" data-filter="all">전체</button>
+            <button type="button" onclick="window.filterPublisherTable('1학년')" class="pub-filter-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition" data-filter="1학년">1학년</button>
+            <button type="button" onclick="window.filterPublisherTable('2학년')" class="pub-filter-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition" data-filter="2학년">2학년</button>
+            <button type="button" onclick="window.filterPublisherTable('3학년')" class="pub-filter-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition" data-filter="3학년">3학년</button>
+            <button type="button" onclick="window.filterPublisherTable('missing')" class="pub-filter-btn px-2.5 py-1 rounded-lg text-amber-700 hover:text-amber-900 transition" data-filter="missing">미입력 과목</button>
+          </div>
+          <span id="publisherStatsSummary" class="text-xs font-bold text-slate-600 pl-2"></span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="text" id="publisherSearchInput" placeholder="과목명/출판사 검색..." oninput="window.renderPublisherManagerTable()" class="px-3 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 w-44 shadow-2xs" />
+          <label for="publisherModalFileInput" class="px-3 py-1.5 bg-white hover:bg-purple-50 text-purple-700 border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs flex items-center gap-1" title="엑셀 파일로 출판사 일괄 업로드">
+            <span>📥 엑셀 업로드</span>
+            <input type="file" id="publisherModalFileInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="if(this.files[0]){ parsePublisherExcel(this.files[0]); this.value=''; }" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Table Body (Scrollable) -->
+      <div class="overflow-y-auto flex-1 border border-slate-200 rounded-2xl max-h-[50vh]">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200">
+            <tr>
+              <th class="py-2.5 px-3 w-16 text-center">학기</th>
+              <th class="py-2.5 px-3 w-16 text-center">학년</th>
+              <th class="py-2.5 px-3 w-20 text-center">구분</th>
+              <th class="py-2.5 px-3">과목명</th>
+              <th class="py-2.5 px-3 w-64">출판사명</th>
+              <th class="py-2.5 px-3 w-24 text-center">상태</th>
+            </tr>
+          </thead>
+          <tbody id="publisherTableBody" class="divide-y divide-slate-100">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <p class="text-[11px] text-slate-500">
+          💡 각 과목의 출판사명을 직접 입력하거나 수정한 후 [저장하기]를 누르면 '과목 기준 데이터 정리' 엑셀에 즉시 반영됩니다.
+        </p>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.closePublisherManagerModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer">
+            닫기
+          </button>
+          <button type="button" onclick="window.savePublisherManagerModal()" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5">
+            <span>💾 저장하기</span>
           </button>
         </div>
       </div>
@@ -13008,26 +13093,251 @@ function renderYearGradeNav() {
       return '';
     }
 
+    // 과목 기준 데이터 정리에 사용되는 공통 과목 목록 산출 헬퍼
+    function getConsolidatedSubjectList() {
+      const curriculum = getAllGradesCurriculum();
+      const curDate = MultiState?.activeYear || '2027.10.11.';
+      const acadData = getAcadData();
+      const yData = acadData[curDate] || {};
+
+      let subjectList = [];
+
+      if (curriculum && curriculum.length > 0) {
+        subjectList = curriculum.map(c => ({
+          semester: c.semester,
+          grade: c.grade,
+          subject: c.subject,
+          division: c.division || '',
+          teacher: c.teacher || '-',
+          status: c.status || '개설',
+          category: c.category || ''
+        }));
+      } else {
+        ['2학년', '3학년'].forEach(gradeStr => {
+          const gData = yData[gradeStr];
+          if (!gData) return;
+          [1, 2].forEach(sem => {
+            const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
+            const closedList = gData.closedSubjects?.[sem] || [];
+            rawSubjs.forEach(s => {
+              subjectList.push({
+                semester: sem,
+                grade: gradeStr,
+                subject: s,
+                division: '',
+                teacher: '-',
+                status: closedList.includes(s) ? '폐강' : '개설',
+                category: '선택'
+              });
+            });
+          });
+        });
+      }
+
+      ['2학년', '3학년'].forEach(gradeStr => {
+        const gData = yData[gradeStr];
+        if (!gData) return;
+        [1, 2].forEach(sem => {
+          const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
+          const closedList = gData.closedSubjects?.[sem] || [];
+          rawSubjs.forEach(s => {
+            const norm = normalizeSubjectKey(s);
+            const exists = subjectList.some(item => 
+              item.semester === sem && 
+              item.grade === gradeStr && 
+              normalizeSubjectKey(item.subject) === norm
+            );
+            if (!exists) {
+              subjectList.push({
+                semester: sem,
+                grade: gradeStr,
+                subject: s,
+                division: '',
+                teacher: '-',
+                status: closedList.includes(s) ? '폐강' : '개설',
+                category: '선택'
+              });
+            }
+          });
+        });
+      });
+
+      // 정렬: 학기(1->2) -> 학년(1->2->3) -> 과목명(가나다)
+      subjectList.sort((a, b) => {
+        if (a.semester !== b.semester) return a.semester - b.semester;
+        const gOrder = { '1학년': 1, '2학년': 2, '3학년': 3 };
+        const gDiff = (gOrder[a.grade] || 9) - (gOrder[b.grade] || 9);
+        if (gDiff !== 0) return gDiff;
+        return String(a.subject).localeCompare(String(b.subject), 'ko');
+      });
+
+      return subjectList;
+    }
+    window.getConsolidatedSubjectList = getConsolidatedSubjectList;
+
+    let currentPublisherFilter = 'all';
+
+    function openPublisherManagerModal() {
+      const modal = document.getElementById('publisherManagerModal');
+      if (!modal) return;
+      const yearBadge = document.getElementById('publisherManagerYearBadge');
+      if (yearBadge) {
+        yearBadge.textContent = MultiState?.activeAcademicYear || '2027학년도';
+      }
+      currentPublisherFilter = 'all';
+      updatePublisherFilterButtonsUI();
+      renderPublisherManagerTable();
+      modal.classList.remove('hidden');
+    }
+    window.openPublisherManagerModal = openPublisherManagerModal;
+
+    function closePublisherManagerModal() {
+      document.getElementById('publisherManagerModal')?.classList.add('hidden');
+    }
+    window.closePublisherManagerModal = closePublisherManagerModal;
+
+    function filterPublisherTable(filterType) {
+      currentPublisherFilter = filterType;
+      updatePublisherFilterButtonsUI();
+      renderPublisherManagerTable();
+    }
+    window.filterPublisherTable = filterPublisherTable;
+
+    function updatePublisherFilterButtonsUI() {
+      document.querySelectorAll('.pub-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-filter') === currentPublisherFilter) {
+          btn.className = 'pub-filter-btn px-2.5 py-1 rounded-lg text-purple-700 bg-purple-100 font-bold transition';
+        } else {
+          btn.className = 'pub-filter-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition';
+        }
+      });
+    }
+
+    function renderPublisherManagerTable() {
+      const tbody = document.getElementById('publisherTableBody');
+      if (!tbody) return;
+
+      const subjectList = getConsolidatedSubjectList();
+      const searchVal = (document.getElementById('publisherSearchInput')?.value || '').trim().toLowerCase();
+
+      let filledCount = 0;
+      let totalCount = subjectList.length;
+
+      // Group or map unique subjects
+      const renderedRows = [];
+
+      subjectList.forEach((item, idx) => {
+        const currentPub = getPublisherForSubject(item.subject);
+        if (currentPub) filledCount++;
+
+        // Filter by grade / missing
+        if (currentPublisherFilter === '1학년' && item.grade !== '1학년') return;
+        if (currentPublisherFilter === '2학년' && item.grade !== '2학년') return;
+        if (currentPublisherFilter === '3학년' && item.grade !== '3학년') return;
+        if (currentPublisherFilter === 'missing' && currentPub) return;
+
+        // Search query
+        if (searchVal) {
+          const matchSubj = item.subject.toLowerCase().includes(searchVal);
+          const matchPub = currentPub.toLowerCase().includes(searchVal);
+          const matchGrade = item.grade.toLowerCase().includes(searchVal);
+          if (!matchSubj && !matchPub && !matchGrade) return;
+        }
+
+        const isEven = (renderedRows.length % 2 === 1);
+        const rowBg = isEven ? 'bg-slate-50/60' : 'bg-white';
+        const isClosed = (item.status === '폐강');
+
+        const catBadge = isClosed 
+          ? '<span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full font-bold text-[10px]">폐강</span>'
+          : (item.category === '지정' || item.category === '학교지정' 
+            ? '<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full font-bold text-[10px]">지정</span>' 
+            : '<span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full font-bold text-[10px]">선택</span>');
+
+        renderedRows.push(`
+          <tr class="${rowBg} hover:bg-purple-50/40 transition">
+            <td class="py-2 px-3 text-center font-bold text-slate-600">${item.semester}학기</td>
+            <td class="py-2 px-3 text-center font-bold text-slate-800">${item.grade}</td>
+            <td class="py-2 px-3 text-center">${catBadge}</td>
+            <td class="py-2 px-3 font-bold ${isClosed ? 'text-rose-700 line-through' : 'text-slate-900'}">
+              ${item.subject}
+              ${item.teacher && item.teacher !== '-' ? `<span class="text-[10px] text-slate-400 font-normal ml-1">(${item.teacher})</span>` : ''}
+            </td>
+            <td class="py-2 px-3">
+              <input type="text" 
+                     class="pub-edit-input w-full px-2.5 py-1.5 border border-slate-300 rounded-xl bg-white text-slate-900 text-xs font-semibold focus:ring-2 focus:ring-purple-400 outline-none shadow-2xs transition" 
+                     data-subject="${item.subject}" 
+                     value="${currentPub}" 
+                     placeholder="출판사명 입력" />
+            </td>
+            <td class="py-2 px-3 text-center">
+              ${currentPub 
+                ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[10px]">등록됨</span>'
+                : '<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-bold text-[10px]">미등록</span>'
+              }
+            </td>
+          </tr>
+        `);
+      });
+
+      tbody.innerHTML = renderedRows.length > 0 
+        ? renderedRows.join('')
+        : '<tr><td colspan="6" class="py-8 text-center text-slate-400 font-medium">검색 조건에 일치하는 과목이 없습니다.</td></tr>';
+
+      const statsSpan = document.getElementById('publisherStatsSummary');
+      if (statsSpan) {
+        const pct = totalCount > 0 ? Math.round((filledCount / totalCount) * 100) : 0;
+        statsSpan.textContent = `총 ${totalCount}개 과목 중 ${filledCount}개 등록 (${pct}%)`;
+      }
+    }
+    window.renderPublisherManagerTable = renderPublisherManagerTable;
+
+    function savePublisherManagerModal() {
+      const inputs = document.querySelectorAll('.pub-edit-input');
+      const curAY = MultiState.activeAcademicYear || '2027학년도';
+      if (!MultiState.publishersByAcademicYear) MultiState.publishersByAcademicYear = {};
+      if (!MultiState.publishersByAcademicYear[curAY]) MultiState.publishersByAcademicYear[curAY] = {};
+
+      let savedCount = 0;
+      inputs.forEach(inp => {
+        const subj = inp.getAttribute('data-subject');
+        const pubVal = inp.value.trim();
+        const normKey = normalizeSubjectForPublisher(subj);
+        if (normKey) {
+          if (pubVal) {
+            MultiState.publishersByAcademicYear[curAY][normKey] = pubVal;
+            savedCount++;
+          } else {
+            delete MultiState.publishersByAcademicYear[curAY][normKey];
+          }
+        }
+      });
+
+      saveAllState();
+      updatePublisherButtonUI();
+      renderPublisherManagerTable();
+      alert('💾 출판사 정보가 성공적으로 저장되었습니다!\n' + `현재 ${Object.keys(MultiState.publishersByAcademicYear[curAY] || {}).length}개 과목 출판사가 등록되어 있습니다.`);
+    }
+    window.savePublisherManagerModal = savePublisherManagerModal;
+
     function updatePublisherButtonUI() {
       const curAY = MultiState.activeAcademicYear || '2027학년도';
       const map = MultiState.publishersByAcademicYear?.[curAY] || {};
       const count = Object.keys(map).length;
       const statusSpan = document.getElementById('txtPublisherUploadStatus');
-      const containerLabel = document.getElementById('lblUploadPublisherExcel');
+      const groupDiv = document.getElementById('publisherButtonGroup');
       if (statusSpan) {
         if (count > 0) {
-          statusSpan.textContent = `📖 출판사 등록됨 (${count}개)`;
-          if (containerLabel) {
-            containerLabel.classList.remove('bg-purple-600', 'hover:bg-purple-700');
-            containerLabel.classList.add('bg-indigo-700', 'hover:bg-indigo-800');
-            containerLabel.title = `총 ${count}개 과목의 출판사가 등록되어 있습니다. 클릭하여 새 엑셀로 업데이트할 수 있습니다.`;
+          statusSpan.textContent = `출판사 등록됨 (${count}개)`;
+          if (groupDiv) {
+            groupDiv.classList.remove('border-purple-400', 'bg-purple-50', 'text-purple-900');
+            groupDiv.classList.add('border-indigo-400', 'bg-indigo-50', 'text-indigo-900');
           }
         } else {
-          statusSpan.textContent = '📖 출판사 엑셀 등록';
-          if (containerLabel) {
-            containerLabel.classList.remove('bg-indigo-700', 'hover:bg-indigo-800');
-            containerLabel.classList.add('bg-purple-600', 'hover:bg-purple-700');
-            containerLabel.title = '과목별 출판사 정보가 담긴 엑셀 파일을 업로드하여 과목 기준 데이터에 자동 반영합니다';
+          statusSpan.textContent = '출판사 엑셀 등록';
+          if (groupDiv) {
+            groupDiv.classList.remove('border-indigo-400', 'bg-indigo-50', 'text-indigo-900');
+            groupDiv.classList.add('border-purple-400', 'bg-purple-50', 'text-purple-900');
           }
         }
       }
@@ -13120,74 +13430,13 @@ function renderYearGradeNav() {
 
     // 과목 기준 데이터 정리 엑셀 다운로드 (파스텔 톤 서식 & 출판사 자동 기입 & 전원 수강 숫자 표기)
     function exportSubjectBasedExcel() {
-      const curriculum = getAllGradesCurriculum();
       const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
       const curDate = MultiState?.activeYear || '2027.10.11.';
       const acadData = getAcadData();
       const yData = acadData[curDate] || {};
 
-      // 1. 과목 데이터 준비
-      let subjectList = [];
-
-      if (curriculum && curriculum.length > 0) {
-        subjectList = curriculum.map(c => ({
-          semester: c.semester,
-          grade: c.grade,
-          subject: c.subject,
-          division: c.division || '',
-          teacher: c.teacher || '-',
-          status: c.status || '개설',
-          category: c.category || ''
-        }));
-      } else {
-        ['2학년', '3학년'].forEach(gradeStr => {
-          const gData = yData[gradeStr];
-          if (!gData) return;
-          [1, 2].forEach(sem => {
-            const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
-            const closedList = gData.closedSubjects?.[sem] || [];
-            rawSubjs.forEach(s => {
-              subjectList.push({
-                semester: sem,
-                grade: gradeStr,
-                subject: s,
-                division: '',
-                teacher: '-',
-                status: closedList.includes(s) ? '폐강' : '개설',
-                category: '선택'
-              });
-            });
-          });
-        });
-      }
-
-      ['2학년', '3학년'].forEach(gradeStr => {
-        const gData = yData[gradeStr];
-        if (!gData) return;
-        [1, 2].forEach(sem => {
-          const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
-          const closedList = gData.closedSubjects?.[sem] || [];
-          rawSubjs.forEach(s => {
-            const norm = normalizeSubjectKey(s);
-            const exists = subjectList.some(item => 
-              item.semester === sem && 
-              item.grade === gradeStr && 
-              normalizeSubjectKey(item.subject) === norm
-            );
-            if (!exists) {
-              subjectList.push({
-                semester: sem,
-                grade: gradeStr,
-                subject: s,
-                division: '',
-                teacher: '-',
-                status: closedList.includes(s) ? '폐강' : '개설',
-                category: '선택'
-              });
-            }
-          });
-        });
-      });
+      // 1. 과목 데이터 준비 (공통 헬퍼 활용)
+      const subjectList = getConsolidatedSubjectList();
 
       if (subjectList.length === 0) {
         alert('내보낼 과목 데이터가 없습니다. 기초데이터 엑셀을 업로드하거나 수강신청 조사를 등록해주세요.');
@@ -14692,6 +14941,32 @@ function renderYearGradeNav() {
           e.preventDefault();
           if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             parseAllGradesExcel(e.dataTransfer.files[0]);
+          }
+        });
+      }
+
+      // Drag & Drop on Publisher Upload Button
+      const pubDropLabel = document.getElementById('lblUploadPublisherExcel');
+      if (pubDropLabel) {
+        ['dragenter', 'dragover'].forEach(name => {
+          pubDropLabel.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            pubDropLabel.parentElement?.classList.add('ring-2', 'ring-purple-600', 'bg-purple-100', 'scale-105');
+          });
+        });
+        ['dragleave', 'drop'].forEach(name => {
+          pubDropLabel.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            pubDropLabel.parentElement?.classList.remove('ring-2', 'ring-purple-600', 'bg-purple-100', 'scale-105');
+          });
+        });
+        pubDropLabel.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            parsePublisherExcel(e.dataTransfer.files[0]);
           }
         });
       }
