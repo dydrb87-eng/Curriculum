@@ -1056,15 +1056,15 @@
           </div>
         </div>
 
-        <!-- Metrics & Conflict Banner & Semester Work Memo -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Metrics & Conflict Banner & Semester Work Memo (상단 정렬 및 균일 배열 배치) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
           <!-- Total Conflicts with Best Record & Conflict Range Display -->
-          <div id="conflictMetricCard" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between scroll-mt-28">
-            <div class="flex items-center justify-between">
-              <p class="text-xs text-slate-500 font-medium">수강 충돌 발생 학생 수</p>
-              <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-base">⚡</div>
+          <div id="conflictMetricCard" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-start space-y-2 scroll-mt-28">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <p class="text-xs text-slate-600 font-bold">수강 충돌 발생 학생 수</p>
+              <div class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-sm">⚡</div>
             </div>
-            <div class="mt-1 space-y-1.5">
+            <div class="space-y-2 flex-1">
               <div class="flex items-baseline space-x-2">
                 <h4 id="statConflictCount" class="text-2xl font-black text-slate-900">0명</h4>
                 <span id="conflictStatusBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">충돌 없음 (최적)</span>
@@ -1075,7 +1075,7 @@
                   <span>🏆 최저 충돌 기록:</span>
                   <span id="statBestConflictCount" class="text-indigo-900 font-black">0명</span>
                 </span>
-                <button id="btnRestoreBestPlan" type="button" class="hidden px-2 py-0.5 text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md transition shadow-2xs" title="역대 가장 충돌이 적었던 최적 조합 안으로 즉시 복원">
+                <button id="btnRestoreBestPlan" type="button" class="hidden px-2 py-0.5 text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md transition shadow-2xs cursor-pointer" title="역대 가장 충돌이 적었던 최적 조합 안으로 즉시 복원">
                   최저치 안 복원
                 </button>
               </div>
@@ -1083,31 +1083,39 @@
           </div>
 
           <!-- Total Enrolled Groups -->
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p class="text-xs text-slate-500 font-medium">편성된 그룹(블록) 수</p>
-              <h4 id="statGroupCountDisplay" class="text-2xl font-black text-slate-900 mt-0.5">5그룹</h4>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-start space-y-2">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <p class="text-xs text-slate-600 font-bold">편성된 그룹(블록) 수</p>
+              <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">📊</div>
             </div>
-            <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">📊</div>
+            <div class="space-y-2 flex-1">
+              <div class="flex items-baseline space-x-2">
+                <h4 id="statGroupCountDisplay" class="text-2xl font-black text-slate-900">5그룹</h4>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">편성 블록</span>
+              </div>
+              <p class="pt-2 border-t border-slate-100 text-[11px] text-slate-400">설정된 그룹 수에 맞춰 과목이 동시간대 블록으로 배치됩니다.</p>
+            </div>
           </div>
 
           <!-- 학기별 편성 메모 카드 (편성된 그룹 수 오른쪽에 위치) -->
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2">
-            <div class="flex items-center justify-between gap-1 border-b border-slate-100 pb-1.5">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-start space-y-2">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
               <div class="flex items-center gap-1.5">
-                <span class="text-xs font-bold text-slate-800 flex items-center gap-1">
+                <p class="text-xs text-slate-800 font-bold flex items-center gap-1">
                   <span>📝 학기별 편성 메모</span>
-                </span>
+                </p>
                 <span id="step2MemoContextBadge" class="text-[10px] px-1.5 py-0.2 rounded font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"></span>
               </div>
               <button id="btnOpenImportMemoModal" type="button" onclick="window.openImportMemoModal()" class="px-2 py-0.5 text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-md transition shadow-2xs flex items-center gap-1 cursor-pointer" title="동일 학년도의 다른 기준 날짜에서 동일 학년·학기의 메모를 불러옵니다">
                 <span>📥 메모 불러오기</span>
               </button>
             </div>
-            <textarea id="step2ContextMemo" rows="3" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 font-sans leading-relaxed resize-none bg-slate-50/50 hover:bg-white focus:bg-white transition flex-1 min-h-[64px]" placeholder="현재 기준 날짜·학년·학기의 편성 관련 메모 및 특이사항을 기록하세요. (실시간 자동 저장됨)"></textarea>
-            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5 select-none">
-              <span>* 탭 및 기준 날짜별 독립 저장</span>
-              <span id="step2MemoSavedHint" class="text-emerald-600 font-bold hidden">✓ 자동 저장됨</span>
+            <div class="flex flex-col flex-1 space-y-1">
+              <textarea id="step2ContextMemo" rows="3" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 font-sans leading-relaxed resize-none bg-slate-50/50 hover:bg-white focus:bg-white transition flex-1 min-h-[64px]" placeholder="현재 기준 날짜·학년·학기의 편성 관련 메모 및 특이사항을 기록하세요. (실시간 자동 저장됨)"></textarea>
+              <div class="flex items-center justify-between text-[10px] text-slate-400 select-none">
+                <span>* 탭 및 기준 날짜별 독립 저장</span>
+                <span id="step2MemoSavedHint" class="text-emerald-600 font-bold hidden">✓ 자동 저장됨</span>
+              </div>
             </div>
           </div>
         </div>
