@@ -195,9 +195,8 @@
 
 
         <!-- Current Active Work Environment Badge -->
-        <span id="currentWorkBadge" class="px-3 py-1 rounded-full font-extrabold bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs flex items-center gap-1.5">
-          <span>✨</span>
-          <span id="currentWorkText">2027학년도 2학년</span>
+        <span id="currentWorkBadge" class="hidden">
+          <span id="currentWorkText"></span>
         </span>
       </div>
 
@@ -412,6 +411,12 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span>📋 과목 기준 데이터 정리</span>
           </button>
+
+          <label id="lblUploadPublisherExcel" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="과목별 출판사 정보가 담긴 엑셀 파일을 업로드하여 과목 기준 데이터에 자동 반영합니다">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <span id="txtPublisherUploadStatus">📖 출판사 엑셀 등록</span>
+            <input type="file" id="publisherFileInput" accept=".xlsx, .xls, .csv" class="hidden" />
+          </label>
         </div>
       </div>
 
