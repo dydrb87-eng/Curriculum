@@ -1726,6 +1726,84 @@
     </div>
   </div>
 
+  <!-- Publisher Conflict Resolution Modal (출판사 재등록 시 상이한 과목 1개씩 대조 확인 모달) -->
+  <div id="publisherConflictModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150 flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl shadow-xs">
+            ⚖️
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900">출판사 정보 변경 확인</h3>
+              <span id="publisherConflictProgressBadge" class="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">1 / 1</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">기존에 등록된 출판사와 새로 업로드한 엑셀 파일의 출판사가 다릅니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.cancelPublisherConflictResolution()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="취소">
+          ✕
+        </button>
+      </div>
+
+      <!-- Subject Target Card -->
+      <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-center space-y-1">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">대상 과목명</span>
+        <h4 id="publisherConflictSubjectName" class="text-lg font-black text-slate-900">과목명</h4>
+      </div>
+
+      <!-- Two Comparison Choices -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- Option 1: Keep Existing -->
+        <button type="button" onclick="window.resolveCurrentPublisherConflict('keep')" class="group p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-500 bg-white hover:bg-indigo-50/40 text-left transition flex flex-col justify-between shadow-2xs hover:shadow-md cursor-pointer select-none">
+          <div class="space-y-1.5 w-full">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-800 transition">옵션 1 (기존 데이터)</span>
+              <span class="text-xs text-indigo-600 font-bold opacity-0 group-hover:opacity-100 transition">선택 ➔</span>
+            </div>
+            <div class="text-xs text-slate-500">현재 등록된 출판사</div>
+            <div id="publisherConflictExistingPub" class="text-base font-extrabold text-slate-800 group-hover:text-indigo-900 truncate">미래엔</div>
+          </div>
+          <div class="mt-4 w-full py-2 text-center text-xs font-bold rounded-xl bg-slate-100 group-hover:bg-indigo-600 text-slate-700 group-hover:text-white transition">
+            기존 출판사 유지
+          </div>
+        </button>
+
+        <!-- Option 2: Apply New -->
+        <button type="button" onclick="window.resolveCurrentPublisherConflict('overwrite')" class="group p-4 rounded-2xl border-2 border-purple-200 hover:border-purple-600 bg-purple-50/30 hover:bg-purple-50 text-left transition flex flex-col justify-between shadow-2xs hover:shadow-md cursor-pointer select-none">
+          <div class="space-y-1.5 w-full">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 group-hover:bg-purple-200 transition">옵션 2 (새 엑셀 파일)</span>
+              <span class="text-xs text-purple-600 font-bold opacity-0 group-hover:opacity-100 transition">선택 ➔</span>
+            </div>
+            <div class="text-xs text-slate-500">새로 업로드된 출판사</div>
+            <div id="publisherConflictNewPub" class="text-base font-extrabold text-purple-900 truncate">비상교육</div>
+          </div>
+          <div class="mt-4 w-full py-2 text-center text-xs font-bold rounded-xl bg-purple-600 group-hover:bg-purple-700 text-white transition shadow-xs">
+            새 출판사로 변경
+          </div>
+        </button>
+      </div>
+
+      <!-- Quick Batch Actions & Cancel -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
+        <button type="button" onclick="window.cancelPublisherConflictResolution()" class="px-3 py-1.5 rounded-xl hover:bg-slate-100 text-slate-600 font-semibold transition cursor-pointer">
+          등록 취소
+        </button>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="window.resolveCurrentPublisherConflict('keep_all')" class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition text-[11px] cursor-pointer" title="남은 상이한 과목 모두 기존 데이터를 유지합니다">
+            이후 모두 기존 유지
+          </button>
+          <button type="button" onclick="window.resolveCurrentPublisherConflict('overwrite_all')" class="px-2.5 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold transition text-[11px] cursor-pointer" title="남은 상이한 과목 모두 새 출판사로 덮어씁니다">
+            이후 모두 새 데이터 적용
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Import Groups Modal (다른 기준 날짜에서 그룹 배치 불러오기) -->
   <div id="importGroupModal" onclick="if(event.target.id === 'importGroupModal') window.closeImportGroupModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
@@ -11431,6 +11509,13 @@ function renderYearGradeNav() {
       if (externalData.curriculumByAcademicYear && typeof externalData.curriculumByAcademicYear === 'object') {
         MultiState.curriculumByAcademicYear = JSON.parse(JSON.stringify(externalData.curriculumByAcademicYear));
       }
+      if (externalData.publishersByAcademicYear && typeof externalData.publishersByAcademicYear === 'object') {
+        MultiState.publishersByAcademicYear = JSON.parse(JSON.stringify(externalData.publishersByAcademicYear));
+      }
+      if (externalData.publisherSubjectNamesByAcademicYear && typeof externalData.publisherSubjectNamesByAcademicYear === 'object') {
+        MultiState.publisherSubjectNamesByAcademicYear = JSON.parse(JSON.stringify(externalData.publisherSubjectNamesByAcademicYear));
+      }
+      updatePublisherButtonUI();
 
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
@@ -13749,6 +13834,9 @@ function renderYearGradeNav() {
       if (!MultiState.publishersByAcademicYear[curAY]) MultiState.publishersByAcademicYear[curAY] = {};
 
       let savedCount = 0;
+      if (!MultiState.publisherSubjectNamesByAcademicYear) MultiState.publisherSubjectNamesByAcademicYear = {};
+      if (!MultiState.publisherSubjectNamesByAcademicYear[curAY]) MultiState.publisherSubjectNamesByAcademicYear[curAY] = {};
+
       inputs.forEach(inp => {
         const subj = inp.getAttribute('data-subject');
         const pubVal = inp.value.trim();
@@ -13756,9 +13844,11 @@ function renderYearGradeNav() {
         if (normKey) {
           if (pubVal) {
             MultiState.publishersByAcademicYear[curAY][normKey] = pubVal;
+            MultiState.publisherSubjectNamesByAcademicYear[curAY][normKey] = subj;
             savedCount++;
           } else {
             delete MultiState.publishersByAcademicYear[curAY][normKey];
+            delete MultiState.publisherSubjectNamesByAcademicYear[curAY][normKey];
           }
         }
       });
@@ -13766,7 +13856,13 @@ function renderYearGradeNav() {
       saveAllState();
       updatePublisherButtonUI();
       renderPublisherManagerTable();
-      alert('💾 출판사 정보가 성공적으로 저장되었습니다!\n' + `현재 ${Object.keys(MultiState.publishersByAcademicYear[curAY] || {}).length}개 과목 출판사가 등록되어 있습니다.`);
+
+      // JSON 파일 자동 동기화 저장
+      if (typeof window.handleMainSaveButtonClick === 'function') {
+        window.handleMainSaveButtonClick();
+      }
+
+      alert('💾 출판사 정보가 성공적으로 저장되었습니다!\n' + `현재 ${Object.keys(MultiState.publishersByAcademicYear[curAY] || {}).length}개 과목 출판사가 등록되어 있으며 JSON 파일에도 안전하게 저장되었습니다.`);
     }
     window.savePublisherManagerModal = savePublisherManagerModal;
 
@@ -13792,6 +13888,15 @@ function renderYearGradeNav() {
         }
       }
     }
+
+    // ==========================================
+    // PUBLISHER EXCEL IMPORT & CONFLICT RESOLUTION
+    // ==========================================
+    let publisherConflictQueue = [];
+    let publisherConflictIndex = 0;
+    let publisherConflictStats = { kept: 0, overwritten: 0, newAdded: 0, unchanged: 0 };
+    let publisherConflictTargetAY = '2027학년도';
+    let publisherPendingNewItems = [];
 
     function parsePublisherExcel(file) {
       if (!file) return;
@@ -13850,8 +13955,16 @@ function renderYearGradeNav() {
           const curAY = MultiState.activeAcademicYear || '2027학년도';
           if (!MultiState.publishersByAcademicYear) MultiState.publishersByAcademicYear = {};
           if (!MultiState.publishersByAcademicYear[curAY]) MultiState.publishersByAcademicYear[curAY] = {};
+          if (!MultiState.publisherSubjectNamesByAcademicYear) MultiState.publisherSubjectNamesByAcademicYear = {};
+          if (!MultiState.publisherSubjectNamesByAcademicYear[curAY]) MultiState.publisherSubjectNamesByAcademicYear[curAY] = {};
 
-          let count = 0;
+          const existingPubMap = MultiState.publishersByAcademicYear[curAY];
+          const existingNameMap = MultiState.publisherSubjectNamesByAcademicYear[curAY];
+
+          const newItems = [];
+          const conflicts = [];
+          const stats = { kept: 0, overwritten: 0, newAdded: 0, unchanged: 0 };
+
           for (let r = startRowIdx; r < rawRows.length; r++) {
             const row = rawRows[r];
             if (!row || !Array.isArray(row)) continue;
@@ -13861,15 +13974,55 @@ function renderYearGradeNav() {
             if (/^(과목|과목명|교과|순번|연번)$/i.test(rawSubj)) continue;
 
             const normKey = normalizeSubjectForPublisher(rawSubj);
-            if (normKey) {
-              MultiState.publishersByAcademicYear[curAY][normKey] = rawPub;
-              count++;
+            if (!normKey) continue;
+
+            const existingPub = existingPubMap[normKey];
+
+            if (!existingPub) {
+              // 1. 신규 과목 (기존에 등록되어 있지 않음) -> 자동 추가
+              newItems.push({ normKey, subjectName: rawSubj, publisher: rawPub });
+              stats.newAdded++;
+            } else if (existingPub.trim().toLowerCase() === rawPub.trim().toLowerCase()) {
+              // 2. 동일한 데이터 -> 그대로 유지
+              stats.unchanged++;
+            } else {
+              // 3. 기존 데이터와 상이 -> 사용자에게 하나씩 물어보고 선택
+              conflicts.push({
+                normKey,
+                subjectName: rawSubj || existingNameMap[normKey] || normKey,
+                existingPub: existingPub.trim(),
+                newPub: rawPub.trim()
+              });
             }
           }
 
-          saveAllState();
-          updatePublisherButtonUI();
-          alert(`🎉 출판사 데이터 총 ${count}개 과목이 등록되었습니다!\n'과목 기준 데이터 정리' 엑셀 다운로드 시 출판사가 자동으로 기입됩니다.`);
+          if (conflicts.length === 0) {
+            // 충돌이 없는 경우: 신규 데이터 즉시 반영 후 JSON 저장
+            newItems.forEach(item => {
+              existingPubMap[item.normKey] = item.publisher;
+              existingNameMap[item.normKey] = item.subjectName;
+            });
+
+            saveAllState();
+            updatePublisherButtonUI();
+            renderPublisherManagerTable();
+
+            // JSON 파일에도 자동 동기화 저장
+            if (typeof window.handleMainSaveButtonClick === 'function') {
+              window.handleMainSaveButtonClick();
+            }
+
+            alert(`🎉 출판사 데이터가 성공적으로 등록되었습니다!\n\n- 신규 등록: ${stats.newAdded}개 과목\n- 기존 동일 유지: ${stats.unchanged}개 과목\n- JSON 파일에도 안전하게 자동 저장되었습니다.`);
+          } else {
+            // 충돌이 발생한 경우: 모달을 열고 1개씩 대조 질문 진행
+            publisherConflictQueue = conflicts;
+            publisherConflictIndex = 0;
+            publisherPendingNewItems = newItems;
+            publisherConflictStats = stats;
+            publisherConflictTargetAY = curAY;
+
+            window.renderPublisherConflictStep();
+          }
         } catch (err) {
           console.error('Error parsing publisher excel:', err);
           alert('❌ 출판사 엑셀 파일을 읽는 도중 오류가 발생했습니다: ' + err.message);
@@ -13877,6 +14030,96 @@ function renderYearGradeNav() {
       };
       reader.readAsArrayBuffer(file);
     }
+    window.parsePublisherExcel = parsePublisherExcel;
+
+    window.renderPublisherConflictStep = function() {
+      const modal = document.getElementById('publisherConflictModal');
+      if (!modal) return;
+
+      if (publisherConflictIndex >= publisherConflictQueue.length) {
+        // 모든 충돌 항목 처리 완료 -> 최종 커밋 및 JSON 저장
+        const ay = publisherConflictTargetAY;
+        const existingPubMap = MultiState.publishersByAcademicYear[ay];
+        const existingNameMap = MultiState.publisherSubjectNamesByAcademicYear[ay];
+
+        publisherPendingNewItems.forEach(item => {
+          existingPubMap[item.normKey] = item.publisher;
+          existingNameMap[item.normKey] = item.subjectName;
+        });
+
+        modal.classList.add('hidden');
+        saveAllState();
+        updatePublisherButtonUI();
+        renderPublisherManagerTable();
+
+        // JSON 파일 동기화 저장
+        if (typeof window.handleMainSaveButtonClick === 'function') {
+          window.handleMainSaveButtonClick();
+        }
+
+        const s = publisherConflictStats;
+        alert(`🎉 출판사 등록 및 변경 선택이 완료되었습니다!\n\n- 기존 출판사 유지: ${s.kept}개\n- 새 출판사로 변경: ${s.overwritten}개\n- 신규 과목 등록: ${s.newAdded}개\n- 기존 동일 유지: ${s.unchanged}개\n\n💾 JSON 파일에도 안전하게 저장되었습니다.`);
+        return;
+      }
+
+      // 현재 대조 항목 표시
+      const item = publisherConflictQueue[publisherConflictIndex];
+      const progressBadge = document.getElementById('publisherConflictProgressBadge');
+      const subjEl = document.getElementById('publisherConflictSubjectName');
+      const existEl = document.getElementById('publisherConflictExistingPub');
+      const newEl = document.getElementById('publisherConflictNewPub');
+
+      if (progressBadge) progressBadge.textContent = `${publisherConflictIndex + 1} / ${publisherConflictQueue.length}`;
+      if (subjEl) subjEl.textContent = item.subjectName;
+      if (existEl) existEl.textContent = item.existingPub;
+      if (newEl) newEl.textContent = item.newPub;
+
+      modal.classList.remove('hidden');
+    };
+
+    window.resolveCurrentPublisherConflict = function(decision) {
+      const ay = publisherConflictTargetAY;
+      const existingPubMap = MultiState.publishersByAcademicYear[ay];
+      const existingNameMap = MultiState.publisherSubjectNamesByAcademicYear[ay];
+      const item = publisherConflictQueue[publisherConflictIndex];
+
+      if (decision === 'keep') {
+        // 기존 유지
+        publisherConflictStats.kept++;
+        publisherConflictIndex++;
+        window.renderPublisherConflictStep();
+      } else if (decision === 'overwrite') {
+        // 새 데이터 적용
+        existingPubMap[item.normKey] = item.newPub;
+        existingNameMap[item.normKey] = item.subjectName;
+        publisherConflictStats.overwritten++;
+        publisherConflictIndex++;
+        window.renderPublisherConflictStep();
+      } else if (decision === 'keep_all') {
+        // 남은 모든 충돌 기존 유지
+        const remaining = publisherConflictQueue.length - publisherConflictIndex;
+        publisherConflictStats.kept += remaining;
+        publisherConflictIndex = publisherConflictQueue.length;
+        window.renderPublisherConflictStep();
+      } else if (decision === 'overwrite_all') {
+        // 남은 모든 충돌 새 데이터 적용
+        while (publisherConflictIndex < publisherConflictQueue.length) {
+          const cur = publisherConflictQueue[publisherConflictIndex];
+          existingPubMap[cur.normKey] = cur.newPub;
+          existingNameMap[cur.normKey] = cur.subjectName;
+          publisherConflictStats.overwritten++;
+          publisherConflictIndex++;
+        }
+        window.renderPublisherConflictStep();
+      }
+    };
+
+    window.cancelPublisherConflictResolution = function() {
+      if (confirm('출판사 엑셀 등록을 취소하시겠습니까?\n(선택하지 않은 변경 사항은 반영되지 않고 기존 데이터가 보존됩니다)')) {
+        const modal = document.getElementById('publisherConflictModal');
+        if (modal) modal.classList.add('hidden');
+      }
+    };
 
     // 과목 기준 데이터 정리 엑셀 다운로드 (파스텔 톤 서식 & 출판사 자동 기입 & 전원 수강 숫자 표기)
     function exportSubjectBasedExcel() {
@@ -15525,6 +15768,8 @@ function renderYearGradeNav() {
       MultiState.activeAcademicYear = '2027학년도';
       MultiState.datesByAcademicYear = { '2027학년도': ['2027.10.11.'] };
       MultiState.curriculumByAcademicYear = { '2027학년도': [] };
+      MultiState.publishersByAcademicYear = { '2027학년도': {} };
+      MultiState.publisherSubjectNamesByAcademicYear = { '2027학년도': {} };
       MultiState.customTeacherOrder = [];
       MultiState.yearsList = ['2027.10.11.'];
       MultiState.activeYear = '2027.10.11.';
