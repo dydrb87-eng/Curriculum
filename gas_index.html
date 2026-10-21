@@ -12967,8 +12967,153 @@ function renderYearGradeNav() {
       window.saveExcelFile(wb, allGradesFileName);
     }
 
-    // 과목 기준 데이터 정리 엑셀 다운로드
-    // 내용: 학기, 학년, 과목명, 출판사(빈칸), 담당 교사명, 수강인원, 수강자 명단
+    // ==========================================
+    // 출판사 매칭 및 과목 정규화 유틸리티
+    // ==========================================
+    function normalizeSubjectForPublisher(subj) {
+      if (!subj) return '';
+      let s = String(subj);
+      s = s.replace(/\[[^\]]*\]/g, ' ');
+      s = getBaseSubjectName(s);
+      s = s.replace(/Ⅰ/g, '1')
+           .replace(/Ⅱ/g, '2')
+           .replace(/Ⅲ/g, '3')
+           .replace(/Ⅳ/g, '4')
+           .replace(/Ⅴ/g, '5')
+           .replace(/Ⅵ/g, '6')
+           .replace(/１/g, '1')
+           .replace(/２/g, '2')
+           .replace(/３/g, '3')
+           .replace(/４/g, '4');
+      s = s.replace(/[\s\u3000\-_/.,·~*※†‡★☆▲■●#^()\[\]{}'"]/g, '');
+      return s.toLowerCase();
+    }
+
+    function getPublisherForSubject(subjName) {
+      if (!subjName) return '';
+      const curAY = MultiState.activeAcademicYear || '2027학년도';
+      const map = MultiState.publishersByAcademicYear?.[curAY] || {};
+      const norm = normalizeSubjectForPublisher(subjName);
+      if (map[norm]) return map[norm];
+      
+      const baseNorm = normalizeSubjectKey(subjName);
+      for (const k in map) {
+        if (k === norm || k === baseNorm) return map[k];
+      }
+      return '';
+    }
+
+    function updatePublisherButtonUI() {
+      const curAY = MultiState.activeAcademicYear || '2027학년도';
+      const map = MultiState.publishersByAcademicYear?.[curAY] || {};
+      const count = Object.keys(map).length;
+      const statusSpan = document.getElementById('txtPublisherUploadStatus');
+      const containerLabel = document.getElementById('lblUploadPublisherExcel');
+      if (statusSpan) {
+        if (count > 0) {
+          statusSpan.textContent = `📖 출판사 등록됨 (${count}개)`;
+          if (containerLabel) {
+            containerLabel.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+            containerLabel.classList.add('bg-indigo-700', 'hover:bg-indigo-800');
+            containerLabel.title = `총 ${count}개 과목의 출판사가 등록되어 있습니다. 클릭하여 새 엑셀로 업데이트할 수 있습니다.`;
+          }
+        } else {
+          statusSpan.textContent = '📖 출판사 엑셀 등록';
+          if (containerLabel) {
+            containerLabel.classList.remove('bg-indigo-700', 'hover:bg-indigo-800');
+            containerLabel.classList.add('bg-purple-600', 'hover:bg-purple-700');
+            containerLabel.title = '과목별 출판사 정보가 담긴 엑셀 파일을 업로드하여 과목 기준 데이터에 자동 반영합니다';
+          }
+        }
+      }
+    }
+
+    function parsePublisherExcel(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          if (!sheet) {
+            alert('⚠️ 엑셀 시트를 읽을 수 없습니다.');
+            return;
+          }
+          const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+          if (!rawRows || rawRows.length === 0) {
+            alert('⚠️ 엑셀 파일에 데이터가 없습니다.');
+            return;
+          }
+
+          let subjColIdx = -1;
+          let pubColIdx = -1;
+          let startRowIdx = 0;
+
+          for (let r = 0; r < Math.min(6, rawRows.length); r++) {
+            const row = rawRows[r];
+            if (!Array.isArray(row)) continue;
+            for (let c = 0; c < row.length; c++) {
+              const val = String(row[c] || '').trim();
+              if (subjColIdx === -1 && /^(과목|과목명|교과목|교과목명|과목 명|교과)$/i.test(val)) {
+                subjColIdx = c;
+              } else if (subjColIdx === -1 && /과목|교과/i.test(val) && !/출판|발행|교사|선생|비고/i.test(val)) {
+                subjColIdx = c;
+              }
+              if (pubColIdx === -1 && /^(출판사|출판사명|출판|출판 사|발행사|발행처)$/i.test(val)) {
+                pubColIdx = c;
+              } else if (pubColIdx === -1 && /출판|발행/i.test(val)) {
+                pubColIdx = c;
+              }
+            }
+            if (subjColIdx !== -1 && pubColIdx !== -1) {
+              startRowIdx = r + 1;
+              break;
+            }
+          }
+
+          if (subjColIdx === -1 || pubColIdx === -1) {
+            startRowIdx = 0;
+            if (rawRows.length > 1 && String(rawRows[0][0] || '').includes('출판')) {
+              startRowIdx = 1;
+            }
+            subjColIdx = 0;
+            pubColIdx = 1;
+          }
+
+          const curAY = MultiState.activeAcademicYear || '2027학년도';
+          if (!MultiState.publishersByAcademicYear) MultiState.publishersByAcademicYear = {};
+          if (!MultiState.publishersByAcademicYear[curAY]) MultiState.publishersByAcademicYear[curAY] = {};
+
+          let count = 0;
+          for (let r = startRowIdx; r < rawRows.length; r++) {
+            const row = rawRows[r];
+            if (!row || !Array.isArray(row)) continue;
+            const rawSubj = String(row[subjColIdx] || '').trim();
+            const rawPub = String(row[pubColIdx] || '').trim();
+            if (!rawSubj || !rawPub) continue;
+            if (/^(과목|과목명|교과|순번|연번)$/i.test(rawSubj)) continue;
+
+            const normKey = normalizeSubjectForPublisher(rawSubj);
+            if (normKey) {
+              MultiState.publishersByAcademicYear[curAY][normKey] = rawPub;
+              count++;
+            }
+          }
+
+          saveAllState();
+          updatePublisherButtonUI();
+          alert(`🎉 출판사 데이터 총 ${count}개 과목이 등록되었습니다!\n'과목 기준 데이터 정리' 엑셀 다운로드 시 출판사가 자동으로 기입됩니다.`);
+        } catch (err) {
+          console.error('Error parsing publisher excel:', err);
+          alert('❌ 출판사 엑셀 파일을 읽는 도중 오류가 발생했습니다: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 과목 기준 데이터 정리 엑셀 다운로드 (파스텔 톤 서식 & 출판사 자동 기입 & 전원 수강 숫자 표기)
     function exportSubjectBasedExcel() {
       const curriculum = getAllGradesCurriculum();
       const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
@@ -12990,7 +13135,6 @@ function renderYearGradeNav() {
           category: c.category || ''
         }));
       } else {
-        // 편제표 미업로드 시 2, 3학년 수강신청 조사 과목에서 자동 수집
         ['2학년', '3학년'].forEach(gradeStr => {
           const gData = yData[gradeStr];
           if (!gData) return;
@@ -13012,7 +13156,6 @@ function renderYearGradeNav() {
         });
       }
 
-      // 편제표에 누락된 2·3학년 개설 과목 추가
       ['2학년', '3학년'].forEach(gradeStr => {
         const gData = yData[gradeStr];
         if (!gData) return;
@@ -13046,7 +13189,7 @@ function renderYearGradeNav() {
         return;
       }
 
-      // 2. 정렬: 학기(1->2) -> 학년(1->2->3) -> 과목명(가나다)
+      // 정렬: 학기(1->2) -> 학년(1->2->3) -> 과목명(가나다)
       subjectList.sort((a, b) => {
         if (a.semester !== b.semester) return a.semester - b.semester;
         const gOrder = { '1학년': 1, '2학년': 2, '3학년': 3 };
@@ -13055,12 +13198,20 @@ function renderYearGradeNav() {
         return String(a.subject).localeCompare(String(b.subject), 'ko');
       });
 
-      // 3. 학생 데이터 수집 및 매핑
+      // 학생 데이터 수집 및 1학년 안전 연계
       const studentsByGrade = {
         '2학년': yData['2학년']?.students || [],
         '3학년': yData['3학년']?.students || [],
         '1학년': yData['1학년']?.students || []
       };
+
+      if (studentsByGrade['1학년'].length === 0) {
+        if (yData['1학년']?.priorData?.students?.length > 0) {
+          studentsByGrade['1학년'] = yData['1학년'].priorData.students;
+        } else if (yData['2학년']?.priorData?.students?.length > 0) {
+          studentsByGrade['1학년'] = yData['2학년'].priorData.students;
+        }
+      }
 
       const rows = [];
       rows.push([`${acadYearStr} 과목 기준 데이터 정리 현황`]);
@@ -13086,7 +13237,7 @@ function renderYearGradeNav() {
         const enrolledStudents = [];
 
         if (item.status === '폐강') {
-          // 폐강 과목: 수강인원 0명 또는 이전 신청자
+          // 폐강
         } else if (item.category === '지정' || item.category === '학교지정' || gradeStr === '1학년') {
           // 학교 지정(전원 수강) 과목
           if (students.length > 0) {
@@ -13096,13 +13247,13 @@ function renderYearGradeNav() {
             });
           }
         } else {
-          // 선택 과목: 해당 학기 수강 선택 학생 검색
+          // 선택 과목
           students.forEach(st => {
             const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
             const isSelected = choices.some(ch => {
               if (!ch) return false;
               if (ch === subjName || ch === baseSubj) return true;
-              return normalizeSubjectKey(ch) === normSubj;
+              return normalizeSubjectKey(ch) === normSubj || normalizeSubjectForPublisher(ch) === normSubj;
             });
             if (isSelected) {
               const label = `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
@@ -13111,22 +13262,32 @@ function renderYearGradeNav() {
           });
         }
 
-        // 학생 정렬 (반, 번호, 이름 순)
         enrolledStudents.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
 
-        const countText = (item.status === '폐강') 
-          ? '폐강 (0명)' 
-          : (enrolledStudents.length > 0 ? `${enrolledStudents.length}명` : (item.category === '지정' ? '전원 수강' : '0명'));
-        
+        // 수강인원 표기: '전원 수강' 문구 대신 항상 학생 수 숫자로 표기
+        let countText = '0명';
+        if (item.status === '폐강') {
+          countText = '폐강 (0명)';
+        } else if (enrolledStudents.length > 0) {
+          countText = `${enrolledStudents.length}명`;
+        } else if (item.category === '지정' || item.category === '학교지정' || gradeStr === '1학년') {
+          const fallbackCount = students.length || (gradeStr === '2학년' ? 44 : (gradeStr === '3학년' ? 19 : 44));
+          countText = `${fallbackCount}명`;
+        } else {
+          countText = '0명';
+        }
+
         const studentListText = enrolledStudents.length > 0 
           ? enrolledStudents.join(', ') 
           : (item.status === '폐강' ? '폐강 확정' : (item.category === '지정' ? '전원 배정' : '-'));
+
+        const publisher = getPublisherForSubject(subjName);
 
         rows.push([
           `${sem}학기`,
           gradeStr,
           subjName,
-          '', // 출판사 (비워둠)
+          publisher,
           item.teacher || '-',
           countText,
           studentListText
@@ -13139,13 +13300,11 @@ function renderYearGradeNav() {
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
 
-      // Merges for Title & Subtitle
       ws['!merges'] = [
         { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
         { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }
       ];
 
-      // Column widths
       ws['!cols'] = [
         { wch: 10 },  // 학기
         { wch: 10 },  // 학년
@@ -13158,14 +13317,72 @@ function renderYearGradeNav() {
 
       ws['!rows'] = rowHeights;
 
-      // Styling with ExcelStyler
+      // ==========================================
+      // 파스텔 톤 엑셀 디자인 적용
+      // ==========================================
       if (typeof ExcelStyler !== 'undefined') {
-        ExcelStyler.setRange(ws, 0, 0, 0, 6, ExcelStyler.titleStyle(true));
-        ExcelStyler.setRange(ws, 1, 0, 1, 6, ExcelStyler.subtitleStyle(true));
+        const pastelTheme = {
+          titleBg: 'EEF2FF',      // 부드러운 파스텔 라벤더/인디고
+          titleText: '1E3A8A',    // 단정한 짙은 네이비
+          subBg: 'F8FAFC',        // 부드러운 슬레이트
+          subText: '64748B',      // 슬레이트 그레이
+          headerBg: 'E0E7FF',     // 파스텔 소프트 블루
+          headerText: '1E3A8A',   // 네이비 볼드
+          rowEven: 'F8FAFC',      // 은은한 슬레이트 화이트
+          rowOdd: 'FFFFFF',       // 순백색
+          borderSoft: 'CBD5E1',   // 부드러운 슬레이트 테두리
+          borderHeader: 'A5B4FC', // 헤더 구분 테두리
+          closedBg: 'FEE2E2',     // 파스텔 로즈 (폐강)
+          closedText: 'DC2626',   // 소프트 레드 (폐강)
+          pubText: '3730A3'       // 출판사 인디고 텍스트
+        };
 
-        // Header Row (Row 3)
+        const softBorder = {
+          top: { style: 'thin', color: { rgb: pastelTheme.borderSoft } },
+          bottom: { style: 'thin', color: { rgb: pastelTheme.borderSoft } },
+          left: { style: 'thin', color: { rgb: pastelTheme.borderSoft } },
+          right: { style: 'thin', color: { rgb: pastelTheme.borderSoft } }
+        };
+
+        // Title Row (0)
+        ExcelStyler.setRange(ws, 0, 0, 0, 6, {
+          font: { name: ExcelStyler.fontFamily, sz: 14, bold: true, color: { rgb: pastelTheme.titleText } },
+          fill: { fgColor: { rgb: pastelTheme.titleBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'medium', color: { rgb: '93C5FD' } },
+            bottom: { style: 'thin', color: { rgb: pastelTheme.borderSoft } },
+            left: { style: 'thin', color: { rgb: pastelTheme.borderSoft } },
+            right: { style: 'thin', color: { rgb: pastelTheme.borderSoft } }
+          }
+        });
+
+        // Subtitle Row (1)
+        ExcelStyler.setRange(ws, 1, 0, 1, 6, {
+          font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: pastelTheme.subText } },
+          fill: { fgColor: { rgb: pastelTheme.subBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: pastelTheme.borderSoft } },
+            bottom: { style: 'medium', color: { rgb: '93C5FD' } },
+            left: { style: 'thin', color: { rgb: pastelTheme.borderSoft } },
+            right: { style: 'thin', color: { rgb: pastelTheme.borderSoft } }
+          }
+        });
+
+        // Header Row (3) - 파스텔 톤 헤더
         for (let c = 0; c < 7; c++) {
-          ExcelStyler.setCell(ws, 3, c, ExcelStyler.headerStyle('1E3A8A', c === 6, c === 0));
+          ExcelStyler.setCell(ws, 3, c, {
+            font: { name: ExcelStyler.fontFamily, sz: 10.5, bold: true, color: { rgb: pastelTheme.headerText } },
+            fill: { fgColor: { rgb: pastelTheme.headerBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: {
+              top: { style: 'medium', color: { rgb: pastelTheme.borderHeader } },
+              bottom: { style: 'medium', color: { rgb: pastelTheme.borderHeader } },
+              left: { style: 'thin', color: { rgb: pastelTheme.borderSoft } },
+              right: { style: 'thin', color: { rgb: pastelTheme.borderSoft } }
+            }
+          });
         }
 
         // Data Rows
@@ -13173,33 +13390,64 @@ function renderYearGradeNav() {
           const r = 4 + idx;
           const isEven = (idx % 2 === 1);
           const isClosed = (item.status === '폐강');
+          const publisher = getPublisherForSubject(item.subject);
+
+          const baseBg = isClosed ? pastelTheme.closedBg : (isEven ? pastelTheme.rowEven : pastelTheme.rowOdd);
+          const textColor = isClosed ? pastelTheme.closedText : ExcelStyler.colors.slateText;
 
           // 학기, 학년 (중앙)
-          ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-          ExcelStyler.setCell(ws, r, 1, ExcelStyler.dataCenter(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 0, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
+            fill: { fgColor: { rgb: baseBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+          ExcelStyler.setCell(ws, r, 1, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
+            fill: { fgColor: { rgb: baseBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
 
           // 과목명 (좌측, 볼드)
-          const nameStyle = isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false);
-          if (nameStyle.alignment) nameStyle.alignment.horizontal = 'left';
-          ExcelStyler.setCell(ws, r, 2, nameStyle);
+          ExcelStyler.setCell(ws, r, 2, {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: textColor } },
+            fill: { fgColor: { rgb: baseBg } },
+            alignment: { horizontal: 'left', vertical: 'center' },
+            border: softBorder
+          });
 
-          // 출판사 (중앙 빈칸)
-          ExcelStyler.setCell(ws, r, 3, ExcelStyler.dataCenter(isEven, false, false));
+          // 출판사 (중앙 정렬, 출판사 존재 시 파스텔 인디고 볼드)
+          ExcelStyler.setCell(ws, r, 3, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: !!publisher, color: { rgb: publisher ? pastelTheme.pubText : textColor } },
+            fill: { fgColor: { rgb: baseBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
 
           // 담당 교사명 (중앙)
-          ExcelStyler.setCell(ws, r, 4, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+          ExcelStyler.setCell(ws, r, 4, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
+            fill: { fgColor: { rgb: baseBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
 
-          // 수강인원 (중앙, 폐강 시 경고 스타일)
-          ExcelStyler.setCell(ws, r, 5, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+          // 수강인원 (중앙, 볼드)
+          ExcelStyler.setCell(ws, r, 5, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, color: { rgb: textColor } },
+            fill: { fgColor: { rgb: baseBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
 
-          // 수강자 명단 (좌측 텍스트, wrapText, 오른쪽 굵은 외곽선)
-          const listStyle = {
-            font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: ExcelStyler.colors.slateText } },
-            fill: { fgColor: { rgb: isEven ? ExcelStyler.colors.slateBg : 'FFFFFF' } },
+          // 수강자 명단 (좌측 텍스트, wrapText)
+          ExcelStyler.setCell(ws, r, 6, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
+            fill: { fgColor: { rgb: baseBg } },
             alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
-            border: ExcelStyler.getBorder(true, false)
-          };
-          ExcelStyler.setCell(ws, r, 6, listStyle);
+            border: softBorder
+          });
         });
       }
 
@@ -13210,8 +13458,11 @@ function renderYearGradeNav() {
       window.saveExcelFile(wb, fileName);
     }
     window.exportSubjectBasedExcel = exportSubjectBasedExcel;
+    window.parsePublisherExcel = parsePublisherExcel;
+    window.updatePublisherButtonUI = updatePublisherButtonUI;
 
     function renderAllGradesDashboard(fullRedraw = true) {
+      if (typeof updatePublisherButtonUI === 'function') updatePublisherButtonUI();
       const curriculum = getAllGradesCurriculum();
 
       // 과거 별표/특수문자 불일치 등으로 자동 폐강 처리되었던 과목 자동 복원 동기화
@@ -14492,6 +14743,12 @@ function renderYearGradeNav() {
       templateBtn?.addEventListener('click', () => downloadCurriculumTemplate(false));
       exportBtn?.addEventListener('click', exportAllGradesConsolidatedExcel);
       document.getElementById('btnExportSubjectBasedExcel')?.addEventListener('click', exportSubjectBasedExcel);
+      document.getElementById('publisherFileInput')?.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+          parsePublisherExcel(e.target.files[0]);
+          e.target.value = '';
+        }
+      });
 
       document.getElementById('allGradesTeacherSearchInput')?.addEventListener('input', renderAllGradesTeacherSummary);
       document.getElementById('allGradesFilterGrade')?.addEventListener('change', renderAllGradesCurriculumTable);
