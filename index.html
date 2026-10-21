@@ -4975,6 +4975,40 @@
         }
       }
 
+      // 기존에 2단계에서 추가했던 과목 중 이전 폐강 과목과 이름이 겹치거나 신설된 과목 자동 보정
+      const curPlanForSem = AppState.currentPlans?.[sem] || AppState.currentPlan;
+      if (curPlanForSem && curPlanForSem.groups) {
+        allPrevClosedSet.forEach(prevClosedName => {
+          const normPrev = normalizeSubject(prevClosedName);
+          curPlanForSem.groups.forEach((grp, gIdx) => {
+            grp.forEach((tName, tIdx) => {
+              const baseT = tName.replace(/-[A-Z]$/, '').trim();
+              if (normalizeSubject(baseT) === normPrev && !baseT.includes('(신설)')) {
+                const letterMatch = tName.match(/-[A-Z]$/);
+                const letter = letterMatch ? letterMatch[0] : '';
+                const newName = `${prevClosedName}(신설)${letter}`;
+                curPlanForSem.groups[gIdx][tIdx] = newName;
+
+                const targetSemList = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
+                const sIdx = targetSemList.findIndex(s => normalizeSubject(s) === normPrev && !s.includes('(신설)'));
+                if (sIdx !== -1) {
+                  targetSemList[sIdx] = `${prevClosedName}(신설)`;
+                } else if (!targetSemList.some(s => normalizeSubject(s) === normalizeSubject(`${prevClosedName}(신설)`))) {
+                  targetSemList.push(`${prevClosedName}(신설)`);
+                }
+
+                if (!AppState.subjectMemos) AppState.subjectMemos = { 1: {}, 2: {} };
+                if (!AppState.subjectMemos[sem]) AppState.subjectMemos[sem] = {};
+                if (!AppState.subjectMemos[sem][`${prevClosedName}(신설)`]) {
+                  const dStr = MultiState.activeYear || '';
+                  AppState.subjectMemos[sem][`${prevClosedName}(신설)`] = dStr ? `[${dStr} 2단계 과목 신설]` : '[2단계 과목 신설]';
+                }
+              }
+            });
+          });
+        });
+      }
+
       // 이전 기준 날짜의 폐강 과목들을 현재 탭의 closedSubjects에도 자동 동기화 보존
       if (!AppState.closedSubjects) AppState.closedSubjects = { 1: [], 2: [] };
       if (!AppState.closedSubjects[sem]) AppState.closedSubjects[sem] = [];
@@ -5085,6 +5119,8 @@
           let rowStyle = '';
           if (item.isClosed) {
             rowStyle = 'style="background-color: #fee2e2;"';
+          } else if (item.name.includes('(신설)')) {
+            rowStyle = 'style="background-color: #f0fdfa;"';
           } else if (item.isUnder) {
             rowStyle = 'style="background-color: #fef2f2;"';
           }
@@ -5098,6 +5134,8 @@
           let statusBadge = '';
           if (item.isClosed) {
             statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-700 text-white shadow-xs">[폐강 확정]</span>`;
+          } else if (item.name.includes('(신설)')) {
+            statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-300 shadow-3xs">신설 개설</span>`;
           } else if (item.isUnder) {
             statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">[폐강 예정]</span>`;
           } else {
@@ -5131,6 +5169,9 @@
             nameDisplay = `<span class="line-through text-slate-400 mr-1.5">${escapeHtml(item.name)}</span><span class="text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300" title="${escapeHtml(item.historyDate)} 폐강 과목">이전 폐강</span>`;
           } else if (item.isClosed) {
             nameDisplay = `<span class="line-through text-slate-400 mr-1.5">${escapeHtml(item.name)}</span><span class="text-[11px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300">폐강</span>`;
+          } else if (item.name.includes('(신설)')) {
+            const cleanSubj = item.name.replace(/\(신설\)/g, '').trim();
+            nameDisplay = `<span class="text-slate-900 font-bold">${escapeHtml(cleanSubj)}</span> <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-black bg-teal-100 text-teal-800 border border-teal-300 shadow-3xs">신설</span>`;
           } else {
             nameDisplay = `<span class="text-slate-900">${escapeHtml(item.name)}</span>`;
           }
@@ -10012,20 +10053,39 @@
       }
 
       const sem = AppState.currentSemester || 1;
-      const normNew = normalizeSubject(cleanName);
+      let baseSubj = cleanName.replace(/-[A-Z]$/, '').trim();
+
+      // 이전 기준 날짜의 폐강 과목 이력 확인
+      const { allPrevClosedSet } = getPreviousDatesClosedSubjectsHistory(sem);
+      const curSemSubjs = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
+      const normBase = normalizeSubject(baseSubj);
+
+      const isPrevClosed = Array.from(allPrevClosedSet).some(s => normalizeSubject(s) === normBase);
+      const isAlreadyInSem = curSemSubjs.some(s => normalizeSubject(s) === normBase);
+
+      // 사용자 요구사항: 기존 폐강 데이터는 1단계에서 그대로 두고, 신설된 데이터는 뒤에 '신설' 표기를 붙여 분리
+      // 이전 날짜 폐강 과목이거나 1단계 미등록 과목인 경우 '(신설)' 표기 자동 부착
+      let finalBaseName = baseSubj;
+      if (isPrevClosed || !isAlreadyInSem) {
+        if (!finalBaseName.includes('(신설)')) {
+          finalBaseName = `${finalBaseName}(신설)`;
+        }
+      }
+
+      const normNew = normalizeSubject(finalBaseName);
 
       // Check if same subject already exists in this target group
       const alreadyInThisGroup = plan.groups[gIdx].some(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) === normNew);
       if (alreadyInThisGroup) {
-        alert(`⚠️ [${cleanName}] 과목은 이미 ${gIdx + 1}그룹에 배치되어 있습니다.`);
+        alert(`⚠️ [${finalBaseName}] 과목은 이미 ${gIdx + 1}그룹에 배치되어 있습니다.`);
         return;
       }
 
       // Check if subject exists in other group (section duplicate check)
       const existingInOtherGroup = plan.groups.findIndex((grp, i) => i !== gIdx && grp.some(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) === normNew));
-      let tokenToAdd = cleanName;
+      let tokenToAdd = finalBaseName;
       if (existingInOtherGroup !== -1) {
-        if (confirm(`ℹ️ [${cleanName}] 과목은 이미 ${existingInOtherGroup + 1}그룹에 개설되어 있습니다.\n\n동일 과목을 ${gIdx + 1}그룹에도 개설하여 분반으로 운영하시겠습니까?\n('확인' 클릭 시 분반 추가, '취소' 클릭 시 작업 중단)`)) {
+        if (confirm(`ℹ️ [${finalBaseName}] 과목은 이미 ${existingInOtherGroup + 1}그룹에 개설되어 있습니다.\n\n동일 과목을 ${gIdx + 1}그룹에도 개설하여 분반으로 운영하시겠습니까?\n('확인' 클릭 시 분반 추가, '취소' 클릭 시 작업 중단)`)) {
           const existingLetters = [];
           plan.groups.flat().forEach(t => {
             const m = t.match(/^(.*)-([A-Z])$/);
@@ -10034,7 +10094,7 @@
             }
           });
           const nextLetter = String.fromCharCode(65 + existingLetters.length);
-          tokenToAdd = `${cleanName}-${nextLetter}`;
+          tokenToAdd = `${finalBaseName}-${nextLetter}`;
         } else {
           return;
         }
@@ -10045,14 +10105,26 @@
       if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
       AppState.currentPlans[sem] = plan;
 
-      // 2. 1단계 semSubjects에 없으면 추가 반영
-      const baseSubj = cleanName.replace(/-[A-Z]$/, '').trim();
-      const curSemSubjs = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
-      if (!curSemSubjs.some(s => normalizeSubject(s) === normalizeSubject(baseSubj))) {
-        curSemSubjs.push(baseSubj);
+      // 2. 1단계 semSubjects에 없으면 추가 반영 (기존 폐강 데이터는 보존되고 finalBaseName이 별도로 등록됨)
+      if (!curSemSubjs.some(s => normalizeSubject(s) === normNew)) {
+        curSemSubjs.push(finalBaseName);
         curSemSubjs.sort((a, b) => a.localeCompare(b, 'ko'));
         if (sem === 1) AppState.sem1Subjects = curSemSubjs;
         else AppState.sem2Subjects = curSemSubjs;
+      }
+
+      // 2-1. 폐강 보류 및 비고 메모에 신설 이력 자동 기록
+      if (!AppState.subjectMemos) AppState.subjectMemos = { 1: {}, 2: {} };
+      if (!AppState.subjectMemos[sem]) AppState.subjectMemos[sem] = {};
+      const activeDateStr = MultiState.activeYear || '';
+      const memoText = activeDateStr ? `[${activeDateStr} 2단계 과목 신설]` : '[2단계 과목 신설]';
+      if (!AppState.subjectMemos[sem][finalBaseName]) {
+        AppState.subjectMemos[sem][finalBaseName] = memoText;
+      }
+
+      // 2-2. 신설 과목은 폐강이 아니므로 closedSubjects에서 제외 보장
+      if (AppState.closedSubjects?.[sem]) {
+        AppState.closedSubjects[sem] = AppState.closedSubjects[sem].filter(s => normalizeSubject(s) !== normNew);
       }
 
       // 3. 충돌 재분석 및 렌더링
@@ -10069,7 +10141,10 @@
 
       window.closeAddSubjectModal();
 
-      alert(`✅ [${tokenToAdd}] 과목이 ${gIdx + 1}그룹에 성공적으로 추가되었습니다!\n\n- 2단계 그룹 카드 및 개인별 이동수업 시간표에 즉시 반영되었습니다.\n- 1단계 현황표 및 전체 교육과정 편제표에도 함께 반영되었습니다.\n- 이제 하단 시간표에서 학생 셀을 클릭하여 자유롭게 수강 선택·수정할 수 있습니다.`);
+      const noteMsg = isPrevClosed
+        ? `\n\n📌 안내: 이전 기준 날짜의 폐강 이력([${baseSubj}])을 1단계에 그대로 보존하기 위해, 본 과목은 [${finalBaseName}] 명칭으로 신설 등록되었으며 1단계 비고 메모에 신설 이력이 자동 기록되었습니다.`
+        : '';
+      alert(`✅ [${tokenToAdd}] 과목이 ${gIdx + 1}그룹에 성공적으로 추가되었습니다!\n\n- 2단계 그룹 카드 및 개인별 이동수업 시간표에 즉시 반영되었습니다.\n- 1단계 현황표(신설 뱃지 및 비고 이력) 및 전체 교육과정 편제표에도 함께 반영되었습니다.${noteMsg}\n- 이제 하단 시간표에서 학생 셀을 클릭하여 자유롭게 수강 선택·수정할 수 있습니다.`);
     };
 
     window.removeSubjectFromGroup = function(sName, gIdx) {
