@@ -2377,15 +2377,46 @@
     // 0. PRIOR DATA (학생 명부 & 기이수 과목) & CROSS-CHECK ENGINE
     // ==========================================
 
-    // 과목명 정규화: 띄어쓰기 무시, (3) 또는 [3.0] 등 학점수 괄호 무시, 분반(-A) 접미사 무시, 로마숫자 통일
+    // 특수문자/각주 기호/별표 정규식 (*, ※, †, ‡, ★, ☆, ▲, ■, ●, #, ^ 등)
+    const SUBJECT_SPECIAL_CHARS_REGEX = /[*※†‡★☆▲■●#^]/g;
+
+    // 분반 및 학점 표기 제거한 기본 과목명 추출
+    function getBaseSubjectName(subj) {
+      if (!subj) return '';
+      let s = String(subj).replace(/[\r\n\t]/g, ' ');
+      s = s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
+      s = s
+        .replace(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i, '')
+        .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i, '')
+        .replace(/[\(\[]\s*\d+(?:\.\d+)?\s*(?:학점|단위)?\s*[\)\]]$/, '')
+        .trim();
+      return s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
+    }
+
+    function getSubjectDivision(subj) {
+      if (!subj) return '';
+      let s = String(subj).replace(/[\r\n\t]/g, ' ').replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
+      const m1 = s.match(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i);
+      if (m1) return m1[1];
+      const m2 = s.match(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i);
+      if (m2) return m2[1];
+      return '';
+    }
+
+    // 과목명 정규화: 띄어쓰기(전각/줄바꿈 포함) 무시, 학점수 괄호 무시, 분반 접미사 무시, 특수문자 무시, 로마숫자 통일, 영문 소문자화
     function normalizeSubject(s) {
       if (!s) return '';
-      let str = String(s).trim();
-      str = str.replace(/-[A-Z]$/, ''); // 분반 접미사 제거
-      str = str.replace(/\s+/g, ''); // 띄어쓰기 무시
-      str = str.replace(/[\(\[]\s*\d+(?:\.\d+)?\s*(?:학점|단위)?\s*[\)\]]$/, ''); // (3), (3학점), [3] 등 학점수 괄호 제거
-      str = str.replace(/IV/g, 'Ⅳ').replace(/III/g, 'Ⅲ').replace(/II/g, 'Ⅱ').replace(/I/g, 'Ⅰ'); // 로마숫자 통일
-      return str;
+      let base = getBaseSubjectName(s);
+      base = base
+        .replace(/[\s\u3000\u00A0]/g, '')
+        .replace(SUBJECT_SPECIAL_CHARS_REGEX, '')
+        .replace(/IV/gi, 'Ⅳ').replace(/III/gi, 'Ⅲ').replace(/II/gi, 'Ⅱ').replace(/I/gi, 'Ⅰ')
+        .toLowerCase();
+      return base;
+    }
+
+    function normalizeSubjectKey(subj) {
+      return normalizeSubject(subj);
     }
 
     function processPriorDataFile(file) {
@@ -3751,8 +3782,11 @@
 
         const s1Subjects = [];
         sem1Cols.forEach(c => {
-          const val = row[c] !== undefined && row[c] !== null ? String(row[c]).trim() : '';
-          if (val && !/^(없음|x|X|무|-)$/.test(val)) {
+          const rawVal = row[c] !== undefined && row[c] !== null ? String(row[c]).trim() : '';
+          if (rawVal && !/^(없음|x|X|무|-)$/.test(rawVal)) {
+            const norm = normalizeSubject(rawVal);
+            const existing = Array.from(sem1Set).find(s => normalizeSubject(s) === norm);
+            const val = existing || rawVal;
             s1Subjects.push(val);
             sem1Set.add(val);
           }
@@ -3760,8 +3794,11 @@
 
         const s2Subjects = [];
         sem2Cols.forEach(c => {
-          const val = row[c] !== undefined && row[c] !== null ? String(row[c]).trim() : '';
-          if (val && !/^(없음|x|X|무|-)$/.test(val)) {
+          const rawVal = row[c] !== undefined && row[c] !== null ? String(row[c]).trim() : '';
+          if (rawVal && !/^(없음|x|X|무|-)$/.test(rawVal)) {
+            const norm = normalizeSubject(rawVal);
+            const existing = Array.from(sem2Set).find(s => normalizeSubject(s) === norm);
+            const val = existing || rawVal;
             s2Subjects.push(val);
             sem2Set.add(val);
           }
@@ -4070,7 +4107,8 @@
       // 1. Filter
       let result = baseSubjects.filter(s => {
         const count = counts[s] || 0;
-        const isClosed = closedList.includes(s);
+        const normS = normalizeSubject(s);
+        const isClosed = closedList.some(c => normalizeSubject(c) === normS);
         const isUnder = count <= threshold;
 
         if (filterMode === 'opened') {
@@ -4127,9 +4165,9 @@
       const orig = getStudentOriginalChoices(st, sem);
       const active = getStudentActiveChoices(st, sem);
       if (orig.length !== active.length) return true;
-      const setA = new Set(orig);
+      const setA = new Set(orig.map(s => normalizeSubject(s)));
       for (const s of active) {
-        if (!setA.has(s)) return true;
+        if (!setA.has(normalizeSubject(s))) return true;
       }
       return false;
     }
@@ -4144,7 +4182,8 @@
       if (!st.origSem2) st.origSem2 = [...(st.sem2 || [])];
 
       const active = sem === 1 ? st.sem1 : st.sem2;
-      const idx = active.indexOf(subjectName);
+      const normTarget = normalizeSubject(subjectName);
+      const idx = active.findIndex(s => normalizeSubject(s) === normTarget);
 
       if (idx !== -1) {
         // Active -> Remove (cancelled or un-added)
@@ -4160,7 +4199,7 @@
         if (idx !== -1) {
           const custom = AppState.currentPlan.customAssignments[studentId];
           Object.keys(custom).forEach(g => {
-            custom[g] = custom[g].filter(s => s !== subjectName && !s.startsWith(subjectName + '-'));
+            custom[g] = custom[g].filter(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) !== normTarget);
           });
         }
       }
@@ -4290,8 +4329,9 @@
       const subjects = sem === 1 ? (AppState.sem1Subjects || []) : (AppState.sem2Subjects || []);
       const orig = getStudentOriginalChoices(st, sem);
       const active = getStudentActiveChoices(st, sem);
-      const activeSet = new Set(active);
-      const origSet = new Set(orig);
+      const activeNorms = new Set(active.map(s => normalizeSubject(s)));
+      const origNorms = new Set(orig.map(s => normalizeSubject(s)));
+      const closedNorms = new Set((AppState.closedSubjects?.[sem] || []).map(s => normalizeSubject(s)));
 
       if (countEl) {
         const expectedCount = sem === 1 ? AppState.sem1GroupCount : AppState.sem2GroupCount;
@@ -4300,9 +4340,10 @@
 
       let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">';
       subjects.forEach(s => {
-        const wasOrig = origSet.has(s);
-        const isAct = activeSet.has(s);
-        const isClosed = (AppState.closedSubjects?.[sem] || []).includes(s);
+        const normS = normalizeSubject(s);
+        const wasOrig = origNorms.has(normS);
+        const isAct = activeNorms.has(normS);
+        const isClosed = closedNorms.has(normS);
 
         let badge = '';
         let cardBg = 'bg-white border-slate-200 hover:border-slate-400';
@@ -4410,11 +4451,16 @@
 
       // Calculate subject counts
       const counts = {};
-      baseSubjects.forEach(s => counts[s] = 0);
+      const normMap = {};
+      baseSubjects.forEach(s => {
+        counts[s] = 0;
+        normMap[normalizeSubject(s)] = s;
+      });
       AppState.students.forEach(st => {
-        const selected = sem === 1 ? st.sem1 : st.sem2;
+        const selected = sem === 1 ? (st.sem1 || []) : (st.sem2 || []);
         selected.forEach(s => {
-          if (counts[s] !== undefined) counts[s]++;
+          const canonical = normMap[normalizeSubject(s)] || s;
+          if (counts[canonical] !== undefined) counts[canonical]++;
         });
       });
 
@@ -4426,7 +4472,8 @@
         if (step1TableSortState.subjectFilter === '__modified__') {
           if (!isStudentChoicesModified(st, sem)) return false;
         } else if (step1TableSortState.subjectFilter !== 'all') {
-          if (!selected.includes(step1TableSortState.subjectFilter)) return false;
+          const filterNorm = normalizeSubject(step1TableSortState.subjectFilter);
+          if (!selected.some(s => normalizeSubject(s) === filterNorm)) return false;
         }
         if (!searchQuery) return true;
         return st.name.toLowerCase().includes(searchQuery) ||
@@ -4619,10 +4666,11 @@
         html += `<td class="p-2 text-slate-500 border-r border-slate-200 text-[11px] truncate max-w-[120px]" title="${st.career || ''}">${st.career || ''}</td>`;
 
         subjects.forEach(s => {
-          const wasOriginallySelected = origList.includes(s);
-          const isCurrentlySelected = activeList.includes(s);
+          const normS = normalizeSubject(s);
+          const wasOriginallySelected = origList.some(orig => normalizeSubject(orig) === normS);
+          const isCurrentlySelected = activeList.some(act => normalizeSubject(act) === normS);
           const isUnder = counts[s] <= threshold;
-          const isDup = dupSubjNorms.has(normalizeSubject(s));
+          const isDup = dupSubjNorms.has(normS);
 
           let cellContent = '';
           let cellBg = isUnder ? 'style="background-color: #cbd5e1;"' : '';
@@ -4866,11 +4914,16 @@
 
       // Compute counts per subject
       const counts = {};
-      allSubjects.forEach(s => counts[s] = 0);
+      const normMap = {};
+      allSubjects.forEach(s => {
+        counts[s] = 0;
+        normMap[normalizeSubject(s)] = s;
+      });
       AppState.students.forEach(st => {
-        const selected = sem === 1 ? st.sem1 : st.sem2;
+        const selected = sem === 1 ? (st.sem1 || []) : (st.sem2 || []);
         selected.forEach(s => {
-          if (counts[s] !== undefined) counts[s]++;
+          const canonical = normMap[normalizeSubject(s)] || s;
+          if (counts[canonical] !== undefined) counts[canonical]++;
         });
       });
 
@@ -4881,10 +4934,11 @@
       let underCount = 0;
       let closedCount = 0;
 
+      const closedNorms = new Set(closedList.map(s => normalizeSubject(s)));
       allSubjects.forEach(subj => {
         const c = counts[subj] || 0;
         totalCount += c;
-        if (closedList.includes(subj)) closedCount++;
+        if (closedNorms.has(normalizeSubject(subj))) closedCount++;
         else if (c <= threshold) underCount++;
       });
 
@@ -4894,7 +4948,8 @@
 
       const subjectData = displayedSubjects.map((subj, idx) => {
         const count = counts[subj] || 0;
-        const isClosed = closedList.includes(subj);
+        const normSubj = normalizeSubject(subj);
+        const isClosed = closedList.some(c => normalizeSubject(c) === normSubj);
         const isUnder = count <= threshold;
 
         return {
@@ -5071,9 +5126,10 @@
       });
 
       fullSem1Subjs.forEach((s, idx) => {
+        const normS = normalizeSubject(s);
         let count = 0;
         AppState.students.forEach(st => {
-          if ((st.sem1 || []).includes(s)) count++;
+          if ((st.sem1 || []).some(sub => normalizeSubject(sub) === normS)) count++;
         });
         if (!sem1Subjs.includes(s) && prev1InfoMap[s]) {
           count = prev1InfoMap[s].count || 0;
@@ -5124,9 +5180,10 @@
       });
 
       fullSem2Subjs.forEach((s, idx) => {
+        const normS = normalizeSubject(s);
         let count = 0;
         AppState.students.forEach(st => {
-          if ((st.sem2 || []).includes(s)) count++;
+          if ((st.sem2 || []).some(sub => normalizeSubject(sub) === normS)) count++;
         });
         if (!sem2Subjs.includes(s) && prev2InfoMap[s]) {
           count = prev2InfoMap[s].count || 0;
@@ -5170,8 +5227,9 @@
         const r = r1Start + 4 + idx;
         const isEven = idx % 2 === 1;
         let count = 0;
+        const normS = normalizeSubject(s);
         AppState.students.forEach(st => {
-          if ((st.sem1 || []).includes(s)) count++;
+          if ((st.sem1 || []).some(sub => normalizeSubject(sub) === normS)) count++;
         });
         if (!sem1Subjs.includes(s) && prev1InfoMap[s]) count = prev1InfoMap[s].count || 0;
         const isUnder = count <= threshold;
@@ -5197,8 +5255,9 @@
         const r = r2Start + 4 + idx;
         const isEven = idx % 2 === 1;
         let count = 0;
+        const normS = normalizeSubject(s);
         AppState.students.forEach(st => {
-          if ((st.sem2 || []).includes(s)) count++;
+          if ((st.sem2 || []).some(sub => normalizeSubject(sub) === normS)) count++;
         });
         if (!sem2Subjs.includes(s) && prev2InfoMap[s]) count = prev2InfoMap[s].count || 0;
         const isUnder = count <= threshold;
@@ -5271,10 +5330,15 @@
         const subjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
         const threshold = AppState.step1Threshold;
         const counts = {};
-        subjects.forEach(s => counts[s] = 0);
+        const normMap = {};
+        subjects.forEach(s => {
+          counts[s] = 0;
+          normMap[normalizeSubject(s)] = s;
+        });
         AppState.students.forEach(st => {
           (sem === 1 ? st.sem1 : st.sem2).forEach(s => {
-            if (counts[s] !== undefined) counts[s]++;
+            const canonical = normMap[normalizeSubject(s)] || s;
+            if (counts[canonical] !== undefined) counts[canonical]++;
           });
         });
 
@@ -5293,7 +5357,9 @@
           const selected = sem === 1 ? st.sem1 : st.sem2;
           const row = [st.classNum, st.studentNum, st.name, st.career];
           subjects.forEach(s => {
-            row.push(selected.includes(s) ? '선택' : '');
+            const normS = normalizeSubject(s);
+            const isSel = selected.some(sub => normalizeSubject(sub) === normS);
+            row.push(isSel ? '선택' : '');
           });
           sheetData.push(row);
         });
@@ -5381,7 +5447,8 @@
 
           subjects.forEach((s, sIdx) => {
             const c = 4 + sIdx;
-            const isSel = selected.includes(s);
+            const normS = normalizeSubject(s);
+            const isSel = selected.some(sub => normalizeSubject(sub) === normS);
             const isRight = (sIdx === subjects.length - 1);
             ExcelStyler.setCell(ws, r, c, isSel ? ExcelStyler.dataSelected(isEven, isRight, false) : ExcelStyler.dataCenter(isEven, isRight, false));
           });
@@ -5691,9 +5758,13 @@
       return AppState.students.filter(st => {
         const s1List = st.sem1 || [];
         const s2List = st.sem2 || [];
+        const norm1 = normalizeSubject(sem1Subject);
+        const norm2 = normalizeSubject(sem2Subject);
+        const has1 = s1List.some(s => normalizeSubject(s) === norm1);
+        const has2 = s2List.some(s => normalizeSubject(s) === norm2);
 
-        const match1 = (sem1Type === 'take') ? s1List.includes(sem1Subject) : !s1List.includes(sem1Subject);
-        const match2 = (sem2Type === 'take') ? s2List.includes(sem2Subject) : !s2List.includes(sem2Subject);
+        const match1 = (sem1Type === 'take') ? has1 : !has1;
+        const match2 = (sem2Type === 'take') ? has2 : !has2;
 
         return match1 && match2;
       }).sort((a, b) => {
@@ -6103,7 +6174,8 @@
         let pinPenalty = 0;
         relevantPins.forEach(pin => {
           const gTokens = groups[pin.group - 1] || [];
-          if (!gTokens.some(t => t.parent === pin.subject)) {
+          const normPinSubj = normalizeSubject(pin.subject);
+          if (!gTokens.some(t => normalizeSubject(t.parent) === normPinSubj)) {
             pinPenalty += 20;
           }
         });
@@ -6113,11 +6185,12 @@
         for (let i = 0; i < n; i++) {
           adj[i] = [];
           const parentSubj = choices[i];
+          const normParent = normalizeSubject(parentSubj);
           for (let g = 0; g < m; g++) {
-            const specificPin = relevantPins.find(p => p.subject === parentSubj);
+            const specificPin = relevantPins.find(p => normalizeSubject(p.subject) === normParent);
             if (specificPin && (g + 1) !== specificPin.group) continue;
 
-            if (groups[g].some(t => t.parent === parentSubj)) {
+            if (groups[g].some(t => normalizeSubject(t.parent) === normParent)) {
               adj[i].push(g);
             }
           }
@@ -6652,7 +6725,8 @@
       for (const stIdx of randomizedIndices) {
         const st = studentsList[stIdx];
         const closedList = AppState.closedSubjects?.[sem] || [];
-        const choices = (sem === 1 ? st.sem1 : st.sem2).filter(s => !closedList.includes(s));
+        const closedNorms = new Set(closedList.map(s => normalizeSubject(s)));
+        const choices = (sem === 1 ? st.sem1 : st.sem2).filter(s => !closedNorms.has(normalizeSubject(s)));
         const n = choices.length;
 
         // 1) If user has manually edited this student's schedule, honor it 100%
@@ -6700,12 +6774,16 @@
         const candidatesPerChoice = [];
         for (let i = 0; i < n; i++) {
           const parentSubj = choices[i];
+          const normParent = normalizeSubject(parentSubj);
           const options = [];
           for (let g = 0; g < m; g++) {
-            const specificPin = relevantPins.find(p => p.subject === parentSubj);
+            const specificPin = relevantPins.find(p => normalizeSubject(p.subject) === normParent);
             if (specificPin && (g + 1) !== specificPin.group) continue;
 
-            const matchedToken = groups[g].find(s => s === parentSubj || s.startsWith(parentSubj + '-'));
+            const matchedToken = groups[g].find(s => {
+              const sParent = s.replace(/-[A-Z]$/, '');
+              return normalizeSubject(sParent) === normParent;
+            });
             if (matchedToken) {
               options.push({ gIdx: g, tokenName: matchedToken });
             }
@@ -7063,9 +7141,10 @@
           // 각 폐강 과목의 신청 인원 및 대상 학생 명단 집계
           const closedItems = mergedClosedList.map(subj => {
             let studentsInCur = [];
+            const normSubjTarget = normalizeSubject(subj);
             (AppState.students || []).forEach(st => {
               const selected = (sem === 1 ? st.sem1 : st.sem2) || [];
-              if (selected.includes(subj)) {
+              if (selected.some(s => normalizeSubject(s) === normSubjTarget)) {
                 const labelParts = [];
                 if (st.classNum) labelParts.push(`${st.classNum}반`);
                 if (st.studentNum) labelParts.push(`${st.studentNum}번`);
@@ -7191,9 +7270,11 @@
 
         groupSubjs.forEach(sName => {
           const parentName = sName.replace(/-[A-Z]$/, '');
+          const normParent = normalizeSubject(parentName);
           let count = 0;
           AppState.students.forEach(st => {
-            if ((sem === 1 ? st.sem1 : st.sem2).includes(parentName)) {
+            const selected = (sem === 1 ? st.sem1 : st.sem2) || [];
+            if (selected.some(s => normalizeSubject(s) === normParent)) {
               count++;
             }
           });
@@ -7203,7 +7284,13 @@
           }
           totalGroupEnrollment += count;
 
-          const isSubjPinned = (AppState.pinnedSubjects?.[sem]?.[parentName] === gIdx + 1);
+          let isSubjPinned = (AppState.pinnedSubjects?.[sem]?.[parentName] === gIdx + 1);
+          if (!isSubjPinned && AppState.pinnedSubjects?.[sem]) {
+            const pinKey = Object.keys(AppState.pinnedSubjects[sem]).find(k => normalizeSubject(k) === normParent);
+            if (pinKey && AppState.pinnedSubjects[sem][pinKey] === gIdx + 1) {
+              isSubjPinned = true;
+            }
+          }
           const pinBtnTitle = isSubjPinned 
             ? `[${parentName}] 과목이 ${gIdx + 1}그룹에 고정됨 (클릭 시 고정 해제)` 
             : `클릭 시 [${parentName}] 과목을 ${gIdx + 1}그룹에 고정 (조합 생성 시 유지)`;
@@ -8213,8 +8300,9 @@
                 const isColSelectedForSwap = subjectSwapState.active && subjectSwapState.selectedSubject === sName;
                 const swapColBg = isColSelectedForSwap ? 'bg-amber-100/40' : '';
                 const parentName = sName.replace(/-[A-Z]$/, '');
-                const wasOrig = origList.includes(parentName);
-                const isAct = activeList.includes(parentName);
+                const normParent = normalizeSubject(parentName);
+                const wasOrig = origList.some(s => normalizeSubject(s) === normParent);
+                const isAct = activeList.some(s => normalizeSubject(s) === normParent);
                 const safeParent = parentName.replace(/'/g, "\\'");
 
                 if (isChosen) {
@@ -9714,8 +9802,23 @@
         };
       }
 
-      // 그룹 깊은 복사
-      AppState.currentPlan.groups = JSON.parse(JSON.stringify(previewGroupsData));
+      // 그룹 깊은 복사 및 현재 학년 1단계 과목명 표기와 일치하도록 정규화 매핑 (예: '여행지리' -> '여행 지리' 또는 그 반대)
+      const currentSemSubjs = (activeSem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
+      const harmonizedGroups = previewGroupsData.map(grp => {
+        return grp.map(token => {
+          const matchSplit = String(token || '').match(/^(.*)-([A-Z])$/);
+          const base = matchSplit ? matchSplit[1] : token;
+          const letter = matchSplit ? `-${matchSplit[2]}` : '';
+          const normBase = normalizeSubject(base);
+          const found = currentSemSubjs.find(s => normalizeSubject(s) === normBase);
+          if (found) {
+            return `${found}${letter}`;
+          }
+          return token;
+        });
+      });
+
+      AppState.currentPlan.groups = harmonizedGroups;
       AppState.currentPlan.semester = activeSem;
       AppState.currentPlan.timestamp = new Date().toLocaleTimeString();
 
@@ -11470,45 +11573,7 @@ function renderYearGradeNav() {
     // 6. ALL GRADES CURRICULUM & TEACHER WORKLOAD CONSOLIDATION (전체 탭)
     // ==========================================
 
-    // 특수문자/각주 기호/별표 정규식 (*, ※, †, ‡, ★, ☆, ▲, ■, ●, #, ^ 등)
-    const SUBJECT_SPECIAL_CHARS_REGEX = /[*※†‡★☆▲■●#^]/g;
-
-    // 과목명 정규화 및 분반 추출 유틸리티
-    function getBaseSubjectName(subj) {
-      if (!subj) return '';
-      // 1. 줄바꿈, 탭 정리
-      let s = String(subj).replace(/[\r\n\t]/g, ' ');
-      // 2. 별표 및 각주 기호 제거
-      s = s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
-      // 3. 과목명 뒤의 -1, -2, -01, -A, -B 또는 (1반), (1분반), -1반 등 분반 접미사 제거
-      s = s
-        .replace(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i, '')
-        .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i, '')
-        .trim();
-      // 4. 분반 제거 후 남아있을 수 있는 별표/기호 재정리
-      return s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
-    }
-
-    function getSubjectDivision(subj) {
-      if (!subj) return '';
-      let s = String(subj).replace(/[\r\n\t]/g, ' ').replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
-      const m1 = s.match(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i);
-      if (m1) return m1[1];
-      const m2 = s.match(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i);
-      if (m2) return m2[1];
-      return '';
-    }
-
-    function normalizeSubjectKey(subj) {
-      if (!subj) return '';
-      // 1. 분반 접미사 및 별표 제거한 기본 과목명
-      const base = getBaseSubjectName(subj);
-      // 2. 모든 공백(전각 공백 \u3000 포함) 및 특수기호 제거, 영문 소문자화
-      return base
-        .replace(/[\s\u3000]/g, '')
-        .replace(SUBJECT_SPECIAL_CHARS_REGEX, '')
-        .toLowerCase();
-    }
+    // (상단 0번 섹션에 getBaseSubjectName, getSubjectDivision, normalizeSubjectKey, normalizeSubject 선언됨)
 
 
     const sampleCurriculumData = [
