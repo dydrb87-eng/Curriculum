@@ -9784,6 +9784,10 @@
         syncCurrentToMulti();
       }
 
+      // 탭 이동 시 과거 흔적(각 탭의 과거 학기)으로 되돌아가지 않고, 현재 눌려 있는 학기/단계를 유지 ("눌려진 대로만 이동")
+      const preservedSemester = AppState.currentSemester || 1;
+      const preservedStep = MultiState.activeStep || 1;
+
       MultiState.activeYear = targetYear;
       MultiState.activeGrade = targetGrade;
 
@@ -9862,6 +9866,10 @@
       }
       Object.assign(AppState, mergedData);
       AppState.detectedGrade = targetGrade;
+
+      // 현재 화면에 눌려진 학기 및 단계를 그대로 유지 (과거 탭 흔적 기억 방지)
+      AppState.currentSemester = preservedSemester;
+      MultiState.activeStep = preservedStep;
 
       if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
       if (!AppState.crossSemesterRules) AppState.crossSemesterRules = [];
@@ -9947,6 +9955,9 @@
             AppState.currentPlans[AppState.currentPlan.semester] = AppState.currentPlan;
           }
         }
+
+        updateStep1SemesterTabs(preservedSemester);
+        updateStep2SemesterTabs(preservedSemester);
 
         const activeStep = MultiState.activeStep || 1;
         if (activeStep === 1) {
