@@ -921,9 +921,10 @@
           <div class="p-4 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h4 id="subjectSummaryTitle" class="text-sm font-bold text-slate-800">
-                1학기 과목별 수강 인원 및 개설·폐강 현황
+                2027학년도 2학년 [1학기] 과목별 수강 인원 및 개설·폐강 현황
               </h4>
               <p class="text-xs text-slate-500 mt-0.5">개설 과목별 수강 인원을 확인하고, 기준 인원 이하 과목의 폐강 예정 여부 및 보류 신청을 관리할 수 있습니다.</p>
+              <div id="subjectSummaryHistoryClosedNotice" class="hidden"></div>
             </div>
             <div class="flex items-center space-x-2">
               <button id="btnExportSubjectSummary" type="button" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center space-x-1.5 transition-colors">
@@ -4630,16 +4631,111 @@
       saveAllState();
     };
 
+    // 이전 기준 날짜들의 폐강 과목 이력 조회 헬퍼 함수
+    function getPreviousDatesClosedSubjectsHistory(sem) {
+      const acadData = getAcadData();
+      const curGrade = MultiState.activeGrade || AppState.detectedGrade || '2학년';
+      const curDate = MultiState.activeYear;
+
+      const historyByDate = {}; // { '2027.10.11.': [ { subject: '육상', count: 2, date: '2027.10.11.' } ] }
+      const allPrevClosedSet = new Set();
+      const prevClosedInfoMap = {}; // subjName -> { subject, count, date }
+
+      (MultiState.yearsList || []).forEach(dateStr => {
+        if (dateStr === curDate) return;
+        const gData = acadData[dateStr]?.[curGrade];
+        if (!gData) return;
+
+        const closedList = gData.closedSubjects?.[sem] || [];
+        if (closedList.length === 0) return;
+
+        const dateItems = [];
+        closedList.forEach(sName => {
+          if (!sName) return;
+          let c = 0;
+          (gData.students || []).forEach(st => {
+            const list = (sem === 1 ? st.sem1 : st.sem2) || [];
+            if (list.includes(sName)) c++;
+          });
+
+          dateItems.push({ subject: sName, count: c, date: dateStr });
+          allPrevClosedSet.add(sName);
+          if (!prevClosedInfoMap[sName]) {
+            prevClosedInfoMap[sName] = { subject: sName, count: c, date: dateStr };
+          }
+        });
+
+        if (dateItems.length > 0) {
+          historyByDate[dateStr] = dateItems;
+        }
+      });
+
+      return {
+        historyByDate,
+        allPrevClosedSet,
+        prevClosedInfoMap
+      };
+    }
+    window.getPreviousDatesClosedSubjectsHistory = getPreviousDatesClosedSubjectsHistory;
+
     // Render Subject Summary & Retention Table (과목별 수강 인원 및 개설·폐강 현황)
     function renderSubjectSummaryTable() {
       const sem = AppState.currentSemester;
       const allSubjects = sem === 1 ? (AppState.sem1Subjects || []) : (AppState.sem2Subjects || []);
       const threshold = AppState.step1Threshold;
 
+      const acadYearStr = MultiState.activeAcademicYear || '2027학년도';
       const titleEl = document.getElementById('subjectSummaryTitle');
       if (titleEl) {
-        titleEl.textContent = `상지대관령고등학교 ${AppState.detectedGrade} [${sem}학기] 과목별 수강 인원 및 개설·폐강 현황`;
+        titleEl.textContent = `${acadYearStr} ${AppState.detectedGrade} [${sem}학기] 과목별 수강 인원 및 개설·폐강 현황`;
       }
+
+      // 이전 기준 날짜의 폐강 이력 수집
+      const { historyByDate, allPrevClosedSet, prevClosedInfoMap } = getPreviousDatesClosedSubjectsHistory(sem);
+
+      // 상단 배너에 이전 기준 날짜 폐강 목록 간단 표시
+      const noticeContainer = document.getElementById('subjectSummaryHistoryClosedNotice');
+      if (noticeContainer) {
+        const historyDates = Object.keys(historyByDate);
+        if (historyDates.length === 0) {
+          noticeContainer.classList.add('hidden');
+          noticeContainer.innerHTML = '';
+        } else {
+          noticeContainer.classList.remove('hidden');
+          let noticeHtml = `
+            <div class="mt-2.5 p-2.5 bg-rose-50/90 border border-rose-200 rounded-xl space-y-1.5 text-xs shadow-2xs">
+              <div class="flex items-center gap-1.5 font-bold text-rose-900">
+                <span>🚫 이전 기준 날짜 폐강 확정 이력</span>
+                <span class="text-[11px] text-rose-600 font-normal">(이전 조사 탭에서 폐강 결정된 과목 목록입니다)</span>
+              </div>
+              <div class="flex flex-col gap-1 text-slate-700">
+          `;
+          historyDates.forEach(dStr => {
+            const items = historyByDate[dStr] || [];
+            const itemsText = items.map(it => `<span class="font-extrabold text-rose-900">${escapeHtml(it.subject)}<span class="font-normal text-rose-700 text-[11px]">(${it.count}명)</span></span>`).join(', ');
+            noticeHtml += `
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-rose-200 shadow-3xs shrink-0">${escapeHtml(dStr)}:</span>
+                <span>${itemsText}</span>
+              </div>
+            `;
+          });
+          noticeHtml += `
+              </div>
+            </div>
+          `;
+          noticeContainer.innerHTML = noticeHtml;
+        }
+      }
+
+      // 이전 기준 날짜의 폐강 과목들을 현재 탭의 closedSubjects에도 자동 동기화 보존
+      if (!AppState.closedSubjects) AppState.closedSubjects = { 1: [], 2: [] };
+      if (!AppState.closedSubjects[sem]) AppState.closedSubjects[sem] = [];
+      allPrevClosedSet.forEach(prevS => {
+        if (!AppState.closedSubjects[sem].includes(prevS)) {
+          AppState.closedSubjects[sem].push(prevS);
+        }
+      });
 
       const closedList = AppState.closedSubjects?.[sem] || [];
       const memoMap = AppState.subjectMemos?.[sem] || {};
@@ -4683,8 +4779,25 @@
           count: count,
           isUnder: isUnder,
           isClosed: isClosed,
-          memo: memoMap[subj] || ''
+          memo: memoMap[subj] || '',
+          isFromHistory: false
         };
+      });
+
+      // 아래 세부 데이터 연번 마지막에 이전 폐강 과목들 표시 및 폐강 확정 상태로 목록화
+      const missingPrevClosed = Array.from(allPrevClosedSet).filter(s => !displayedSubjects.includes(s));
+      missingPrevClosed.forEach(subj => {
+        const info = prevClosedInfoMap[subj] || { count: 0, date: '' };
+        subjectData.push({
+          index: subjectData.length + 1,
+          name: subj,
+          count: info.count,
+          isUnder: true,
+          isClosed: true,
+          memo: memoMap[subj] || (info.date ? `[${info.date} 폐강 확정 이력]` : '[이전 기준 날짜 폐강 확정]'),
+          isFromHistory: true,
+          historyDate: info.date
+        });
       });
 
       // Build Table HTML
@@ -4759,9 +4872,14 @@
             </div>
           `;
 
-          const nameDisplay = item.isClosed
-            ? `<span class="line-through text-slate-400 mr-1.5">${item.name}</span><span class="text-[11px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300">폐강</span>`
-            : `<span class="text-slate-900">${item.name}</span>`;
+          let nameDisplay = '';
+          if (item.isFromHistory) {
+            nameDisplay = `<span class="line-through text-slate-400 mr-1.5">${escapeHtml(item.name)}</span><span class="text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300" title="${escapeHtml(item.historyDate)} 폐강 과목">이전 폐강</span>`;
+          } else if (item.isClosed) {
+            nameDisplay = `<span class="line-through text-slate-400 mr-1.5">${escapeHtml(item.name)}</span><span class="text-[11px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300">폐강</span>`;
+          } else {
+            nameDisplay = `<span class="text-slate-900">${escapeHtml(item.name)}</span>`;
+          }
 
           html += `<tr class="${rowBg} hover:bg-blue-50/40 transition-colors" ${rowStyle}>
             <td class="p-2.5 text-center font-medium border-r border-slate-200 text-slate-500">${item.index}</td>
@@ -4809,7 +4927,8 @@
       const closed1List = AppState.closedSubjects?.[1] || [];
       const memo1Map = AppState.subjectMemos?.[1] || {};
       const r1Start = rows.length; // 0
-      rows.push([`[상지대관령고등학교] ${AppState.detectedGrade} [1학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
+      const acadYearStr = MultiState.activeAcademicYear || '2027학년도';
+      rows.push([`${acadYearStr} ${AppState.detectedGrade} [1학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
       rows.push([`기준 인원: ${threshold}명 이하 | 전체 과목 수: ${sem1Subjs.length}개 | 출력일시: ${new Date().toLocaleString()}`]);
       rows.push([]);
       rows.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 확정', '폐강 보류 및 비고 메모']);
@@ -4821,20 +4940,29 @@
       let under1 = 0;
       let closed1 = 0;
       let total1 = 0;
-      sem1Subjs.forEach((s, idx) => {
+      const { allPrevClosedSet: prev1ClosedSet, prevClosedInfoMap: prev1InfoMap } = getPreviousDatesClosedSubjectsHistory(1);
+      const fullSem1Subjs = [...sem1Subjs];
+      Array.from(prev1ClosedSet).forEach(ps => {
+        if (!fullSem1Subjs.includes(ps)) fullSem1Subjs.push(ps);
+      });
+
+      fullSem1Subjs.forEach((s, idx) => {
         let count = 0;
         AppState.students.forEach(st => {
           if ((st.sem1 || []).includes(s)) count++;
         });
+        if (!sem1Subjs.includes(s) && prev1InfoMap[s]) {
+          count = prev1InfoMap[s].count || 0;
+        }
         total1 += count;
         const isUnder = count <= threshold;
         if (isUnder) under1++;
-        const isClosed = closed1List.includes(s);
+        const isClosed = closed1List.includes(s) || prev1ClosedSet.has(s);
         if (isClosed) closed1++;
 
         const status = isClosed ? '[폐강 확정]' : (isUnder ? '[폐강 예정]' : '개설');
         const closedText = isClosed ? '확정 (제외)' : '';
-        const memoText = memo1Map[s] || '';
+        const memoText = memo1Map[s] || (prev1InfoMap[s] ? `[${prev1InfoMap[s].date} 폐강 이력]` : '');
         rows.push([idx + 1, s, `${count}명`, status, closedText, memoText]);
         rowHeights.push({ hpt: 20 });
       });
@@ -4853,7 +4981,7 @@
       const closed2List = AppState.closedSubjects?.[2] || [];
       const memo2Map = AppState.subjectMemos?.[2] || {};
       const r2Start = rows.length;
-      rows.push([`[상지대관령고등학교] ${AppState.detectedGrade} [2학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
+      rows.push([`${acadYearStr} ${AppState.detectedGrade} [2학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
       rows.push([`기준 인원: ${threshold}명 이하 | 전체 과목 수: ${sem2Subjs.length}개 | 출력일시: ${new Date().toLocaleString()}`]);
       rows.push([]);
       rows.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 확정', '폐강 보류 및 비고 메모']);
@@ -4865,20 +4993,29 @@
       let under2 = 0;
       let closed2 = 0;
       let total2 = 0;
-      sem2Subjs.forEach((s, idx) => {
+      const { allPrevClosedSet: prev2ClosedSet, prevClosedInfoMap: prev2InfoMap } = getPreviousDatesClosedSubjectsHistory(2);
+      const fullSem2Subjs = [...sem2Subjs];
+      Array.from(prev2ClosedSet).forEach(ps => {
+        if (!fullSem2Subjs.includes(ps)) fullSem2Subjs.push(ps);
+      });
+
+      fullSem2Subjs.forEach((s, idx) => {
         let count = 0;
         AppState.students.forEach(st => {
           if ((st.sem2 || []).includes(s)) count++;
         });
+        if (!sem2Subjs.includes(s) && prev2InfoMap[s]) {
+          count = prev2InfoMap[s].count || 0;
+        }
         total2 += count;
         const isUnder = count <= threshold;
         if (isUnder) under2++;
-        const isClosed = closed2List.includes(s);
+        const isClosed = closed2List.includes(s) || prev2ClosedSet.has(s);
         if (isClosed) closed2++;
 
         const status = isClosed ? '[폐강 확정]' : (isUnder ? '[폐강 예정]' : '개설');
         const closedText = isClosed ? '확정 (제외)' : '';
-        const memoText = memo2Map[s] || '';
+        const memoText = memo2Map[s] || (prev2InfoMap[s] ? `[${prev2InfoMap[s].date} 폐강 이력]` : '');
         rows.push([idx + 1, s, `${count}명`, status, closedText, memoText]);
         rowHeights.push({ hpt: 20 });
       });
@@ -4905,15 +5042,16 @@
       for (let c = 0; c < 6; c++) {
         ExcelStyler.setCell(ws, r1Start + 3, c, ExcelStyler.headerStyle(ExcelStyler.colors.navyMid, c === 5, c === 0));
       }
-      sem1Subjs.forEach((s, idx) => {
+      fullSem1Subjs.forEach((s, idx) => {
         const r = r1Start + 4 + idx;
         const isEven = idx % 2 === 1;
         let count = 0;
         AppState.students.forEach(st => {
           if ((st.sem1 || []).includes(s)) count++;
         });
+        if (!sem1Subjs.includes(s) && prev1InfoMap[s]) count = prev1InfoMap[s].count || 0;
         const isUnder = count <= threshold;
-        const isClosed = closed1List.includes(s);
+        const isClosed = closed1List.includes(s) || prev1ClosedSet.has(s);
         ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
         ExcelStyler.setCell(ws, r, 1, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false));
         ExcelStyler.setCell(ws, r, 2, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
@@ -4931,15 +5069,16 @@
       for (let c = 0; c < 6; c++) {
         ExcelStyler.setCell(ws, r2Start + 3, c, ExcelStyler.headerStyle('0F766E', c === 5, c === 0)); // 청록색 계열로 2학기 구분
       }
-      sem2Subjs.forEach((s, idx) => {
+      fullSem2Subjs.forEach((s, idx) => {
         const r = r2Start + 4 + idx;
         const isEven = idx % 2 === 1;
         let count = 0;
         AppState.students.forEach(st => {
           if ((st.sem2 || []).includes(s)) count++;
         });
+        if (!sem2Subjs.includes(s) && prev2InfoMap[s]) count = prev2InfoMap[s].count || 0;
         const isUnder = count <= threshold;
-        const isClosed = closed2List.includes(s);
+        const isClosed = closed2List.includes(s) || prev2ClosedSet.has(s);
         ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
         ExcelStyler.setCell(ws, r, 1, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false));
         ExcelStyler.setCell(ws, r, 2, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
@@ -5049,7 +5188,8 @@
 
         // 2. Subject Summary & Retention Table (과목별 수강 인원 및 개설·폐강 현황)
         const t2Start = sheetData.length;
-        sheetData.push([`[상지대관령고등학교] ${AppState.detectedGrade} [${sem}학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
+        const acadYearStr = MultiState.activeAcademicYear || '2027학년도';
+        sheetData.push([`${acadYearStr} ${AppState.detectedGrade} [${sem}학기] 과목별 수강 인원 및 개설·폐강 현황표`]);
         sheetData.push(['연번', '과목명', '수강 신청 인원', '개설 상태', '폐강 확정', '폐강 보류 및 비고 메모']);
 
         const closedList = AppState.closedSubjects?.[sem] || [];
