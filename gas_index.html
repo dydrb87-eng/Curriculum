@@ -11589,15 +11589,37 @@ function renderYearGradeNav() {
         MultiState.datesByAcademicYear[ay] = [...MultiState.yearsList];
       }
       if (externalData.curriculumByAcademicYear && typeof externalData.curriculumByAcademicYear === 'object') {
-        MultiState.curriculumByAcademicYear = JSON.parse(JSON.stringify(externalData.curriculumByAcademicYear));
+        MultiState.curriculumByAcademicYear = {};
+        for (const ay in externalData.curriculumByAcademicYear) {
+          const arr = externalData.curriculumByAcademicYear[ay];
+          if (Array.isArray(arr)) {
+            MultiState.curriculumByAcademicYear[ay] = arr.map((c, idx) => sanitizeCurriculumItem(c, idx)).filter(Boolean);
+          } else {
+            MultiState.curriculumByAcademicYear[ay] = [];
+          }
+        }
+      } else if (Array.isArray(externalData.curriculum)) {
+        // 단일 배열 형태의 curriculum 하위 호환 복원
+        const ay = MultiState.activeAcademicYear || '2027학년도';
+        if (!MultiState.curriculumByAcademicYear) MultiState.curriculumByAcademicYear = {};
+        MultiState.curriculumByAcademicYear[ay] = externalData.curriculum.map((c, idx) => sanitizeCurriculumItem(c, idx)).filter(Boolean);
       }
+
       if (externalData.publishersByAcademicYear && typeof externalData.publishersByAcademicYear === 'object') {
         MultiState.publishersByAcademicYear = JSON.parse(JSON.stringify(externalData.publishersByAcademicYear));
       }
       if (externalData.publisherSubjectNamesByAcademicYear && typeof externalData.publisherSubjectNamesByAcademicYear === 'object') {
         MultiState.publisherSubjectNamesByAcademicYear = JSON.parse(JSON.stringify(externalData.publisherSubjectNamesByAcademicYear));
       }
+      if (externalData.gradeClassCounts && typeof externalData.gradeClassCounts === 'object') {
+        MultiState.gradeClassCounts = {
+          '1학년': Math.max(1, parseInt(externalData.gradeClassCounts['1학년'] || 2, 10)),
+          '2학년': Math.max(1, parseInt(externalData.gradeClassCounts['2학년'] || 2, 10)),
+          '3학년': Math.max(1, parseInt(externalData.gradeClassCounts['3학년'] || 2, 10))
+        };
+      }
       updatePublisherButtonUI();
+      if (typeof updateGradeClassCountBadge === 'function') updateGradeClassCountBadge();
 
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
@@ -12037,26 +12059,52 @@ function renderYearGradeNav() {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (event) => {
+        let json;
         try {
-          const json = JSON.parse(event.target.result);
-          if (json && (json.data || json.yearsList)) {
+          let rawText = event.target.result;
+          if (typeof rawText === 'string') {
+            if (rawText.charCodeAt(0) === 0xFEFF) {
+              rawText = rawText.slice(1);
+            }
+            rawText = rawText.trim();
+          }
+          json = JSON.parse(rawText);
+        } catch (parseErr) {
+          console.error('JSON Syntax Parse Error:', parseErr);
+          alert('❌ 백업 파일 파싱 실패 (JSON 형식 오류):\n' + parseErr.message + '\n\n올바른 .json 형식의 백업 파일인지 확인해주세요.');
+          return;
+        }
+
+        try {
+          if (!json || typeof json !== 'object') {
+            alert('올바른 백업 JSON 파일 형식이 아닙니다 (내용이 비어있거나 올바른 데이터 객체가 아닙니다).');
+            return;
+          }
+
+          // 감싸진 형태 풀기 (예: { MultiState: { ... } } 또는 { multiState: { ... } })
+          if (json.MultiState && typeof json.MultiState === 'object') json = json.MultiState;
+          else if (json.multiState && typeof json.multiState === 'object') json = json.multiState;
+          else if (json.state && typeof json.state === 'object') json = json.state;
+
+          if (json.data || json.yearsList || json.academicYearsList || json.curriculumByAcademicYear || json.curriculum) {
             applyExternalMultiState(json, true);
             closeCloudModal();
-          } else if (json && json.students) {
+          } else if (json.students || json.sem1Subjects) {
             Object.assign(AppState, json);
             syncCurrentToMulti();
             saveAllState();
             renderStep1();
             renderStep2UI();
-            alert(`🎉 [${AppState.detectedGrade || '수강신청'}] 작업 데이터가 복원되었습니다!\n(학생: ${AppState.students.length}명)`);
+            alert(`🎉 [${AppState.detectedGrade || '수강신청'}] 작업 데이터가 복원되었습니다!\n(학생: ${(AppState.students || []).length}명)`);
           } else {
-            alert('올바른 백업 JSON 파일 형식이 아닙니다.');
+            alert('올바른 백업 JSON 파일 형식이 아닙니다.\n(필수 백업 항목인 data, yearsList, students 등을 찾을 수 없습니다)');
           }
-        } catch (err) {
-          alert('백업 파일 파싱 실패: ' + err.message);
+        } catch (applyErr) {
+          console.error('Data Restore Application Error:', applyErr);
+          alert('❌ 백업 데이터 복원 적용 실패:\n' + applyErr.message + '\n\n백업 데이터를 화면에 반영하는 중 오류가 발생했습니다.');
         }
       };
-      reader.readAsText(file);
+      reader.readAsText(file, 'UTF-8');
     };
     document.getElementById('inputRestoreBackupJson')?.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -12151,6 +12199,55 @@ function renderYearGradeNav() {
     ];
 
     // 기초 데이터 공유 정책: 동일 학년도 하위 모든 날짜 탭에서 100% 실시간 공유
+    // 과목 항목 정규화 헬퍼 (구버전/다양한 JSON 백업 호환성 100% 보장: grade 숫자형, division 미지정 등 자동 보정)
+    function sanitizeCurriculumItem(c, idx = 0) {
+      if (!c || typeof c !== 'object') return null;
+
+      // 1. grade 정규화 ('1', 1, '1학년' -> '1학년')
+      let gStr = String(c.grade || '2학년').trim();
+      if (!gStr.endsWith('학년')) {
+        const m = gStr.match(/[123]/);
+        gStr = (m ? m[0] : '2') + '학년';
+      }
+
+      // 2. semester 정규화 (1, 2)
+      let sem = parseInt(c.semester || 1, 10);
+      if (sem !== 1 && sem !== 2) sem = 1;
+
+      // 3. division 정규화 ('1', 1 -> '1반', '2', 2 -> '2반')
+      let div = '';
+      if (c.division !== undefined && c.division !== null) {
+        div = String(c.division).trim();
+        if (div === '1') div = '1반';
+        else if (div === '2') div = '2반';
+        else if (div === '3') div = '3반';
+      }
+
+      // 4. hours 정규화
+      let hrs = parseFloat(c.hours);
+      if (isNaN(hrs) || hrs < 0) hrs = 0;
+
+      // 5. id 보장
+      const id = c.id ? String(c.id) : ('curr_id_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5));
+
+      const subj = String(c.subject || '').trim() || '미지정 과목';
+
+      return {
+        id: id,
+        grade: gStr,
+        semester: sem,
+        category: String(c.category || (gStr === '1학년' ? '지정' : '선택')).trim(),
+        division: div,
+        subject: subj,
+        baseSubject: c.baseSubject || getBaseSubjectName(subj),
+        hours: hrs,
+        teacher: String(c.teacher || '').trim(),
+        originalTeacher: String(c.originalTeacher || c.teacher || '').trim(),
+        status: (c.status === '폐강' || c.teacher === '폐강') ? '폐강' : '개설',
+        isModified: Boolean(c.isModified)
+      };
+    }
+
     function getAllGradesCurriculum() {
       const acadYear = MultiState?.activeAcademicYear || '2027학년도';
       if (!MultiState.curriculumByAcademicYear) MultiState.curriculumByAcademicYear = {};
@@ -12169,21 +12266,28 @@ function renderYearGradeNav() {
         }
       }
 
-      // 모든 과목 항목에 고유한 id가 보장되도록 검증 (클릭 시 다른 과목에 영향 주는 현상 원천 방지)
-      let idUpdated = false;
+      // 모든 과목 항목 정규화 및 고유 id 보장
+      let updated = false;
       const seenIds = new Set();
-      list.forEach((item, idx) => {
-        if (!item.id || seenIds.has(item.id)) {
+      const sanitizedList = [];
+
+      list.forEach((rawItem, idx) => {
+        const item = sanitizeCurriculumItem(rawItem, idx);
+        if (!item) return;
+        if (seenIds.has(item.id)) {
           item.id = 'curr_id_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5);
-          idUpdated = true;
+          updated = true;
         }
         seenIds.add(item.id);
+        sanitizedList.push(item);
       });
-      if (idUpdated) {
+
+      MultiState.curriculumByAcademicYear[acadYear] = sanitizedList;
+      if (updated || sanitizedList.length !== list.length) {
         saveAllState();
       }
 
-      return list;
+      return sanitizedList;
     }
 
     function setAllGradesCurriculum(newCurriculum) {
@@ -13282,7 +13386,7 @@ function renderYearGradeNav() {
       curriculum.forEach(item => {
         rows.push([
           item.semester,
-          parseInt(item.grade) || item.grade,
+          item.grade,
           item.category || '선택',
           (item.division || (item.category === '선택' ? '선택' : '1반')).trim(),
           item.subject,
@@ -15372,7 +15476,7 @@ function renderYearGradeNav() {
 
         const s1Tags = d.sem1Courses.map(c => {
           let divBadge = '';
-          const cleanDiv = (c.division || '').trim();
+          const cleanDiv = String(c.division || '').trim();
           if (cleanDiv && cleanDiv !== '선택') {
             let badgeClass = 'bg-blue-100 text-blue-800 border-blue-200';
             if (cleanDiv.includes('분반')) {
@@ -15383,6 +15487,7 @@ function renderYearGradeNav() {
             divBadge = `<span class="text-[10px] px-1 py-0.2 rounded font-bold border pointer-events-none ${badgeClass}">${escapeHtml(cleanDiv)}</span>`;
           }
 
+          const gradeLabel = String(c.grade || '').replace('학년', '');
           return `
           <span class="course-drag-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
             (c.category === '지정' || c.category === '학교지정')
@@ -15399,7 +15504,7 @@ function renderYearGradeNav() {
           ondragstart="window.handleCourseBadgeDragStart(event, '${escapeHtml(c.id)}', 1, '${escapeHtml(tName)}', '${escapeHtml(c.subject)}', ${c.hours})"
           ondragend="window.handleCourseBadgeDragEnd(event)"
           title="클릭: 아래 상세 테이블에서 과목 위치로 이동 | 드래그: 다른 교사에게 과목 넘겨주기 (${c.category}${cleanDiv ? ' ' + cleanDiv : ''})">
-            <span class="text-[9px] text-slate-500 font-semibold pointer-events-none">${c.grade.replace('학년', '')}학년</span>
+            <span class="text-[9px] text-slate-500 font-semibold pointer-events-none">${gradeLabel}학년</span>
             ${divBadge}
             <span class="pointer-events-none">${escapeHtml(c.subject)}</span>
             <span class="font-black text-indigo-700 pointer-events-none">(${c.hours})</span>
@@ -15409,7 +15514,7 @@ function renderYearGradeNav() {
 
         const s2Tags = d.sem2Courses.map(c => {
           let divBadge = '';
-          const cleanDiv = (c.division || '').trim();
+          const cleanDiv = String(c.division || '').trim();
           if (cleanDiv && cleanDiv !== '선택') {
             let badgeClass = 'bg-blue-100 text-blue-800 border-blue-200';
             if (cleanDiv.includes('분반')) {
@@ -15420,6 +15525,7 @@ function renderYearGradeNav() {
             divBadge = `<span class="text-[10px] px-1 py-0.2 rounded font-bold border pointer-events-none ${badgeClass}">${escapeHtml(cleanDiv)}</span>`;
           }
 
+          const gradeLabel = String(c.grade || '').replace('학년', '');
           return `
           <span class="course-drag-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
             (c.category === '지정' || c.category === '학교지정')
@@ -15436,7 +15542,7 @@ function renderYearGradeNav() {
           ondragstart="window.handleCourseBadgeDragStart(event, '${escapeHtml(c.id)}', 2, '${escapeHtml(tName)}', '${escapeHtml(c.subject)}', ${c.hours})"
           ondragend="window.handleCourseBadgeDragEnd(event)"
           title="클릭: 아래 상세 테이블에서 과목 위치로 이동 | 드래그: 다른 교사에게 과목 넘겨주기 (${c.category}${cleanDiv ? ' ' + cleanDiv : ''})">
-            <span class="text-[9px] text-slate-500 font-semibold pointer-events-none">${c.grade.replace('학년', '')}학년</span>
+            <span class="text-[9px] text-slate-500 font-semibold pointer-events-none">${gradeLabel}학년</span>
             ${divBadge}
             <span class="pointer-events-none">${escapeHtml(c.subject)}</span>
             <span class="font-black text-emerald-700 pointer-events-none">(${c.hours})</span>
