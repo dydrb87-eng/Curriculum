@@ -961,8 +961,8 @@
             </div>
           </div>
 
-          <!-- Advanced Constraints Controls: 3-column Layout -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <!-- Advanced Constraints Controls: 4-column Layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
             
             <!-- 영역 1: 분반 가능 과목 체크 (인원 분할) -->
             <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex flex-col">
@@ -1015,6 +1015,40 @@
                 </div>
                 <div id="separatePairsList" class="max-h-24 overflow-y-auto custom-scrollbar flex-1 space-y-1 pr-0.5 text-xs">
                   <!-- Separate pairs list chips -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 영역 4: 조건별 학생 추출 (학기 연계 수강생 조회) -->
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex flex-col">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-800 flex items-center space-x-1">
+                  <span>🔍 조건별 학생 추출</span>
+                </span>
+                <span class="text-[11px] text-indigo-600 font-bold">학기 연계 수강생</span>
+              </div>
+              <div class="space-y-2 flex flex-col flex-1">
+                <div class="space-y-1.5 bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
+                  <div class="flex items-center gap-1">
+                    <span class="text-[10px] font-black text-slate-500 w-8 shrink-0">1학기:</span>
+                    <select id="crossCondSem1Subj" class="flex-1 text-[11px] border border-slate-300 rounded p-0.5 bg-white truncate" title="1학기 과목"></select>
+                    <select id="crossCondSem1Type" class="text-[11px] border border-slate-300 rounded p-0.5 bg-slate-50 font-bold shrink-0" title="1학기 수강 여부">
+                      <option value="take" selected>수강</option>
+                      <option value="not">미수강</option>
+                    </select>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-[10px] font-black text-slate-500 w-8 shrink-0">2학기:</span>
+                    <select id="crossCondSem2Subj" class="flex-1 text-[11px] border border-slate-300 rounded p-0.5 bg-white truncate" title="2학기 과목"></select>
+                    <select id="crossCondSem2Type" class="text-[11px] border border-slate-300 rounded p-0.5 bg-slate-50 font-bold shrink-0" title="2학기 수강 여부">
+                      <option value="take" selected>수강</option>
+                      <option value="not">미수강</option>
+                    </select>
+                    <button id="btnAddCrossCondition" type="button" class="shrink-0 px-2 py-0.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded shadow-2xs transition cursor-pointer" title="조건 추가">추가</button>
+                  </div>
+                </div>
+                <div id="crossConditionsList" class="max-h-24 overflow-y-auto custom-scrollbar flex-1 space-y-1 pr-0.5 text-xs">
+                  <!-- Cross condition chips -->
                 </div>
               </div>
             </div>
@@ -1451,6 +1485,55 @@
     </div>
   </div>
 
+  <!-- Cross Condition Students Modal (조건별 추출 학생 명단) -->
+  <div id="crossConditionStudentsModal" onclick="if(event.target.id === 'crossConditionStudentsModal') window.closeCrossConditionModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl shadow-xs">
+            👥
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900">조건별 수강 학생 명단</h3>
+              <span id="crossConditionCountBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800"></span>
+            </div>
+            <p id="crossConditionRuleSummary" class="text-xs text-slate-600 font-semibold mt-1 flex items-center gap-1.5 flex-wrap"></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnExportCrossConditionExcel" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer" title="현재 학생 명단을 엑셀 파일로 다운로드합니다">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>엑셀 다운로드</span>
+          </button>
+          <button type="button" onclick="window.closeCrossConditionModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="닫기">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Table) -->
+      <div class="overflow-y-auto flex-1 pr-1 border border-slate-200 rounded-xl">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead class="bg-slate-50 text-slate-700 font-bold sticky top-0 border-b border-slate-200 shadow-2xs">
+            <tr>
+              <th class="p-2.5 text-center w-14">반</th>
+              <th class="p-2.5 text-center w-14">번호</th>
+              <th class="p-2.5 text-center w-20">이름</th>
+              <th class="p-2.5 text-center w-28">진로희망</th>
+              <th class="p-2.5">1학기 수강 과목</th>
+              <th class="p-2.5">2학기 수강 과목</th>
+            </tr>
+          </thead>
+          <tbody id="crossConditionStudentsTableBody" class="divide-y divide-slate-100 bg-white">
+            <!-- Student rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- Import Groups Modal (다른 기준 날짜에서 그룹 배치 불러오기) -->
   <div id="importGroupModal" onclick="if(event.target.id === 'importGroupModal') window.closeImportGroupModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
@@ -1817,6 +1900,11 @@
         conflicts: [], // Array of conflict details
         timestamp: null
       },
+      currentPlans: {
+        1: null,
+        2: null
+      },
+      crossSemesterRules: [], // Array of { id, sem1Subject, sem1Type, sem2Subject, sem2Type }
 
       // Prior Enrollment Data (학생 명부 및 기이수 과목)
       priorData: null,
@@ -3637,14 +3725,42 @@
 
     function switchSemester(sem) {
       if (MultiState.activeGrade === '전체') return;
+
+      // 1. 현재 학기의 배치 상태를 currentPlans에 보존
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      if (AppState.currentPlan && AppState.currentPlan.semester) {
+        AppState.currentPlans[AppState.currentPlan.semester] = JSON.parse(JSON.stringify(AppState.currentPlan));
+      }
+
       AppState.currentSemester = sem;
       updateStep1SemesterTabs(sem);
       updateStep2SemesterTabs(sem);
+
+      // 2. 대상 학기(sem)의 플랜이 이미 있으면 복원, 없으면 savedPlans 확인
+      if (AppState.currentPlans[sem]) {
+        AppState.currentPlan = AppState.currentPlans[sem];
+      } else if (AppState.currentPlan && AppState.currentPlan.semester === sem) {
+        AppState.currentPlans[sem] = AppState.currentPlan;
+      } else {
+        const semSaved = (AppState.savedPlans || []).filter(p => p.semester === sem);
+        if (semSaved.length > 0) {
+          AppState.currentPlan = JSON.parse(JSON.stringify(semSaved[semSaved.length - 1]));
+          AppState.currentPlans[sem] = AppState.currentPlan;
+        } else {
+          AppState.currentPlan = null;
+        }
+      }
+
       if (MultiState.activeStep === 1) {
         renderStep1();
       } else {
         initStep2Controls();
-        runOptimization();
+        if (AppState.currentPlan) {
+          renderStep2Results();
+        } else {
+          // 해당 학기에 플랜이 아예 없을 때만 최초 1회 생성
+          runOptimization();
+        }
       }
       renderYearGradeNav();
       saveAllState();
@@ -5067,6 +5183,9 @@
 
       savedPlansActiveTab = sem;
       renderSavedPlansList();
+
+      initCrossConditionControls();
+      renderCrossConditionsList();
     }
 
     // Target Conflict Range Event Listeners (Top & Timetable Toolbar)
@@ -5163,11 +5282,286 @@
       const history = AppState.simulationHistory?.[sem];
       if (history && history.minConflictPlan) {
         AppState.currentPlan = JSON.parse(JSON.stringify(history.minConflictPlan));
+        if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+        AppState.currentPlans[sem] = AppState.currentPlan;
         renderStep2Results();
         saveAllState();
         alert(`🏆 역대 최저 충돌(${history.minConflictEver}명) 조합 안으로 복원되었습니다.`);
       }
     });
+
+    // ----------------------------------------------------
+    // CROSS-SEMESTER CONDITION STUDENT EXTRACTION
+    // ----------------------------------------------------
+    function initCrossConditionControls() {
+      const s1Select = document.getElementById('crossCondSem1Subj');
+      const s2Select = document.getElementById('crossCondSem2Subj');
+      if (!s1Select || !s2Select) return;
+
+      const sem1Subjs = AppState.sem1Subjects || [];
+      const sem2Subjs = AppState.sem2Subjects || [];
+
+      const curS1 = s1Select.value;
+      const curS2 = s2Select.value;
+
+      s1Select.innerHTML = sem1Subjs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+      s2Select.innerHTML = sem2Subjs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+
+      if (curS1 && sem1Subjs.includes(curS1)) {
+        s1Select.value = curS1;
+      }
+      if (curS2 && sem2Subjs.includes(curS2)) {
+        s2Select.value = curS2;
+      }
+    }
+
+    function getMatchingStudentsForCondition(rule) {
+      if (!rule || !AppState.students) return [];
+      const { sem1Subject, sem1Type, sem2Subject, sem2Type } = rule;
+
+      return AppState.students.filter(st => {
+        const s1List = st.sem1 || [];
+        const s2List = st.sem2 || [];
+
+        const match1 = (sem1Type === 'take') ? s1List.includes(sem1Subject) : !s1List.includes(sem1Subject);
+        const match2 = (sem2Type === 'take') ? s2List.includes(sem2Subject) : !s2List.includes(sem2Subject);
+
+        return match1 && match2;
+      }).sort((a, b) => {
+        const cA = parseInt(a.classNum, 10) || 0;
+        const cB = parseInt(b.classNum, 10) || 0;
+        if (cA !== cB) return cA - cB;
+        const nA = parseInt(a.studentNum, 10) || 0;
+        const nB = parseInt(b.studentNum, 10) || 0;
+        return nA - nB;
+      });
+    }
+
+    function renderCrossConditionsList() {
+      const container = document.getElementById('crossConditionsList');
+      if (!container) return;
+
+      if (!AppState.crossSemesterRules) AppState.crossSemesterRules = [];
+      const rules = AppState.crossSemesterRules;
+
+      if (rules.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-2">등록된 조건이 없습니다.</p>`;
+        return;
+      }
+
+      container.innerHTML = rules.map(r => {
+        const matches = getMatchingStudentsForCondition(r);
+        const count = matches.length;
+        const s1Badge = r.sem1Type === 'take' 
+          ? '<span class="text-blue-600 font-extrabold">수강</span>' 
+          : '<span class="text-rose-600 font-extrabold">미수강</span>';
+        const s2Badge = r.sem2Type === 'take' 
+          ? '<span class="text-blue-600 font-extrabold">수강</span>' 
+          : '<span class="text-rose-600 font-extrabold">미수강</span>';
+
+        return `
+          <div class="flex items-center justify-between p-1.5 bg-white rounded-lg border border-slate-200 shadow-2xs hover:border-indigo-300 transition gap-1 group">
+            <button type="button" 
+                    onclick="window.openCrossConditionModal('${r.id}')"
+                    class="flex items-center justify-between flex-1 min-w-0 text-left cursor-pointer hover:bg-slate-50 p-0.5 rounded transition"
+                    title="클릭하여 해당 학생 명단 확인">
+              <span class="text-[11px] text-slate-700 truncate mr-1">
+                1학기 ${escapeHtml(r.sem1Subject)}(${s1Badge}) &amp; 2학기 ${escapeHtml(r.sem2Subject)}(${s2Badge})
+              </span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded-full font-black shrink-0 ${count > 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-400'}">
+                ${count}명
+              </span>
+            </button>
+            <button type="button" 
+                    onclick="window.deleteCrossConditionRule('${r.id}')"
+                    class="text-slate-300 hover:text-rose-600 px-1 text-xs font-bold transition shrink-0 cursor-pointer"
+                    title="조건 삭제">
+              ✕
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('btnAddCrossCondition')?.addEventListener('click', () => {
+      const s1Select = document.getElementById('crossCondSem1Subj');
+      const s1TypeSelect = document.getElementById('crossCondSem1Type');
+      const s2Select = document.getElementById('crossCondSem2Subj');
+      const s2TypeSelect = document.getElementById('crossCondSem2Type');
+
+      if (!s1Select || !s2Select) return;
+      const sem1Subj = s1Select.value;
+      const sem1Type = s1TypeSelect ? s1TypeSelect.value : 'take';
+      const sem2Subj = s2Select.value;
+      const sem2Type = s2TypeSelect ? s2TypeSelect.value : 'take';
+
+      if (!sem1Subj || !sem2Subj) {
+        alert('1학기 및 2학기 과목을 선택해주세요.');
+        return;
+      }
+
+      if (!AppState.crossSemesterRules) AppState.crossSemesterRules = [];
+
+      const exists = AppState.crossSemesterRules.some(r => 
+        r.sem1Subject === sem1Subj && r.sem1Type === sem1Type &&
+        r.sem2Subject === sem2Subj && r.sem2Type === sem2Type
+      );
+      if (exists) {
+        alert('이미 동일한 조건이 등록되어 있습니다.');
+        return;
+      }
+
+      const newRule = {
+        id: 'csr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        sem1Subject: sem1Subj,
+        sem1Type: sem1Type,
+        sem2Subject: sem2Subj,
+        sem2Type: sem2Type
+      };
+
+      AppState.crossSemesterRules.push(newRule);
+      renderCrossConditionsList();
+      saveAllState();
+
+      const matched = getMatchingStudentsForCondition(newRule);
+      if (matched.length > 0) {
+        window.openCrossConditionModal(newRule.id);
+      }
+    });
+
+    window.deleteCrossConditionRule = function(ruleId) {
+      if (!AppState.crossSemesterRules) return;
+      AppState.crossSemesterRules = AppState.crossSemesterRules.filter(r => r.id !== ruleId);
+      renderCrossConditionsList();
+      saveAllState();
+    };
+
+    let currentViewingCrossConditionRule = null;
+
+    window.openCrossConditionModal = function(ruleId) {
+      if (!AppState.crossSemesterRules) return;
+      const rule = AppState.crossSemesterRules.find(r => r.id === ruleId);
+      if (!rule) return;
+
+      currentViewingCrossConditionRule = rule;
+      const modal = document.getElementById('crossConditionStudentsModal');
+      const summaryElem = document.getElementById('crossConditionRuleSummary');
+      const countBadge = document.getElementById('crossConditionCountBadge');
+      const tbody = document.getElementById('crossConditionStudentsTableBody');
+
+      const matchedStudents = getMatchingStudentsForCondition(rule);
+
+      const s1Text = `1학기 [${rule.sem1Subject}] ${rule.sem1Type === 'take' ? '수강' : '미수강'}`;
+      const s2Text = `2학기 [${rule.sem2Subject}] ${rule.sem2Type === 'take' ? '수강' : '미수강'}`;
+      if (summaryElem) {
+        summaryElem.innerHTML = `<span class="text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 font-bold">${escapeHtml(s1Text)}</span> <span class="text-slate-400 font-black">&amp;</span> <span class="text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 font-bold">${escapeHtml(s2Text)}</span>`;
+      }
+      if (countBadge) {
+        countBadge.textContent = `총 ${matchedStudents.length}명`;
+      }
+
+      if (tbody) {
+        if (matchedStudents.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" class="p-8 text-center text-slate-400 font-medium">
+                해당 조건(${escapeHtml(s1Text)} &amp; ${escapeHtml(s2Text)})을 만족하는 학생이 없습니다.
+              </td>
+            </tr>
+          `;
+        } else {
+          tbody.innerHTML = matchedStudents.map(st => {
+            const s1List = (st.sem1 || []).map(s => {
+              const isTarget = (s === rule.sem1Subject);
+              return isTarget 
+                ? `<span class="inline-block bg-blue-100 text-blue-900 font-black px-1.5 py-0.5 rounded border border-blue-300 shadow-2xs">${escapeHtml(s)}</span>`
+                : `<span class="inline-block bg-slate-100 text-slate-700 px-1 py-0.5 rounded">${escapeHtml(s)}</span>`;
+            }).join(' ');
+
+            const s2List = (st.sem2 || []).map(s => {
+              const isTarget = (s === rule.sem2Subject);
+              return isTarget 
+                ? `<span class="inline-block bg-purple-100 text-purple-900 font-black px-1.5 py-0.5 rounded border border-purple-300 shadow-2xs">${escapeHtml(s)}</span>`
+                : `<span class="inline-block bg-slate-100 text-slate-700 px-1 py-0.5 rounded">${escapeHtml(s)}</span>`;
+            }).join(' ');
+
+            return `
+              <tr class="hover:bg-indigo-50/40 transition">
+                <td class="p-2.5 text-center font-semibold text-slate-600">${st.classNum}반</td>
+                <td class="p-2.5 text-center font-semibold text-slate-600">${st.studentNum}번</td>
+                <td class="p-2.5 text-center font-black text-slate-900 whitespace-nowrap">${escapeHtml(st.name)}</td>
+                <td class="p-2.5 text-center text-slate-500 whitespace-nowrap">${escapeHtml(st.career || '-')}</td>
+                <td class="p-2.5 space-x-1">${s1List || '<span class="text-slate-300">없음</span>'}</td>
+                <td class="p-2.5 space-x-1">${s2List || '<span class="text-slate-300">없음</span>'}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      if (modal) modal.classList.remove('hidden');
+    };
+
+    window.closeCrossConditionModal = function() {
+      const modal = document.getElementById('crossConditionStudentsModal');
+      if (modal) modal.classList.add('hidden');
+      currentViewingCrossConditionRule = null;
+    };
+
+    document.getElementById('btnExportCrossConditionExcel')?.addEventListener('click', () => {
+      if (!currentViewingCrossConditionRule) return;
+      const rule = currentViewingCrossConditionRule;
+      const matched = getMatchingStudentsForCondition(rule);
+      if (matched.length === 0) {
+        alert('다운로드할 대상 학생이 없습니다.');
+        return;
+      }
+
+      const rows = [
+        ['반', '번호', '이름', '진로희망', '1학기 수강 과목', '2학기 수강 과목']
+      ];
+
+      matched.forEach(st => {
+        rows.push([
+          String(st.classNum) + '반',
+          Number(st.studentNum),
+          st.name,
+          st.career || '',
+          (st.sem1 || []).join(', '),
+          (st.sem2 || []).join(', ')
+        ]);
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+
+      ws['!cols'] = [
+        { wch: 8 },
+        { wch: 8 },
+        { wch: 12 },
+        { wch: 18 },
+        { wch: 35 },
+        { wch: 35 }
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, '조건별학생명단');
+
+      const s1Clean = rule.sem1Subject.replace(/[\\/:*?"<>|]/g, '');
+      const s2Clean = rule.sem2Subject.replace(/[\\/:*?"<>|]/g, '');
+      const s1TypeStr = rule.sem1Type === 'take' ? '수강' : '미수강';
+      const s2TypeStr = rule.sem2Type === 'take' ? '수강' : '미수강';
+      const acadY = MultiState.activeAcademicYear || '2027학년도';
+      const grade = MultiState.activeGrade || '2학년';
+
+      const fileName = `[${acadY}_${grade}]_조건별학생_1학기_${s1Clean}_${s1TypeStr}_2학기_${s2Clean}_${s2TypeStr}_(${matched.length}명).xlsx`;
+
+      if (typeof window.saveExcelFile === 'function') {
+        window.saveExcelFile(wb, fileName);
+      } else {
+        XLSX.writeFile(wb, fileName);
+      }
+    });
+
 
     // ----------------------------------------------------
     // TOGETHER & SEPARATE PAIRS RULE MANAGEMENT
@@ -5768,6 +6162,9 @@
       AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
       AppState.currentPlan.conflicts = analysis.conflictDetails;
 
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      AppState.currentPlans[sem] = AppState.currentPlan;
+
       renderStep2Results();
       saveAllState();
     }
@@ -6052,10 +6449,24 @@
 
     function renderStep2UI() {
       initStep2Controls();
-      if (!AppState.currentPlan || AppState.currentPlan.semester !== AppState.currentSemester) {
-        runOptimization();
-      } else {
+      const sem = AppState.currentSemester || 1;
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+
+      if (AppState.currentPlans[sem]) {
+        AppState.currentPlan = AppState.currentPlans[sem];
         renderStep2Results();
+      } else if (AppState.currentPlan && AppState.currentPlan.semester === sem) {
+        AppState.currentPlans[sem] = AppState.currentPlan;
+        renderStep2Results();
+      } else {
+        const semSaved = (AppState.savedPlans || []).filter(p => p.semester === sem);
+        if (semSaved.length > 0) {
+          AppState.currentPlan = JSON.parse(JSON.stringify(semSaved[semSaved.length - 1]));
+          AppState.currentPlans[sem] = AppState.currentPlan;
+          renderStep2Results();
+        } else {
+          runOptimization();
+        }
       }
       renderSavedPlansList();
     }
@@ -7818,6 +8229,8 @@
         memo: plan.memo || '',
         timestamp: plan.timestamp
       };
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      AppState.currentPlans[plan.semester] = AppState.currentPlan;
 
       // Restore toggles UI without re-running optimization
       updateStep2SemesterTabs(plan.semester);
@@ -8680,6 +9093,9 @@
       AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
       AppState.currentPlan.conflicts = analysis.conflictDetails;
 
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      AppState.currentPlans[activeSem] = AppState.currentPlan;
+
       renderStep2Results();
       saveAllState();
 
@@ -8854,6 +9270,11 @@
           conflicts: [],
           timestamp: null
         },
+        currentPlans: {
+          1: null,
+          2: null
+        },
+        crossSemesterRules: [],
         priorData: null,
         crossCheckResult: {
           missingStudents: [],
@@ -8979,6 +9400,12 @@
       if (!acadData[y]) acadData[y] = {};
       if (g === '전체') return; // '전체' 탭은 독자적 커리큘럼 데이터 구조를 유지하므로 AppState 덮어쓰기 방지
       
+      // 현재 플랜을 currentPlans에도 확실하게 동기화
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      if (AppState.currentPlan && AppState.currentPlan.semester) {
+        AppState.currentPlans[AppState.currentPlan.semester] = JSON.parse(JSON.stringify(AppState.currentPlan));
+      }
+
       acadData[y][g] = {
         detectedGrade: AppState.detectedGrade || g,
         fileName: AppState.fileName || '',
@@ -8998,6 +9425,8 @@
         subjectMemos: JSON.parse(JSON.stringify(AppState.subjectMemos || { 1: {}, 2: {} })),
         studentPins: JSON.parse(JSON.stringify(AppState.studentPins || [])),
         currentPlan: AppState.currentPlan ? JSON.parse(JSON.stringify(AppState.currentPlan)) : null,
+        currentPlans: JSON.parse(JSON.stringify(AppState.currentPlans || { 1: null, 2: null })), 
+        crossSemesterRules: JSON.parse(JSON.stringify(AppState.crossSemesterRules || [])),
         priorData: AppState.priorData ? JSON.parse(JSON.stringify(AppState.priorData)) : null,
         crossCheckResult: AppState.crossCheckResult ? JSON.parse(JSON.stringify(AppState.crossCheckResult)) : null,
         savedPlans: JSON.parse(JSON.stringify(AppState.savedPlans || [])),
@@ -9102,6 +9531,19 @@
       Object.assign(AppState, JSON.parse(JSON.stringify(targetData)));
       AppState.detectedGrade = targetGrade;
 
+      // currentPlans 초기화 및 하위 호환 처리
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      if (AppState.currentPlan && AppState.currentPlan.semester) {
+        if (!AppState.currentPlans[AppState.currentPlan.semester]) {
+          AppState.currentPlans[AppState.currentPlan.semester] = JSON.parse(JSON.stringify(AppState.currentPlan));
+        }
+      }
+      const curSem = AppState.currentSemester || 1;
+      if (AppState.currentPlans[curSem]) {
+        AppState.currentPlan = AppState.currentPlans[curSem];
+      }
+      if (!AppState.crossSemesterRules) AppState.crossSemesterRules = [];
+
       // Ensure togetherPairs and separatePairs are defined
       if (!AppState.togetherPairs) AppState.togetherPairs = { 1: [], 2: [] };
       if (!AppState.togetherPairs[1]) AppState.togetherPairs[1] = [];
@@ -9139,7 +9581,12 @@
         if (!AppState.savedPlans) AppState.savedPlans = [];
 
         if (AppState.savedPlans && AppState.savedPlans.length > 0 && !AppState.currentPlan) {
-          AppState.currentPlan = JSON.parse(JSON.stringify(AppState.savedPlans[0]));
+          const semSaved = AppState.savedPlans.filter(p => p.semester === curSem);
+          const chosenSaved = semSaved.length > 0 ? semSaved[semSaved.length - 1] : AppState.savedPlans[0];
+          AppState.currentPlan = JSON.parse(JSON.stringify(chosenSaved));
+          if (AppState.currentPlan && AppState.currentPlan.semester) {
+            AppState.currentPlans[AppState.currentPlan.semester] = AppState.currentPlan;
+          }
         }
 
         const activeStep = MultiState.activeStep || 1;
@@ -10476,7 +10923,9 @@ function renderYearGradeNav() {
       const closedNorms = new Set(closedList.map(s => normalizeSubjectKey(s)));
 
       let plan = null;
-      if (gData.currentPlan && gData.currentPlan.semester === semesterNum) {
+      if (gData.currentPlans && gData.currentPlans[semesterNum]) {
+        plan = gData.currentPlans[semesterNum];
+      } else if (gData.currentPlan && gData.currentPlan.semester === semesterNum) {
         plan = gData.currentPlan;
       } else {
         const saved = (gData.savedPlans || []).filter(p => p.semester === semesterNum);
@@ -10530,7 +10979,9 @@ function renderYearGradeNav() {
 
           // 2. 2단계 그룹핑 배치안 과목 수집 (오직 해당 학기 plan만 엄격하게 조회!)
           let plan = null;
-          if (gData.currentPlan && gData.currentPlan.semester === sem) {
+          if (gData.currentPlans && gData.currentPlans[sem]) {
+            plan = gData.currentPlans[sem];
+          } else if (gData.currentPlan && gData.currentPlan.semester === sem) {
             plan = gData.currentPlan;
           } else {
             const saved = (gData.savedPlans || []).filter(p => p.semester === sem);
