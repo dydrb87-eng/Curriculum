@@ -1056,8 +1056,8 @@
           </div>
         </div>
 
-        <!-- Metrics & Conflict Banner -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Metrics & Conflict Banner & Semester Work Memo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Total Conflicts with Best Record & Conflict Range Display -->
           <div id="conflictMetricCard" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between scroll-mt-28">
             <div class="flex items-center justify-between">
@@ -1089,6 +1089,26 @@
               <h4 id="statGroupCountDisplay" class="text-2xl font-black text-slate-900 mt-0.5">5그룹</h4>
             </div>
             <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">📊</div>
+          </div>
+
+          <!-- 학기별 편성 메모 카드 (편성된 그룹 수 오른쪽에 위치) -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2">
+            <div class="flex items-center justify-between gap-1 border-b border-slate-100 pb-1.5">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1">
+                  <span>📝 학기별 편성 메모</span>
+                </span>
+                <span id="step2MemoContextBadge" class="text-[10px] px-1.5 py-0.2 rounded font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"></span>
+              </div>
+              <button id="btnOpenImportMemoModal" type="button" onclick="window.openImportMemoModal()" class="px-2 py-0.5 text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-md transition shadow-2xs flex items-center gap-1 cursor-pointer" title="동일 학년도의 다른 기준 날짜에서 동일 학년·학기의 메모를 불러옵니다">
+                <span>📥 메모 불러오기</span>
+              </button>
+            </div>
+            <textarea id="step2ContextMemo" rows="3" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400 font-sans leading-relaxed resize-none bg-slate-50/50 hover:bg-white focus:bg-white transition flex-1 min-h-[64px]" placeholder="현재 기준 날짜·학년·학기의 편성 관련 메모 및 특이사항을 기록하세요. (실시간 자동 저장됨)"></textarea>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5 select-none">
+              <span>* 탭 및 기준 날짜별 독립 저장</span>
+              <span id="step2MemoSavedHint" class="text-emerald-600 font-bold hidden">✓ 자동 저장됨</span>
+            </div>
           </div>
         </div>
 
@@ -1534,6 +1554,69 @@
     </div>
   </div>
 
+  <!-- Import Semester Memo Modal (다른 기준 날짜에서 메모 불러오기) -->
+  <div id="importMemoModal" onclick="if(event.target.id === 'importMemoModal') window.closeImportMemoModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl shadow-xs">
+            📝
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900">다른 기준 날짜의 메모 불러오기</h3>
+              <span id="importMemoContextBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800"></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">동일 학년도의 다른 기준 날짜에서 작성된 <b id="importMemoSubInfo" class="text-purple-700 font-bold"></b> 메모를 불러옵니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeImportMemoModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="닫기">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="overflow-y-auto space-y-4 flex-1 pr-1">
+        <!-- 1. Select Reference Date -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">
+            1. 불러올 기준 날짜 선택
+          </label>
+          <div id="importMemoDateList" class="flex flex-wrap gap-2">
+            <!-- Buttons dynamically generated -->
+          </div>
+        </div>
+
+        <!-- 2. Preview Memo -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              2. 선택한 날짜의 메모 내용 미리보기
+            </label>
+            <span id="importMemoLengthBadge" class="text-xs font-semibold text-slate-500"></span>
+          </div>
+          <div id="importMemoPreviewContainer" class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 min-h-[140px] max-h-[220px] overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap font-sans">
+            <!-- Memo preview text -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <p class="text-[11px] text-slate-500">※ 불러오기 시 현재 작성 중인 메모는 선택한 내용으로 대체됩니다.</p>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.closeImportMemoModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer">
+            취소
+          </button>
+          <button id="btnConfirmApplyImportedMemo" type="button" onclick="window.applyImportedMemo()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5">
+            <span>✅ 이 메모 불러오기</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Import Groups Modal (다른 기준 날짜에서 그룹 배치 불러오기) -->
   <div id="importGroupModal" onclick="if(event.target.id === 'importGroupModal') window.closeImportGroupModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
@@ -1905,6 +1988,7 @@
         2: null
       },
       crossSemesterRules: [], // Array of { id, sem1Subject, sem1Type, sem2Subject, sem2Type }
+      step2Memos: { 1: '', 2: '' }, // { 1: '1학기 메모', 2: '2학기 메모' } (기준 날짜·학년·학기별 독립 메모)
 
       // Prior Enrollment Data (학생 명부 및 기이수 과목)
       priorData: null,
@@ -3719,12 +3803,21 @@
       }
 
       renderYearGradeNav();
+      updateStep2ContextMemoUI();
       saveAllState();
     }
     window.switchStepView = switchStepView;
 
     function switchSemester(sem) {
       if (MultiState.activeGrade === '전체') return;
+
+      // 이전 학기 메모 보존
+      const memoEl = document.getElementById('step2ContextMemo');
+      if (memoEl) {
+        const prevSem = AppState.currentSemester || 1;
+        if (!AppState.step2Memos) AppState.step2Memos = { 1: '', 2: '' };
+        AppState.step2Memos[prevSem] = memoEl.value;
+      }
 
       // 1. 현재 학기의 유효한 배치 상태만 currentPlans에 보존
       if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
@@ -5189,6 +5282,7 @@
 
       initCrossConditionControls();
       renderCrossConditionsList();
+      updateStep2ContextMemoUI();
     }
 
     // Target Conflict Range Event Listeners (Top & Timetable Toolbar)
@@ -5345,6 +5439,7 @@
       if (!container) return;
 
       if (!AppState.crossSemesterRules) AppState.crossSemesterRules = [];
+      if (!AppState.step2Memos) AppState.step2Memos = { 1: '', 2: '' };
       const rules = AppState.crossSemesterRules;
 
       if (rules.length === 0) {
@@ -8836,6 +8931,182 @@
     // 2.5 GROUP IMPORT FROM OTHER REFERENCE DATES (그룹 불러오기)
     // ==========================================
 
+    // ==========================================
+    // STEP 2 CONTEXT MEMO & IMPORT FUNCTIONALITY
+    // ==========================================
+    function updateStep2ContextMemoUI() {
+      const memoTextarea = document.getElementById('step2ContextMemo');
+      const badge = document.getElementById('step2MemoContextBadge');
+      if (!memoTextarea) return;
+
+      const curSem = AppState.currentSemester || 1;
+      const curGrade = MultiState.activeGrade || '2학년';
+
+      if (badge) {
+        badge.textContent = `${curGrade} ${curSem}학기`;
+      }
+
+      if (!AppState.step2Memos) AppState.step2Memos = { 1: '', 2: '' };
+      memoTextarea.value = AppState.step2Memos[curSem] || '';
+    }
+    window.updateStep2ContextMemoUI = updateStep2ContextMemoUI;
+
+    document.getElementById('step2ContextMemo')?.addEventListener('input', (e) => {
+      const sem = AppState.currentSemester || 1;
+      if (!AppState.step2Memos) AppState.step2Memos = { 1: '', 2: '' };
+      AppState.step2Memos[sem] = e.target.value;
+
+      const hint = document.getElementById('step2MemoSavedHint');
+      if (hint) {
+        hint.classList.remove('hidden');
+        clearTimeout(hint._timer);
+        hint._timer = setTimeout(() => hint.classList.add('hidden'), 2000);
+      }
+      saveAllState();
+    });
+
+    let selectedImportMemoDate = null;
+
+    window.openImportMemoModal = function() {
+      const activeGrade = MultiState.activeGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+      const currentYear = MultiState.activeYear;
+      const currentAY = MultiState.activeAcademicYear || '2027학년도';
+
+      const badge = document.getElementById('importMemoContextBadge');
+      if (badge) badge.textContent = `${currentAY} ${activeGrade} ${activeSem}학기`;
+
+      const subInfo = document.getElementById('importMemoSubInfo');
+      if (subInfo) subInfo.textContent = `[${activeGrade} ${activeSem}학기]`;
+
+      const otherYears = (MultiState.yearsList || []).filter(y => y !== currentYear);
+      const dateListContainer = document.getElementById('importMemoDateList');
+      const previewContainer = document.getElementById('importMemoPreviewContainer');
+      const confirmBtn = document.getElementById('btnConfirmApplyImportedMemo');
+
+      if (!dateListContainer) return;
+
+      if (otherYears.length === 0) {
+        dateListContainer.innerHTML = `<p class="text-xs text-slate-400 py-2">동일 학년도 내에 다른 기준 날짜가 없습니다. 상단 '기준 날짜: + 추가'로 다른 기준 날짜를 추가해주세요.</p>`;
+        if (previewContainer) previewContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">불러올 수 있는 다른 기준 날짜가 없습니다.</p>`;
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        document.getElementById('importMemoModal')?.classList.remove('hidden');
+        return;
+      }
+
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+
+      selectedImportMemoDate = otherYears[0];
+      renderImportMemoDateButtons();
+      renderImportMemoPreview();
+
+      document.getElementById('importMemoModal')?.classList.remove('hidden');
+    };
+
+    window.closeImportMemoModal = function() {
+      document.getElementById('importMemoModal')?.classList.add('hidden');
+    };
+
+    function renderImportMemoDateButtons() {
+      const currentYear = MultiState.activeYear;
+      const activeGrade = MultiState.activeGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+      const container = document.getElementById('importMemoDateList');
+      if (!container) return;
+
+      const acadData = getAcadData();
+
+      container.innerHTML = MultiState.yearsList.map(y => {
+        const isCurrent = (y === currentYear);
+        const isSelected = (y === selectedImportMemoDate);
+        const yData = acadData[y]?.[activeGrade];
+        const memoText = (yData?.step2Memos?.[activeSem] || '').trim();
+        const hasMemo = Boolean(memoText);
+
+        return `
+          <button type="button" 
+                  onclick="window.selectImportMemoDate('${escapeHtml(y)}')"
+                  class="px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
+                    isSelected 
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-xs' 
+                      : (isCurrent ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-purple-50 text-slate-700 border-slate-300')
+                  }">
+            <span>${escapeHtml(y)}</span>
+            ${isCurrent ? '<span class="text-[10px] px-1 py-0.2 rounded bg-slate-200 text-slate-600">현재</span>' : ''}
+            ${hasMemo ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="작성된 메모 있음"></span>' : '<span class="text-[10px] text-slate-300 font-normal">(비어있음)</span>'}
+          </button>
+        `;
+      }).join('');
+    }
+
+    window.selectImportMemoDate = function(dateStr) {
+      selectedImportMemoDate = dateStr;
+      renderImportMemoDateButtons();
+      renderImportMemoPreview();
+    };
+
+    function renderImportMemoPreview() {
+      const preview = document.getElementById('importMemoPreviewContainer');
+      const lengthBadge = document.getElementById('importMemoLengthBadge');
+      if (!preview) return;
+
+      const acadData = getAcadData();
+      const activeGrade = MultiState.activeGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+      const yData = acadData[selectedImportMemoDate]?.[activeGrade];
+      const memoText = (yData?.step2Memos?.[activeSem] || '').trim();
+
+      if (lengthBadge) {
+        lengthBadge.textContent = memoText ? `${memoText.length}자` : '내용 없음';
+      }
+
+      if (memoText) {
+        preview.textContent = memoText;
+        preview.className = 'bg-white border border-purple-200 rounded-xl p-3.5 min-h-[140px] max-h-[220px] overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap font-sans';
+      } else {
+        preview.innerHTML = `<span class="text-slate-400 italic">[${selectedImportMemoDate}]의 [${activeGrade} ${activeSem}학기]에 작성된 메모가 없습니다.</span>`;
+        preview.className = 'bg-slate-50 border border-slate-200 rounded-xl p-3.5 min-h-[140px] max-h-[220px] overflow-y-auto text-xs text-slate-500 whitespace-pre-wrap font-sans flex items-center justify-center';
+      }
+    }
+
+    window.applyImportedMemo = function() {
+      if (!selectedImportMemoDate) return;
+      const acadData = getAcadData();
+      const activeGrade = MultiState.activeGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+      const yData = acadData[selectedImportMemoDate]?.[activeGrade];
+      const memoText = yData?.step2Memos?.[activeSem] || '';
+
+      const currentMemo = (AppState.step2Memos?.[activeSem] || '').trim();
+      if (currentMemo && currentMemo !== memoText.trim()) {
+        const curShort = currentMemo.length > 30 ? currentMemo.substring(0, 30) + '...' : currentMemo;
+        const newShort = memoText.length > 30 ? memoText.substring(0, 30) + '...' : memoText;
+        if (!confirm(`현재 작성 중인 메모를 [${selectedImportMemoDate}]의 메모로 덮어쓰시겠습니까?\n\n- 현재 메모: ${curShort}\n- 불러올 메모: ${newShort || '(비어있음)'}`)) {
+          return;
+        }
+      }
+
+      if (!AppState.step2Memos) AppState.step2Memos = { 1: '', 2: '' };
+      AppState.step2Memos[activeSem] = memoText;
+
+      const memoTextarea = document.getElementById('step2ContextMemo');
+      if (memoTextarea) {
+        memoTextarea.value = memoText;
+      }
+
+      saveAllState();
+      window.closeImportMemoModal();
+
+      alert(`✅ [${selectedImportMemoDate}]의 ${activeGrade} ${activeSem}학기 메모를 성공적으로 불러왔습니다!`);
+    };
+
+
     let selectedImportDate = null;
     let selectedImportPlanId = 'active';
     let previewGroupsData = null;
@@ -9311,6 +9582,7 @@
           2: null
         },
         crossSemesterRules: [],
+        step2Memos: { 1: '', 2: '' },
         priorData: null,
         crossCheckResult: {
           missingStudents: [],
@@ -9436,6 +9708,14 @@
       if (!acadData[y]) acadData[y] = {};
       if (g === '전체') return; // '전체' 탭은 독자적 커리큘럼 데이터 구조를 유지하므로 AppState 덮어쓰기 방지
       
+      // 현재 textarea 메모가 있다면 AppState에 즉시 동기화
+      const curMemoEl = document.getElementById('step2ContextMemo');
+      if (curMemoEl) {
+        const curSem = AppState.currentSemester || 1;
+        if (!AppState.step2Memos) AppState.step2Memos = { 1: '', 2: '' };
+        AppState.step2Memos[curSem] = curMemoEl.value;
+      }
+
       // 현재 플랜을 currentPlans에도 확실하게 동기화
       if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
       if (AppState.currentPlan && AppState.currentPlan.semester) {
@@ -9463,6 +9743,7 @@
         currentPlan: AppState.currentPlan ? JSON.parse(JSON.stringify(AppState.currentPlan)) : null,
         currentPlans: JSON.parse(JSON.stringify(AppState.currentPlans || { 1: null, 2: null })), 
         crossSemesterRules: JSON.parse(JSON.stringify(AppState.crossSemesterRules || [])),
+        step2Memos: JSON.parse(JSON.stringify(AppState.step2Memos || { 1: '', 2: '' })),
         priorData: AppState.priorData ? JSON.parse(JSON.stringify(AppState.priorData)) : null,
         crossCheckResult: AppState.crossCheckResult ? JSON.parse(JSON.stringify(AppState.crossCheckResult)) : null,
         savedPlans: JSON.parse(JSON.stringify(AppState.savedPlans || [])),
@@ -9684,6 +9965,7 @@
 
       renderYearGradeNav();
       updateModalStats();
+      updateStep2ContextMemoUI();
     }
 
         // ==========================================
