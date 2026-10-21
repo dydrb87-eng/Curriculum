@@ -630,14 +630,19 @@
               <button type="button" class="px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer select-none" title="반 구분을 빠르게 일괄 설정합니다">
                 <span>🏷️ 반 구분 설정 ▾</span>
               </button>
-              <div class="hidden group-hover:flex flex-col absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 text-xs">
+              <div class="hidden group-hover:flex flex-col absolute right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1.5 text-xs">
                 <button type="button" onclick="window.batchSetDivisions('선택')" class="px-3 py-1.5 text-left hover:bg-teal-50 text-teal-800 font-bold transition flex items-center justify-between">
                   <span>선택과목 ➔ [선택] 설정</span>
                   <span class="text-[10px] text-slate-400">일괄</span>
                 </button>
                 <button type="button" onclick="window.batchSetDivisions('지정12')" class="px-3 py-1.5 text-left hover:bg-blue-50 text-blue-800 font-bold transition flex items-center justify-between">
-                  <span>지정과목 ➔ [1반/2반] 설정</span>
-                  <span class="text-[10px] text-slate-400">자동순환</span>
+                  <span>지정과목 ➔ [1반/2반/분반] 설정</span>
+                  <span class="text-[10px] text-slate-400">학급수 기준</span>
+                </button>
+                <div class="border-t border-slate-100 my-1"></div>
+                <button type="button" onclick="window.openGradeClassCountModal()" class="px-3 py-1.5 text-left hover:bg-indigo-50 text-indigo-800 font-bold transition flex items-center justify-between">
+                  <span class="flex items-center gap-1">⚙️ 학년별 학급 수 설정</span>
+                  <span id="gradeClassCountSummaryBadge" class="text-[10px] text-indigo-500 font-semibold">설정 변경</span>
                 </button>
               </div>
             </div>
@@ -2012,6 +2017,66 @@
         <button id="btnStudentEditDone" type="button" onclick="window.closeStudentChoiceEditModal();" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm cursor-pointer">
           완료 / 닫기
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade Class Count Modal (학년별 학급 수 설정 모달) -->
+  <div id="gradeClassCountModal" onclick="if(event.target.id === 'gradeClassCountModal') window.closeGradeClassCountModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+          <span>⚙️</span>
+          <span>학년별 학급 수 설정</span>
+        </h3>
+        <button type="button" onclick="window.closeGradeClassCountModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold text-lg cursor-pointer transition">✕</button>
+      </div>
+
+      <div class="py-4 space-y-3.5">
+        <p class="text-xs text-slate-500 leading-relaxed">
+          학년별 학급 수를 설정하면, <strong>지정과목 순환 배정</strong> 시 설정된 학급 수(1반, 2반...)를 기준으로 순환하며, <strong>학급 수를 초과하는 과목은 [분반1, 분반2, 분반3...]으로 자동 분류</strong>됩니다.
+        </p>
+
+        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <label for="gradeClassCount1" class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span>1학년 학급 수</span>
+            </label>
+            <div class="flex items-center gap-1.5">
+              <input type="number" id="gradeClassCount1" min="1" max="20" value="2" class="w-20 px-2.5 py-1 text-center font-extrabold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-xs outline-none" />
+              <span class="text-xs font-bold text-slate-500">개 반</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <label for="gradeClassCount2" class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+              <span>2학년 학급 수</span>
+            </label>
+            <div class="flex items-center gap-1.5">
+              <input type="number" id="gradeClassCount2" min="1" max="20" value="2" class="w-20 px-2.5 py-1 text-center font-extrabold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-xs outline-none" />
+              <span class="text-xs font-bold text-slate-500">개 반</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <label for="gradeClassCount3" class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+              <span>3학년 학급 수</span>
+            </label>
+            <div class="flex items-center gap-1.5">
+              <input type="number" id="gradeClassCount3" min="1" max="20" value="2" class="w-20 px-2.5 py-1 text-center font-extrabold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-xs outline-none" />
+              <span class="text-xs font-bold text-slate-500">개 반</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button type="button" onclick="window.closeGradeClassCountModal()" class="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">취소</button>
+        <button type="button" onclick="window.saveGradeClassCounts(false)" class="px-3.5 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition cursor-pointer">저장만 하기</button>
+        <button type="button" onclick="window.saveGradeClassCounts(true)" class="px-4 py-2 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition cursor-pointer ring-2 ring-indigo-400/40">저장 후 [1반/2반/분반] 자동 적용</button>
       </div>
     </div>
   </div>
@@ -12090,20 +12155,35 @@ function renderYearGradeNav() {
       const acadYear = MultiState?.activeAcademicYear || '2027학년도';
       if (!MultiState.curriculumByAcademicYear) MultiState.curriculumByAcademicYear = {};
 
-      if (MultiState.curriculumByAcademicYear[acadYear] && Array.isArray(MultiState.curriculumByAcademicYear[acadYear])) {
-        return MultiState.curriculumByAcademicYear[acadYear];
+      let list = MultiState.curriculumByAcademicYear[acadYear];
+      if (!list || !Array.isArray(list)) {
+        // 하위 호환성 마이그레이션: 기존 날짜 탭의 전체 데이터에서 복원
+        const y = MultiState?.activeYear;
+        const acadData = getAcadData(acadYear);
+        if (y && acadData[y] && acadData[y]['전체'] && Array.isArray(acadData[y]['전체'].curriculum) && acadData[y]['전체'].curriculum.length > 0) {
+          list = acadData[y]['전체'].curriculum;
+          MultiState.curriculumByAcademicYear[acadYear] = list;
+        } else {
+          list = [];
+          MultiState.curriculumByAcademicYear[acadYear] = list;
+        }
       }
 
-      // 하위 호환성 마이그레이션: 기존 날짜 탭의 전체 데이터에서 복원
-      const y = MultiState?.activeYear;
-      const acadData = getAcadData(acadYear);
-      if (y && acadData[y] && acadData[y]['전체'] && Array.isArray(acadData[y]['전체'].curriculum) && acadData[y]['전체'].curriculum.length > 0) {
-        MultiState.curriculumByAcademicYear[acadYear] = acadData[y]['전체'].curriculum;
-        return MultiState.curriculumByAcademicYear[acadYear];
+      // 모든 과목 항목에 고유한 id가 보장되도록 검증 (클릭 시 다른 과목에 영향 주는 현상 원천 방지)
+      let idUpdated = false;
+      const seenIds = new Set();
+      list.forEach((item, idx) => {
+        if (!item.id || seenIds.has(item.id)) {
+          item.id = 'curr_id_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5);
+          idUpdated = true;
+        }
+        seenIds.add(item.id);
+      });
+      if (idUpdated) {
+        saveAllState();
       }
 
-      MultiState.curriculumByAcademicYear[acadYear] = [];
-      return MultiState.curriculumByAcademicYear[acadYear];
+      return list;
     }
 
     function setAllGradesCurriculum(newCurriculum) {
@@ -12750,44 +12830,95 @@ function renderYearGradeNav() {
     };
 
     // ==========================================
-    // CURRICULUM DIVISION / CLASS MANAGEMENT
+    // CURRICULUM DIVISION & GRADE CLASS COUNT MANAGEMENT
     // ==========================================
+    function getGradeClassCounts() {
+      if (!MultiState.gradeClassCounts) {
+        MultiState.gradeClassCounts = { '1학년': 2, '2학년': 2, '3학년': 2 };
+      }
+      return MultiState.gradeClassCounts;
+    }
+
+    function updateGradeClassCountBadge() {
+      const badge = document.getElementById('gradeClassCountSummaryBadge');
+      if (!badge) return;
+      const counts = getGradeClassCounts();
+      badge.textContent = `1학년 ${counts['1학년']}반, 2학년 ${counts['2학년']}반, 3학년 ${counts['3학년']}반`;
+    }
+
+    window.openGradeClassCountModal = function() {
+      const counts = getGradeClassCounts();
+      const inp1 = document.getElementById('gradeClassCount1');
+      const inp2 = document.getElementById('gradeClassCount2');
+      const inp3 = document.getElementById('gradeClassCount3');
+      if (inp1) inp1.value = counts['1학년'] || 2;
+      if (inp2) inp2.value = counts['2학년'] || 2;
+      if (inp3) inp3.value = counts['3학년'] || 2;
+      const modal = document.getElementById('gradeClassCountModal');
+      if (modal) modal.classList.remove('hidden');
+    };
+
+    window.closeGradeClassCountModal = function() {
+      const modal = document.getElementById('gradeClassCountModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.saveGradeClassCounts = function(applyBatch = false) {
+      const c1 = parseInt(document.getElementById('gradeClassCount1')?.value || 2, 10);
+      const c2 = parseInt(document.getElementById('gradeClassCount2')?.value || 2, 10);
+      const c3 = parseInt(document.getElementById('gradeClassCount3')?.value || 2, 10);
+
+      MultiState.gradeClassCounts = {
+        '1학년': Math.max(1, c1),
+        '2학년': Math.max(1, c2),
+        '3학년': Math.max(1, c3)
+      };
+      saveAllState();
+      updateGradeClassCountBadge();
+      window.closeGradeClassCountModal();
+
+      if (applyBatch) {
+        window.batchSetDivisions('지정12');
+      } else {
+        alert(`✅ 학년별 학급 수가 저장되었습니다:\n- 1학년: ${MultiState.gradeClassCounts['1학년']}개 반\n- 2학년: ${MultiState.gradeClassCounts['2학년']}개 반\n- 3학년: ${MultiState.gradeClassCounts['3학년']}개 반`);
+      }
+    };
+
     window.cycleCurriculumDivision = function(itemId) {
       const curriculum = getAllGradesCurriculum();
       const item = curriculum.find(c => c.id === itemId);
       if (!item) return;
 
-      const current = (item.division || (item.category === '선택' ? '선택' : '1반')).trim();
-      let next = '선택';
-      if (current === '선택' || !current) next = '1반';
-      else if (current === '1반' || current === '1') next = '2반';
-      else if (current === '2반' || current === '2') next = '분반';
-      else next = '선택';
+      const classCounts = getGradeClassCounts();
+      const maxClasses = parseInt(classCounts[item.grade] || 2, 10);
 
-      item.division = next;
+      // 순환 목록: 선택 ➔ 1반 ➔ 2반 (➔ ... maxClasses반) ➔ 분반 ➔ 선택
+      const options = ['선택'];
+      for (let i = 1; i <= maxClasses; i++) {
+        options.push(`${i}반`);
+      }
+      options.push('분반');
+
+      let current = (item.division || (item.category === '선택' ? '선택' : '1반')).trim();
+      let curIdx = options.indexOf(current);
+      if (curIdx === -1) {
+        if (current.startsWith('분반')) curIdx = options.indexOf('분반');
+        else curIdx = 0;
+      }
+
+      const nextIdx = (curIdx + 1) % options.length;
+      item.division = options[nextIdx];
       item.isModified = true;
       setAllGradesCurriculum(curriculum);
       renderAllGradesCurriculumTable();
-    };
-
-    window.editCurriculumDivisionCustom = function(itemId) {
-      const curriculum = getAllGradesCurriculum();
-      const item = curriculum.find(c => c.id === itemId);
-      if (!item) return;
-
-      const current = item.division || (item.category === '선택' ? '선택' : '1반');
-      const val = prompt(`[${item.subject}] 과목의 반 구분을 입력하세요:\n(예: 선택, 1반, 2반, 3반, 분반, 분반-1, 분반-2 등)`, current);
-      if (val !== null) {
-        item.division = val.trim() || '선택';
-        item.isModified = true;
-        setAllGradesCurriculum(curriculum);
-        renderAllGradesCurriculumTable();
-      }
+      renderAllGradesTeacherSummary();
     };
 
     window.batchSetDivisions = function(type) {
       const curriculum = getAllGradesCurriculum();
       if (curriculum.length === 0) return;
+
+      const classCounts = getGradeClassCounts();
 
       if (type === '선택') {
         let count = 0;
@@ -12800,6 +12931,7 @@ function renderYearGradeNav() {
         });
         setAllGradesCurriculum(curriculum);
         renderAllGradesCurriculumTable();
+        renderAllGradesTeacherSummary();
         alert(`✅ 모든 선택과목 (${count}개)의 반 구분이 [선택]으로 일괄 설정되었습니다.`);
       } else if (type === '지정12') {
         let count = 0;
@@ -12813,16 +12945,30 @@ function renderYearGradeNav() {
         });
 
         Object.values(groups).forEach(grp => {
-          grp.forEach((c, idx) => {
-            c.division = `${idx + 1}반`;
-            c.isModified = true;
-            count++;
-          });
+          const gGrade = grp[0].grade;
+          const maxClasses = parseInt(classCounts[gGrade] || 2, 10);
+
+          if (grp.length > maxClasses) {
+            // 학급 수를 초과하는 경우: 분반1, 분반2, 분반3... 자동 부여
+            grp.forEach((c, idx) => {
+              c.division = `분반${idx + 1}`;
+              c.isModified = true;
+              count++;
+            });
+          } else {
+            // 학급 수 이내인 경우: 1반, 2반, 3반... 순환 부여
+            grp.forEach((c, idx) => {
+              c.division = `${(idx % maxClasses) + 1}반`;
+              c.isModified = true;
+              count++;
+            });
+          }
         });
 
         setAllGradesCurriculum(curriculum);
         renderAllGradesCurriculumTable();
-        alert(`✅ 모든 학교지정과목 (${count}개)의 반 구분이 [1반, 2반...]으로 자동 순차 설정되었습니다.`);
+        renderAllGradesTeacherSummary();
+        alert(`✅ 모든 학교지정과목 (${count}개)의 반 구분이 학급 수(1학년 ${classCounts['1학년']}반, 2학년 ${classCounts['2학년']}반, 3학년 ${classCounts['3학년']}반) 기준 [1반/2반/분반]으로 자동 설정되었습니다.`);
       }
     };
 
@@ -13291,13 +13437,15 @@ function renderYearGradeNav() {
           };
         }
 
+        const divStr = (item.division && item.division !== '선택') ? ` ${item.division}` : '';
         const courseItem = {
           grade: item.grade,
           semester: item.semester,
           subject: item.subject,
           hours: item.hours || 0,
           category: item.category,
-          tag: `[${item.grade}] ${item.subject} (${item.hours}h)`
+          division: item.division || '',
+          tag: `[${item.grade}${divStr}] ${item.subject} (${item.hours || 0})`
         };
 
         if (item.semester === 1) {
@@ -14237,6 +14385,8 @@ function renderYearGradeNav() {
         '1학년': yData['1학년']?.students || []
       };
 
+      const classCounts = getGradeClassCounts();
+
       // 동일 과목 묶음 산출 (학기, 학년, 정규화 과목명 기준 그룹핑)
       const groupedCourseMap = new Map();
       rawSubjectList.forEach(item => {
@@ -14299,6 +14449,10 @@ function renderYearGradeNav() {
         const isEven = (courseCounter % 2 === 0);
         courseCounter++;
 
+        const maxClassesForGrade = parseInt(classCounts[gradeStr] || 2, 10);
+        const isBoonban = items.some(it => (it.division || '').includes('분반')) || 
+                          (items.length > maxClassesForGrade && items.some(it => it.category === '지정' || it.category === '학교지정'));
+
         if (isClosed) {
           // 폐강 과목: 1개 행으로 표기
           rows.push([
@@ -14314,9 +14468,50 @@ function renderYearGradeNav() {
           currentTeachers.push(representative.teacher || '-');
           rowHeights.push({ hpt: 24 });
           rowStyleInfo.push({ isClosed: true, isEven });
+        } else if (isBoonban) {
+          // 분반 과목 (수강인원은 미기입, 총원만 과목명(총원)에서 확인)
+          // 같은 과목명의 분반이면 자동으로 1, 2, 3으로 표기
+          let totalCount = 0;
+          if (students.length > 0) {
+            if (representative.category === '지정' || representative.category === '학교지정' || gradeStr === '1학년') {
+              totalCount = students.length;
+            } else {
+              const enrolled = students.filter(st => {
+                const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
+                return choices.some(ch => ch && (ch === subjName || ch === baseSubj || normalizeSubjectKey(ch) === normSubj));
+              });
+              totalCount = enrolled.length;
+            }
+          }
+          if (totalCount === 0) {
+            totalCount = (gradeStr === '1학년' ? 44 : (gradeStr === '2학년' ? 44 : 19));
+          }
+
+          items.forEach((it, itIdx) => {
+            let divText = (it.division || '').trim();
+            if (!divText || divText === '선택' || divText === '분반') {
+              divText = `분반${itIdx + 1}`;
+            }
+
+            rows.push([
+              `${sem}학기`,
+              gradeStr,
+              `${subjName} (${totalCount}명)`,
+              divText,
+              '', // 수강자 인원 미기입
+              '', // 수강자 명단 미기입
+              publisher,
+              it.teacher || '-'
+            ]);
+            currentTeachers.push(it.teacher || '-');
+            rowHeights.push({ hpt: 24 });
+            rowStyleInfo.push({ isClosed: false, isEven });
+          });
         } else if (gradeStr === '1학년') {
-          // 1학년 (신입생 전원 수강): 1반과 2반으로 행 분리
-          const totalGrade1Students = 44; // 기본 44명 (1반 22명, 2반 22명)
+          // 1학년 (신입생 전원 수강): 학급 수 기준 행 분리
+          const totalGrade1Students = students.length || 44;
+          const half1 = Math.floor(totalGrade1Students / 2);
+          const half2 = totalGrade1Students - half1;
           const teacher1 = items[0]?.teacher || '-';
           const teacher2 = items[1]?.teacher || items[0]?.teacher || '-';
 
@@ -14325,8 +14520,8 @@ function renderYearGradeNav() {
             gradeStr,
             `${subjName} (${totalGrade1Students}명)`,
             '1반',
-            '22명',
-            '전원 배정 (1반 22명)',
+            `${half1}명`,
+            `전원 배정 (1반 ${half1}명)`,
             publisher,
             teacher1
           ]);
@@ -14339,8 +14534,8 @@ function renderYearGradeNav() {
             gradeStr,
             `${subjName} (${totalGrade1Students}명)`,
             '2반',
-            '22명',
-            '전원 배정 (2반 22명)',
+            `${half2}명`,
+            `전원 배정 (2반 ${half2}명)`,
             publisher,
             teacher2
           ]);
@@ -14351,7 +14546,6 @@ function renderYearGradeNav() {
           // 2·3학년 학교지정(공통) 과목: 각 학급별(1반, 2반)로 행 분리
           const totalCount = students.length || (gradeStr === '2학년' ? 44 : 19);
 
-          // 만약 편제표에 이미 1반, 2반 각각의 행으로 등록되어 있는 경우
           if (items.length > 1) {
             items.forEach((it, itIdx) => {
               let classTarget = it.division || '';
@@ -14464,10 +14658,8 @@ function renderYearGradeNav() {
               classMap.get(cNum).push(label);
             });
 
-            // 학급 번호 순으로 정렬
             const sortedClasses = Array.from(classMap.keys()).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
-            // 만약 특정 반으로 제한된 항목이 있다면 (예: 1반 선택)
             if (items.length > 1 && items.some(it => it.division && it.division !== '선택')) {
               items.forEach(it => {
                 const cNum = it.division.replace(/[^0-9]/g, '');
@@ -14723,6 +14915,7 @@ function renderYearGradeNav() {
 
     function renderAllGradesDashboard(fullRedraw = true) {
       if (typeof updatePublisherButtonUI === 'function') updatePublisherButtonUI();
+      if (typeof updateGradeClassCountBadge === 'function') updateGradeClassCountBadge();
       const curriculum = getAllGradesCurriculum();
 
       // 과거 별표/특수문자 불일치 등으로 자동 폐강 처리되었던 과목 자동 복원 동기화
@@ -15622,6 +15815,7 @@ function renderYearGradeNav() {
           id: item.id,
           grade: item.grade,
           subject: item.subject,
+          division: item.division || '',
           hours: item.hours,
           semester: item.semester,
           category: item.category,
@@ -15671,7 +15865,20 @@ function renderYearGradeNav() {
         const avgHours = (totalHours / 2).toFixed(1);
         const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
 
-        const s1Tags = d.sem1Courses.map(c => `
+        const s1Tags = d.sem1Courses.map(c => {
+          let divBadge = '';
+          const cleanDiv = (c.division || '').trim();
+          if (cleanDiv && cleanDiv !== '선택') {
+            let badgeClass = 'bg-blue-100 text-blue-800 border-blue-200';
+            if (cleanDiv.includes('분반')) {
+              badgeClass = 'bg-purple-100 text-purple-800 border-purple-200';
+            } else if (cleanDiv === '2반') {
+              badgeClass = 'bg-indigo-100 text-indigo-800 border-indigo-200';
+            }
+            divBadge = `<span class="text-[10px] px-1 py-0.2 rounded font-bold border pointer-events-none ${badgeClass}">${escapeHtml(cleanDiv)}</span>`;
+          }
+
+          return `
           <span class="course-drag-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
             (c.category === '지정' || c.category === '학교지정')
               ? 'bg-slate-100 text-slate-700 border border-slate-300' 
@@ -15686,14 +15893,29 @@ function renderYearGradeNav() {
           onclick="if(!window._isCourseBadgeDragging) window.scrollToCurriculumCourse('${escapeHtml(c.id)}')"
           ondragstart="window.handleCourseBadgeDragStart(event, '${escapeHtml(c.id)}', 1, '${escapeHtml(tName)}', '${escapeHtml(c.subject)}', ${c.hours})"
           ondragend="window.handleCourseBadgeDragEnd(event)"
-          title="클릭: 아래 상세 테이블에서 과목 위치로 이동 | 드래그: 다른 교사에게 과목 넘겨주기 (${c.category})">
+          title="클릭: 아래 상세 테이블에서 과목 위치로 이동 | 드래그: 다른 교사에게 과목 넘겨주기 (${c.category}${cleanDiv ? ' ' + cleanDiv : ''})">
             <span class="text-[9px] text-slate-500 font-semibold pointer-events-none">${c.grade.replace('학년', '')}학년</span>
+            ${divBadge}
             <span class="pointer-events-none">${escapeHtml(c.subject)}</span>
-            <span class="font-black text-indigo-700 pointer-events-none">(${c.hours}h)</span>
+            <span class="font-black text-indigo-700 pointer-events-none">(${c.hours})</span>
           </span>
-        `).join(' ');
+        `;
+        }).join(' ');
 
-        const s2Tags = d.sem2Courses.map(c => `
+        const s2Tags = d.sem2Courses.map(c => {
+          let divBadge = '';
+          const cleanDiv = (c.division || '').trim();
+          if (cleanDiv && cleanDiv !== '선택') {
+            let badgeClass = 'bg-blue-100 text-blue-800 border-blue-200';
+            if (cleanDiv.includes('분반')) {
+              badgeClass = 'bg-purple-100 text-purple-800 border-purple-200';
+            } else if (cleanDiv === '2반') {
+              badgeClass = 'bg-indigo-100 text-indigo-800 border-indigo-200';
+            }
+            divBadge = `<span class="text-[10px] px-1 py-0.2 rounded font-bold border pointer-events-none ${badgeClass}">${escapeHtml(cleanDiv)}</span>`;
+          }
+
+          return `
           <span class="course-drag-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
             (c.category === '지정' || c.category === '학교지정')
               ? 'bg-slate-100 text-slate-700 border border-slate-300' 
@@ -15708,12 +15930,14 @@ function renderYearGradeNav() {
           onclick="if(!window._isCourseBadgeDragging) window.scrollToCurriculumCourse('${escapeHtml(c.id)}')"
           ondragstart="window.handleCourseBadgeDragStart(event, '${escapeHtml(c.id)}', 2, '${escapeHtml(tName)}', '${escapeHtml(c.subject)}', ${c.hours})"
           ondragend="window.handleCourseBadgeDragEnd(event)"
-          title="클릭: 아래 상세 테이블에서 과목 위치로 이동 | 드래그: 다른 교사에게 과목 넘겨주기 (${c.category})">
+          title="클릭: 아래 상세 테이블에서 과목 위치로 이동 | 드래그: 다른 교사에게 과목 넘겨주기 (${c.category}${cleanDiv ? ' ' + cleanDiv : ''})">
             <span class="text-[9px] text-slate-500 font-semibold pointer-events-none">${c.grade.replace('학년', '')}학년</span>
+            ${divBadge}
             <span class="pointer-events-none">${escapeHtml(c.subject)}</span>
-            <span class="font-black text-emerald-700 pointer-events-none">(${c.hours}h)</span>
+            <span class="font-black text-emerald-700 pointer-events-none">(${c.hours})</span>
           </span>
-        `).join(' ');
+        `;
+        }).join(' ');
 
         return `
           <tr class="${rowBg} hover:bg-indigo-50/50 transition-colors select-none group"
@@ -15733,7 +15957,7 @@ function renderYearGradeNav() {
                 ondrop="window.handleCourseDropCellDrop(event, 1, '${escapeHtml(tName)}')">
               <div class="flex flex-wrap gap-1 min-h-[26px] items-center">${s1Tags || '<span class="text-slate-300 italic text-[11px] p-0.5 rounded border border-dashed border-slate-200 pointer-events-none">과목 드롭 가능</span>'}</div>
             </td>
-            <td class="p-2.5 text-center font-black text-blue-700 border-r border-slate-200 bg-blue-50/40">${d.sem1Hours}h</td>
+            <td class="p-2.5 text-center font-black text-blue-700 border-r border-slate-200 bg-blue-50/40">${d.sem1Hours}</td>
             <td class="p-2.5 border-r border-slate-200 course-drop-cell transition-all"
                 data-teacher="${escapeHtml(tName)}"
                 data-semester="2"
@@ -15742,9 +15966,9 @@ function renderYearGradeNav() {
                 ondrop="window.handleCourseDropCellDrop(event, 2, '${escapeHtml(tName)}')">
               <div class="flex flex-wrap gap-1 min-h-[26px] items-center">${s2Tags || '<span class="text-slate-300 italic text-[11px] p-0.5 rounded border border-dashed border-slate-200 pointer-events-none">과목 드롭 가능</span>'}</div>
             </td>
-            <td class="p-2.5 text-center font-black text-emerald-700 border-r border-slate-200 bg-emerald-50/40">${d.sem2Hours}h</td>
-            <td class="p-2.5 text-center font-black text-slate-900 border-r border-slate-200 bg-slate-100/50">${totalHours}h</td>
-            <td class="p-2.5 text-center font-extrabold text-indigo-700 bg-slate-100/50">${avgHours}h</td>
+            <td class="p-2.5 text-center font-black text-emerald-700 border-r border-slate-200 bg-emerald-50/40">${d.sem2Hours}</td>
+            <td class="p-2.5 text-center font-black text-slate-900 border-r border-slate-200 bg-slate-100/50">${totalHours}</td>
+            <td class="p-2.5 text-center font-extrabold text-indigo-700 bg-slate-100/50">${avgHours}</td>
           </tr>
         `;
       }).join('');
@@ -15823,8 +16047,13 @@ function renderYearGradeNav() {
           ? `<button type="button" onclick="window.toggleCurriculumItemCategory('${c.id}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition cursor-pointer" title="클릭하여 [지정]으로 전환">선택 ⇄</button>` 
           : `<button type="button" onclick="window.toggleCurriculumItemCategory('${c.id}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition cursor-pointer" title="클릭하여 [선택]으로 전환">지정 ⇄</button>`;
 
-        const divisionTag = c.division 
-          ? `<span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-black rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0 whitespace-nowrap select-none shadow-2xs" title="동일 과목의 분반 (${escapeHtml(c.division)}반)">${escapeHtml(c.division)}반</span>`
+        let cleanDiv = (c.division || '').trim();
+        let divLabel = cleanDiv;
+        if (cleanDiv && !cleanDiv.endsWith('반') && !cleanDiv.startsWith('분반') && cleanDiv !== '선택') {
+          divLabel = cleanDiv + '반';
+        }
+        const divisionTag = (cleanDiv && cleanDiv !== '선택') 
+          ? `<span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-black rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0 whitespace-nowrap select-none shadow-2xs" title="반 구분: ${escapeHtml(divLabel)}">${escapeHtml(divLabel)}</span>`
           : '';
 
         const statusBadge = isClosed 
@@ -15878,9 +16107,8 @@ function renderYearGradeNav() {
             <td class="p-1.5 text-center border-r border-slate-200">
               <button type="button" 
                       onclick="window.cycleCurriculumDivision('${c.id}')" 
-                      ondblclick="window.editCurriculumDivisionCustom('${c.id}')" 
                       class="px-2.5 py-0.5 rounded-full text-xs font-bold border transition cursor-pointer select-none shadow-3xs ${divBadgeStyle}" 
-                      title="클릭: [선택 ➔ 1반 ➔ 2반 ➔ 분반] 순환 변경 | 더블클릭: 직접 입력">
+                      title="클릭하여 반 구분 순환 변경 (선택 ➔ 1반 ➔ 2반 ➔ ... ➔ 분반)">
                 ${escapeHtml(divValue)}
               </button>
             </td>
