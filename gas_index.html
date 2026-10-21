@@ -4637,9 +4637,9 @@
       const curGrade = MultiState.activeGrade || AppState.detectedGrade || '2학년';
       const curDate = MultiState.activeYear;
 
-      const historyByDate = {}; // { '2027.10.11.': [ { subject: '육상', count: 2, date: '2027.10.11.' } ] }
+      const historyByDate = {}; // { '2027.10.11.': [ { subject: '육상', count: 2, date: '2027.10.11.', students: ['1반 3번 홍길동', ...] } ] }
       const allPrevClosedSet = new Set();
-      const prevClosedInfoMap = {}; // subjName -> { subject, count, date }
+      const prevClosedInfoMap = {}; // subjName -> { subject, count, date, students }
 
       (MultiState.yearsList || []).forEach(dateStr => {
         if (dateStr === curDate) return;
@@ -4653,15 +4653,24 @@
         closedList.forEach(sName => {
           if (!sName) return;
           let c = 0;
+          const studentList = [];
           (gData.students || []).forEach(st => {
             const list = (sem === 1 ? st.sem1 : st.sem2) || [];
-            if (list.includes(sName)) c++;
+            if (list.includes(sName)) {
+              c++;
+              const labelParts = [];
+              if (st.classNum) labelParts.push(`${st.classNum}반`);
+              if (st.studentNum) labelParts.push(`${st.studentNum}번`);
+              labelParts.push(st.name || '학생');
+              studentList.push(labelParts.join(' '));
+            }
           });
 
-          dateItems.push({ subject: sName, count: c, date: dateStr });
+          const itemObj = { subject: sName, count: c, date: dateStr, students: studentList };
+          dateItems.push(itemObj);
           allPrevClosedSet.add(sName);
           if (!prevClosedInfoMap[sName]) {
-            prevClosedInfoMap[sName] = { subject: sName, count: c, date: dateStr };
+            prevClosedInfoMap[sName] = itemObj;
           }
         });
 
@@ -4712,11 +4721,40 @@
           `;
           historyDates.forEach(dStr => {
             const items = historyByDate[dStr] || [];
-            const itemsText = items.map(it => `<span class="font-extrabold text-rose-900">${escapeHtml(it.subject)}<span class="font-normal text-rose-700 text-[11px]">(${it.count}명)</span></span>`).join(', ');
+            const itemsHtml = items.map(it => {
+              const studentText = (it.students && it.students.length > 0) ? it.students.join(', ') : '신청 학생 명단 없음';
+              const tooltipTitle = `[${it.subject}] ${it.count}명 (${it.date} 폐강 당시)\n대상자: ${studentText}`;
+              return `
+                <div class="relative group inline-block">
+                  <span class="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-rose-300 shadow-3xs cursor-help select-none hover:bg-rose-50 transition"
+                        title="${escapeHtml(tooltipTitle)}">
+                    <span class="font-extrabold text-rose-900">${escapeHtml(it.subject)}</span>
+                    <span class="font-bold text-rose-600 text-[11px]">(${it.count}명)</span>
+                  </span>
+                  <!-- 마우스 오버 시 표시되는 학생 명단 팝오버 툴팁 -->
+                  <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:flex flex-col z-50 w-64 max-w-xs p-2.5 bg-slate-900/95 backdrop-blur-md text-white text-xs rounded-xl shadow-2xl border border-slate-700/80 transition-all duration-150">
+                    <div class="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-slate-700/80 text-rose-300 font-bold">
+                      <span class="truncate text-xs">🚫 ${escapeHtml(it.subject)} (${it.count}명)</span>
+                      <span class="text-[10px] text-slate-400 font-normal shrink-0">${escapeHtml(it.date)}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-300 font-medium mb-1 flex items-center justify-between">
+                      <span>신청 학생 명단:</span>
+                      <span class="text-[10px] text-rose-300 font-bold">${it.students ? it.students.length : 0}명</span>
+                    </div>
+                    <div class="text-[11px] text-slate-100 max-h-36 overflow-y-auto leading-relaxed break-words bg-slate-800/90 p-1.5 rounded-lg border border-slate-700">
+                      ${(it.students && it.students.length > 0)
+                        ? `<div class="flex flex-wrap gap-1">${it.students.map(s => `<span class="inline-block bg-slate-700/90 text-slate-100 px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-600">${escapeHtml(s)}</span>`).join('')}</div>`
+                        : '<span class="text-slate-400 italic">신청 학생 없음</span>'}
+                    </div>
+                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700"></div>
+                  </div>
+                </div>
+              `;
+            }).join(' ');
             noticeHtml += `
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-rose-200 shadow-3xs shrink-0">${escapeHtml(dStr)}:</span>
-                <span>${itemsText}</span>
+                <span class="flex items-center gap-1.5 flex-wrap">${itemsHtml}</span>
               </div>
             `;
           });
@@ -6858,13 +6896,15 @@
 
       const groupCardsSection = document.getElementById('groupCardsSection');
       const closedList = AppState.closedSubjects?.[sem] || [];
+      const { allPrevClosedSet: prevClosedSetForZeroAlert } = getPreviousDatesClosedSubjectsHistory(sem);
+      const totalClosedCount = (closedList ? closedList.length : 0) + (prevClosedSetForZeroAlert ? prevClosedSetForZeroAlert.size : 0);
 
       if (plan.conflictCount === 0) {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
         conflictStatusBadge.textContent = isTarget ? `충돌 0명 (목표 ${minN}~${maxN}명 중 0명)` : '충돌 없음 (최적)';
         
         // 폐강 과목이 존재하는 경우, 폐강 목록 조회를 위해 상자를 표시하고 단정하게 유지
-        if (closedList.length > 0) {
+        if (totalClosedCount > 0) {
           conflictAlertBox.className = 'lg:col-span-2 w-full bg-rose-50/70 border border-rose-200 rounded-xl p-4 shadow-sm space-y-2 flex flex-col justify-between transition-all';
           conflictAlertBox.classList.remove('hidden');
           conflictDetailCount.className = 'bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-bold';
@@ -6925,28 +6965,86 @@
       // Render Closed Subjects from Previous Step (1단계 폐강 과목 및 신청인원)
       const closedContainer = document.getElementById('conflictClosedSubjectsList');
       if (closedContainer) {
-        if (closedList.length === 0) {
+        const { allPrevClosedSet, prevClosedInfoMap } = getPreviousDatesClosedSubjectsHistory(sem);
+
+        // 현재 탭의 폐강 목록 + 이전 기준 날짜의 폐강 과목 모두 병합
+        const allClosedSet = new Set([...(closedList || []), ...Array.from(allPrevClosedSet)]);
+        const mergedClosedList = Array.from(allClosedSet);
+
+        if (mergedClosedList.length === 0) {
           closedContainer.innerHTML = `<span class="text-xs text-slate-500 italic bg-white/80 px-2.5 py-0.5 rounded-md border border-dashed border-rose-200">폐강 확정 과목 없음 (모든 선택과목 개설 대상)</span>`;
         } else {
-          // 각 폐강 과목의 신청 인원 집계
-          const closedItems = closedList.map(subj => {
-            let count = 0;
+          // 각 폐강 과목의 신청 인원 및 대상 학생 명단 집계
+          const closedItems = mergedClosedList.map(subj => {
+            let studentsInCur = [];
             (AppState.students || []).forEach(st => {
               const selected = (sem === 1 ? st.sem1 : st.sem2) || [];
-              if (selected.includes(subj)) count++;
+              if (selected.includes(subj)) {
+                const labelParts = [];
+                if (st.classNum) labelParts.push(`${st.classNum}반`);
+                if (st.studentNum) labelParts.push(`${st.studentNum}번`);
+                labelParts.push(st.name || '학생');
+                studentsInCur.push(labelParts.join(' '));
+              }
             });
-            return { subject: subj, count };
+
+            let count = studentsInCur.length;
+            let studentList = studentsInCur;
+            let dateNotice = '현재 기준';
+
+            // 현재 탭에서 신청 학생이 0명이고, 이전 기준 날짜 폐강 이력이 있다면 그 당시 데이터 활용
+            if (count === 0 && prevClosedInfoMap[subj]) {
+              count = prevClosedInfoMap[subj].count || 0;
+              studentList = prevClosedInfoMap[subj].students || [];
+              dateNotice = `${prevClosedInfoMap[subj].date} 폐강 당시`;
+            } else if (prevClosedInfoMap[subj]) {
+              dateNotice = `${prevClosedInfoMap[subj].date} 폐강 이력`;
+            }
+
+            return {
+              subject: subj,
+              count,
+              students: studentList,
+              dateNotice
+            };
           });
 
           // 신청인원 내림차순 정렬
           closedItems.sort((a, b) => b.count - a.count || a.subject.localeCompare(b.subject, 'ko'));
 
-          closedContainer.innerHTML = closedItems.map(item => `
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-rose-900 border border-rose-300 shadow-2xs hover:bg-rose-50 transition" title="1단계 수강신청 인원: ${item.count}명">
-              <span class="font-extrabold">${escapeHtml(item.subject)}</span>
-              <span class="text-rose-600 font-black bg-rose-100 px-1.5 py-0.5 rounded text-[11px]">(${item.count}명)</span>
-            </span>
-          `).join('');
+          closedContainer.innerHTML = closedItems.map(item => {
+            const studentText = item.students.length > 0 
+              ? item.students.join(', ') 
+              : '신청 학생 명단 없음';
+            const tooltipTitle = `[${item.subject}] ${item.count}명 (${item.dateNotice})\n대상자: ${studentText}`;
+
+            return `
+              <div class="relative group inline-block">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-rose-900 border border-rose-300 shadow-2xs hover:bg-rose-50 transition cursor-help select-none"
+                      title="${escapeHtml(tooltipTitle)}">
+                  <span class="font-extrabold">${escapeHtml(item.subject)}</span>
+                  <span class="text-rose-600 font-black bg-rose-100 px-1.5 py-0.5 rounded text-[11px]">(${item.count}명)</span>
+                </span>
+                <!-- 마우스 오버 시 표시되는 학생 명단 팝오버 툴팁 -->
+                <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col z-50 w-64 max-w-xs p-3 bg-slate-900/95 backdrop-blur-md text-white text-xs rounded-xl shadow-2xl border border-slate-700/80 transition-all duration-150">
+                  <div class="flex items-center justify-between gap-1 pb-1.5 mb-1.5 border-b border-slate-700/80 text-rose-300 font-bold">
+                    <span class="truncate text-xs">🚫 ${escapeHtml(item.subject)} (${item.count}명)</span>
+                    <span class="text-[10px] text-slate-400 font-normal shrink-0">${escapeHtml(item.dateNotice)}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-300 font-medium mb-1 flex items-center justify-between">
+                    <span>수강 신청 학생 대상자:</span>
+                    <span class="text-[10px] text-rose-300 font-bold">${item.students.length}명</span>
+                  </div>
+                  <div class="text-[11px] text-slate-100 max-h-40 overflow-y-auto leading-relaxed break-words bg-slate-800/90 p-2 rounded-lg border border-slate-700">
+                    ${item.students.length > 0 
+                      ? `<div class="flex flex-wrap gap-1">${item.students.map(s => `<span class="inline-block bg-slate-700/90 text-slate-100 px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-600">${escapeHtml(s)}</span>`).join('')}</div>`
+                      : '<span class="text-slate-400 italic">신청 학생 없음</span>'}
+                  </div>
+                  <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
         }
       }
 
@@ -10891,6 +10989,25 @@ function renderYearGradeNav() {
           '3학년': createEmptyGradeState('3학년'),
           '전체': { curriculum: [], lastUpdated: null }
         };
+
+        // 이전 기준 날짜의 학생 수강신청 데이터(2학년, 3학년) 복사 여부 질문
+        if (prevYear && acadData[prevYear]) {
+          const prevG2 = acadData[prevYear]['2학년'];
+          const prevG3 = acadData[prevYear]['3학년'];
+          const c2 = (prevG2 && prevG2.students) ? prevG2.students.length : 0;
+          const c3 = (prevG3 && prevG3.students) ? prevG3.students.length : 0;
+
+          if (c2 > 0 || c3 > 0) {
+            if (confirm(`💡 새 기준 날짜 [${y}] 생성 안내:\n\n이전 기준 날짜 [${prevYear}]의 수강신청 데이터(2학년 ${c2}명, 3학년 ${c3}명)를 새 탭으로 복사해 오시겠습니까?\n\n- [확인]: 이전 데이터(학생 명부 및 선택 과목)를 유지한 상태로 새 탭 시작\n- [취소]: 빈 상태로 시작 (새로운 엑셀 설문 파일 업로드 필요)`)) {
+              if (c2 > 0 && prevG2) {
+                acadData[y]['2학년'] = JSON.parse(JSON.stringify(prevG2));
+              }
+              if (c3 > 0 && prevG3) {
+                acadData[y]['3학년'] = JSON.parse(JSON.stringify(prevG3));
+              }
+            }
+          }
+        }
       }
 
       switchAcademicContext(y, MultiState.activeGrade);
