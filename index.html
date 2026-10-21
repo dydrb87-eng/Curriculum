@@ -11,6 +11,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <!-- JSZip for Excel Advanced Formatting (Freeze Panes) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <script>
     if (typeof XLSX === 'undefined') {
       document.write('<script src="https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
@@ -11796,7 +11799,46 @@ function renderYearGradeNav() {
             }
           }
 
-          const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          let excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+          // 틀고정(freeze panes) 적용 (JSZip 후처리)
+          if (typeof JSZip !== 'undefined') {
+            try {
+              let hasFreeze = false;
+              (wb.SheetNames || []).forEach(name => {
+                const sheet = wb.Sheets[name];
+                if (sheet && (sheet['!freeze'] || sheet['!views'])) hasFreeze = true;
+              });
+
+              if (hasFreeze) {
+                const zip = await JSZip.loadAsync(excelBuffer);
+                for (let idx = 0; idx < (wb.SheetNames || []).length; idx++) {
+                  const sName = wb.SheetNames[idx];
+                  const sheet = wb.Sheets[sName];
+                  if (!sheet || (!sheet['!freeze'] && !sheet['!views'])) continue;
+                  const ySplit = sheet['!freeze']?.ySplit || sheet['!views']?.[0]?.ySplit || 4;
+                  const topLeftCell = sheet['!freeze']?.topLeftCell || sheet['!views']?.[0]?.topLeftCell || `A${ySplit + 1}`;
+                  const targetXmlName = `xl/worksheets/sheet${idx + 1}.xml`;
+                  const zipFile = zip.file(targetXmlName);
+                  if (zipFile) {
+                    const sheetXml = await zipFile.async('text');
+                    const paneXml = `<sheetView workbookViewId="0"><pane ySplit="${ySplit}" topLeftCell="${topLeftCell}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="${topLeftCell}" sqref="${topLeftCell}"/></sheetView>`;
+                    let newXml = sheetXml;
+                    if (newXml.includes('<sheetView workbookViewId="0"/>')) {
+                      newXml = newXml.replace('<sheetView workbookViewId="0"/>', paneXml);
+                    } else if (newXml.includes('<sheetView workbookViewId="0">') && !newXml.includes('state="frozen"')) {
+                      newXml = newXml.replace('<sheetView workbookViewId="0">', `<sheetView workbookViewId="0"><pane ySplit="${ySplit}" topLeftCell="${topLeftCell}" activePane="bottomLeft" state="frozen"/>`);
+                    }
+                    zip.file(targetXmlName, newXml);
+                  }
+                }
+                excelBuffer = await zip.generateAsync({ type: 'arraybuffer' });
+              }
+            } catch (zErr) {
+              console.warn('JSZip freeze pane injection skipped:', zErr);
+            }
+          }
+
           const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
           const writable = await fileHandle.createWritable();
           await writable.write(new Uint8Array(excelBuffer));
@@ -11814,7 +11856,58 @@ function renderYearGradeNav() {
       }
 
       // 지정 경로가 없거나 실패 시 브라우저 기본 다운로드 폴더로 저장
-      XLSX.writeFile(wb, filename);
+      let fallbackBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      if (typeof JSZip !== 'undefined') {
+        try {
+          let hasFreeze = false;
+          (wb.SheetNames || []).forEach(name => {
+            const sheet = wb.Sheets[name];
+            if (sheet && (sheet['!freeze'] || sheet['!views'])) hasFreeze = true;
+          });
+
+          if (hasFreeze) {
+            const zip = await JSZip.loadAsync(fallbackBuffer);
+            for (let idx = 0; idx < (wb.SheetNames || []).length; idx++) {
+              const sName = wb.SheetNames[idx];
+              const sheet = wb.Sheets[sName];
+              if (!sheet || (!sheet['!freeze'] && !sheet['!views'])) continue;
+              const ySplit = sheet['!freeze']?.ySplit || sheet['!views']?.[0]?.ySplit || 4;
+              const topLeftCell = sheet['!freeze']?.topLeftCell || sheet['!views']?.[0]?.topLeftCell || `A${ySplit + 1}`;
+              const targetXmlName = `xl/worksheets/sheet${idx + 1}.xml`;
+              const zipFile = zip.file(targetXmlName);
+              if (zipFile) {
+                const sheetXml = await zipFile.async('text');
+                const paneXml = `<sheetView workbookViewId="0"><pane ySplit="${ySplit}" topLeftCell="${topLeftCell}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="${topLeftCell}" sqref="${topLeftCell}"/></sheetView>`;
+                let newXml = sheetXml;
+                if (newXml.includes('<sheetView workbookViewId="0"/>')) {
+                  newXml = newXml.replace('<sheetView workbookViewId="0"/>', paneXml);
+                } else if (newXml.includes('<sheetView workbookViewId="0">') && !newXml.includes('state="frozen"')) {
+                  newXml = newXml.replace('<sheetView workbookViewId="0">', `<sheetView workbookViewId="0"><pane ySplit="${ySplit}" topLeftCell="${topLeftCell}" activePane="bottomLeft" state="frozen"/>`);
+                }
+                zip.file(targetXmlName, newXml);
+              }
+            }
+            fallbackBuffer = await zip.generateAsync({ type: 'arraybuffer' });
+          }
+        } catch (zErr) {
+          console.warn('JSZip fallback freeze pane injection skipped:', zErr);
+        }
+      }
+
+      try {
+        const blob = new Blob([fallbackBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (dlErr) {
+        XLSX.writeFile(wb, filename);
+      }
+
       if (typeof showSaveToast === 'function') {
         showSaveToast(`📥 다운로드 폴더에 엑셀 파일이 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
       }
@@ -14620,7 +14713,7 @@ function renderYearGradeNav() {
               }
               const classNum = classTarget.replace(/[^0-9]/g, '') || String(itIdx + 1);
               const classStudents = students.filter(st => String(st.classNum) === classNum);
-              const labels = classStudents.map(st => `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+              const labels = classStudents.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
               labels.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
 
               const cCount = classStudents.length > 0 ? `${classStudents.length}명` : (gradeStr === '2학년' ? '22명' : '10명');
@@ -14646,8 +14739,8 @@ function renderYearGradeNav() {
             const class1 = students.filter(st => String(st.classNum) === '1');
             const class2 = students.filter(st => String(st.classNum) === '2');
 
-            const l1 = class1.map(st => `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
-            const l2 = class2.map(st => `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+            const l1 = class1.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+            const l2 = class2.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
             l1.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
             l2.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
 
@@ -14720,7 +14813,7 @@ function renderYearGradeNav() {
             enrolled.forEach(st => {
               const cNum = String(st.classNum || '1');
               if (!classMap.has(cNum)) classMap.set(cNum, []);
-              const label = `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
+              const label = `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
               classMap.get(cNum).push(label);
             });
 
@@ -14825,6 +14918,13 @@ function renderYearGradeNav() {
       ];
 
       ws['!rows'] = rowHeights;
+
+      // 4행(학기, 학년, 과목명, 반, 수강인원, 수강자 명단, 출판사, 담당 교사) 자동 필터 적용
+      ws['!autofilter'] = { ref: `A4:H${rows.length}` };
+
+      // 4행 헤더 기준 틀고정 (1~4행 고정)
+      ws['!freeze'] = { ySplit: 4, topLeftCell: 'A5' };
+      ws['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 4, topLeftCell: 'A5', activeCell: 'A5' }];
 
       // 파스텔 톤 엑셀 정밀 서식 적용 (8열 확장)
       if (typeof ExcelStyler !== 'undefined') {
