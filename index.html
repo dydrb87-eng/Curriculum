@@ -12636,9 +12636,13 @@ function renderYearGradeNav() {
             const originalTeacherVal = origTeacherRaw || teacherVal;
             const isModifiedVal = (modRaw === '수정됨') || (teacherVal !== originalTeacherVal) || isClosed;
 
-            // 6. 분반 정보 추출
+            // 6. 반 구분 및 분반 정보 추출 (엑셀 열 또는 과목명 접미사)
             const baseSubj = getBaseSubjectName(subjVal);
-            const division = getSubjectDivision(subjVal);
+            const divKey = keys.find(k => /반\s*구분|분반|학급|division/i.test(k));
+            let division = String((divKey ? row[divKey] : '') || '').trim();
+            if (!division || division === '-') {
+              division = getSubjectDivision(subjVal);
+            }
 
             parsedCurriculum.push({
               id: 'curr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + idx,
@@ -13270,9 +13274,9 @@ function renderYearGradeNav() {
         right: { style: 'thin', color: { rgb: 'CBD5E1' } }
       };
 
-      // 1. 헤더 및 데이터 행 구성 (기초데이터 엑셀 업로드와 100% 호환되는 표준 컬럼)
+      // 1. 헤더 및 데이터 행 구성 (기초데이터 엑셀 업로드와 100% 호환되는 표준 컬럼, 반 구분 포함)
       const rows = [
-        ['학기', '학년', '구분', '과목명', '총 시수', '담당교사', '개설상태', '수정여부', '최초원래교사']
+        ['학기', '학년', '구분', '반 구분', '과목명', '총 시수', '담당교사', '개설상태', '수정여부', '최초원래교사']
       ];
 
       curriculum.forEach(item => {
@@ -13280,6 +13284,7 @@ function renderYearGradeNav() {
           item.semester,
           parseInt(item.grade) || item.grade,
           item.category || '선택',
+          (item.division || (item.category === '선택' ? '선택' : '1반')).trim(),
           item.subject,
           item.hours || 0,
           item.teacher || '',
@@ -13297,6 +13302,7 @@ function renderYearGradeNav() {
         { wch: 8 },  // 학기
         { wch: 10 }, // 학년
         { wch: 10 }, // 구분
+        { wch: 10 }, // 반 구분
         { wch: 24 }, // 과목명
         { wch: 10 }, // 총 시수
         { wch: 14 }, // 담당교사
@@ -13400,6 +13406,7 @@ function renderYearGradeNav() {
         '학기': item.semester,
         '학년': parseInt(item.grade) || item.grade,
         '구분': item.category,
+        '반 구분': (item.division || (item.category === '선택' ? '선택' : '1반')).trim(),
         '과목명': item.subject,
         '총 시수': item.hours,
         '담당교사': item.teacher
@@ -13411,6 +13418,7 @@ function renderYearGradeNav() {
         { wch: 8 },  // 학기
         { wch: 10 }, // 학년
         { wch: 12 }, // 구분
+        { wch: 10 }, // 반 구분
         { wch: 22 }, // 과목명
         { wch: 10 }, // 총 시수
         { wch: 14 }  // 담당교사
@@ -13786,596 +13794,19 @@ function renderYearGradeNav() {
       console.log(`✅ [${fileName}] 파스텔톤 서식 엑셀 다운로드 완료`);
     };
 
-    function exportAllGradesConsolidatedExcel() {
-      const curriculum = getAllGradesCurriculum();
-      if (curriculum.length === 0) {
-        alert('내보낼 기초데이터 과목이 없습니다.');
-        return;
-      }
-
-      const year = MultiState?.activeYear || '2027';
-      const wb = XLSX.utils.book_new();
-
-      // Sheet 1: 교사별 시수 종합표 (파스텔톤 정밀 서식 적용)
-      const { ws: ws1 } = createTeacherWorkloadSheet(curriculum, year);
-      XLSX.utils.book_append_sheet(wb, ws1, '교사별_시수_종합');
-
-      // Sheet 2: 전학년 과목별 배정 상세
-      const detailRows = curriculum.map((c, idx) => ({
-        '연번': idx + 1,
-        '학년': c.grade,
-        '학기': `${c.semester}학기`,
-        '구분': c.category,
-        '과목명': c.subject,
-        '분반': c.division ? `${c.division}반` : '-',
-        '총 시수': c.hours,
-        '개설상태': c.status,
-        '담당교사': c.teacher,
-        '수정여부': c.isModified ? '수정됨' : '원본',
-        '최초원래교사': c.originalTeacher
-      }));
-
-      const ws2 = XLSX.utils.json_to_sheet(detailRows);
-      ws2['!cols'] = [
-        { wch: 6 },
-        { wch: 10 },
-        { wch: 10 },
-        { wch: 10 },
-        { wch: 22 },
-        { wch: 10 },
-        { wch: 10 },
-        { wch: 14 },
-        { wch: 10 },
-        { wch: 14 }
-      ];
-      XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
-
-      const allGradesFileName = buildExportFileName("전학년 교사별시수 및 과목배정 종합", "xlsx");
-      window.saveExcelFile(wb, allGradesFileName);
-    }
-
     // ==========================================
-    // 출판사 매칭 및 과목 정규화 유틸리티
+    // 과목 기준 데이터 정리 워크시트 생성 (공통 헬퍼)
     // ==========================================
-    function normalizeSubjectForPublisher(subj) {
-      if (!subj) return '';
-      let s = String(subj);
-      s = s.replace(/\[[^\]]*\]/g, ' ');
-      s = getBaseSubjectName(s);
-      s = s.replace(/Ⅰ/g, '1')
-           .replace(/Ⅱ/g, '2')
-           .replace(/Ⅲ/g, '3')
-           .replace(/Ⅳ/g, '4')
-           .replace(/Ⅴ/g, '5')
-           .replace(/Ⅵ/g, '6')
-           .replace(/１/g, '1')
-           .replace(/２/g, '2')
-           .replace(/３/g, '3')
-           .replace(/４/g, '4');
-      s = s.replace(/[\s\u3000\-_/.,·~*※†‡★☆▲■●#^()\[\]{}'"]/g, '');
-      return s.toLowerCase();
-    }
-
-    function getPublisherForSubject(subjName) {
-      if (!subjName) return '';
-      const curAY = MultiState.activeAcademicYear || '2027학년도';
-      const map = MultiState.publishersByAcademicYear?.[curAY] || {};
-      const norm = normalizeSubjectForPublisher(subjName);
-      if (map[norm]) return map[norm];
-      
-      const baseNorm = normalizeSubjectKey(subjName);
-      for (const k in map) {
-        if (k === norm || k === baseNorm) return map[k];
-      }
-      return '';
-    }
-
-    // 과목 기준 데이터 정리에 사용되는 공통 과목 목록 산출 헬퍼
-    function getConsolidatedSubjectList() {
-      const curriculum = getAllGradesCurriculum();
-      const curDate = MultiState?.activeYear || '2027.10.11.';
-      const acadData = getAcadData();
-      const yData = acadData[curDate] || {};
-
-      let subjectList = [];
-
-      if (curriculum && curriculum.length > 0) {
-        subjectList = curriculum.map(c => ({
-          semester: c.semester,
-          grade: c.grade,
-          subject: c.subject,
-          division: c.division || '',
-          teacher: c.teacher || '-',
-          status: c.status || '개설',
-          category: c.category || ''
-        }));
-      } else {
-        ['2학년', '3학년'].forEach(gradeStr => {
-          const gData = yData[gradeStr];
-          if (!gData) return;
-          [1, 2].forEach(sem => {
-            const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
-            const closedList = gData.closedSubjects?.[sem] || [];
-            rawSubjs.forEach(s => {
-              subjectList.push({
-                semester: sem,
-                grade: gradeStr,
-                subject: s,
-                division: '',
-                teacher: '-',
-                status: closedList.includes(s) ? '폐강' : '개설',
-                category: '선택'
-              });
-            });
-          });
-        });
-      }
-
-      ['2학년', '3학년'].forEach(gradeStr => {
-        const gData = yData[gradeStr];
-        if (!gData) return;
-        [1, 2].forEach(sem => {
-          const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
-          const closedList = gData.closedSubjects?.[sem] || [];
-          rawSubjs.forEach(s => {
-            const norm = normalizeSubjectKey(s);
-            const exists = subjectList.some(item => 
-              item.semester === sem && 
-              item.grade === gradeStr && 
-              normalizeSubjectKey(item.subject) === norm
-            );
-            if (!exists) {
-              subjectList.push({
-                semester: sem,
-                grade: gradeStr,
-                subject: s,
-                division: '',
-                teacher: '-',
-                status: closedList.includes(s) ? '폐강' : '개설',
-                category: '선택'
-              });
-            }
-          });
-        });
-      });
-
-      // 정렬: 학기(1->2) -> 학년(1->2->3) -> 과목명(가나다)
-      subjectList.sort((a, b) => {
-        if (a.semester !== b.semester) return a.semester - b.semester;
-        const gOrder = { '1학년': 1, '2학년': 2, '3학년': 3 };
-        const gDiff = (gOrder[a.grade] || 9) - (gOrder[b.grade] || 9);
-        if (gDiff !== 0) return gDiff;
-        return String(a.subject).localeCompare(String(b.subject), 'ko');
-      });
-
-      return subjectList;
-    }
-    window.getConsolidatedSubjectList = getConsolidatedSubjectList;
-
-    let currentPublisherFilter = 'all';
-
-    function openPublisherManagerModal() {
-      const modal = document.getElementById('publisherManagerModal');
-      if (!modal) return;
-      const yearBadge = document.getElementById('publisherManagerYearBadge');
-      if (yearBadge) {
-        yearBadge.textContent = MultiState?.activeAcademicYear || '2027학년도';
-      }
-      currentPublisherFilter = 'all';
-      updatePublisherFilterButtonsUI();
-      renderPublisherManagerTable();
-      modal.classList.remove('hidden');
-    }
-    window.openPublisherManagerModal = openPublisherManagerModal;
-
-    function closePublisherManagerModal() {
-      document.getElementById('publisherManagerModal')?.classList.add('hidden');
-    }
-    window.closePublisherManagerModal = closePublisherManagerModal;
-
-    function filterPublisherTable(filterType) {
-      currentPublisherFilter = filterType;
-      updatePublisherFilterButtonsUI();
-      renderPublisherManagerTable();
-    }
-    window.filterPublisherTable = filterPublisherTable;
-
-    function updatePublisherFilterButtonsUI() {
-      document.querySelectorAll('.pub-filter-btn').forEach(btn => {
-        if (btn.getAttribute('data-filter') === currentPublisherFilter) {
-          btn.className = 'pub-filter-btn px-2.5 py-1 rounded-lg text-purple-700 bg-purple-100 font-bold transition';
-        } else {
-          btn.className = 'pub-filter-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition';
-        }
-      });
-    }
-
-    function renderPublisherManagerTable() {
-      const tbody = document.getElementById('publisherTableBody');
-      if (!tbody) return;
-
-      const subjectList = getConsolidatedSubjectList();
-      const searchVal = (document.getElementById('publisherSearchInput')?.value || '').trim().toLowerCase();
-
-      let filledCount = 0;
-      let totalCount = subjectList.length;
-
-      // Group or map unique subjects
-      const renderedRows = [];
-
-      subjectList.forEach((item, idx) => {
-        const currentPub = getPublisherForSubject(item.subject);
-        if (currentPub) filledCount++;
-
-        // Filter by grade / missing
-        if (currentPublisherFilter === '1학년' && item.grade !== '1학년') return;
-        if (currentPublisherFilter === '2학년' && item.grade !== '2학년') return;
-        if (currentPublisherFilter === '3학년' && item.grade !== '3학년') return;
-        if (currentPublisherFilter === 'missing' && currentPub) return;
-
-        // Search query
-        if (searchVal) {
-          const matchSubj = item.subject.toLowerCase().includes(searchVal);
-          const matchPub = currentPub.toLowerCase().includes(searchVal);
-          const matchGrade = item.grade.toLowerCase().includes(searchVal);
-          if (!matchSubj && !matchPub && !matchGrade) return;
-        }
-
-        const isEven = (renderedRows.length % 2 === 1);
-        const rowBg = isEven ? 'bg-slate-50/60' : 'bg-white';
-        const isClosed = (item.status === '폐강');
-
-        const catBadge = isClosed 
-          ? '<span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full font-bold text-[10px]">폐강</span>'
-          : (item.category === '지정' || item.category === '학교지정' 
-            ? '<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full font-bold text-[10px]">지정</span>' 
-            : '<span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full font-bold text-[10px]">선택</span>');
-
-        renderedRows.push(`
-          <tr class="${rowBg} hover:bg-purple-50/40 transition">
-            <td class="py-2 px-3 text-center font-bold text-slate-600">${item.semester}학기</td>
-            <td class="py-2 px-3 text-center font-bold text-slate-800">${item.grade}</td>
-            <td class="py-2 px-3 text-center">${catBadge}</td>
-            <td class="py-2 px-3 font-bold ${isClosed ? 'text-rose-700 line-through' : 'text-slate-900'}">
-              ${item.subject}
-              ${item.teacher && item.teacher !== '-' ? `<span class="text-[10px] text-slate-400 font-normal ml-1">(${item.teacher})</span>` : ''}
-            </td>
-            <td class="py-2 px-3">
-              <input type="text" 
-                     class="pub-edit-input w-full px-2.5 py-1.5 border border-slate-300 rounded-xl bg-white text-slate-900 text-xs font-semibold focus:ring-2 focus:ring-purple-400 outline-none shadow-2xs transition" 
-                     data-subject="${item.subject}" 
-                     value="${currentPub}" 
-                     placeholder="출판사명 입력" />
-            </td>
-            <td class="py-2 px-3 text-center">
-              ${currentPub 
-                ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[10px]">등록됨</span>'
-                : '<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-bold text-[10px]">미등록</span>'
-              }
-            </td>
-          </tr>
-        `);
-      });
-
-      tbody.innerHTML = renderedRows.length > 0 
-        ? renderedRows.join('')
-        : '<tr><td colspan="6" class="py-8 text-center text-slate-400 font-medium">검색 조건에 일치하는 과목이 없습니다.</td></tr>';
-
-      const statsSpan = document.getElementById('publisherStatsSummary');
-      if (statsSpan) {
-        const pct = totalCount > 0 ? Math.round((filledCount / totalCount) * 100) : 0;
-        statsSpan.textContent = `총 ${totalCount}개 과목 중 ${filledCount}개 등록 (${pct}%)`;
-      }
-    }
-    window.renderPublisherManagerTable = renderPublisherManagerTable;
-
-    function savePublisherManagerModal() {
-      const inputs = document.querySelectorAll('.pub-edit-input');
-      const curAY = MultiState.activeAcademicYear || '2027학년도';
-      if (!MultiState.publishersByAcademicYear) MultiState.publishersByAcademicYear = {};
-      if (!MultiState.publishersByAcademicYear[curAY]) MultiState.publishersByAcademicYear[curAY] = {};
-
-      let savedCount = 0;
-      if (!MultiState.publisherSubjectNamesByAcademicYear) MultiState.publisherSubjectNamesByAcademicYear = {};
-      if (!MultiState.publisherSubjectNamesByAcademicYear[curAY]) MultiState.publisherSubjectNamesByAcademicYear[curAY] = {};
-
-      inputs.forEach(inp => {
-        const subj = inp.getAttribute('data-subject');
-        const pubVal = inp.value.trim();
-        const normKey = normalizeSubjectForPublisher(subj);
-        if (normKey) {
-          if (pubVal) {
-            MultiState.publishersByAcademicYear[curAY][normKey] = pubVal;
-            MultiState.publisherSubjectNamesByAcademicYear[curAY][normKey] = subj;
-            savedCount++;
-          } else {
-            delete MultiState.publishersByAcademicYear[curAY][normKey];
-            delete MultiState.publisherSubjectNamesByAcademicYear[curAY][normKey];
-          }
-        }
-      });
-
-      saveAllState();
-      updatePublisherButtonUI();
-      renderPublisherManagerTable();
-
-      // JSON 파일 자동 동기화 저장
-      if (typeof window.handleMainSaveButtonClick === 'function') {
-        window.handleMainSaveButtonClick();
-      }
-
-      alert('💾 출판사 정보가 성공적으로 저장되었습니다!\n' + `현재 ${Object.keys(MultiState.publishersByAcademicYear[curAY] || {}).length}개 과목 출판사가 등록되어 있으며 JSON 파일에도 안전하게 저장되었습니다.`);
-    }
-    window.savePublisherManagerModal = savePublisherManagerModal;
-
-    function updatePublisherButtonUI() {
-      const curAY = MultiState.activeAcademicYear || '2027학년도';
-      const map = MultiState.publishersByAcademicYear?.[curAY] || {};
-      const count = Object.keys(map).length;
-      const statusSpan = document.getElementById('txtPublisherUploadStatus');
-      const groupDiv = document.getElementById('publisherButtonGroup');
-      if (statusSpan) {
-        if (count > 0) {
-          statusSpan.textContent = `출판사 등록됨 (${count}개)`;
-          if (groupDiv) {
-            groupDiv.classList.remove('border-purple-400', 'bg-purple-50', 'text-purple-900');
-            groupDiv.classList.add('border-indigo-400', 'bg-indigo-50', 'text-indigo-900');
-          }
-        } else {
-          statusSpan.textContent = '출판사 엑셀 등록';
-          if (groupDiv) {
-            groupDiv.classList.remove('border-indigo-400', 'bg-indigo-50', 'text-indigo-900');
-            groupDiv.classList.add('border-purple-400', 'bg-purple-50', 'text-purple-900');
-          }
-        }
-      }
-    }
-
-    // ==========================================
-    // PUBLISHER EXCEL IMPORT & CONFLICT RESOLUTION
-    // ==========================================
-    let publisherConflictQueue = [];
-    let publisherConflictIndex = 0;
-    let publisherConflictStats = { kept: 0, overwritten: 0, newAdded: 0, unchanged: 0 };
-    let publisherConflictTargetAY = '2027학년도';
-    let publisherPendingNewItems = [];
-
-    function parsePublisherExcel(file) {
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[sheetName];
-          if (!sheet) {
-            alert('⚠️ 엑셀 시트를 읽을 수 없습니다.');
-            return;
-          }
-          const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-          if (!rawRows || rawRows.length === 0) {
-            alert('⚠️ 엑셀 파일에 데이터가 없습니다.');
-            return;
-          }
-
-          let subjColIdx = -1;
-          let pubColIdx = -1;
-          let startRowIdx = 0;
-
-          for (let r = 0; r < Math.min(6, rawRows.length); r++) {
-            const row = rawRows[r];
-            if (!Array.isArray(row)) continue;
-            for (let c = 0; c < row.length; c++) {
-              const val = String(row[c] || '').trim();
-              if (subjColIdx === -1 && /^(과목|과목명|교과목|교과목명|과목 명|교과)$/i.test(val)) {
-                subjColIdx = c;
-              } else if (subjColIdx === -1 && /과목|교과/i.test(val) && !/출판|발행|교사|선생|비고/i.test(val)) {
-                subjColIdx = c;
-              }
-              if (pubColIdx === -1 && /^(출판사|출판사명|출판|출판 사|발행사|발행처)$/i.test(val)) {
-                pubColIdx = c;
-              } else if (pubColIdx === -1 && /출판|발행/i.test(val)) {
-                pubColIdx = c;
-              }
-            }
-            if (subjColIdx !== -1 && pubColIdx !== -1) {
-              startRowIdx = r + 1;
-              break;
-            }
-          }
-
-          if (subjColIdx === -1 || pubColIdx === -1) {
-            startRowIdx = 0;
-            if (rawRows.length > 1 && String(rawRows[0][0] || '').includes('출판')) {
-              startRowIdx = 1;
-            }
-            subjColIdx = 0;
-            pubColIdx = 1;
-          }
-
-          const curAY = MultiState.activeAcademicYear || '2027학년도';
-          if (!MultiState.publishersByAcademicYear) MultiState.publishersByAcademicYear = {};
-          if (!MultiState.publishersByAcademicYear[curAY]) MultiState.publishersByAcademicYear[curAY] = {};
-          if (!MultiState.publisherSubjectNamesByAcademicYear) MultiState.publisherSubjectNamesByAcademicYear = {};
-          if (!MultiState.publisherSubjectNamesByAcademicYear[curAY]) MultiState.publisherSubjectNamesByAcademicYear[curAY] = {};
-
-          const existingPubMap = MultiState.publishersByAcademicYear[curAY];
-          const existingNameMap = MultiState.publisherSubjectNamesByAcademicYear[curAY];
-
-          const newItems = [];
-          const conflicts = [];
-          const stats = { kept: 0, overwritten: 0, newAdded: 0, unchanged: 0 };
-
-          for (let r = startRowIdx; r < rawRows.length; r++) {
-            const row = rawRows[r];
-            if (!row || !Array.isArray(row)) continue;
-            const rawSubj = String(row[subjColIdx] || '').trim();
-            const rawPub = String(row[pubColIdx] || '').trim();
-            if (!rawSubj || !rawPub) continue;
-            if (/^(과목|과목명|교과|순번|연번)$/i.test(rawSubj)) continue;
-
-            const normKey = normalizeSubjectForPublisher(rawSubj);
-            if (!normKey) continue;
-
-            const existingPub = existingPubMap[normKey];
-
-            if (!existingPub) {
-              // 1. 신규 과목 (기존에 등록되어 있지 않음) -> 자동 추가
-              newItems.push({ normKey, subjectName: rawSubj, publisher: rawPub });
-              stats.newAdded++;
-            } else if (existingPub.trim().toLowerCase() === rawPub.trim().toLowerCase()) {
-              // 2. 동일한 데이터 -> 그대로 유지
-              stats.unchanged++;
-            } else {
-              // 3. 기존 데이터와 상이 -> 사용자에게 하나씩 물어보고 선택
-              conflicts.push({
-                normKey,
-                subjectName: rawSubj || existingNameMap[normKey] || normKey,
-                existingPub: existingPub.trim(),
-                newPub: rawPub.trim()
-              });
-            }
-          }
-
-          if (conflicts.length === 0) {
-            // 충돌이 없는 경우: 신규 데이터 즉시 반영 후 JSON 저장
-            newItems.forEach(item => {
-              existingPubMap[item.normKey] = item.publisher;
-              existingNameMap[item.normKey] = item.subjectName;
-            });
-
-            saveAllState();
-            updatePublisherButtonUI();
-            renderPublisherManagerTable();
-
-            // JSON 파일에도 자동 동기화 저장
-            if (typeof window.handleMainSaveButtonClick === 'function') {
-              window.handleMainSaveButtonClick();
-            }
-
-            alert(`🎉 출판사 데이터가 성공적으로 등록되었습니다!\n\n- 신규 등록: ${stats.newAdded}개 과목\n- 기존 동일 유지: ${stats.unchanged}개 과목\n- JSON 파일에도 안전하게 자동 저장되었습니다.`);
-          } else {
-            // 충돌이 발생한 경우: 모달을 열고 1개씩 대조 질문 진행
-            publisherConflictQueue = conflicts;
-            publisherConflictIndex = 0;
-            publisherPendingNewItems = newItems;
-            publisherConflictStats = stats;
-            publisherConflictTargetAY = curAY;
-
-            window.renderPublisherConflictStep();
-          }
-        } catch (err) {
-          console.error('Error parsing publisher excel:', err);
-          alert('❌ 출판사 엑셀 파일을 읽는 도중 오류가 발생했습니다: ' + err.message);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-    window.parsePublisherExcel = parsePublisherExcel;
-
-    window.renderPublisherConflictStep = function() {
-      const modal = document.getElementById('publisherConflictModal');
-      if (!modal) return;
-
-      if (publisherConflictIndex >= publisherConflictQueue.length) {
-        // 모든 충돌 항목 처리 완료 -> 최종 커밋 및 JSON 저장
-        const ay = publisherConflictTargetAY;
-        const existingPubMap = MultiState.publishersByAcademicYear[ay];
-        const existingNameMap = MultiState.publisherSubjectNamesByAcademicYear[ay];
-
-        publisherPendingNewItems.forEach(item => {
-          existingPubMap[item.normKey] = item.publisher;
-          existingNameMap[item.normKey] = item.subjectName;
-        });
-
-        modal.classList.add('hidden');
-        saveAllState();
-        updatePublisherButtonUI();
-        renderPublisherManagerTable();
-
-        // JSON 파일 동기화 저장
-        if (typeof window.handleMainSaveButtonClick === 'function') {
-          window.handleMainSaveButtonClick();
-        }
-
-        const s = publisherConflictStats;
-        alert(`🎉 출판사 등록 및 변경 선택이 완료되었습니다!\n\n- 기존 출판사 유지: ${s.kept}개\n- 새 출판사로 변경: ${s.overwritten}개\n- 신규 과목 등록: ${s.newAdded}개\n- 기존 동일 유지: ${s.unchanged}개\n\n💾 JSON 파일에도 안전하게 저장되었습니다.`);
-        return;
-      }
-
-      // 현재 대조 항목 표시
-      const item = publisherConflictQueue[publisherConflictIndex];
-      const progressBadge = document.getElementById('publisherConflictProgressBadge');
-      const subjEl = document.getElementById('publisherConflictSubjectName');
-      const existEl = document.getElementById('publisherConflictExistingPub');
-      const newEl = document.getElementById('publisherConflictNewPub');
-
-      if (progressBadge) progressBadge.textContent = `${publisherConflictIndex + 1} / ${publisherConflictQueue.length}`;
-      if (subjEl) subjEl.textContent = item.subjectName;
-      if (existEl) existEl.textContent = item.existingPub;
-      if (newEl) newEl.textContent = item.newPub;
-
-      modal.classList.remove('hidden');
-    };
-
-    window.resolveCurrentPublisherConflict = function(decision) {
-      const ay = publisherConflictTargetAY;
-      const existingPubMap = MultiState.publishersByAcademicYear[ay];
-      const existingNameMap = MultiState.publisherSubjectNamesByAcademicYear[ay];
-      const item = publisherConflictQueue[publisherConflictIndex];
-
-      if (decision === 'keep') {
-        // 기존 유지
-        publisherConflictStats.kept++;
-        publisherConflictIndex++;
-        window.renderPublisherConflictStep();
-      } else if (decision === 'overwrite') {
-        // 새 데이터 적용
-        existingPubMap[item.normKey] = item.newPub;
-        existingNameMap[item.normKey] = item.subjectName;
-        publisherConflictStats.overwritten++;
-        publisherConflictIndex++;
-        window.renderPublisherConflictStep();
-      } else if (decision === 'keep_all') {
-        // 남은 모든 충돌 기존 유지
-        const remaining = publisherConflictQueue.length - publisherConflictIndex;
-        publisherConflictStats.kept += remaining;
-        publisherConflictIndex = publisherConflictQueue.length;
-        window.renderPublisherConflictStep();
-      } else if (decision === 'overwrite_all') {
-        // 남은 모든 충돌 새 데이터 적용
-        while (publisherConflictIndex < publisherConflictQueue.length) {
-          const cur = publisherConflictQueue[publisherConflictIndex];
-          existingPubMap[cur.normKey] = cur.newPub;
-          existingNameMap[cur.normKey] = cur.subjectName;
-          publisherConflictStats.overwritten++;
-          publisherConflictIndex++;
-        }
-        window.renderPublisherConflictStep();
-      }
-    };
-
-    window.cancelPublisherConflictResolution = function() {
-      if (confirm('출판사 엑셀 등록을 취소하시겠습니까?\n(선택하지 않은 변경 사항은 반영되지 않고 기존 데이터가 보존됩니다)')) {
-        const modal = document.getElementById('publisherConflictModal');
-        if (modal) modal.classList.add('hidden');
-      }
-    };
-
-    // 과목 기준 데이터 정리 엑셀 다운로드 (파스텔 톤 서식 & 출판사 자동 기입 & 전원 수강 숫자 표기)
-    function exportSubjectBasedExcel() {
+    function createSubjectBasedWorksheet() {
       const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
       const curDate = MultiState?.activeYear || '2027.10.11.';
       const acadData = getAcadData();
       const yData = acadData[curDate] || {};
 
-      // 1. 과목 데이터 준비 (공통 헬퍼 활용)
+      // 과목 데이터 준비
       const rawSubjectList = getConsolidatedSubjectList();
-
       if (rawSubjectList.length === 0) {
-        alert('내보낼 과목 데이터가 없습니다. 기초데이터 엑셀을 업로드하거나 수강신청 조사를 등록해주세요.');
-        return;
+        return { ws: null, count: 0 };
       }
 
       // 학생 데이터 수집
@@ -14408,7 +13839,7 @@ function renderYearGradeNav() {
         return String(itemA.subject).localeCompare(String(itemB.subject), 'ko');
       });
 
-      // 새로운 열 구조: 학기, 학년, 과목명(총원), 반, 수강인원, 수강자 명단, 출판사, 담당 교사
+      // 8개 열 구조: 학기, 학년, 과목명(총원), 반, 수강인원, 수강자 명단, 출판사, 담당 교사
       const rows = [];
       rows.push([`${acadYearStr} 과목 기준 데이터 정리 현황 (반별 행 분리 및 셀 병합)`]);
       rows.push([`기준 날짜: ${curDate} | 출력일시: ${new Date().toLocaleString()} | 서식: 과목명(총원) 및 학급별 명렬 분리`]);
@@ -14427,8 +13858,8 @@ function renderYearGradeNav() {
         { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
       ];
 
-      const courseMergeRanges = []; // { startRow, endRow, teachers: [] }
-      const rowStyleInfo = []; // { isClosed, isEven }
+      const courseMergeRanges = [];
+      const rowStyleInfo = [];
 
       let courseCounter = 0;
 
@@ -14470,7 +13901,6 @@ function renderYearGradeNav() {
           rowStyleInfo.push({ isClosed: true, isEven });
         } else if (isBoonban) {
           // 분반 과목 (수강인원은 미기입, 총원만 과목명(총원)에서 확인)
-          // 같은 과목명의 분반이면 자동으로 1, 2, 3으로 표기
           let totalCount = 0;
           if (students.length > 0) {
             if (representative.category === '지정' || representative.category === '학교지정' || gradeStr === '1학년') {
@@ -14760,25 +14190,23 @@ function renderYearGradeNav() {
 
       ws['!rows'] = rowHeights;
 
-      // ==========================================
       // 파스텔 톤 엑셀 정밀 서식 적용 (8열 확장)
-      // ==========================================
       if (typeof ExcelStyler !== 'undefined') {
         const pastelTheme = {
-          titleBg: 'EEF2FF',      // 부드러운 파스텔 라벤더/인디고
-          titleText: '1E3A8A',    // 단정한 짙은 네이비
-          subBg: 'F8FAFC',        // 부드러운 슬레이트
-          subText: '64748B',      // 슬레이트 그레이
-          headerBg: 'E0E7FF',     // 파스텔 소프트 블루
-          headerText: '1E3A8A',   // 네이비 볼드
-          rowEven: 'F8FAFC',      // 은은한 슬레이트 화이트
-          rowOdd: 'FFFFFF',       // 순백색
-          borderSoft: 'CBD5E1',   // 부드러운 슬레이트 테두리
-          borderHeader: 'A5B4FC', // 헤더 구분 테두리
-          closedBg: 'FEE2E2',     // 파스텔 로즈 (폐강)
-          closedText: 'DC2626',   // 소프트 레드 (폐강)
-          pubText: '3730A3',      // 출판사 인디고 텍스트
-          classText: '0F766E'     // 반 구분 틸/청록 텍스트
+          titleBg: 'EEF2FF',
+          titleText: '1E3A8A',
+          subBg: 'F8FAFC',
+          subText: '64748B',
+          headerBg: 'E0E7FF',
+          headerText: '1E3A8A',
+          rowEven: 'F8FAFC',
+          rowOdd: 'FFFFFF',
+          borderSoft: 'CBD5E1',
+          borderHeader: 'A5B4FC',
+          closedBg: 'FEE2E2',
+          closedText: 'DC2626',
+          pubText: '3730A3',
+          classText: '0F766E'
         };
 
         const softBorder = {
@@ -14814,7 +14242,7 @@ function renderYearGradeNav() {
           }
         });
 
-        // Header Row (3) - 파스텔 톤 헤더 (8개 열)
+        // Header Row (3)
         for (let c = 0; c < 8; c++) {
           ExcelStyler.setCell(ws, 3, c, {
             font: { name: ExcelStyler.fontFamily, sz: 10.5, bold: true, color: { rgb: pastelTheme.headerText } },
@@ -14901,6 +14329,83 @@ function renderYearGradeNav() {
             border: softBorder
           });
         }
+      }
+
+      return { ws, count: rows.length - 4 };
+    }
+
+    // ==========================================
+    // 📊 종합 엑셀 다운로드 (교사별 시수 종합 + 전학년 과목 배정 상세 + 과목 기준 데이터 정리)
+    // ==========================================
+    function exportAllGradesConsolidatedExcel() {
+      const curriculum = getAllGradesCurriculum();
+      if (curriculum.length === 0) {
+        alert('내보낼 기초데이터 과목이 없습니다.');
+        return;
+      }
+
+      const year = MultiState?.activeYear || '2027';
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: 교사별 시수 종합표 (파스텔톤 정밀 서식 적용, 반 구분 및 순수 시수 숫자 연동)
+      const { ws: ws1 } = createTeacherWorkloadSheet(curriculum, year);
+      XLSX.utils.book_append_sheet(wb, ws1, '교사별_시수_종합');
+
+      // Sheet 2: 전학년 과목별 배정 상세 (반 구분, 출판사, 담당교사 포함)
+      const detailRows = curriculum.map((c, idx) => ({
+        '연번': idx + 1,
+        '학년': c.grade,
+        '학기': `${c.semester}학기`,
+        '구분': c.category,
+        '반 구분': (c.division || (c.category === '선택' ? '선택' : '1반')).trim(),
+        '과목명': c.subject,
+        '총 시수': c.hours,
+        '출판사': getPublisherForSubject(c.subject) || '-',
+        '개설상태': c.status,
+        '담당교사': c.teacher,
+        '수정여부': c.isModified ? '수정됨' : '원본',
+        '최초원래교사': c.originalTeacher
+      }));
+
+      const ws2 = XLSX.utils.json_to_sheet(detailRows);
+      ws2['!cols'] = [
+        { wch: 6 },   // 연번
+        { wch: 10 },  // 학년
+        { wch: 10 },  // 학기
+        { wch: 10 },  // 구분
+        { wch: 10 },  // 반 구분
+        { wch: 22 },  // 과목명
+        { wch: 10 },  // 총 시수
+        { wch: 16 },  // 출판사
+        { wch: 10 },  // 개설상태
+        { wch: 14 },  // 담당교사
+        { wch: 10 },  // 수정여부
+        { wch: 14 }   // 최초원래교사
+      ];
+      XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
+
+      // Sheet 3: 과목 기준 데이터 정리 (반별 행 분리, 과목명(총원), 분반 처리 및 셀 병합)
+      try {
+        const { ws: ws3 } = createSubjectBasedWorksheet();
+        if (ws3) {
+          XLSX.utils.book_append_sheet(wb, ws3, '과목_기준_데이터_정리');
+        }
+      } catch (err) {
+        console.warn('과목 기준 데이터 정리 시트 생성 중 오류:', err);
+      }
+
+      const allGradesFileName = buildExportFileName("전학년 교사별시수 및 과목배정 종합", "xlsx");
+      window.saveExcelFile(wb, allGradesFileName);
+    }
+
+    // ==========================================
+    // 📋 과목 기준 데이터 정리 엑셀 다운로드 (단독 전용)
+    // ==========================================
+    function exportSubjectBasedExcel() {
+      const { ws } = createSubjectBasedWorksheet();
+      if (!ws) {
+        alert('내보낼 과목 데이터가 없습니다. 기초데이터 엑셀을 업로드하거나 수강신청 조사를 등록해주세요.');
+        return;
       }
 
       const wb = XLSX.utils.book_new();
