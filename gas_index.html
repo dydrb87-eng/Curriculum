@@ -398,23 +398,19 @@
             <span>📥 최신 데이터 다운로드(재업로드용)</span>
           </button>
 
-          <button id="btnApplyStep2ToAllGrades" type="button" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="2단계 활성 배치안의 과목을 대조하여 폐강/개설을 스마트 동기화합니다 (수정된 교사 보존)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            <span>🔄 2단계 결과 대조 적용</span>
-          </button>
-
           <button id="btnDownloadCurriculumTemplate" type="button" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="표준 기초데이터 엑셀 양식을 다운로드합니다">
             <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span>📥 양식 다운로드</span>
           </button>
 
-          <button id="btnSampleCurriculumData" type="button" class="px-2.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-bold border border-amber-200 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="테스트용 예시 기초데이터를 즉시 불러옵니다">
-            <span>💡 예시데이터</span>
-          </button>
-
           <button id="btnExportAllGradesExcel" type="button" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="교사별 시수 종합표 및 전학년 배정 상세표를 엑셀로 다운로드합니다">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span>📊 종합 엑셀 다운로드</span>
+          </button>
+
+          <button id="btnExportSubjectBasedExcel" type="button" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="과목 기준으로 학기, 학년, 과목명, 출판사, 담당교사, 수강인원, 수강자 명단을 정리한 엑셀 파일을 다운로드합니다">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>📋 과목 기준 데이터 정리</span>
           </button>
         </div>
       </div>
@@ -12971,6 +12967,250 @@ function renderYearGradeNav() {
       window.saveExcelFile(wb, allGradesFileName);
     }
 
+    // 과목 기준 데이터 정리 엑셀 다운로드
+    // 내용: 학기, 학년, 과목명, 출판사(빈칸), 담당 교사명, 수강인원, 수강자 명단
+    function exportSubjectBasedExcel() {
+      const curriculum = getAllGradesCurriculum();
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const curDate = MultiState?.activeYear || '2027.10.11.';
+      const acadData = getAcadData();
+      const yData = acadData[curDate] || {};
+
+      // 1. 과목 데이터 준비
+      let subjectList = [];
+
+      if (curriculum && curriculum.length > 0) {
+        subjectList = curriculum.map(c => ({
+          semester: c.semester,
+          grade: c.grade,
+          subject: c.subject,
+          division: c.division || '',
+          teacher: c.teacher || '-',
+          status: c.status || '개설',
+          category: c.category || ''
+        }));
+      } else {
+        // 편제표 미업로드 시 2, 3학년 수강신청 조사 과목에서 자동 수집
+        ['2학년', '3학년'].forEach(gradeStr => {
+          const gData = yData[gradeStr];
+          if (!gData) return;
+          [1, 2].forEach(sem => {
+            const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
+            const closedList = gData.closedSubjects?.[sem] || [];
+            rawSubjs.forEach(s => {
+              subjectList.push({
+                semester: sem,
+                grade: gradeStr,
+                subject: s,
+                division: '',
+                teacher: '-',
+                status: closedList.includes(s) ? '폐강' : '개설',
+                category: '선택'
+              });
+            });
+          });
+        });
+      }
+
+      // 편제표에 누락된 2·3학년 개설 과목 추가
+      ['2학년', '3학년'].forEach(gradeStr => {
+        const gData = yData[gradeStr];
+        if (!gData) return;
+        [1, 2].forEach(sem => {
+          const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
+          const closedList = gData.closedSubjects?.[sem] || [];
+          rawSubjs.forEach(s => {
+            const norm = normalizeSubjectKey(s);
+            const exists = subjectList.some(item => 
+              item.semester === sem && 
+              item.grade === gradeStr && 
+              normalizeSubjectKey(item.subject) === norm
+            );
+            if (!exists) {
+              subjectList.push({
+                semester: sem,
+                grade: gradeStr,
+                subject: s,
+                division: '',
+                teacher: '-',
+                status: closedList.includes(s) ? '폐강' : '개설',
+                category: '선택'
+              });
+            }
+          });
+        });
+      });
+
+      if (subjectList.length === 0) {
+        alert('내보낼 과목 데이터가 없습니다. 기초데이터 엑셀을 업로드하거나 수강신청 조사를 등록해주세요.');
+        return;
+      }
+
+      // 2. 정렬: 학기(1->2) -> 학년(1->2->3) -> 과목명(가나다)
+      subjectList.sort((a, b) => {
+        if (a.semester !== b.semester) return a.semester - b.semester;
+        const gOrder = { '1학년': 1, '2학년': 2, '3학년': 3 };
+        const gDiff = (gOrder[a.grade] || 9) - (gOrder[b.grade] || 9);
+        if (gDiff !== 0) return gDiff;
+        return String(a.subject).localeCompare(String(b.subject), 'ko');
+      });
+
+      // 3. 학생 데이터 수집 및 매핑
+      const studentsByGrade = {
+        '2학년': yData['2학년']?.students || [],
+        '3학년': yData['3학년']?.students || [],
+        '1학년': yData['1학년']?.students || []
+      };
+
+      const rows = [];
+      rows.push([`${acadYearStr} 과목 기준 데이터 정리 현황`]);
+      rows.push([`기준 날짜: ${curDate} | 전체 과목 수: ${subjectList.length}개 | 출력일시: ${new Date().toLocaleString()}`]);
+      rows.push([]);
+      rows.push(['학기', '학년', '과목명', '출판사', '담당 교사명', '수강인원', '수강자 명단']);
+
+      const rowHeights = [
+        { hpt: 32 },
+        { hpt: 20 },
+        { hpt: 8 },
+        { hpt: 26 }
+      ];
+
+      subjectList.forEach((item, idx) => {
+        const sem = item.semester;
+        const gradeStr = item.grade;
+        const subjName = item.subject;
+        const normSubj = normalizeSubjectKey(subjName);
+        const baseSubj = getBaseSubjectName(subjName);
+
+        const students = studentsByGrade[gradeStr] || [];
+        const enrolledStudents = [];
+
+        if (item.status === '폐강') {
+          // 폐강 과목: 수강인원 0명 또는 이전 신청자
+        } else if (item.category === '지정' || item.category === '학교지정' || gradeStr === '1학년') {
+          // 학교 지정(전원 수강) 과목
+          if (students.length > 0) {
+            students.forEach(st => {
+              const label = `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
+              enrolledStudents.push(label);
+            });
+          }
+        } else {
+          // 선택 과목: 해당 학기 수강 선택 학생 검색
+          students.forEach(st => {
+            const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
+            const isSelected = choices.some(ch => {
+              if (!ch) return false;
+              if (ch === subjName || ch === baseSubj) return true;
+              return normalizeSubjectKey(ch) === normSubj;
+            });
+            if (isSelected) {
+              const label = `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
+              enrolledStudents.push(label);
+            }
+          });
+        }
+
+        // 학생 정렬 (반, 번호, 이름 순)
+        enrolledStudents.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+
+        const countText = (item.status === '폐강') 
+          ? '폐강 (0명)' 
+          : (enrolledStudents.length > 0 ? `${enrolledStudents.length}명` : (item.category === '지정' ? '전원 수강' : '0명'));
+        
+        const studentListText = enrolledStudents.length > 0 
+          ? enrolledStudents.join(', ') 
+          : (item.status === '폐강' ? '폐강 확정' : (item.category === '지정' ? '전원 배정' : '-'));
+
+        rows.push([
+          `${sem}학기`,
+          gradeStr,
+          subjName,
+          '', // 출판사 (비워둠)
+          item.teacher || '-',
+          countText,
+          studentListText
+        ]);
+
+        const lineCount = Math.ceil((studentListText.length || 1) / 50);
+        const hpt = Math.max(22, Math.min(80, 18 + lineCount * 14));
+        rowHeights.push({ hpt });
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+
+      // Merges for Title & Subtitle
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }
+      ];
+
+      // Column widths
+      ws['!cols'] = [
+        { wch: 10 },  // 학기
+        { wch: 10 },  // 학년
+        { wch: 24 },  // 과목명
+        { wch: 16 },  // 출판사
+        { wch: 14 },  // 담당 교사명
+        { wch: 13 },  // 수강인원
+        { wch: 68 }   // 수강자 명단
+      ];
+
+      ws['!rows'] = rowHeights;
+
+      // Styling with ExcelStyler
+      if (typeof ExcelStyler !== 'undefined') {
+        ExcelStyler.setRange(ws, 0, 0, 0, 6, ExcelStyler.titleStyle(true));
+        ExcelStyler.setRange(ws, 1, 0, 1, 6, ExcelStyler.subtitleStyle(true));
+
+        // Header Row (Row 3)
+        for (let c = 0; c < 7; c++) {
+          ExcelStyler.setCell(ws, 3, c, ExcelStyler.headerStyle('1E3A8A', c === 6, c === 0));
+        }
+
+        // Data Rows
+        subjectList.forEach((item, idx) => {
+          const r = 4 + idx;
+          const isEven = (idx % 2 === 1);
+          const isClosed = (item.status === '폐강');
+
+          // 학기, 학년 (중앙)
+          ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
+          ExcelStyler.setCell(ws, r, 1, ExcelStyler.dataCenter(isEven, false, false));
+
+          // 과목명 (좌측, 볼드)
+          const nameStyle = isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false);
+          if (nameStyle.alignment) nameStyle.alignment.horizontal = 'left';
+          ExcelStyler.setCell(ws, r, 2, nameStyle);
+
+          // 출판사 (중앙 빈칸)
+          ExcelStyler.setCell(ws, r, 3, ExcelStyler.dataCenter(isEven, false, false));
+
+          // 담당 교사명 (중앙)
+          ExcelStyler.setCell(ws, r, 4, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+
+          // 수강인원 (중앙, 폐강 시 경고 스타일)
+          ExcelStyler.setCell(ws, r, 5, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
+
+          // 수강자 명단 (좌측 텍스트, wrapText, 오른쪽 굵은 외곽선)
+          const listStyle = {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: ExcelStyler.colors.slateText } },
+            fill: { fgColor: { rgb: isEven ? ExcelStyler.colors.slateBg : 'FFFFFF' } },
+            alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+            border: ExcelStyler.getBorder(true, false)
+          };
+          ExcelStyler.setCell(ws, r, 6, listStyle);
+        });
+      }
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '과목_기준_데이터_정리');
+
+      const fileName = buildExportFileName('과목 기준 데이터 정리', 'xlsx');
+      window.saveExcelFile(wb, fileName);
+    }
+    window.exportSubjectBasedExcel = exportSubjectBasedExcel;
+
     function renderAllGradesDashboard(fullRedraw = true) {
       const curriculum = getAllGradesCurriculum();
 
@@ -14244,19 +14484,14 @@ function renderYearGradeNav() {
         });
       }
 
-      applyBtn?.addEventListener('click', () => {
-        applyStep2ToCurriculum(true);
-        checkMissingOpenSubjectsInCurriculum();
-        renderAllGradesDashboard();
-      });
       exportCurrentBtn?.addEventListener('click', () => {
         if (typeof window.exportCurrentCurriculumExcel === 'function') {
           window.exportCurrentCurriculumExcel();
         }
       });
       templateBtn?.addEventListener('click', () => downloadCurriculumTemplate(false));
-      sampleBtn?.addEventListener('click', loadSampleCurriculumData);
       exportBtn?.addEventListener('click', exportAllGradesConsolidatedExcel);
+      document.getElementById('btnExportSubjectBasedExcel')?.addEventListener('click', exportSubjectBasedExcel);
 
       document.getElementById('allGradesTeacherSearchInput')?.addEventListener('input', renderAllGradesTeacherSummary);
       document.getElementById('allGradesFilterGrade')?.addEventListener('change', renderAllGradesCurriculumTable);
