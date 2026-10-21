@@ -626,6 +626,22 @@
               <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </div>
 
+            <div class="relative group inline-block">
+              <button type="button" class="px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer select-none" title="반 구분을 빠르게 일괄 설정합니다">
+                <span>🏷️ 반 구분 설정 ▾</span>
+              </button>
+              <div class="hidden group-hover:flex flex-col absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 text-xs">
+                <button type="button" onclick="window.batchSetDivisions('선택')" class="px-3 py-1.5 text-left hover:bg-teal-50 text-teal-800 font-bold transition flex items-center justify-between">
+                  <span>선택과목 ➔ [선택] 설정</span>
+                  <span class="text-[10px] text-slate-400">일괄</span>
+                </button>
+                <button type="button" onclick="window.batchSetDivisions('지정12')" class="px-3 py-1.5 text-left hover:bg-blue-50 text-blue-800 font-bold transition flex items-center justify-between">
+                  <span>지정과목 ➔ [1반/2반] 설정</span>
+                  <span class="text-[10px] text-slate-400">자동순환</span>
+                </button>
+              </div>
+            </div>
+
             <button type="button" onclick="window.openAddCourseModal()" class="px-3 py-1.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer select-none ring-2 ring-indigo-400/40" title="편제표에 새 과목을 직접 추가합니다">
               <span>➕</span>
               <span>과목 추가</span>
@@ -641,6 +657,7 @@
                 <th class="p-2.5 text-center w-16 border-r border-slate-200">학년</th>
                 <th class="p-2.5 text-center w-16 border-r border-slate-200">학기</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">구분</th>
+                <th class="p-2.5 text-center w-24 border-r border-slate-200 font-extrabold text-slate-900">반 구분</th>
                 <th class="p-2.5 w-52 min-w-[200px] border-r border-slate-200 font-extrabold text-slate-900">과목명 (수정 가능)</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200 font-extrabold text-slate-900">총 시수 (수정 가능)</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">개설 상태</th>
@@ -12733,6 +12750,83 @@ function renderYearGradeNav() {
     };
 
     // ==========================================
+    // CURRICULUM DIVISION / CLASS MANAGEMENT
+    // ==========================================
+    window.cycleCurriculumDivision = function(itemId) {
+      const curriculum = getAllGradesCurriculum();
+      const item = curriculum.find(c => c.id === itemId);
+      if (!item) return;
+
+      const current = (item.division || (item.category === '선택' ? '선택' : '1반')).trim();
+      let next = '선택';
+      if (current === '선택' || !current) next = '1반';
+      else if (current === '1반' || current === '1') next = '2반';
+      else if (current === '2반' || current === '2') next = '분반';
+      else next = '선택';
+
+      item.division = next;
+      item.isModified = true;
+      setAllGradesCurriculum(curriculum);
+      renderAllGradesCurriculumTable();
+    };
+
+    window.editCurriculumDivisionCustom = function(itemId) {
+      const curriculum = getAllGradesCurriculum();
+      const item = curriculum.find(c => c.id === itemId);
+      if (!item) return;
+
+      const current = item.division || (item.category === '선택' ? '선택' : '1반');
+      const val = prompt(`[${item.subject}] 과목의 반 구분을 입력하세요:\n(예: 선택, 1반, 2반, 3반, 분반, 분반-1, 분반-2 등)`, current);
+      if (val !== null) {
+        item.division = val.trim() || '선택';
+        item.isModified = true;
+        setAllGradesCurriculum(curriculum);
+        renderAllGradesCurriculumTable();
+      }
+    };
+
+    window.batchSetDivisions = function(type) {
+      const curriculum = getAllGradesCurriculum();
+      if (curriculum.length === 0) return;
+
+      if (type === '선택') {
+        let count = 0;
+        curriculum.forEach(c => {
+          if (c.category === '선택' || c.category === '학생선택') {
+            c.division = '선택';
+            c.isModified = true;
+            count++;
+          }
+        });
+        setAllGradesCurriculum(curriculum);
+        renderAllGradesCurriculumTable();
+        alert(`✅ 모든 선택과목 (${count}개)의 반 구분이 [선택]으로 일괄 설정되었습니다.`);
+      } else if (type === '지정12') {
+        let count = 0;
+        const groups = {};
+        curriculum.forEach(c => {
+          if (c.category === '지정' || c.category === '학교지정') {
+            const k = `${c.semester}_${c.grade}_${normalizeSubjectKey(c.subject)}`;
+            if (!groups[k]) groups[k] = [];
+            groups[k].push(c);
+          }
+        });
+
+        Object.values(groups).forEach(grp => {
+          grp.forEach((c, idx) => {
+            c.division = `${idx + 1}반`;
+            c.isModified = true;
+            count++;
+          });
+        });
+
+        setAllGradesCurriculum(curriculum);
+        renderAllGradesCurriculumTable();
+        alert(`✅ 모든 학교지정과목 (${count}개)의 반 구분이 [1반, 2반...]으로 자동 순차 설정되었습니다.`);
+      }
+    };
+
+    // ==========================================
     // UNASSIGNED TEACHER FILTER & BADGE LOGIC
     // ==========================================
     window._isUnassignedTeacherFilterActive = false;
@@ -14129,34 +14223,47 @@ function renderYearGradeNav() {
       const yData = acadData[curDate] || {};
 
       // 1. 과목 데이터 준비 (공통 헬퍼 활용)
-      const subjectList = getConsolidatedSubjectList();
+      const rawSubjectList = getConsolidatedSubjectList();
 
-      if (subjectList.length === 0) {
+      if (rawSubjectList.length === 0) {
         alert('내보낼 과목 데이터가 없습니다. 기초데이터 엑셀을 업로드하거나 수강신청 조사를 등록해주세요.');
         return;
       }
 
-      // 정렬: 학기(1->2) -> 학년(1->2->3) -> 과목명(가나다)
-      subjectList.sort((a, b) => {
-        if (a.semester !== b.semester) return a.semester - b.semester;
-        const gOrder = { '1학년': 1, '2학년': 2, '3학년': 3 };
-        const gDiff = (gOrder[a.grade] || 9) - (gOrder[b.grade] || 9);
-        if (gDiff !== 0) return gDiff;
-        return String(a.subject).localeCompare(String(b.subject), 'ko');
-      });
-
-      // 학생 데이터 수집 (내년도 2·3학년 재학생 명단 기준, 1학년은 신입생이므로 '전원 수강' 처리)
+      // 학생 데이터 수집
       const studentsByGrade = {
         '2학년': yData['2학년']?.students || [],
         '3학년': yData['3학년']?.students || [],
         '1학년': yData['1학년']?.students || []
       };
 
+      // 동일 과목 묶음 산출 (학기, 학년, 정규화 과목명 기준 그룹핑)
+      const groupedCourseMap = new Map();
+      rawSubjectList.forEach(item => {
+        const normKey = `${item.semester}_${item.grade}_${normalizeSubjectKey(item.subject)}`;
+        if (!groupedCourseMap.has(normKey)) {
+          groupedCourseMap.set(normKey, []);
+        }
+        groupedCourseMap.get(normKey).push(item);
+      });
+
+      // 정렬: 학기(1->2) -> 학년(1->2->3) -> 과목명(가나다)
+      const sortedGroupKeys = Array.from(groupedCourseMap.keys()).sort((kA, kB) => {
+        const itemA = groupedCourseMap.get(kA)[0];
+        const itemB = groupedCourseMap.get(kB)[0];
+        if (itemA.semester !== itemB.semester) return itemA.semester - itemB.semester;
+        const gOrder = { '1학년': 1, '2학년': 2, '3학년': 3 };
+        const gDiff = (gOrder[itemA.grade] || 9) - (gOrder[itemB.grade] || 9);
+        if (gDiff !== 0) return gDiff;
+        return String(itemA.subject).localeCompare(String(itemB.subject), 'ko');
+      });
+
+      // 새로운 열 구조: 학기, 학년, 과목명(총원), 반, 수강인원, 수강자 명단, 출판사, 담당 교사
       const rows = [];
-      rows.push([`${acadYearStr} 과목 기준 데이터 정리 현황`]);
-      rows.push([`기준 날짜: ${curDate} | 전체 과목 수: ${subjectList.length}개 | 출력일시: ${new Date().toLocaleString()}`]);
+      rows.push([`${acadYearStr} 과목 기준 데이터 정리 현황 (반별 행 분리 및 셀 병합)`]);
+      rows.push([`기준 날짜: ${curDate} | 출력일시: ${new Date().toLocaleString()} | 서식: 과목명(총원) 및 학급별 명렬 분리`]);
       rows.push([]);
-      rows.push(['학기', '학년', '과목명', '출판사', '담당 교사명', '수강인원', '수강자 명단']);
+      rows.push(['학기', '학년', '과목명(총원)', '반', '수강인원', '수강자 명단', '출판사', '담당 교사']);
 
       const rowHeights = [
         { hpt: 32 },
@@ -14165,94 +14272,304 @@ function renderYearGradeNav() {
         { hpt: 26 }
       ];
 
-      subjectList.forEach((item, idx) => {
-        const sem = item.semester;
-        const gradeStr = item.grade;
-        const subjName = item.subject;
+      const wsMerges = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
+      ];
+
+      const courseMergeRanges = []; // { startRow, endRow, teachers: [] }
+      const rowStyleInfo = []; // { isClosed, isEven }
+
+      let courseCounter = 0;
+
+      sortedGroupKeys.forEach(groupKey => {
+        const items = groupedCourseMap.get(groupKey);
+        const representative = items[0];
+        const sem = representative.semester;
+        const gradeStr = representative.grade;
+        const subjName = representative.subject;
         const normSubj = normalizeSubjectKey(subjName);
         const baseSubj = getBaseSubjectName(subjName);
-
+        const publisher = getPublisherForSubject(subjName);
         const students = studentsByGrade[gradeStr] || [];
-        const enrolledStudents = [];
 
-        let countText = '0명';
-        let studentListText = '-';
+        const isClosed = items.every(it => it.status === '폐강');
+        const courseStartRow = rows.length;
+        const currentTeachers = [];
+        const isEven = (courseCounter % 2 === 0);
+        courseCounter++;
 
-        if (item.status === '폐강') {
-          countText = '폐강 (0명)';
-          studentListText = '폐강 확정';
+        if (isClosed) {
+          // 폐강 과목: 1개 행으로 표기
+          rows.push([
+            `${sem}학기`,
+            gradeStr,
+            `${subjName} (0명)`,
+            '폐강',
+            '0명',
+            '폐강 확정',
+            publisher,
+            representative.teacher || '-'
+          ]);
+          currentTeachers.push(representative.teacher || '-');
+          rowHeights.push({ hpt: 24 });
+          rowStyleInfo.push({ isClosed: true, isEven });
         } else if (gradeStr === '1학년') {
-          // 1학년(내년 신입생) 과목: 미입학 상태이므로 명확하게 '전원 수강' 및 '전원 배정'으로 처리
-          countText = '전원 수강';
-          studentListText = '전원 배정';
-        } else if (item.category === '지정' || item.category === '학교지정') {
-          // 2, 3학년 학교 지정(공통/필수) 과목: 해당 학년 학생 전원 수강 (인원수 숫자로 기입)
-          if (students.length > 0) {
-            students.forEach(st => {
-              const label = `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
-              enrolledStudents.push(label);
+          // 1학년 (신입생 전원 수강): 1반과 2반으로 행 분리
+          const totalGrade1Students = 44; // 기본 44명 (1반 22명, 2반 22명)
+          const teacher1 = items[0]?.teacher || '-';
+          const teacher2 = items[1]?.teacher || items[0]?.teacher || '-';
+
+          rows.push([
+            `${sem}학기`,
+            gradeStr,
+            `${subjName} (${totalGrade1Students}명)`,
+            '1반',
+            '22명',
+            '전원 배정 (1반 22명)',
+            publisher,
+            teacher1
+          ]);
+          currentTeachers.push(teacher1);
+          rowHeights.push({ hpt: 24 });
+          rowStyleInfo.push({ isClosed: false, isEven });
+
+          rows.push([
+            `${sem}학기`,
+            gradeStr,
+            `${subjName} (${totalGrade1Students}명)`,
+            '2반',
+            '22명',
+            '전원 배정 (2반 22명)',
+            publisher,
+            teacher2
+          ]);
+          currentTeachers.push(teacher2);
+          rowHeights.push({ hpt: 24 });
+          rowStyleInfo.push({ isClosed: false, isEven });
+        } else if (items.some(it => it.category === '지정' || it.category === '학교지정')) {
+          // 2·3학년 학교지정(공통) 과목: 각 학급별(1반, 2반)로 행 분리
+          const totalCount = students.length || (gradeStr === '2학년' ? 44 : 19);
+
+          // 만약 편제표에 이미 1반, 2반 각각의 행으로 등록되어 있는 경우
+          if (items.length > 1) {
+            items.forEach((it, itIdx) => {
+              let classTarget = it.division || '';
+              if (!classTarget || classTarget === '선택') {
+                classTarget = `${itIdx + 1}반`;
+              }
+              const classNum = classTarget.replace(/[^0-9]/g, '') || String(itIdx + 1);
+              const classStudents = students.filter(st => String(st.classNum) === classNum);
+              const labels = classStudents.map(st => `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+              labels.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+
+              const cCount = classStudents.length > 0 ? `${classStudents.length}명` : (gradeStr === '2학년' ? '22명' : '10명');
+              const cRoster = labels.length > 0 ? labels.join(', ') : `전원 배정 (${classTarget})`;
+
+              rows.push([
+                `${sem}학기`,
+                gradeStr,
+                `${subjName} (${totalCount}명)`,
+                classTarget,
+                cCount,
+                cRoster,
+                publisher,
+                it.teacher || '-'
+              ]);
+              currentTeachers.push(it.teacher || '-');
+              const lineCount = Math.ceil((cRoster.length || 1) / 50);
+              rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + lineCount * 13)) });
+              rowStyleInfo.push({ isClosed: false, isEven });
             });
+          } else {
+            // 단일 행으로 들어온 경우: 1반과 2반으로 2개 행 분리
+            const class1 = students.filter(st => String(st.classNum) === '1');
+            const class2 = students.filter(st => String(st.classNum) === '2');
+
+            const l1 = class1.map(st => `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+            const l2 = class2.map(st => `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+            l1.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+            l2.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+
+            const tName = representative.teacher || '-';
+
+            // 1반 행
+            const r1Roster = l1.length > 0 ? l1.join(', ') : '전원 배정 (1반)';
+            rows.push([
+              `${sem}학기`,
+              gradeStr,
+              `${subjName} (${totalCount}명)`,
+              '1반',
+              class1.length > 0 ? `${class1.length}명` : '22명',
+              r1Roster,
+              publisher,
+              tName
+            ]);
+            currentTeachers.push(tName);
+            rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(r1Roster.length / 50) * 13)) });
+            rowStyleInfo.push({ isClosed: false, isEven });
+
+            // 2반 행
+            const r2Roster = l2.length > 0 ? l2.join(', ') : '전원 배정 (2반)';
+            rows.push([
+              `${sem}학기`,
+              gradeStr,
+              `${subjName} (${totalCount}명)`,
+              '2반',
+              class2.length > 0 ? `${class2.length}명` : '22명',
+              r2Roster,
+              publisher,
+              tName
+            ]);
+            currentTeachers.push(tName);
+            rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(r2Roster.length / 50) * 13)) });
+            rowStyleInfo.push({ isClosed: false, isEven });
           }
-          enrolledStudents.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
-          countText = enrolledStudents.length > 0 ? `${enrolledStudents.length}명` : (gradeStr === '2학년' ? '44명' : '19명');
-          studentListText = enrolledStudents.length > 0 ? enrolledStudents.join(', ') : '전원 배정';
         } else {
-          // 2, 3학년 선택 과목: 해당 과목 신청 학생 선별
-          students.forEach(st => {
+          // 2·3학년 선택 과목
+          const enrolled = students.filter(st => {
             const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
-            const isSelected = choices.some(ch => {
+            return choices.some(ch => {
               if (!ch) return false;
               if (ch === subjName || ch === baseSubj) return true;
               return normalizeSubjectKey(ch) === normSubj || normalizeSubjectForPublisher(ch) === normSubj;
             });
-            if (isSelected) {
-              const label = `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
-              enrolledStudents.push(label);
-            }
           });
-          enrolledStudents.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
-          countText = `${enrolledStudents.length}명`;
-          studentListText = enrolledStudents.length > 0 ? enrolledStudents.join(', ') : '-';
+
+          const totalEnrolled = enrolled.length;
+          const totalSubjText = `${subjName} (${totalEnrolled}명)`;
+
+          if (totalEnrolled === 0) {
+            const tName = representative.teacher || '-';
+            rows.push([
+              `${sem}학기`,
+              gradeStr,
+              totalSubjText,
+              representative.division || '선택',
+              '0명',
+              '-',
+              publisher,
+              tName
+            ]);
+            currentTeachers.push(tName);
+            rowHeights.push({ hpt: 24 });
+            rowStyleInfo.push({ isClosed: false, isEven });
+          } else {
+            // 학생들의 원적 학급별 수집 (1반, 2반, 3반...)
+            const classMap = new Map();
+            enrolled.forEach(st => {
+              const cNum = String(st.classNum || '1');
+              if (!classMap.has(cNum)) classMap.set(cNum, []);
+              const label = `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
+              classMap.get(cNum).push(label);
+            });
+
+            // 학급 번호 순으로 정렬
+            const sortedClasses = Array.from(classMap.keys()).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+
+            // 만약 특정 반으로 제한된 항목이 있다면 (예: 1반 선택)
+            if (items.length > 1 && items.some(it => it.division && it.division !== '선택')) {
+              items.forEach(it => {
+                const cNum = it.division.replace(/[^0-9]/g, '');
+                const cLabels = classMap.get(cNum) || [];
+                cLabels.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+
+                const cText = `${cLabels.length}명`;
+                const rText = cLabels.length > 0 ? cLabels.join(', ') : '-';
+                rows.push([
+                  `${sem}학기`,
+                  gradeStr,
+                  totalSubjText,
+                  it.division,
+                  cText,
+                  rText,
+                  publisher,
+                  it.teacher || '-'
+                ]);
+                currentTeachers.push(it.teacher || '-');
+                rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(rText.length / 50) * 13)) });
+                rowStyleInfo.push({ isClosed: false, isEven });
+              });
+            } else {
+              // 일반 선택과목: 1반, 2반 수강 학생별로 각각 행 분리 생성!
+              sortedClasses.forEach(cNum => {
+                const cLabels = classMap.get(cNum) || [];
+                cLabels.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+
+                const tName = representative.teacher || '-';
+                const cText = `${cLabels.length}명`;
+                const rText = cLabels.join(', ');
+
+                rows.push([
+                  `${sem}학기`,
+                  gradeStr,
+                  totalSubjText,
+                  `${cNum}반`,
+                  cText,
+                  rText,
+                  publisher,
+                  tName
+                ]);
+                currentTeachers.push(tName);
+                rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(rText.length / 50) * 13)) });
+                rowStyleInfo.push({ isClosed: false, isEven });
+              });
+            }
+          }
         }
 
-        const publisher = getPublisherForSubject(subjName);
-
-        rows.push([
-          `${sem}학기`,
-          gradeStr,
-          subjName,
-          publisher,
-          item.teacher || '-',
-          countText,
-          studentListText
-        ]);
-
-        const lineCount = Math.ceil((studentListText.length || 1) / 50);
-        const hpt = Math.max(22, Math.min(80, 18 + lineCount * 14));
-        rowHeights.push({ hpt });
+        const courseEndRow = rows.length - 1;
+        if (courseStartRow <= courseEndRow) {
+          courseMergeRanges.push({
+            startRow: courseStartRow,
+            endRow: courseEndRow,
+            teachers: currentTeachers
+          });
+        }
       });
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
 
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }
-      ];
+      // 셀 병합 (Merge) 설정
+      courseMergeRanges.forEach(grp => {
+        const sR = grp.startRow;
+        const eR = grp.endRow;
+        if (sR < eR) {
+          // 0: 학기 병합
+          wsMerges.push({ s: { r: sR, c: 0 }, e: { r: eR, c: 0 } });
+          // 1: 학년 병합
+          wsMerges.push({ s: { r: sR, c: 1 }, e: { r: eR, c: 1 } });
+          // 2: 과목명(총원) 병합
+          wsMerges.push({ s: { r: sR, c: 2 }, e: { r: eR, c: 2 } });
+          // 6: 출판사 병합
+          wsMerges.push({ s: { r: sR, c: 6 }, e: { r: eR, c: 6 } });
 
+          // 7: 담당 교사 (모든 행의 담당 교사가 동일한 경우 병합)
+          const allSameTeacher = grp.teachers.every(t => t === grp.teachers[0]);
+          if (allSameTeacher && grp.teachers[0] && grp.teachers[0] !== '-') {
+            wsMerges.push({ s: { r: sR, c: 7 }, e: { r: eR, c: 7 } });
+          }
+        }
+      });
+
+      ws['!merges'] = wsMerges;
+
+      // 열 너비 설정 (총 8개 열)
       ws['!cols'] = [
-        { wch: 10 },  // 학기
-        { wch: 10 },  // 학년
-        { wch: 24 },  // 과목명
-        { wch: 16 },  // 출판사
-        { wch: 14 },  // 담당 교사명
-        { wch: 13 },  // 수강인원
-        { wch: 68 }   // 수강자 명단
+        { wch: 10 },  // 0: 학기
+        { wch: 10 },  // 1: 학년
+        { wch: 26 },  // 2: 과목명(총원)
+        { wch: 10 },  // 3: 반
+        { wch: 12 },  // 4: 수강인원
+        { wch: 70 },  // 5: 수강자 명단
+        { wch: 16 },  // 6: 출판사
+        { wch: 14 }   // 7: 담당 교사
       ];
 
       ws['!rows'] = rowHeights;
 
       // ==========================================
-      // 파스텔 톤 엑셀 디자인 적용
+      // 파스텔 톤 엑셀 정밀 서식 적용 (8열 확장)
       // ==========================================
       if (typeof ExcelStyler !== 'undefined') {
         const pastelTheme = {
@@ -14268,7 +14585,8 @@ function renderYearGradeNav() {
           borderHeader: 'A5B4FC', // 헤더 구분 테두리
           closedBg: 'FEE2E2',     // 파스텔 로즈 (폐강)
           closedText: 'DC2626',   // 소프트 레드 (폐강)
-          pubText: '3730A3'       // 출판사 인디고 텍스트
+          pubText: '3730A3',      // 출판사 인디고 텍스트
+          classText: '0F766E'     // 반 구분 틸/청록 텍스트
         };
 
         const softBorder = {
@@ -14279,7 +14597,7 @@ function renderYearGradeNav() {
         };
 
         // Title Row (0)
-        ExcelStyler.setRange(ws, 0, 0, 0, 6, {
+        ExcelStyler.setRange(ws, 0, 0, 0, 7, {
           font: { name: ExcelStyler.fontFamily, sz: 14, bold: true, color: { rgb: pastelTheme.titleText } },
           fill: { fgColor: { rgb: pastelTheme.titleBg } },
           alignment: { horizontal: 'center', vertical: 'center' },
@@ -14292,7 +14610,7 @@ function renderYearGradeNav() {
         });
 
         // Subtitle Row (1)
-        ExcelStyler.setRange(ws, 1, 0, 1, 6, {
+        ExcelStyler.setRange(ws, 1, 0, 1, 7, {
           font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: pastelTheme.subText } },
           fill: { fgColor: { rgb: pastelTheme.subBg } },
           alignment: { horizontal: 'center', vertical: 'center' },
@@ -14304,8 +14622,8 @@ function renderYearGradeNav() {
           }
         });
 
-        // Header Row (3) - 파스텔 톤 헤더
-        for (let c = 0; c < 7; c++) {
+        // Header Row (3) - 파스텔 톤 헤더 (8개 열)
+        for (let c = 0; c < 8; c++) {
           ExcelStyler.setCell(ws, 3, c, {
             font: { name: ExcelStyler.fontFamily, sz: 10.5, bold: true, color: { rgb: pastelTheme.headerText } },
             fill: { fgColor: { rgb: pastelTheme.headerBg } },
@@ -14319,23 +14637,23 @@ function renderYearGradeNav() {
           });
         }
 
-        // Data Rows
-        subjectList.forEach((item, idx) => {
-          const r = 4 + idx;
-          const isEven = (idx % 2 === 1);
-          const isClosed = (item.status === '폐강');
-          const publisher = getPublisherForSubject(item.subject);
+        // Data Rows (4부터 끝까지)
+        for (let r = 4; r < rows.length; r++) {
+          const styleMeta = rowStyleInfo[r - 4] || { isClosed: false, isEven: true };
+          const isClosedRow = styleMeta.isClosed;
+          const baseBg = isClosedRow ? pastelTheme.closedBg : (styleMeta.isEven ? pastelTheme.rowEven : pastelTheme.rowOdd);
+          const textColor = isClosedRow ? pastelTheme.closedText : '1E293B';
+          const pubVal = rows[r][6];
 
-          const baseBg = isClosed ? pastelTheme.closedBg : (isEven ? pastelTheme.rowEven : pastelTheme.rowOdd);
-          const textColor = isClosed ? pastelTheme.closedText : ExcelStyler.colors.slateText;
-
-          // 학기, 학년 (중앙)
+          // 0: 학기
           ExcelStyler.setCell(ws, r, 0, {
             font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
             fill: { fgColor: { rgb: baseBg } },
             alignment: { horizontal: 'center', vertical: 'center' },
             border: softBorder
           });
+
+          // 1: 학년
           ExcelStyler.setCell(ws, r, 1, {
             font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
             fill: { fgColor: { rgb: baseBg } },
@@ -14343,46 +14661,54 @@ function renderYearGradeNav() {
             border: softBorder
           });
 
-          // 과목명 (좌측, 볼드)
+          // 2: 과목명(총원)
           ExcelStyler.setCell(ws, r, 2, {
-            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: textColor } },
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, strike: isClosedRow, color: { rgb: textColor } },
             fill: { fgColor: { rgb: baseBg } },
-            alignment: { horizontal: 'left', vertical: 'center' },
+            alignment: { horizontal: 'center', vertical: 'center' },
             border: softBorder
           });
 
-          // 출판사 (중앙 정렬, 출판사 존재 시 파스텔 인디고 볼드)
+          // 3: 반
           ExcelStyler.setCell(ws, r, 3, {
-            font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: !!publisher, color: { rgb: publisher ? pastelTheme.pubText : textColor } },
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, color: { rgb: isClosedRow ? textColor : pastelTheme.classText } },
             fill: { fgColor: { rgb: baseBg } },
             alignment: { horizontal: 'center', vertical: 'center' },
             border: softBorder
           });
 
-          // 담당 교사명 (중앙)
+          // 4: 수강인원
           ExcelStyler.setCell(ws, r, 4, {
-            font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
-            fill: { fgColor: { rgb: baseBg } },
-            alignment: { horizontal: 'center', vertical: 'center' },
-            border: softBorder
-          });
-
-          // 수강인원 (중앙, 볼드)
-          ExcelStyler.setCell(ws, r, 5, {
             font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, color: { rgb: textColor } },
             fill: { fgColor: { rgb: baseBg } },
             alignment: { horizontal: 'center', vertical: 'center' },
             border: softBorder
           });
 
-          // 수강자 명단 (좌측 텍스트, wrapText)
-          ExcelStyler.setCell(ws, r, 6, {
+          // 5: 수강자 명단
+          ExcelStyler.setCell(ws, r, 5, {
             font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
             fill: { fgColor: { rgb: baseBg } },
             alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
             border: softBorder
           });
-        });
+
+          // 6: 출판사
+          ExcelStyler.setCell(ws, r, 6, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: !!pubVal, color: { rgb: pubVal ? pastelTheme.pubText : textColor } },
+            fill: { fgColor: { rgb: baseBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+
+          // 7: 담당 교사
+          ExcelStyler.setCell(ws, r, 7, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, color: { rgb: textColor } },
+            fill: { fgColor: { rgb: baseBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+        }
       }
 
       const wb = XLSX.utils.book_new();
@@ -15533,12 +15859,31 @@ function renderYearGradeNav() {
 
         const deleteBtn = `<button type="button" onclick="window.deleteCurriculumItem('${c.id}')" class="px-1.5 py-0.5 text-[10px] font-bold text-rose-600 hover:text-white hover:bg-rose-600 bg-rose-50 rounded border border-rose-200 transition cursor-pointer" title="이 과목을 편제표에서 완전히 삭제">🗑️ 삭제</button>`;
 
+        const divValue = (c.division || (c.category === '선택' ? '선택' : '1반')).trim();
+        let divBadgeStyle = 'bg-teal-50 text-teal-800 border-teal-300 hover:bg-teal-100';
+        if (divValue === '1반' || divValue === '1') {
+          divBadgeStyle = 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100 font-black';
+        } else if (divValue === '2반' || divValue === '2') {
+          divBadgeStyle = 'bg-indigo-50 text-indigo-800 border-indigo-300 hover:bg-indigo-100 font-black';
+        } else if (divValue.includes('분반')) {
+          divBadgeStyle = 'bg-purple-50 text-purple-800 border-purple-300 hover:bg-purple-100 font-black';
+        }
+
         return `
           <tr id="curr_row_${c.id}" data-curr-id="${c.id}" class="${rowBg} hover:bg-indigo-50/40 transition-colors">
             <td class="p-2 text-center font-medium text-slate-500 border-r border-slate-200">${idx + 1}</td>
             <td class="p-2 text-center font-bold text-slate-800 border-r border-slate-200">${c.grade}</td>
             <td class="p-2 text-center font-medium text-slate-700 border-r border-slate-200">${c.semester}학기</td>
             <td class="p-2 text-center border-r border-slate-200">${catBadge}</td>
+            <td class="p-1.5 text-center border-r border-slate-200">
+              <button type="button" 
+                      onclick="window.cycleCurriculumDivision('${c.id}')" 
+                      ondblclick="window.editCurriculumDivisionCustom('${c.id}')" 
+                      class="px-2.5 py-0.5 rounded-full text-xs font-bold border transition cursor-pointer select-none shadow-3xs ${divBadgeStyle}" 
+                      title="클릭: [선택 ➔ 1반 ➔ 2반 ➔ 분반] 순환 변경 | 더블클릭: 직접 입력">
+                ${escapeHtml(divValue)}
+              </button>
+            </td>
             <td class="p-1.5 border-r border-slate-200">
               <div class="flex items-center gap-1.5 min-w-[190px]">
                 <input type="text" 
