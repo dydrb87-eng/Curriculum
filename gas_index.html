@@ -1167,6 +1167,10 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>🔄 새로고침</span>
                   </button>
+                  <button id="btnOpenAddSubjectModal" type="button" onclick="window.openAddSubjectModal()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 학기 2단계 그룹에 새로운 과목을 직접 추가합니다">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>➕ 과목 추가</span>
+                  </button>
                   <button id="btnOpenImportGroupModal" type="button" onclick="window.openImportGroupModal()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="다른 '기준 날짜'에서 동일 학년의 N그룹별 과목 배치를 불러옵니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
                     <span>📥 그룹 불러오기</span>
@@ -1787,6 +1791,77 @@
     </div>
   </div>
 
+  <!-- Add Subject to Step 2 Group Modal (2단계 그룹에 과목 추가 모달) -->
+  <div id="addSubjectModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] space-y-4">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-base shadow-2xs">
+            ➕
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900">2단계 그룹에 과목 추가</h3>
+              <span id="addSubjectContextBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800"></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">과목명과 배치할 그룹을 지정하여 그룹 및 전체 시스템에 새 과목을 추가합니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeAddSubjectModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="닫기">
+          ✕
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+        <!-- 1. 과목명 입력 -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">
+            1. 과목명 입력
+          </label>
+          <input type="text" id="addSubjectNameInput" placeholder="예: 세계시민, 인공지능 기초, 심화영어..." 
+                 class="w-full px-3.5 py-2 text-xs font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none placeholder:font-normal placeholder:text-slate-400 bg-white" />
+          <div id="addSubjectSuggestions" class="mt-2 flex flex-wrap gap-1.5 items-center">
+            <!-- Quick suggestions from 1단계 survey or curriculum unassigned subjects -->
+          </div>
+        </div>
+
+        <!-- 2. 배치할 그룹 위치 선택 -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">
+            2. 배치할 그룹 위치 선택
+          </label>
+          <select id="addSubjectGroupSelect" class="w-full px-3.5 py-2 text-xs font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none bg-white cursor-pointer">
+            <!-- Dynamically populated options: 1그룹, 2그룹, ... -->
+          </select>
+        </div>
+
+        <!-- 3. 안내 사항 -->
+        <div class="bg-teal-50/70 border border-teal-200 rounded-xl p-3 text-[11px] text-teal-900 space-y-1">
+          <p class="font-bold flex items-center gap-1">
+            <span>💡</span> <span>반영 범위 안내:</span>
+          </p>
+          <ul class="list-disc list-inside text-teal-800 space-y-0.5 ml-1">
+            <li><strong>2단계 그룹 카드</strong>: 지정한 그룹에 즉시 배치되어 카드가 생성됩니다.</li>
+            <li><strong>이동수업 시간표</strong>: 해당 그룹 하위에 신규 과목 열이 추가되며, 학생 셀 클릭으로 수강 배정할 수 있습니다.</li>
+            <li><strong>1단계 현황표 & 3·4단계</strong>: 1단계 수강 과목 목록 및 전체 교육과정 편제표/교원 시수표에도 자동 연동 반영됩니다.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+        <button type="button" onclick="window.closeAddSubjectModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
+          취소
+        </button>
+        <button type="button" onclick="window.confirmAddNewSubject()" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5">
+          <span>➕ 이 그룹에 과목 추가</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Student Choice Edit Modal (학생 수강신청 과목 수정 모달) -->
   <div id="studentChoiceEditModal" onclick="if(event.target.id === 'studentChoiceEditModal') window.closeStudentChoiceEditModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
@@ -2387,7 +2462,7 @@
       s = s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
       s = s
         .replace(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i, '')
-        .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i, '')
+        .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반|수정|추가)\s*\)\s*$/i, '')
         .replace(/[\(\[]\s*\d+(?:\.\d+)?\s*(?:학점|단위)?\s*[\)\]]$/, '')
         .trim();
       return s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
@@ -4691,8 +4766,8 @@
             cellTitle = `[${s}] 원래 선택했으나 취소됨 (집계 제외) - 클릭 시 원본 복원`;
           } else if (!wasOriginallySelected && isCurrentlySelected) {
             cellBg = 'style="background-color: #d1fae5;"';
-            cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border border-emerald-400 hover:bg-emerald-200 transition select-none shadow-2xs" title="새로 추가된 과목 (집계 포함) - 클릭 시 추가 취소">★ 추가</span>`;
-            cellTitle = `[${s}] 새로 추가된 과목 (집계 포함) - 클릭 시 추가 취소`;
+            cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border border-emerald-400 hover:bg-emerald-200 transition select-none shadow-2xs" title="새로 추가/수정된 과목 (집계 포함) - 클릭 시 취소">수정</span>`;
+            cellTitle = `[${s}] 새로 추가/수정된 과목 (집계 포함) - 클릭 시 취소`;
           } else {
             cellContent = `<span class="text-slate-300 group-hover:text-blue-500 font-bold text-xs select-none transition-colors" title="클릭 시 [${s}] 추가">-</span>`;
             cellTitle = `클릭 시 [${s}] 추가`;
@@ -7343,7 +7418,10 @@
                 ${pinBtnHtml}
                 <span class="text-[10px] text-slate-400 opacity-0 group-hover/card:opacity-100 transition-opacity ml-0.5 select-none shrink-0" title="과목 위치 맞교환">⇄</span>
               </div>
-              <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0 whitespace-nowrap ml-1">${count}명</span>
+              <div class="flex items-center gap-1 shrink-0">
+                <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 whitespace-nowrap">${count}명</span>
+                <button type="button" onclick="event.stopPropagation(); window.removeSubjectFromGroup('${sName}', ${gIdx});" class="p-0.5 px-1 rounded text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover/card:opacity-100 transition-opacity select-none cursor-pointer" title="[${sName}] ${gIdx + 1}그룹에서 삭제">✕</button>
+              </div>
             </div>
           `;
           subjectsListHtml += cardsHtmlSubj;
@@ -8309,14 +8387,14 @@
                   const isNewlyAdded = !wasOrig && isAct;
                   if (isGroupConflicted) {
                     tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/80' : 'bg-rose-50'}">
-                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[105px] cursor-pointer hover:bg-rose-200 transition" title="⚠️ 동일 그룹 중복 충돌: ${sName} (클릭 시 수강 취소)">
-                        <span>⚠️ ${isNewlyAdded ? '★ ' : ''}${sName}</span>
+                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[115px] cursor-pointer hover:bg-rose-200 transition" title="⚠️ 동일 그룹 중복 충돌: ${sName} ${isNewlyAdded ? '(수정됨)' : ''} (클릭 시 수강 취소)">
+                        <span>⚠️ ${sName}</span>${isNewlyAdded ? '<span class="ml-1 px-1 py-0.2 rounded text-[9px] bg-amber-600 text-white font-black shrink-0">수정</span>' : ''}
                       </div>
                     </td>`;
                   } else if (isNewlyAdded) {
                     tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/60' : 'bg-emerald-50/70'}">
-                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border-2 border-emerald-400 shadow-2xs hover:bg-emerald-200 transition cursor-pointer truncate max-w-[105px]" title="[${parentName}] 사용자가 새로 추가함 (클릭 시 추가 취소)">
-                        <span>★ ${sName}</span>
+                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border-2 border-emerald-400 shadow-2xs hover:bg-emerald-200 transition cursor-pointer truncate max-w-[115px]" title="[${parentName}] 사용자가 수동 선택/수정함 (클릭 시 취소)">
+                        <span>${sName}</span><span class="ml-1 px-1 py-0.2 rounded text-[9px] bg-emerald-600 text-white font-black shrink-0">수정</span>
                       </div>
                     </td>`;
                   } else {
@@ -9847,7 +9925,184 @@
       alert(`✅ [${selectedImportDate}]의 그룹 배치가 성공적으로 적용되었습니다!\n- 배치 그룹: 총 ${previewGroupsData.length}개 그룹\n- 충돌 인원: ${analysis.conflictStudentCount}명`);
     };
 
-        // Loading helpers
+    // ==========================================
+    // STEP 2: MANUAL SUBJECT ADDITION & DELETION (2단계 과목 추가 및 그룹 삭제)
+    // ==========================================
+
+    window.openAddSubjectModal = function() {
+      const plan = AppState.currentPlan;
+      if (!plan || !plan.groups || plan.groups.length === 0) {
+        alert('현재 학기에 생성된 그룹 배치가 없습니다. 2단계 조합을 먼저 생성해주세요.');
+        return;
+      }
+
+      const activeGrade = MultiState.activeGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+      const currentAY = MultiState.activeAcademicYear || '2027학년도';
+
+      const badge = document.getElementById('addSubjectContextBadge');
+      if (badge) badge.textContent = `${currentAY} ${activeGrade} ${activeSem}학기`;
+
+      const input = document.getElementById('addSubjectNameInput');
+      if (input) input.value = '';
+
+      const select = document.getElementById('addSubjectGroupSelect');
+      if (select) {
+        select.innerHTML = plan.groups.map((grp, gIdx) => {
+          return `<option value="${gIdx}">${gIdx + 1}그룹 (현재 ${grp.length}개 과목 개설)</option>`;
+        }).join('');
+      }
+
+      // Suggest unassigned subjects from Step 1
+      const suggestionsDiv = document.getElementById('addSubjectSuggestions');
+      if (suggestionsDiv) {
+        const rawSubjects = (activeSem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
+        const assignedTokens = new Set(plan.groups.flat().map(t => normalizeSubject(t.replace(/-[A-Z]$/, ''))));
+        const unassigned = rawSubjects.filter(s => !assignedTokens.has(normalizeSubject(s)));
+
+        if (unassigned.length > 0) {
+          suggestionsDiv.innerHTML = `
+            <span class="text-[11px] text-slate-400 font-semibold mr-1">미배치 과목 추천:</span>
+            ${unassigned.slice(0, 8).map(s => `
+              <button type="button" onclick="document.getElementById('addSubjectNameInput').value = '${escapeHtml(s)}'" class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-600 border border-slate-200 transition cursor-pointer">
+                ${escapeHtml(s)}
+              </button>
+            `).join('')}
+          `;
+        } else {
+          suggestionsDiv.innerHTML = '';
+        }
+      }
+
+      const modal = document.getElementById('addSubjectModal');
+      if (modal) modal.classList.remove('hidden');
+      setTimeout(() => input?.focus(), 50);
+    };
+
+    window.closeAddSubjectModal = function() {
+      const modal = document.getElementById('addSubjectModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.confirmAddNewSubject = function() {
+      const input = document.getElementById('addSubjectNameInput');
+      const select = document.getElementById('addSubjectGroupSelect');
+      if (!input || !select) return;
+
+      const rawName = input.value.trim();
+      if (!rawName) {
+        alert('추가할 과목명을 입력해주세요.');
+        input.focus();
+        return;
+      }
+
+      // Remove unwanted leading stars or symbols if entered
+      const cleanName = rawName.replace(/^[*※★☆\s]+/, '').trim();
+      if (!cleanName) {
+        alert('올바른 과목명을 입력해주세요.');
+        input.focus();
+        return;
+      }
+
+      const gIdx = parseInt(select.value, 10);
+      const plan = AppState.currentPlan;
+      if (!plan || !plan.groups || !plan.groups[gIdx]) {
+        alert('배치할 그룹을 찾을 수 없습니다.');
+        return;
+      }
+
+      const sem = AppState.currentSemester || 1;
+      const normNew = normalizeSubject(cleanName);
+
+      // Check if same subject already exists in this target group
+      const alreadyInThisGroup = plan.groups[gIdx].some(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) === normNew);
+      if (alreadyInThisGroup) {
+        alert(`⚠️ [${cleanName}] 과목은 이미 ${gIdx + 1}그룹에 배치되어 있습니다.`);
+        return;
+      }
+
+      // Check if subject exists in other group (section duplicate check)
+      const existingInOtherGroup = plan.groups.findIndex((grp, i) => i !== gIdx && grp.some(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) === normNew));
+      let tokenToAdd = cleanName;
+      if (existingInOtherGroup !== -1) {
+        if (confirm(`ℹ️ [${cleanName}] 과목은 이미 ${existingInOtherGroup + 1}그룹에 개설되어 있습니다.\n\n동일 과목을 ${gIdx + 1}그룹에도 개설하여 분반으로 운영하시겠습니까?\n('확인' 클릭 시 분반 추가, '취소' 클릭 시 작업 중단)`)) {
+          const existingLetters = [];
+          plan.groups.flat().forEach(t => {
+            const m = t.match(/^(.*)-([A-Z])$/);
+            if (m && normalizeSubject(m[1]) === normNew) {
+              existingLetters.push(m[2]);
+            }
+          });
+          const nextLetter = String.fromCharCode(65 + existingLetters.length);
+          tokenToAdd = `${cleanName}-${nextLetter}`;
+        } else {
+          return;
+        }
+      }
+
+      // 1. 2단계 currentPlan 그룹에 추가
+      plan.groups[gIdx].push(tokenToAdd);
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      AppState.currentPlans[sem] = plan;
+
+      // 2. 1단계 semSubjects에 없으면 추가 반영
+      const baseSubj = cleanName.replace(/-[A-Z]$/, '').trim();
+      const curSemSubjs = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
+      if (!curSemSubjs.some(s => normalizeSubject(s) === normalizeSubject(baseSubj))) {
+        curSemSubjs.push(baseSubj);
+        curSemSubjs.sort((a, b) => a.localeCompare(b, 'ko'));
+        if (sem === 1) AppState.sem1Subjects = curSemSubjs;
+        else AppState.sem2Subjects = curSemSubjs;
+      }
+
+      // 3. 충돌 재분석 및 렌더링
+      const analysis = analyzeGroupConflicts(plan);
+      plan.conflictCount = analysis.conflictStudentCount;
+      plan.conflicts = analysis.conflictDetails;
+
+      // 4. 전체 상태 보존 (3단계 및 4단계 전체 탭 연동을 위해 MultiState.data에 동기화)
+      saveAllState();
+
+      // 5. 1단계 및 2단계 UI 재렌더링
+      renderStep1();
+      renderStep2Results();
+
+      window.closeAddSubjectModal();
+
+      alert(`✅ [${tokenToAdd}] 과목이 ${gIdx + 1}그룹에 성공적으로 추가되었습니다!\n\n- 2단계 그룹 카드 및 개인별 이동수업 시간표에 즉시 반영되었습니다.\n- 1단계 현황표 및 전체 교육과정 편제표에도 함께 반영되었습니다.\n- 이제 하단 시간표에서 학생 셀을 클릭하여 자유롭게 수강 선택·수정할 수 있습니다.`);
+    };
+
+    window.removeSubjectFromGroup = function(sName, gIdx) {
+      const plan = AppState.currentPlan;
+      if (!plan || !plan.groups || !plan.groups[gIdx]) return;
+      const sem = plan.semester || AppState.currentSemester || 1;
+
+      if (!confirm(`[${sName}] 과목을 ${gIdx + 1}그룹에서 삭제하시겠습니까?\n(그룹에서 과목이 제거되며 학생들의 시간표가 다시 계산됩니다)`)) {
+        return;
+      }
+
+      // Remove from group
+      plan.groups[gIdx] = plan.groups[gIdx].filter(s => s !== sName);
+
+      // Clean pinned if any
+      const parentName = sName.replace(/-[A-Z]$/, '');
+      if (AppState.pinnedSubjects?.[sem]?.[parentName]) {
+        delete AppState.pinnedSubjects[sem][parentName];
+      }
+
+      // Recalculate
+      const analysis = analyzeGroupConflicts(plan);
+      plan.conflictCount = analysis.conflictStudentCount;
+      plan.conflicts = analysis.conflictDetails;
+
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      AppState.currentPlans[sem] = plan;
+
+      saveAllState();
+      renderStep2Results();
+    };
+
+            // Loading helpers
     function showLoading(msg) {
       const overlay = document.getElementById('loadingOverlay');
       if (overlay) {
