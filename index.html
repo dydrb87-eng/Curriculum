@@ -13198,20 +13198,12 @@ function renderYearGradeNav() {
         return String(a.subject).localeCompare(String(b.subject), 'ko');
       });
 
-      // 학생 데이터 수집 및 1학년 안전 연계
+      // 학생 데이터 수집 (내년도 2·3학년 재학생 명단 기준, 1학년은 신입생이므로 '전원 수강' 처리)
       const studentsByGrade = {
         '2학년': yData['2학년']?.students || [],
         '3학년': yData['3학년']?.students || [],
         '1학년': yData['1학년']?.students || []
       };
-
-      if (studentsByGrade['1학년'].length === 0) {
-        if (yData['1학년']?.priorData?.students?.length > 0) {
-          studentsByGrade['1학년'] = yData['1학년'].priorData.students;
-        } else if (yData['2학년']?.priorData?.students?.length > 0) {
-          studentsByGrade['1학년'] = yData['2학년'].priorData.students;
-        }
-      }
 
       const rows = [];
       rows.push([`${acadYearStr} 과목 기준 데이터 정리 현황`]);
@@ -13236,18 +13228,29 @@ function renderYearGradeNav() {
         const students = studentsByGrade[gradeStr] || [];
         const enrolledStudents = [];
 
+        let countText = '0명';
+        let studentListText = '-';
+
         if (item.status === '폐강') {
-          // 폐강
-        } else if (item.category === '지정' || item.category === '학교지정' || gradeStr === '1학년') {
-          // 학교 지정(전원 수강) 과목
+          countText = '폐강 (0명)';
+          studentListText = '폐강 확정';
+        } else if (gradeStr === '1학년') {
+          // 1학년(내년 신입생) 과목: 미입학 상태이므로 명확하게 '전원 수강' 및 '전원 배정'으로 처리
+          countText = '전원 수강';
+          studentListText = '전원 배정';
+        } else if (item.category === '지정' || item.category === '학교지정') {
+          // 2, 3학년 학교 지정(공통/필수) 과목: 해당 학년 학생 전원 수강 (인원수 숫자로 기입)
           if (students.length > 0) {
             students.forEach(st => {
               const label = `${st.classNum ? st.classNum + '반 ' : ''}${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim();
               enrolledStudents.push(label);
             });
           }
+          enrolledStudents.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+          countText = enrolledStudents.length > 0 ? `${enrolledStudents.length}명` : (gradeStr === '2학년' ? '44명' : '19명');
+          studentListText = enrolledStudents.length > 0 ? enrolledStudents.join(', ') : '전원 배정';
         } else {
-          // 선택 과목
+          // 2, 3학년 선택 과목: 해당 과목 신청 학생 선별
           students.forEach(st => {
             const choices = (sem === 1 ? st.sem1 : st.sem2) || [];
             const isSelected = choices.some(ch => {
@@ -13260,26 +13263,10 @@ function renderYearGradeNav() {
               enrolledStudents.push(label);
             }
           });
-        }
-
-        enrolledStudents.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
-
-        // 수강인원 표기: '전원 수강' 문구 대신 항상 학생 수 숫자로 표기
-        let countText = '0명';
-        if (item.status === '폐강') {
-          countText = '폐강 (0명)';
-        } else if (enrolledStudents.length > 0) {
+          enrolledStudents.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
           countText = `${enrolledStudents.length}명`;
-        } else if (item.category === '지정' || item.category === '학교지정' || gradeStr === '1학년') {
-          const fallbackCount = students.length || (gradeStr === '2학년' ? 44 : (gradeStr === '3학년' ? 19 : 44));
-          countText = `${fallbackCount}명`;
-        } else {
-          countText = '0명';
+          studentListText = enrolledStudents.length > 0 ? enrolledStudents.join(', ') : '-';
         }
-
-        const studentListText = enrolledStudents.length > 0 
-          ? enrolledStudents.join(', ') 
-          : (item.status === '폐강' ? '폐강 확정' : (item.category === '지정' ? '전원 배정' : '-'));
 
         const publisher = getPublisherForSubject(subjName);
 
