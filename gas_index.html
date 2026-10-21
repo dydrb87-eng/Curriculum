@@ -578,6 +578,10 @@
             <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
               <span>📚 전학년(1·2·3학년) 과목별 상세 배정 및 담당 교사 조정</span>
               <span id="allGradesCourseBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-700 border border-slate-200">총 0과목</span>
+              <button id="btnFilterUnassignedTeachers" type="button" onclick="window.toggleUnassignedTeachersFilter()" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs flex items-center gap-1.5 cursor-pointer transition select-none" title="클릭하여 담당 교사가 지정되지 않은 과목만 필터링합니다">
+                <span>⚠️ 담당 교사 미지정</span>
+                <span id="unassignedTeachersCountBadge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-600 text-white font-black">0개</span>
+              </button>
             </h4>
             <p class="text-xs text-slate-500 mt-0.5">
               담당교사명을 직접 수정할 수 있으며, 엑셀 원본과 다르게 수정한 내용은 <span class="px-1.5 py-0.2 bg-blue-50 text-blue-800 border border-blue-200 rounded font-bold">파란색 음영(수정됨)</span>으로 표시됩니다.
@@ -609,6 +613,12 @@
               <option value="all">개설 상태 (전체)</option>
               <option value="개설">개설만</option>
               <option value="폐강">폐강만</option>
+            </select>
+
+            <select id="allGradesFilterTeacherAssigned" class="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 shadow-2xs">
+              <option value="all">교사 배정 (전체)</option>
+              <option value="unassigned">담당 교사 미지정만</option>
+              <option value="assigned">담당 교사 지정 완료</option>
             </select>
 
             <div class="relative">
@@ -12618,6 +12628,7 @@ function renderYearGradeNav() {
 
       setAllGradesCurriculum(curriculum);
       renderAllGradesDashboard(false); // don't redraw entire inputs to preserve user focus
+      window.updateUnassignedTeacherBadgeState();
     };
 
     window.resetCurriculumItemTeacher = function(itemId) {
@@ -12633,6 +12644,50 @@ function renderYearGradeNav() {
 
       setAllGradesCurriculum(curriculum);
       renderAllGradesDashboard();
+      window.updateUnassignedTeacherBadgeState();
+    };
+
+    // ==========================================
+    // UNASSIGNED TEACHER FILTER & BADGE LOGIC
+    // ==========================================
+    window._isUnassignedTeacherFilterActive = false;
+
+    window.toggleUnassignedTeachersFilter = function() {
+      window._isUnassignedTeacherFilterActive = !window._isUnassignedTeacherFilterActive;
+      const selectEl = document.getElementById('allGradesFilterTeacherAssigned');
+      if (selectEl) {
+        selectEl.value = window._isUnassignedTeacherFilterActive ? 'unassigned' : 'all';
+      }
+      renderAllGradesCurriculumTable();
+      window.updateUnassignedTeacherBadgeState();
+    };
+
+    window.updateUnassignedTeacherBadgeState = function() {
+      const curriculum = getAllGradesCurriculum();
+      const unassignedCourses = curriculum.filter(c => {
+        if (c.status === '폐강') return false;
+        const t = (c.teacher || '').trim();
+        return !t || t === '미지정' || t === '미배정' || t === '-' || t === '없음';
+      });
+      const unassignedCount = unassignedCourses.length;
+
+      const unassignedBtn = document.getElementById('btnFilterUnassignedTeachers');
+      const unassignedCountSpan = document.getElementById('unassignedTeachersCountBadge');
+      if (unassignedBtn) {
+        if (window._isUnassignedTeacherFilterActive) {
+          unassignedBtn.className = 'text-xs px-2.5 py-0.5 rounded-full font-black bg-rose-600 hover:bg-rose-700 text-white border border-rose-700 shadow-xs flex items-center gap-1.5 cursor-pointer transition select-none ring-2 ring-rose-300';
+          unassignedBtn.innerHTML = `<span>🔍 담당 교사 미지정만 표시 중</span> <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-rose-800 font-black">${unassignedCount}개</span> <span class="text-[10px] opacity-80 hover:opacity-100 font-normal ml-0.5">✕ 필터 해제</span>`;
+          unassignedBtn.title = '클릭하여 필터를 해제하고 전체 과목을 표시합니다.';
+        } else if (unassignedCount > 0) {
+          unassignedBtn.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs flex items-center gap-1.5 cursor-pointer transition select-none ring-1 ring-amber-200';
+          unassignedBtn.innerHTML = `<span>⚠️ 담당 교사 미지정</span> <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-600 text-white font-black">${unassignedCount}개</span>`;
+          unassignedBtn.title = `클릭하여 담당 교사가 지정되지 않은 ${unassignedCount}개 과목만 필터링합니다.`;
+        } else {
+          unassignedBtn.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs flex items-center gap-1.5 select-none';
+          unassignedBtn.innerHTML = `<span>✅ 담당 교사 전원 지정 완료</span> <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-600 text-white font-black">0개</span>`;
+          unassignedBtn.title = '모든 개설 과목에 담당 교사가 배정되었습니다.';
+        }
+      }
     };
 
     window.toggleCurriculumItemStatus = function(itemId) {
@@ -14185,6 +14240,8 @@ function renderYearGradeNav() {
       if (teacherBadge) teacherBadge.textContent = `총 ${teacherSet.size}명 배정`;
       if (courseBadge) courseBadge.textContent = `총 ${curriculum.length}과목 (개설 ${curriculum.length - closedCount} / 폐강 ${closedCount})`;
 
+      window.updateUnassignedTeacherBadgeState();
+
       renderAllGradesTeacherSummary();
       if (fullRedraw) {
         renderAllGradesCurriculumTable();
@@ -15133,6 +15190,7 @@ function renderYearGradeNav() {
       const filterSem = document.getElementById('allGradesFilterSemester')?.value || 'all';
       const filterCat = document.getElementById('allGradesFilterCategory')?.value || 'all';
       const filterStatus = document.getElementById('allGradesFilterStatus')?.value || 'all';
+      const filterTeacherAssigned = document.getElementById('allGradesFilterTeacherAssigned')?.value || (window._isUnassignedTeacherFilterActive ? 'unassigned' : 'all');
       const searchVal = (document.getElementById('allGradesCourseSearchInput')?.value || '').trim().toLowerCase();
 
       let filtered = curriculum.filter(item => {
@@ -15145,6 +15203,16 @@ function renderYearGradeNav() {
           if (!matchCat) return false;
         }
         if (filterStatus !== 'all' && item.status !== filterStatus) return false;
+
+        // 담당 교사 배정 필터
+        if (filterTeacherAssigned === 'unassigned') {
+          const isUnassigned = (item.status !== '폐강') && (!item.teacher || !item.teacher.trim() || item.teacher.trim() === '미지정' || item.teacher.trim() === '미배정' || item.teacher.trim() === '-' || item.teacher.trim() === '없음');
+          if (!isUnassigned) return false;
+        } else if (filterTeacherAssigned === 'assigned') {
+          const isAssigned = (item.status !== '폐강') && item.teacher && item.teacher.trim() && item.teacher.trim() !== '미지정' && item.teacher.trim() !== '미배정' && item.teacher.trim() !== '-' && item.teacher.trim() !== '없음';
+          if (!isAssigned) return false;
+        }
+
         if (searchVal) {
           const cleanSearch = searchVal.replace(/\s+/g, '');
           const cleanSubj = (item.subject || '').toLowerCase().replace(/\s+/g, '');
@@ -15159,13 +15227,15 @@ function renderYearGradeNav() {
           <tr>
             <td colspan="10" class="p-8 text-center text-slate-400 italic bg-white">
               <p class="mb-3">
-                ${curriculum.length === 0 
-                  ? '기초데이터 엑셀 파일을 업로드하거나 예시데이터를 불러오면 1·2·3학년 전과목 배정 상세가 표시됩니다.' 
-                  : '선택하신 필터 조건과 일치하는 과목이 없습니다.'}
+                ${window._isUnassignedTeacherFilterActive 
+                  ? '🎉 축하합니다! 담당 교사가 지정되지 않은 과목이 없습니다. 모든 개설 과목에 교사가 배정되었습니다.' 
+                  : (curriculum.length === 0 
+                      ? '기초데이터 엑셀 파일을 업로드하거나 예시데이터를 불러오면 1·2·3학년 전과목 배정 상세가 표시됩니다.' 
+                      : '선택하신 필터 조건과 일치하는 과목이 없습니다.')}
               </p>
-              <button type="button" onclick="window.openAddCourseModal()" class="px-3.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs">
-                <span>➕</span><span>새 과목 직접 추가하기</span>
-              </button>
+              ${window._isUnassignedTeacherFilterActive 
+                ? '<button type="button" onclick="window.toggleUnassignedTeachersFilter()" class="px-3.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"><span>전체 과목 보기</span></button>' 
+                : '<button type="button" onclick="window.openAddCourseModal()" class="px-3.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"><span>➕</span><span>새 과목 직접 추가하기</span></button>'}
             </td>
           </tr>
         `;
@@ -15192,11 +15262,14 @@ function renderYearGradeNav() {
           ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-200 text-rose-900 border border-rose-300 animate-pulse">🚫 폐강</span>' 
           : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">✅ 개설</span>';
 
+        const isUnassigned = (!isClosed) && (!c.teacher || !c.teacher.trim() || c.teacher.trim() === '미지정' || c.teacher.trim() === '미배정' || c.teacher.trim() === '-' || c.teacher.trim() === '없음');
         let teacherInputStyle = 'w-full px-2 py-1 text-xs rounded-lg border focus:ring-2 focus:ring-indigo-500 outline-none transition';
         if (isModified) {
           teacherInputStyle += ' bg-blue-50/90 text-blue-950 font-black border-blue-400 ring-1 ring-blue-300 shadow-2xs';
         } else if (isClosed) {
           teacherInputStyle += ' bg-rose-50 text-rose-700 font-bold border-rose-200';
+        } else if (isUnassigned) {
+          teacherInputStyle += ' bg-amber-50/90 text-amber-950 font-black border-amber-400 ring-1 ring-amber-300 placeholder:text-amber-500 shadow-2xs';
         } else {
           teacherInputStyle += ' bg-white text-slate-800 border-slate-300';
         }
@@ -15247,12 +15320,15 @@ function renderYearGradeNav() {
             </td>
             <td class="p-2 text-center border-r border-slate-200">${statusBadge}</td>
             <td class="p-1.5 border-r border-slate-200">
-              <input type="text" 
-                     value="${escapeHtml(c.teacher)}" 
-                     onchange="window.updateTeacherAssignment('${c.id}', this.value)" 
-                     class="${teacherInputStyle}" 
-                     placeholder="교사명 입력"
-                     title="클릭하여 교사명 변경 (엑셀 원본: ${escapeHtml(c.originalTeacher)})" />
+              <div class="relative flex items-center">
+                <input type="text" 
+                       value="${escapeHtml(c.teacher)}" 
+                       onchange="window.updateTeacherAssignment('${c.id}', this.value)" 
+                       class="${teacherInputStyle}" 
+                       placeholder="${isUnassigned ? '⚠️ 교사명 입력 (미지정)' : '교사명 입력'}"
+                       title="클릭하여 교사명 변경 (엑셀 원본: ${escapeHtml(c.originalTeacher)})" />
+                ${isUnassigned ? '<span class="absolute right-2 text-[10px] text-amber-700 font-black pointer-events-none select-none bg-amber-200/90 px-1 py-0.2 rounded border border-amber-400/80">미지정</span>' : ''}
+              </div>
             </td>
             <td class="p-2 text-center border-r border-slate-200">${modifiedIndicator}</td>
             <td class="p-1.5 text-center">
@@ -15417,6 +15493,11 @@ function renderYearGradeNav() {
       document.getElementById('allGradesFilterSemester')?.addEventListener('change', renderAllGradesCurriculumTable);
       document.getElementById('allGradesFilterCategory')?.addEventListener('change', renderAllGradesCurriculumTable);
       document.getElementById('allGradesFilterStatus')?.addEventListener('change', renderAllGradesCurriculumTable);
+      document.getElementById('allGradesFilterTeacherAssigned')?.addEventListener('change', (e) => {
+        window._isUnassignedTeacherFilterActive = (e.target.value === 'unassigned');
+        renderAllGradesCurriculumTable();
+        window.updateUnassignedTeacherBadgeState();
+      });
       document.getElementById('allGradesCourseSearchInput')?.addEventListener('input', renderAllGradesCurriculumTable);
     }
 
