@@ -3726,29 +3726,32 @@
     function switchSemester(sem) {
       if (MultiState.activeGrade === '전체') return;
 
-      // 1. 현재 학기의 배치 상태를 currentPlans에 보존
+      // 1. 현재 학기의 유효한 배치 상태만 currentPlans에 보존
       if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
-      if (AppState.currentPlan && AppState.currentPlan.semester) {
-        AppState.currentPlans[AppState.currentPlan.semester] = JSON.parse(JSON.stringify(AppState.currentPlan));
+      if (AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, AppState.currentSemester)) {
+        AppState.currentPlans[AppState.currentSemester] = JSON.parse(JSON.stringify(AppState.currentPlan));
       }
 
       AppState.currentSemester = sem;
       updateStep1SemesterTabs(sem);
       updateStep2SemesterTabs(sem);
 
-      // 2. 대상 학기(sem)의 플랜이 이미 있으면 복원, 없으면 savedPlans 확인
-      if (AppState.currentPlans[sem]) {
-        AppState.currentPlan = AppState.currentPlans[sem];
-      } else if (AppState.currentPlan && AppState.currentPlan.semester === sem) {
-        AppState.currentPlans[sem] = AppState.currentPlan;
+      // 2. 대상 학기(sem)의 유효한 플랜 확인 및 복원
+      let targetPlan = null;
+      if (AppState.currentPlans[sem] && isPlanValidForCurrentGrade(AppState.currentPlans[sem], sem)) {
+        targetPlan = AppState.currentPlans[sem];
       } else {
-        const semSaved = (AppState.savedPlans || []).filter(p => p.semester === sem);
-        if (semSaved.length > 0) {
-          AppState.currentPlan = JSON.parse(JSON.stringify(semSaved[semSaved.length - 1]));
-          AppState.currentPlans[sem] = AppState.currentPlan;
-        } else {
-          AppState.currentPlan = null;
+        const validSaved = (AppState.savedPlans || []).filter(p => p.semester === sem && isPlanValidForCurrentGrade(p, sem));
+        if (validSaved.length > 0) {
+          targetPlan = JSON.parse(JSON.stringify(validSaved[validSaved.length - 1]));
         }
+      }
+
+      if (targetPlan) {
+        AppState.currentPlan = targetPlan;
+        AppState.currentPlans[sem] = targetPlan;
+      } else {
+        AppState.currentPlan = null;
       }
 
       if (MultiState.activeStep === 1) {
@@ -3758,7 +3761,7 @@
         if (AppState.currentPlan) {
           renderStep2Results();
         } else {
-          // 해당 학기에 플랜이 아예 없을 때만 최초 1회 생성
+          // 해당 학기에 유효한 플랜이 없을 때만 새로 생성
           runOptimization();
         }
       }
@@ -6404,6 +6407,36 @@
       });
     }
 
+    // Plan Sanity Check: 플랜 내 과목들이 현재 학년/학기 과목인지 철저히 검증 (타 학년 과목 오염 100% 차단)
+    function isPlanValidForCurrentGrade(plan, sem) {
+      if (!plan || !plan.groups || !Array.isArray(plan.groups) || plan.groups.length === 0) return false;
+      const expectedSem = sem || plan.semester || AppState.currentSemester || 1;
+      if (plan.semester && plan.semester !== expectedSem) return false;
+
+      const rawSubjects = (expectedSem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
+      if (rawSubjects.length === 0) return true;
+
+      const clean = str => String(str || '')
+        .replace(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i, '')
+        .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반)\s*\)\s*$/i, '')
+        .replace(/[*※†‡★☆▲■●#^]/g, '')
+        .replace(/\s+/g, '')
+        .toLowerCase();
+      const validSet = new Set(rawSubjects.map(clean));
+
+      const planTokens = plan.groups.flat().filter(Boolean);
+      if (planTokens.length === 0) return false;
+
+      let validCount = 0;
+      for (const tok of planTokens) {
+        if (validSet.has(clean(tok))) {
+          validCount++;
+        }
+      }
+
+      return (validCount / planTokens.length) >= 0.6;
+    }
+
     // 5) Conflict & Overlap Analysis (unified across UI, cards, table, and Excel export)
     function analyzeGroupConflicts(plan) {
       const groupCounts = Array(plan.groups.length).fill(0);
@@ -6452,21 +6485,24 @@
       const sem = AppState.currentSemester || 1;
       if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
 
-      if (AppState.currentPlans[sem]) {
-        AppState.currentPlan = AppState.currentPlans[sem];
-        renderStep2Results();
-      } else if (AppState.currentPlan && AppState.currentPlan.semester === sem) {
-        AppState.currentPlans[sem] = AppState.currentPlan;
+      let validPlan = null;
+      if (AppState.currentPlans[sem] && isPlanValidForCurrentGrade(AppState.currentPlans[sem], sem)) {
+        validPlan = AppState.currentPlans[sem];
+      } else if (AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, sem)) {
+        validPlan = AppState.currentPlan;
+      } else {
+        const validSaved = (AppState.savedPlans || []).filter(p => p.semester === sem && isPlanValidForCurrentGrade(p, sem));
+        if (validSaved.length > 0) {
+          validPlan = JSON.parse(JSON.stringify(validSaved[validSaved.length - 1]));
+        }
+      }
+
+      if (validPlan) {
+        AppState.currentPlan = validPlan;
+        AppState.currentPlans[sem] = validPlan;
         renderStep2Results();
       } else {
-        const semSaved = (AppState.savedPlans || []).filter(p => p.semester === sem);
-        if (semSaved.length > 0) {
-          AppState.currentPlan = JSON.parse(JSON.stringify(semSaved[semSaved.length - 1]));
-          AppState.currentPlans[sem] = AppState.currentPlan;
-          renderStep2Results();
-        } else {
-          runOptimization();
-        }
+        runOptimization();
       }
       renderSavedPlansList();
     }
@@ -7435,7 +7471,7 @@
     // Render Student Schedule Table (2-tier Group & Subject Matrix with 100% synchronized row sorting/filtering)
     function renderStudentScheduleTable() {
       const plan = AppState.currentPlan;
-      if (!plan) return;
+      if (!plan || !isPlanValidForCurrentGrade(plan, plan.semester)) return;
       const sem = plan.semester || AppState.currentSemester;
 
       const { groupCounts, studentAssignments } = analyzeGroupConflicts(plan);
@@ -9525,24 +9561,58 @@
         curAcadData[targetYear][targetGrade] = createEmptyGradeState(targetGrade);
       }
 
-      const targetData = curAcadData[targetYear][targetGrade];
+      const targetData = curAcadData[targetYear][targetGrade] || {};
       
-      // Clone targetData into AppState
-      Object.assign(AppState, JSON.parse(JSON.stringify(targetData)));
+      // 1. targetData를 기본 빈 상태와 병합하여 모든 키가 완벽히 존재하도록 함
+      const cleanBase = createEmptyGradeState(targetGrade);
+      const mergedData = Object.assign(cleanBase, JSON.parse(JSON.stringify(targetData)));
+
+      // 2. AppState의 기존 모든 속성을 완전히 삭제하여 이전 학년 데이터 오염을 100% 원천 차단!
+      for (const key of Object.keys(AppState)) {
+        delete AppState[key];
+      }
+      Object.assign(AppState, mergedData);
       AppState.detectedGrade = targetGrade;
 
-      // currentPlans 초기화 및 하위 호환 처리
       if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
-      if (AppState.currentPlan && AppState.currentPlan.semester) {
+      if (!AppState.crossSemesterRules) AppState.crossSemesterRules = [];
+
+      // 3. 자가 치유(Auto-Healing): 플랜 내 과목들이 현재 학년 과목인지 철저히 검증하여 타 학년 과목 오염 정화
+      [1, 2].forEach(s => {
+        if (AppState.currentPlans[s] && !isPlanValidForCurrentGrade(AppState.currentPlans[s], s)) {
+          console.warn('[Auto-Healing] ' + targetGrade + ' ' + s + '학기 currentPlans에 타 학년 과목 오염 감지 -> 정화');
+          AppState.currentPlans[s] = null;
+        }
+      });
+
+      if (AppState.currentPlan && !isPlanValidForCurrentGrade(AppState.currentPlan, AppState.currentPlan.semester)) {
+        console.warn('[Auto-Healing] ' + targetGrade + ' currentPlan에 타 학년 과목 오염 감지 -> 정화');
+        AppState.currentPlan = null;
+      }
+
+      // 오염된 savedPlans 정리
+      if (Array.isArray(AppState.savedPlans)) {
+        AppState.savedPlans = AppState.savedPlans.filter(p => isPlanValidForCurrentGrade(p, p.semester));
+      }
+
+      const curSem = AppState.currentSemester || 1;
+      if (AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, AppState.currentPlan.semester)) {
         if (!AppState.currentPlans[AppState.currentPlan.semester]) {
           AppState.currentPlans[AppState.currentPlan.semester] = JSON.parse(JSON.stringify(AppState.currentPlan));
         }
       }
-      const curSem = AppState.currentSemester || 1;
-      if (AppState.currentPlans[curSem]) {
+
+      if (AppState.currentPlans[curSem] && isPlanValidForCurrentGrade(AppState.currentPlans[curSem], curSem)) {
         AppState.currentPlan = AppState.currentPlans[curSem];
+      } else {
+        const validSaved = (AppState.savedPlans || []).filter(p => p.semester === curSem && isPlanValidForCurrentGrade(p, curSem));
+        if (validSaved.length > 0) {
+          AppState.currentPlan = JSON.parse(JSON.stringify(validSaved[validSaved.length - 1]));
+          AppState.currentPlans[curSem] = AppState.currentPlan;
+        } else {
+          AppState.currentPlan = null;
+        }
       }
-      if (!AppState.crossSemesterRules) AppState.crossSemesterRules = [];
 
       // Ensure togetherPairs and separatePairs are defined
       if (!AppState.togetherPairs) AppState.togetherPairs = { 1: [], 2: [] };
@@ -9600,7 +9670,7 @@
           renderStep2UI();
         }
 
-        if (AppState.currentPlan) {
+        if (AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, AppState.currentPlan.semester)) {
           const analysis = analyzeGroupConflicts(AppState.currentPlan);
           AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
           AppState.currentPlan.conflicts = analysis.conflictDetails;
