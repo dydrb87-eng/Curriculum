@@ -9,7 +9,7 @@
 function doGet(e) {
   return HtmlService.createTemplateFromFile('index')
     .evaluate()
-    .setTitle('상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 자동화')
+    .setTitle('상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.22_16:28)')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -38,7 +38,7 @@ function openDialogApp() {
     .evaluate()
     .setWidth(1280)
     .setHeight(860);
-  SpreadsheetApp.getUi().showModalDialog(html, '상지대관령고등학교 선택과목 그룹핑 자동화 시스템');
+  SpreadsheetApp.getUi().showModalDialog(html, '상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.22_16:28)');
 }
 
 /**
