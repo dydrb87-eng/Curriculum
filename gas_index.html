@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.22_16:28)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.22_16:45)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.22_16:28)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.22_16:45)</p>
         </div>
       </div>
 
@@ -10658,7 +10658,7 @@
 
     // Export Current Plan Directly as Formatted Excel:
     // 선생님 요청 서식: 1학기_배치안_학생시간표 / 2학기_배치안_학생시간표 / 1,2학기_배치표 통합 시트 구성
-    window.exportCurrentPlanExcel = function() {
+    window.exportCurrentPlanExcel = async function() {
       // 1. 최신 작업 메모 동기화
       const memoTextarea = document.getElementById('planWorkMemo');
       if (memoTextarea && AppState.currentPlan) {
@@ -10724,9 +10724,13 @@
         XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
         const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} 1·2학기 통합 시간표 및 배치표`, "xlsx");
-        window.saveExcelFile(wb, outFileName);
+        const saveRes = await window.saveExcelFile(wb, outFileName);
 
-        alert(`📥 [${acadYearStr} ${gradeStr} 1·2학기 현재 배치 다운로드 완료!]\n\n생성된 엑셀 시트 탭 목록:\n- ${exportedTabNames.join('\n- ')}\n\n저장 파일명: ${outFileName}`);
+        if (saveRes && saveRes.cancelled) return;
+        let locMsg = "브라우저 기본 다운로드 폴더";
+        if (saveRes && saveRes.method === "directory") locMsg = `지정된 [${saveRes.dirName}] 폴더`;
+        else if (saveRes && saveRes.method === "picker") locMsg = "선택하신 저장 폴더";
+        alert(`📥 [${acadYearStr} ${gradeStr} 1·2학기 현재 배치 저장 완료!]\n\n저장 위치: ${locMsg}\n생성된 엑셀 시트 탭 목록:\n- ${exportedTabNames.join("\n- ")}\n\n저장 파일명: ${outFileName}`);
       } catch (err) {
         console.error('exportCurrentPlanExcel error:', err);
         alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
@@ -11786,14 +11790,16 @@ function createSangjiCourseSelectionForm() {
   <title>${data.schoolName} - ${data.acadYear} ${data.grade} ${data.currentSemester}학기 학생별 이동수업 시간표</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; line-height: 1.5; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; line-height: 1.5; }
     .container { max-width: 1440px; margin: 0 auto; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; overflow: hidden; }
-    header { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 22px 28px; }
+    
+    /* Header - Soft Pastel Palette */
+    header { background: linear-gradient(135deg, #f0f7ff 0%, #e0e7ff 100%); color: #1e293b; padding: 22px 28px; border-bottom: 2px solid #c7d2fe; }
     .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
-    .title-area h1 { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-    .title-area p { font-size: 13px; color: #bfdbfe; margin-top: 4px; }
+    .title-area h1 { font-size: 20px; font-weight: 800; color: #1e3a8a; display: flex; align-items: center; gap: 8px; }
+    .title-area p { font-size: 13px; color: #475569; margin-top: 4px; font-weight: 600; }
     .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .badge-school { background: rgba(255,255,255,0.2); color: #fff; }
+    .badge-school { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
     .badge-blue { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
     .badge-green { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
     .badge-red { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
@@ -11806,7 +11812,7 @@ function createSangjiCourseSelectionForm() {
     .sem-btn.active { background: #ffffff; color: #1e40af; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .action-btns { display: flex; gap: 8px; }
     .btn { padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
-    .btn-print { background: #0f172a; color: white; }
+    .btn-print { background: #1e293b; color: white; }
     .btn-print:hover { background: #334155; }
     .btn-reset { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
     .btn-reset:hover { background: #e2e8f0; }
@@ -11847,7 +11853,8 @@ function createSangjiCourseSelectionForm() {
     @media print {
       body { background: white; padding: 0; }
       .container { border: none; box-shadow: none; max-width: 100%; }
-      header { background: #1e3a8a !important; color: white !important; -webkit-print-color-adjust: exact; padding: 12px 16px; }
+      header { background: #f8fafc !important; color: #1e293b !important; border-bottom: 1px solid #cbd5e1 !important; -webkit-print-color-adjust: exact; padding: 12px 16px; }
+      .title-area h1 { color: #1e293b !important; }
       .controls-bar { display: none !important; }
       .table-wrap { max-height: none !important; overflow: visible !important; }
       table { font-size: 10px !important; }
@@ -11921,19 +11928,31 @@ function createSangjiCourseSelectionForm() {
   <script>
     const DATA = ${JSON.stringify(data)};
     let activeSem = DATA.currentSemester || 1;
+    if (!DATA.plans || !DATA.plans[activeSem]) {
+      activeSem = (DATA.plans && DATA.plans[1]) ? 1 : ((DATA.plans && DATA.plans[2]) ? 2 : 1);
+    }
     let selectedClass = 'all';
 
     function initClassPills() {
-      const classes = [...new Set(DATA.students.map(s => String(s.classNum)))].sort((a,b) => Number(a) - Number(b));
+      const classes = [...new Set(DATA.students.map(s => String(s.classNum)).filter(Boolean))].sort((a,b) => Number(a) - Number(b));
       const container = document.getElementById('classPillsContainer');
-      container.innerHTML = '<button type="button" class="class-pill active" data-class="all" onclick="selectClass(\'all\')">전체</button>';
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'class-pill active';
+      allBtn.dataset.class = 'all';
+      allBtn.textContent = '전체';
+      allBtn.onclick = function() { selectClass('all'); };
+      container.appendChild(allBtn);
+
       classes.forEach(c => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'class-pill';
         btn.dataset.class = c;
         btn.textContent = c + '반';
-        btn.onclick = () => selectClass(c);
+        btn.onclick = function() { selectClass(c); };
         container.appendChild(btn);
       });
     }
@@ -11947,29 +11966,34 @@ function createSangjiCourseSelectionForm() {
     }
 
     function switchSemester(sem) {
-      if (!DATA.plans[sem] || !DATA.plans[sem].groups || DATA.plans[sem].groups.length === 0) {
+      if (!DATA.plans || !DATA.plans[sem] || !DATA.plans[sem].groups || DATA.plans[sem].groups.length === 0) {
         alert(sem + '학기 배치 데이터가 없습니다.');
         return;
       }
       activeSem = sem;
-      document.getElementById('btnSem1').classList.toggle('active', sem === 1);
-      document.getElementById('btnSem2').classList.toggle('active', sem === 2);
+      const b1 = document.getElementById('btnSem1');
+      const b2 = document.getElementById('btnSem2');
+      if (b1) b1.classList.toggle('active', sem === 1);
+      if (b2) b2.classList.toggle('active', sem === 2);
       renderTable();
       applyFilters();
     }
 
     function renderTable() {
-      const plan = DATA.plans[activeSem];
-      if (!plan || !plan.groups) return;
+      const plan = DATA.plans ? DATA.plans[activeSem] : null;
+      const thead = document.getElementById('tableHead');
+      if (!plan || !plan.groups) {
+        thead.innerHTML = '<tr><th style="padding:20px;">해당 학기의 배치 데이터가 없습니다.</th></tr>';
+        return;
+      }
 
       const groups = plan.groups;
-      const thead = document.getElementById('tableHead');
       
       let tr1 = '<tr>' +
         '<th rowspan="2" style="width:48px">반</th>' +
         '<th rowspan="2" style="width:48px">번호</th>' +
         '<th rowspan="2" style="width:80px">이름</th>' +
-        '<th rowspan="2" style="width:140px">진로 / 관심학과</th>';
+        '<th rowspan="2" style="width:150px">진로 / 관심학과</th>';
       
       groups.forEach((gSubjs, gIdx) => {
         tr1 += '<th>' + (gIdx + 1) + '그룹</th>';
@@ -11978,41 +12002,45 @@ function createSangjiCourseSelectionForm() {
 
       let tr2 = '<tr>';
       groups.forEach((gSubjs) => {
-        tr2 += '<th><div class="group-subjs-list">' + (gSubjs.join(', ') || '-') + '</div></th>';
+        const listStr = Array.isArray(gSubjs) ? gSubjs.join(', ') : '';
+        tr2 += '<th><div class="group-subjs-list">' + (listStr || '-') + '</div></th>';
       });
       tr2 += '</tr>';
 
       thead.innerHTML = tr1 + tr2;
 
-      document.getElementById('headerSubtitle').textContent = 
-        DATA.acadYear + ' ' + DATA.grade + ' ' + activeSem + '학기 | 대상 학생: ' + DATA.students.length + '명 | 충돌: ' + (plan.conflictCount || 0) + '명';
+      const subEl = document.getElementById('headerSubtitle');
+      if (subEl) {
+        subEl.textContent = DATA.acadYear + ' ' + DATA.grade + ' ' + activeSem + '학기 | 대상 학생: ' + DATA.students.length + '명 | 충돌: ' + (plan.conflictCount || 0) + '명';
+      }
       
-      document.getElementById('conflictSummaryBadge').textContent =
-        '충돌 학생 수: ' + (plan.conflictCount || 0) + '명 (' + groups.length + '개 그룹)';
+      const badgeEl = document.getElementById('conflictSummaryBadge');
+      if (badgeEl) {
+        badgeEl.textContent = '충돌 학생 수: ' + (plan.conflictCount || 0) + '명 (' + groups.length + '개 그룹)';
+      }
     }
 
     function applyFilters() {
-      const plan = DATA.plans[activeSem];
-      if (!plan) return;
-
-      const nameQ = document.getElementById('nameFilter').value.trim().toLowerCase();
-      const careerQ = document.getElementById('careerFilter').value.trim().toLowerCase();
-      const conflictOnly = document.getElementById('chkConflictOnly').checked;
-
+      const plan = DATA.plans ? DATA.plans[activeSem] : null;
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = '';
+      if (!plan) return;
+
+      const nameQ = (document.getElementById('nameFilter')?.value || '').trim().toLowerCase();
+      const careerQ = (document.getElementById('careerFilter')?.value || '').trim().toLowerCase();
+      const conflictOnly = !!document.getElementById('chkConflictOnly')?.checked;
 
       let matchCount = 0;
 
       DATA.students.forEach(st => {
         if (selectedClass !== 'all' && String(st.classNum) !== selectedClass) return;
-        if (nameQ && !st.name.toLowerCase().includes(nameQ)) return;
+        if (nameQ && !(st.name || '').toLowerCase().includes(nameQ)) return;
         if (careerQ && !(st.career || '').toLowerCase().includes(careerQ)) return;
 
         const overlaps = (plan.overlaps && plan.overlaps[st.id]) || {};
         let hasConflict = false;
 
-        plan.groups.forEach((_, gIdx) => {
+        (plan.groups || []).forEach((_, gIdx) => {
           const inGrp = overlaps[gIdx] || [];
           if (inGrp.length > 1) hasConflict = true;
         });
@@ -12024,14 +12052,14 @@ function createSangjiCourseSelectionForm() {
         const tr = document.createElement('tr');
         if (hasConflict) tr.className = 'conflict-row';
 
-        let rowHtml = '<td>' + st.classNum + '</td>' +
-          '<td>' + st.studentNum + '</td>' +
-          '<td class="student-name">' + highlightText(st.name, nameQ) + '</td>' +
+        let rowHtml = '<td>' + (st.classNum || '-') + '</td>' +
+          '<td>' + (st.studentNum || '-') + '</td>' +
+          '<td class="student-name">' + highlightText(st.name || '', nameQ) + '</td>' +
           '<td class="student-career">' + highlightText(st.career || '-', careerQ) + '</td>';
 
-        plan.groups.forEach((_, gIdx) => {
+        (plan.groups || []).forEach((_, gIdx) => {
           const inGrp = overlaps[gIdx] || [];
-          if (inGrp.length === 0) {
+          if (!inGrp || inGrp.length === 0) {
             rowHtml += '<td style="color:#cbd5e1">-</td>';
           } else if (inGrp.length === 1) {
             rowHtml += '<td><span class="subject-pill">' + inGrp[0] + '</span></td>';
@@ -12050,8 +12078,10 @@ function createSangjiCourseSelectionForm() {
         tbody.appendChild(tr);
       });
 
-      document.getElementById('resultCountBadge').textContent = 
-        '조회 결과: ' + matchCount + '명 / 총 ' + DATA.students.length + '명';
+      const resBadge = document.getElementById('resultCountBadge');
+      if (resBadge) {
+        resBadge.textContent = '조회 결과: ' + matchCount + '명 / 총 ' + DATA.students.length + '명';
+      }
     }
 
     function highlightText(text, q) {
@@ -12061,21 +12091,23 @@ function createSangjiCourseSelectionForm() {
     }
 
     function resetFilters() {
-      document.getElementById('nameFilter').value = '';
-      document.getElementById('careerFilter').value = '';
-      document.getElementById('chkConflictOnly').checked = false;
+      const nf = document.getElementById('nameFilter');
+      const cf = document.getElementById('careerFilter');
+      const cc = document.getElementById('chkConflictOnly');
+      if (nf) nf.value = '';
+      if (cf) cf.value = '';
+      if (cc) cc.checked = false;
       selectClass('all');
     }
 
     initClassPills();
     renderTable();
     applyFilters();
-  <\/script>
+  ${'<' + '/script>'}
 </body>
 </html>`;
     }
-
-    window.exportHtmlViewer = function() {
+    window.exportHtmlViewer = async function() {
       const currentSem = AppState.currentSemester || 1;
       let plan = AppState.currentPlan;
       if (!plan || !plan.groups || plan.groups.length === 0) {
@@ -12129,17 +12161,16 @@ function createSangjiCourseSelectionForm() {
 
       const htmlContent = generateHtmlViewerContent(data);
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const fileName = `[상지대관령고등학교] ${acadYearStr}_${gradeStr}_${currentSem}학기_학생별_이동수업_시간표_조회_뷰어.html`;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
 
-      alert(`🌐 [학생별 이동수업 시간표 웹 뷰어 다운로드 완료!]\n\n파일명: ${fileName}\n\n※ 더블 클릭하시면 크롬·엣지 등 모든 브라우저에서 바로 열리며, 학생 이름 검색 및 반 필터 기능이 제공됩니다.`);
+      const saveRes = await window.saveFileToDirectoryOrDownload(blob, fileName, 'text/html;charset=utf-8', '시간표 웹 뷰어');
+      if (saveRes && saveRes.cancelled) return;
+
+      let locMsg = '브라우저 기본 다운로드 폴더';
+      if (saveRes && saveRes.method === 'directory') locMsg = `지정된 [${saveRes.dirName}] 폴더`;
+      else if (saveRes && saveRes.method === 'picker') locMsg = '선택하신 저장 폴더';
+
+      alert(`🌐 [학생별 이동수업 시간표 웹 뷰어 저장 완료!]\n\n저장 위치: ${locMsg}\n파일명: ${fileName}\n\n※ 더블 클릭하시면 크롬·엣지 등 모든 브라우저에서 바로 열리며, 학생 이름 검색 및 반 필터 기능이 제공됩니다.`);
     };
 
     // ==========================================
@@ -13560,12 +13591,16 @@ function renderYearGradeNav() {
     // ==========================================
     // GLOBAL EXCEL FILE EXPORTER (상단 '경로' 폴더에 자동 저장, 미지정 시 기본 다운로드)
     // ==========================================
-    window.saveExcelFile = async function(wb, filename) {
+    // ==========================================
+    // UNIFIED FILE SAVER (상단 '경로' 폴더에 자동 저장, 미지정 시 파일 선택창 또는 브라우저 다운로드)
+    // ==========================================
+    window.saveFileToDirectoryOrDownload = async function(content, filename, mimeType = 'application/octet-stream', description = '파일') {
       let dirHandle = rememberedDirHandle;
       if (!dirHandle && typeof getSavedDirHandle === 'function') {
         dirHandle = await getSavedDirHandle();
       }
 
+      // 1. 상단 [📁 경로 지정]에서 지정된 폴더가 있는 경우
       if (dirHandle && window.showDirectoryPicker) {
         try {
           if (typeof dirHandle.queryPermission === 'function') {
@@ -13576,64 +13611,92 @@ function renderYearGradeNav() {
             }
           }
 
-          let excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-
-          // 틀고정(freeze panes) 적용 (JSZip 후처리)
-          if (typeof JSZip !== 'undefined') {
-            try {
-              let hasFreeze = false;
-              (wb.SheetNames || []).forEach(name => {
-                const sheet = wb.Sheets[name];
-                if (sheet && (sheet['!freeze'] || sheet['!views'])) hasFreeze = true;
-              });
-
-              if (hasFreeze) {
-                const zip = await JSZip.loadAsync(excelBuffer);
-                for (let idx = 0; idx < (wb.SheetNames || []).length; idx++) {
-                  const sName = wb.SheetNames[idx];
-                  const sheet = wb.Sheets[sName];
-                  if (!sheet || (!sheet['!freeze'] && !sheet['!views'])) continue;
-                  const ySplit = sheet['!freeze']?.ySplit || sheet['!views']?.[0]?.ySplit || 4;
-                  const topLeftCell = sheet['!freeze']?.topLeftCell || sheet['!views']?.[0]?.topLeftCell || `A${ySplit + 1}`;
-                  const targetXmlName = `xl/worksheets/sheet${idx + 1}.xml`;
-                  const zipFile = zip.file(targetXmlName);
-                  if (zipFile) {
-                    const sheetXml = await zipFile.async('text');
-                    const paneXml = `<sheetView workbookViewId="0"><pane ySplit="${ySplit}" topLeftCell="${topLeftCell}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="${topLeftCell}" sqref="${topLeftCell}"/></sheetView>`;
-                    let newXml = sheetXml;
-                    if (newXml.includes('<sheetView workbookViewId="0"/>')) {
-                      newXml = newXml.replace('<sheetView workbookViewId="0"/>', paneXml);
-                    } else if (newXml.includes('<sheetView workbookViewId="0">') && !newXml.includes('state="frozen"')) {
-                      newXml = newXml.replace('<sheetView workbookViewId="0">', `<sheetView workbookViewId="0"><pane ySplit="${ySplit}" topLeftCell="${topLeftCell}" activePane="bottomLeft" state="frozen"/>`);
-                    }
-                    zip.file(targetXmlName, newXml);
-                  }
-                }
-                excelBuffer = await zip.generateAsync({ type: 'arraybuffer' });
-              }
-            } catch (zErr) {
-              console.warn('JSZip freeze pane injection skipped:', zErr);
-            }
-          }
-
           const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
           const writable = await fileHandle.createWritable();
-          await writable.write(new Uint8Array(excelBuffer));
+          if (content instanceof Blob) {
+            await writable.write(content);
+          } else if (content instanceof ArrayBuffer || ArrayBuffer.isView(content)) {
+            await writable.write(content);
+          } else {
+            await writable.write(String(content));
+          }
           await writable.close();
 
+          if (typeof updateSaveDirectoryUI === 'function') updateSaveDirectoryUI(dirHandle.name);
           if (typeof showSaveToast === 'function') {
-            showSaveToast(`📊 <b>[${dirHandle.name}]</b> 폴더에 엑셀 파일이 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
-          } else {
-            console.log(`✅ [${dirHandle.name}]에 엑셀 파일 저장 완료: ${filename}`);
+            showSaveToast(`📁 <b>[${dirHandle.name}]</b> 폴더에 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
           }
-          return;
+          return { success: true, method: 'directory', dirName: dirHandle.name };
         } catch (err) {
-          console.warn('saveExcelFile directory handle error, falling back to browser download:', err);
+          console.warn('saveFileToDirectoryOrDownload dirHandle write failed, attempting save picker or fallback:', err);
         }
       }
 
-      // 지정 경로가 없거나 실패 시 브라우저 기본 다운로드 폴더로 저장
-      let fallbackBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      // 2. 지정된 폴더가 없거나 쓰기 실패 시, 브라우저가 showSaveFilePicker를 지원하면 사용자가 저장 경로를 직접 선택할 수 있도록 대화상자 표시
+      if (window.showSaveFilePicker) {
+        try {
+          const ext = filename.split('.').pop()?.toLowerCase() || '';
+          let types = [];
+          if (ext === 'html') {
+            types = [{ description: 'HTML 웹페이지 (*.html)', accept: { 'text/html': ['.html'] } }];
+          } else if (ext === 'xlsx') {
+            types = [{ description: '엑셀 파일 (*.xlsx)', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }];
+          } else if (ext === 'json') {
+            types = [{ description: 'JSON 백업 파일 (*.json)', accept: { 'application/json': ['.json'] } }];
+          }
+
+          const pickerOptions = { suggestedName: filename };
+          if (types.length > 0) pickerOptions.types = types;
+
+          const fileHandle = await window.showSaveFilePicker(pickerOptions);
+          const writable = await fileHandle.createWritable();
+          if (content instanceof Blob) {
+            await writable.write(content);
+          } else if (content instanceof ArrayBuffer || ArrayBuffer.isView(content)) {
+            await writable.write(content);
+          } else {
+            await writable.write(String(content));
+          }
+          await writable.close();
+
+          if (typeof showSaveToast === 'function') {
+            showSaveToast(`💾 지정하신 경로에 파일이 성공적으로 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
+          }
+          return { success: true, method: 'picker' };
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            return { success: false, cancelled: true };
+          }
+          console.warn('showSaveFilePicker fallback:', err);
+        }
+      }
+
+      // 3. 마지막 폴백: 브라우저 기본 다운로드
+      const blob = (content instanceof Blob) ? content : new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 1000);
+
+      if (typeof showSaveToast === 'function') {
+        showSaveToast(`📥 브라우저 다운로드 폴더에 저장되었습니다.<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
+      }
+      return { success: true, method: 'download' };
+    };
+
+    // ==========================================
+    // GLOBAL EXCEL FILE EXPORTER (상단 '경로' 폴더에 자동 저장, 미지정 시 파일 선택창)
+    // ==========================================
+    window.saveExcelFile = async function(wb, filename) {
+      let excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+      // 틀고정(freeze panes) 적용 (JSZip 후처리)
       if (typeof JSZip !== 'undefined') {
         try {
           let hasFreeze = false;
@@ -13643,7 +13706,7 @@ function renderYearGradeNav() {
           });
 
           if (hasFreeze) {
-            const zip = await JSZip.loadAsync(fallbackBuffer);
+            const zip = await JSZip.loadAsync(excelBuffer);
             for (let idx = 0; idx < (wb.SheetNames || []).length; idx++) {
               const sName = wb.SheetNames[idx];
               const sheet = wb.Sheets[sName];
@@ -13664,30 +13727,19 @@ function renderYearGradeNav() {
                 zip.file(targetXmlName, newXml);
               }
             }
-            fallbackBuffer = await zip.generateAsync({ type: 'arraybuffer' });
+            excelBuffer = await zip.generateAsync({ type: 'arraybuffer' });
           }
         } catch (zErr) {
-          console.warn('JSZip fallback freeze pane injection skipped:', zErr);
+          console.warn('JSZip freeze pane injection skipped:', zErr);
         }
       }
 
-      try {
-        const blob = new Blob([fallbackBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (dlErr) {
-        XLSX.writeFile(wb, filename);
-      }
-
-      if (typeof showSaveToast === 'function') {
-        showSaveToast(`📥 다운로드 폴더에 엑셀 파일이 저장되었습니다!<br><span class="text-[11px] opacity-80 font-normal">📄 ${filename}</span>`, true);
-      }
+      return await window.saveFileToDirectoryOrDownload(
+        excelBuffer,
+        filename,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '엑셀 파일'
+      );
     };
 
     async function getSavedDirHandle() {
