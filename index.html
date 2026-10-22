@@ -1199,6 +1199,10 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <span>📥 현재 배치 다운로드</span>
                   </button>
+                                    <button id="btnCreateGoogleForm" type="button" onclick="window.openCreateGoogleFormModal()" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 1, 2학기 그룹별 선택과목으로 학생용 구글 폼(설문지)을 자동 생성합니다">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>📝 구글 폼 생성</span>
+                  </button>
                   <button id="btnExportAllPlans" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="모든 저장된 안을 엑셀로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <span>📥 모든 저장 안 다운로드</span>
@@ -2368,6 +2372,168 @@
           <span>➕</span>
           <span id="batchAddSubmitBtnText">선택한 누락 과목 편제표에 일괄 추가</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Google Form Modal (선택과목 수강신청 구글 폼 자동 생성 모달) -->
+  <div id="createGoogleFormModal" onclick="if(event.target.id === 'createGoogleFormModal') window.closeCreateGoogleFormModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center text-xl shadow-xs">
+            📝
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900">선택과목 수강신청 구글 폼(Google Forms) 자동 생성</h3>
+              <span id="gfHeaderBadge" class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-200 shadow-2xs"></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">현재 배치된 1학기·2학기 과목 그룹을 바탕으로 학생 배포용 구글 폼 설문지를 단 1초 만에 자동 구축합니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeCreateGoogleFormModal();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer font-bold text-base">
+          ✕
+        </button>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="space-y-4 overflow-y-auto pr-1 flex-1 custom-scrollbar text-xs">
+        <!-- Title & Description Settings -->
+        <div class="p-3.5 bg-violet-50/60 rounded-2xl border border-violet-200 space-y-2.5">
+          <div>
+            <label class="block font-bold text-slate-800 mb-1">설문지 제목</label>
+            <input type="text" id="gfTitleInput" class="w-full px-3 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-violet-500 outline-none shadow-2xs" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-800 mb-1">설문 안내 문구</label>
+            <textarea id="gfDescInput" rows="2" class="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-violet-500 outline-none shadow-2xs resize-none"></textarea>
+          </div>
+        </div>
+
+        <!-- Student Basic Info Questions Preview (선생님 요청 형식 준수) -->
+        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+          <div class="font-bold text-slate-800 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <span>👤</span> <span>1단계: 기본 인적사항 질문 (4개 필수 항목 자동 생성)</span>
+            </span>
+            <span class="text-[11px] text-slate-500 font-medium">선생님 요청 서식 준수</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+              <span class="text-[10px] font-bold text-violet-700 block">필수 질문 1</span>
+              <span class="font-bold text-slate-900">반 (숫자만 입력)</span>
+              <span class="text-[10px] text-slate-400 block mt-0.5">정수 유효성 검사</span>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+              <span class="text-[10px] font-bold text-violet-700 block">필수 질문 2</span>
+              <span class="font-bold text-slate-900">번호 (숫자만 입력)</span>
+              <span class="text-[10px] text-slate-400 block mt-0.5">정수 유효성 검사</span>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+              <span class="text-[10px] font-bold text-violet-700 block">필수 질문 3</span>
+              <span class="font-bold text-slate-900">이름</span>
+              <span class="text-[10px] text-slate-400 block mt-0.5">단답형 텍스트</span>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+              <span class="text-[10px] font-bold text-violet-700 block">필수 질문 4</span>
+              <span class="font-bold text-slate-900">진로, 관심학과</span>
+              <span class="text-[10px] text-slate-400 block mt-0.5">*진로 미정: 탐색중</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1학기 선택과목 그룹 미리보기 -->
+        <div class="p-3.5 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-blue-950 flex items-center gap-1.5">
+              <span>📘</span> <span id="gfSem1HeaderTitle">[1학기] 그룹별 선택과목 질문</span>
+            </span>
+            <span id="gfSem1GroupCountBadge" class="text-xs font-bold text-blue-700 bg-white border border-blue-200 px-2 py-0.5 rounded-full"></span>
+          </div>
+          <div id="gfSem1QuestionsContainer" class="space-y-2 pt-1">
+            <!-- Dynamically populated 1학기 질문 카드들 -->
+          </div>
+        </div>
+
+        <!-- 2학기 선택과목 그룹 미리보기 -->
+        <div class="p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-emerald-950 flex items-center gap-1.5">
+              <span>📗</span> <span id="gfSem2HeaderTitle">[2학기] 그룹별 선택과목 질문</span>
+            </span>
+            <span id="gfSem2GroupCountBadge" class="text-xs font-bold text-emerald-700 bg-white border border-emerald-200 px-2 py-0.5 rounded-full"></span>
+          </div>
+          <div id="gfSem2QuestionsContainer" class="space-y-2 pt-1">
+            <!-- Dynamically populated 2학기 질문 카드들 -->
+          </div>
+        </div>
+
+        <!-- 설문 생성 완료 결과 카드 (성공 시 나타남) -->
+        <div id="gfSuccessResultCard" class="hidden p-4 bg-emerald-50 rounded-2xl border-2 border-emerald-400 space-y-3">
+          <div class="flex items-center gap-2 text-emerald-900 font-bold text-sm">
+            <span>🎉</span> <span>구글 폼 설문지와 응답 스프레드시트가 성공적으로 생성되었습니다!</span>
+          </div>
+          <div class="space-y-2 bg-white p-3 rounded-xl border border-emerald-200">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <span class="text-[11px] font-bold text-emerald-700 block">🎓 학생 배포용 설문 링크 (응답용)</span>
+                <span id="gfPublishedUrlText" class="text-xs text-slate-600 truncate block max-w-md font-mono select-all"></span>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="window.copyGfLink('published')" class="px-2.5 py-1 text-xs font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg transition cursor-pointer">링크 복사</button>
+                <a id="gfPublishedUrlLink" href="#" target="_blank" class="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition cursor-pointer">열기 ↗</a>
+              </div>
+            </div>
+            <div class="border-t border-slate-100 pt-2 flex items-center justify-between gap-2">
+              <div>
+                <span class="text-[11px] font-bold text-indigo-700 block">🛠️ 관리자 편집용 링크 (교사용)</span>
+                <span id="gfEditUrlText" class="text-xs text-slate-600 truncate block max-w-md font-mono select-all"></span>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="window.copyGfLink('edit')" class="px-2.5 py-1 text-xs font-bold bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded-lg transition cursor-pointer">링크 복사</button>
+                <a id="gfEditUrlLink" href="#" target="_blank" class="px-2.5 py-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition cursor-pointer">열기 ↗</a>
+              </div>
+            </div>
+            <div class="border-t border-slate-100 pt-2 flex items-center justify-between gap-2">
+              <div>
+                <span class="text-[11px] font-bold text-teal-700 block">📊 응답 수집 구글 스프레드시트</span>
+                <span id="gfSheetUrlText" class="text-xs text-slate-600 truncate block max-w-md font-mono select-all"></span>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <a id="gfSheetUrlLink" href="#" target="_blank" class="px-2.5 py-1 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition cursor-pointer">시트 열기 ↗</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 안내 사항 -->
+        <div class="p-3 bg-slate-100 rounded-2xl text-[11px] text-slate-600 space-y-1">
+          <p class="font-bold text-slate-800 flex items-center gap-1">
+            <span>💡</span> <span>구글 연동 안내:</span>
+          </p>
+          <ul class="list-disc list-inside space-y-0.5 text-slate-600 ml-1">
+            <li><strong>구글 스프레드시트/웹앱 연동 환경</strong>: 아래 <strong>[🚀 내 구글 드라이브에 설문지 즉시 생성]</strong>을 누르면 구글 공식 권한 승인 후 선생님 드라이브에 1초 만에 폼이 생성됩니다.</li>
+            <li><strong>로컬 브라우저 사용 시</strong>: <strong>[📋 Apps Script 원클릭 코드 복사]</strong> 버튼을 누르면 완성된 코드가 클립보드에 복사되며, 스프레드시트의 [확장 프로그램] → [Apps Script]에 붙여넣고 [실행]만 누르면 동일하게 즉시 생성됩니다.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <button type="button" onclick="window.copyGoogleFormAppsScript();" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-300 text-slate-700 font-bold text-xs transition border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-2xs" title="구글 스프레드시트 Apps Script에 붙여넣을 수 있는 원클릭 실행 코드를 복사합니다">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          <span>📋 Apps Script 원클릭 코드 복사</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.closeCreateGoogleFormModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
+            닫기
+          </button>
+          <button id="btnExecuteCreateGf" type="button" onclick="window.executeCreateGoogleForm();" class="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5">
+            <span>🚀 내 구글 드라이브에 설문지 즉시 생성</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -9600,7 +9766,7 @@
               if (inGrp.includes(sName)) {
                 row.push('선택');
               } else {
-                row.push(null); // Truly blank cell so COUNTA formula works dynamically
+                row.push('');
               }
             });
           }
@@ -9812,11 +9978,7 @@
           const isGrpConf = inGrp.length > 1;
 
           if (groupSubjs.length === 0) {
-            const blankRef = XLSX.utils.encode_cell({ r, c: curC });
-            wsTT[blankRef] = {
-              t: 'z',
-              s: ExcelStyler.dataCenter(isEven, true, true)
-            };
+            ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataCenter(isEven, true, true));
             curC++;
           } else {
             groupSubjs.forEach((sName, sIdx) => {
@@ -9841,12 +10003,7 @@
                   });
                 }
               } else {
-                // Blank cell with type 'z' so COUNTA accurately ignores it
-                const blankRef = XLSX.utils.encode_cell({ r, c: curC });
-                wsTT[blankRef] = {
-                  t: 'z',
-                  s: ExcelStyler.dataCenter(isEven, isGroupRight, isGroupLeft)
-                };
+                ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataCenter(isEven, isGroupRight, isGroupLeft));
               }
               curC++;
             });
@@ -9907,12 +10064,12 @@
             const colLetter = XLSX.utils.encode_col(sumColIdx);
             const sumCellRef = XLSX.utils.encode_cell({ r: subjSumR, c: sumColIdx });
 
-            // counta 함수 사용 (예: COUNTA(E6:E49))
-            const countaFormula = `COUNTA(${colLetter}${firstStudentRowExcel}:${colLetter}${lastStudentRowExcel})`;
+            // COUNTIF 함수 사용 (선택 표기 인원 동적 집계 및 빈 셀 테두리 완벽 유지)
+            const countFormula = `COUNTIF(${colLetter}${firstStudentRowExcel}:${colLetter}${lastStudentRowExcel},"선택")`;
 
             wsTT[sumCellRef] = {
               t: 'n',
-              f: countaFormula,
+              f: countFormula,
               v: subjCounts[sName] || 0,
               z: '#,##0"명"',
               s: {
@@ -9927,6 +10084,7 @@
         }
       });
       ExcelStyler.setCell(wsTT, subjSumR, sumColIdx, ExcelStyler.dataCenter(false, true, true));
+      ExcelStyler.setCell(wsTT, subjSumR, sumColIdx + 1, ExcelStyler.dataCenter(false, true, false));
 
       // 2. Style Group Sum Row with SUM function
       ExcelStyler.setRange(wsTT, grpSumR, 0, grpSumR, 3, {
@@ -9982,7 +10140,8 @@
               };
             } else {
               wsTT[grpCellRef] = {
-                t: 'z',
+                t: 's',
+                v: '',
                 s: {
                   fill: { fgColor: { rgb: gTheme.headerBg } },
                   border: ExcelStyler.getBorder(isGroupRight, isGroupLeft, 'thin', 'double')
@@ -9994,6 +10153,7 @@
         }
       });
       ExcelStyler.setCell(wsTT, grpSumR, grpColIdx, ExcelStyler.dataCenter(false, true, true));
+      ExcelStyler.setCell(wsTT, grpSumR, grpColIdx + 1, ExcelStyler.dataCenter(false, true, false));
 
       if (memoHRIdx !== -1 && memoCRIdx !== -1) {
         const memoLines = (plan.memo || '').trim().split('\n');
@@ -10954,6 +11114,260 @@
       const overlay = document.getElementById('loadingOverlay');
       if (overlay) overlay.classList.add('hidden');
     }
+    
+    // ==========================================
+    // GOOGLE FORM COURSE SELECTION GENERATOR
+    // ==========================================
+    let currentGoogleFormData = null;
+
+    function getActivePlanForSemester(sem) {
+      if (AppState.currentPlans && AppState.currentPlans[sem] && isPlanValidForCurrentGrade(AppState.currentPlans[sem], sem)) {
+        return AppState.currentPlans[sem];
+      }
+      if (AppState.currentSemester === sem && AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, sem)) {
+        return AppState.currentPlan;
+      }
+      const validSaved = (AppState.savedPlans || []).filter(p => p.semester === sem && isPlanValidForCurrentGrade(p, sem));
+      if (validSaved.length > 0) {
+        return validSaved[validSaved.length - 1];
+      }
+      if (AppState.currentPlan && AppState.currentPlan.semester === sem) {
+        return AppState.currentPlan;
+      }
+      return null;
+    }
+
+    window.openCreateGoogleFormModal = function() {
+      const acadYearStr = window.getAcademicYear ? window.getAcademicYear() : '2027';
+      const gradeStr = AppState.detectedGrade || '3학년';
+
+      const plan1 = getActivePlanForSemester(1);
+      const plan2 = getActivePlanForSemester(2);
+
+      const sem1Groups = (plan1 && plan1.groups) ? plan1.groups.filter(g => g && g.length > 0) : [];
+      const sem2Groups = (plan2 && plan2.groups) ? plan2.groups.filter(g => g && g.length > 0) : [];
+
+      if (sem1Groups.length === 0 && sem2Groups.length === 0) {
+        alert('현재 배치된 과목 그룹이 없습니다. 먼저 2단계에서 과목 그룹 배치를 진행해 주세요.');
+        return;
+      }
+
+      currentGoogleFormData = {
+        year: acadYearStr,
+        grade: gradeStr,
+        title: `${acadYearStr}학년도 ${gradeStr} 선택과목 수강신청`,
+        description: '상지대관령고등학교 학생 여러분, 각 학기별 선택과목군을 확인하고 그룹별로 수강할 과목을 1개씩 신중하게 선택해 주세요.\n※ 제출 후 수정이 불가하므로 자신의 진로와 적성을 고려하여 선택 바랍니다.',
+        sem1Groups: sem1Groups,
+        sem2Groups: sem2Groups
+      };
+
+      document.getElementById('gfHeaderBadge').textContent = `${acadYearStr}학년도 ${gradeStr}`;
+      document.getElementById('gfTitleInput').value = currentGoogleFormData.title;
+      document.getElementById('gfDescInput').value = currentGoogleFormData.description;
+
+      // 1학기 렌더링
+      const s1Container = document.getElementById('gfSem1QuestionsContainer');
+      document.getElementById('gfSem1HeaderTitle').textContent = `[1학기] 총 ${sem1Groups.length}개 선택과목군 질문`;
+      document.getElementById('gfSem1GroupCountBadge').textContent = `${sem1Groups.length}개 그룹`;
+      s1Container.innerHTML = '';
+      if (sem1Groups.length === 0) {
+        s1Container.innerHTML = '<p class="text-slate-400 italic p-2 bg-white rounded-xl border border-slate-200">1학기 배치 데이터가 없습니다. (1학기 탭에서 배치 후 추가 가능)</p>';
+      } else {
+        sem1Groups.forEach((grp, idx) => {
+          const qCard = document.createElement('div');
+          qCard.className = 'bg-white p-2.5 rounded-xl border border-blue-200/80 shadow-2xs space-y-1.5';
+          qCard.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-blue-900">[1학기] ${sem1Groups.length}개 선택과목 중 - ${idx + 1}번째 선택과목 <span class="text-rose-500 font-black">*</span></span>
+              <span class="text-[10px] text-slate-400 font-semibold">객관식 질문 (택 1)</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 pt-0.5">
+              ${grp.map(s => `<span class="px-2 py-0.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-800 border border-blue-200">${s}</span>`).join('')}
+            </div>
+          `;
+          s1Container.appendChild(qCard);
+        });
+      }
+
+      // 2학기 렌더링
+      const s2Container = document.getElementById('gfSem2QuestionsContainer');
+      document.getElementById('gfSem2HeaderTitle').textContent = `[2학기] 총 ${sem2Groups.length}개 선택과목군 질문`;
+      document.getElementById('gfSem2GroupCountBadge').textContent = `${sem2Groups.length}개 그룹`;
+      s2Container.innerHTML = '';
+      if (sem2Groups.length === 0) {
+        s2Container.innerHTML = '<p class="text-slate-400 italic p-2 bg-white rounded-xl border border-slate-200">2학기 배치 데이터가 없습니다. (2학기 탭에서 배치 후 추가 가능)</p>';
+      } else {
+        sem2Groups.forEach((grp, idx) => {
+          const qCard = document.createElement('div');
+          qCard.className = 'bg-white p-2.5 rounded-xl border border-emerald-200/80 shadow-2xs space-y-1.5';
+          qCard.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-emerald-900">[2학기] ${sem2Groups.length}개 선택과목 중 - ${idx + 1}번째 선택과목 <span class="text-rose-500 font-black">*</span></span>
+              <span class="text-[10px] text-slate-400 font-semibold">객관식 질문 (택 1)</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 pt-0.5">
+              ${grp.map(s => `<span class="px-2 py-0.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">${s}</span>`).join('')}
+            </div>
+          `;
+          s2Container.appendChild(qCard);
+        });
+      }
+
+      // Hide success card
+      document.getElementById('gfSuccessResultCard').classList.add('hidden');
+
+      const modal = document.getElementById('createGoogleFormModal');
+      modal.classList.remove('hidden');
+    };
+
+    window.closeCreateGoogleFormModal = function() {
+      const modal = document.getElementById('createGoogleFormModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.executeCreateGoogleForm = function() {
+      if (!currentGoogleFormData) return;
+      currentGoogleFormData.title = document.getElementById('gfTitleInput').value.trim() || currentGoogleFormData.title;
+      currentGoogleFormData.description = document.getElementById('gfDescInput').value.trim() || currentGoogleFormData.description;
+
+      if (!isGasEnv) {
+        // 로컬 환경 안내 및 자동 복사 제안
+        const confirmCopy = confirm(
+          '현재 파일은 일반 웹 브라우저(로컬)에서 열려 있어 구글 드라이브에 직접 생성할 수 없습니다.\n\n' +
+          '[확인]을 누르시면 구글 스프레드시트의 [Apps Script]에서 1초 만에 실행할 수 있는 완성형 스크립트를 클립보드에 바로 복사해 드립니다.\n' +
+          '복사하시겠습니까?'
+        );
+        if (confirmCopy) {
+          window.copyGoogleFormAppsScript();
+        }
+        return;
+      }
+
+      showLoading('구글 폼 설문지 및 응답 스프레드시트를 생성하는 중...');
+
+      google.script.run
+        .withSuccessHandler(res => {
+          hideLoading();
+          if (res && res.success) {
+            document.getElementById('gfPublishedUrlText').textContent = res.publishedUrl;
+            document.getElementById('gfPublishedUrlLink').href = res.publishedUrl;
+            document.getElementById('gfEditUrlText').textContent = res.editUrl;
+            document.getElementById('gfEditUrlLink').href = res.editUrl;
+            document.getElementById('gfSheetUrlText').textContent = res.spreadsheetUrl;
+            document.getElementById('gfSheetUrlLink').href = res.spreadsheetUrl;
+
+            document.getElementById('gfSuccessResultCard').classList.remove('hidden');
+            document.getElementById('gfSuccessResultCard').scrollIntoView({ behavior: 'smooth' });
+            alert('🎉 구글 폼 생성 완료!\n\n학생 배포용 링크와 교사용 관리 링크가 생성되었습니다.');
+          } else {
+            alert('구글 폼 생성 실패: ' + (res ? res.message : '알 수 없는 오류'));
+          }
+        })
+        .withFailureHandler(err => {
+          hideLoading();
+          alert('구글 폼 생성 오류: ' + err);
+        })
+        .createGoogleFormForCourseSelection(currentGoogleFormData);
+    };
+
+    window.copyGfLink = function(type) {
+      let url = '';
+      if (type === 'published') {
+        url = document.getElementById('gfPublishedUrlText').textContent;
+      } else if (type === 'edit') {
+        url = document.getElementById('gfEditUrlText').textContent;
+      }
+      if (!url) return;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('링크가 클립보드에 복사되었습니다!\n' + url);
+      }).catch(() => {
+        prompt('Ctrl+C를 눌러 링크를 복사하세요:', url);
+      });
+    };
+
+    window.copyGoogleFormAppsScript = function() {
+      if (!currentGoogleFormData) return;
+      const title = document.getElementById('gfTitleInput')?.value.trim() || currentGoogleFormData.title;
+      const desc = document.getElementById('gfDescInput')?.value.trim() || currentGoogleFormData.description;
+
+      const sem1Json = JSON.stringify(currentGoogleFormData.sem1Groups, null, 2);
+      const sem2Json = JSON.stringify(currentGoogleFormData.sem2Groups, null, 2);
+
+      const scriptContent = `/**
+ * 상지대관령고등학교 선택과목 수강신청 구글 폼 자동 생성 매크로
+ * [실행 방법]: 구글 스프레드시트 -> 확장 프로그램 -> Apps Script -> 붙여넣기 후 [실행] 클릭!
+ */
+function createSangjiCourseSelectionForm() {
+  var title = ${JSON.stringify(title)};
+  var description = ${JSON.stringify(desc)};
+  
+  // 1. 구글 폼 생성
+  var form = FormApp.create(title);
+  form.setTitle(title);
+  form.setDescription(description);
+  form.setAllowResponseEdits(false);
+
+  // 2. 기본 인적사항 질문 (선생님 요청 형식)
+  // 1) 반 (숫자만 입력)
+  var classItem = form.addTextItem();
+  classItem.setTitle('반 (숫자만 입력)').setRequired(true);
+  classItem.setValidation(FormApp.createTextValidation().setHelpText('숫자만 입력해 주세요.').requireWholeNumber().build());
+
+  // 2) 번호 (숫자만 입력)
+  var numItem = form.addTextItem();
+  numItem.setTitle('번호 (숫자만 입력)').setRequired(true);
+  numItem.setValidation(FormApp.createTextValidation().setHelpText('숫자만 입력해 주세요.').requireWholeNumber().build());
+
+  // 3) 이름
+  var nameItem = form.addTextItem();
+  nameItem.setTitle('이름').setRequired(true);
+
+  // 4) 진로, 관심학과
+  var careerItem = form.addTextItem();
+  careerItem.setTitle('진로, 관심학과').setHelpText('*진로 미정인 경우: 탐색중').setRequired(true);
+
+  // 3. 1학기 선택과목군 질문 생성
+  var sem1Groups = ${sem1Json};
+  if (sem1Groups.length > 0) {
+    var total1 = sem1Groups.length;
+    sem1Groups.forEach(function(grp, idx) {
+      if (!grp || grp.length === 0) return;
+      var item = form.addMultipleChoiceItem();
+      item.setTitle('[1학기] ' + total1 + '개 선택과목 중 - ' + (idx + 1) + '번째 선택과목').setRequired(true);
+      item.setChoiceValues(grp);
+    });
+  }
+
+  // 4. 2학기 선택과목군 질문 생성
+  var sem2Groups = ${sem2Json};
+  if (sem2Groups.length > 0) {
+    var total2 = sem2Groups.length;
+    sem2Groups.forEach(function(grp, idx) {
+      if (!grp || grp.length === 0) return;
+      var item = form.addMultipleChoiceItem();
+      item.setTitle('[2학기] ' + total2 + '개 선택과목 중 - ' + (idx + 1) + '번째 선택과목').setRequired(true);
+      item.setChoiceValues(grp);
+    });
+  }
+
+  // 5. 응답 수집용 구글 스프레드시트 생성 및 연결
+  var responseSs = SpreadsheetApp.create(title + ' (설문 응답 결과)');
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, responseSs.getId());
+
+  Logger.log('🎉 구글 폼 생성 완료!');
+  Logger.log('🎓 학생용 응답 링크: ' + form.getPublishedUrl());
+  Logger.log('🛠️ 교사용 편집 링크: ' + form.getEditUrl());
+  Logger.log('📊 응답 스프레드시트: ' + responseSs.getUrl());
+}
+`;
+
+      navigator.clipboard.writeText(scriptContent).then(() => {
+        alert('📋 구글 폼 자동 생성용 Apps Script 코드가 클립보드에 복사되었습니다!\n\n[사용 방법]\n1. 구글 스프레드시트 상단 [확장 프로그램] -> [Apps Script] 클릭\n2. 편집기에 붙여넣고 [저장(Ctrl+S)] 후 [실행] 클릭!');
+      }).catch(() => {
+        prompt('Ctrl+C를 눌러 아래 코드를 복사하세요:', scriptContent);
+      });
+    };
+
     // ==========================================
     // GOOGLE APPS SCRIPT (GAS) INTEGRATION
     // ==========================================

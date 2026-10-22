@@ -22,6 +22,8 @@ function onOpen() {
     SpreadsheetApp.getUi()
       .createMenu('🏫 상지대관령고 도구')
       .addItem('🚀 선택과목 그룹핑 웹앱 열기', 'openDialogApp')
+      .addSeparator()
+      .addItem('📝 선택과목 수강신청 구글 폼 생성', 'createGoogleFormFromActivePlan')
       .addToUi();
   } catch (e) {
     // 독립형 웹앱 배포 시 무시
@@ -406,5 +408,180 @@ function saveGroupingResultsToSheets(payloadJson) {
     };
   } catch (err) {
     return { success: false, message: '구글 시트 저장 실패: ' + err.toString() };
+  }
+}
+
+/**
+ * 5. 선택과목 수강신청 구글 폼(Google Forms) 자동 생성 (백엔드 API)
+ * 선생님 요청 질문 형식 100% 반영:
+ *  - 반 (숫자만 입력) [필수/숫자검증]
+ *  - 번호 (숫자만 입력) [필수/숫자검증]
+ *  - 이름 [필수]
+ *  - 진로, 관심학과 (*진로 미정인 경우: 탐색중) [필수]
+ *  - [1학기] N개 선택과목 중 - K번째 선택과목 [필수/해당 그룹 과목 보기]
+ *  - [2학기] M개 선택과목 중 - K번째 선택과목 [필수/해당 그룹 과목 보기]
+ *  - 응답용 구글 스프레드시트 자동 생성 및 연동
+ */
+function createGoogleFormForCourseSelection(paramsJson) {
+  try {
+    var params = typeof paramsJson === 'string' ? JSON.parse(paramsJson) : paramsJson;
+    var year = params.year || '2027';
+    var grade = params.grade || '3학년';
+    var title = params.title || (year + '학년도 ' + grade + ' 선택과목 수강신청');
+    var description = params.description || 
+      '상지대관령고등학교 학생 여러분, 각 학기별 선택과목군을 확인하고 그룹별로 수강할 과목을 1개씩 신중하게 선택해 주세요.\n' +
+      '※ 제출 후 수정이 불가하므로 자신의 진로와 적성을 고려하여 선택 바랍니다.';
+
+    // 1. 구글 폼 생성
+    var form = FormApp.create(title);
+    form.setTitle(title);
+    form.setDescription(description);
+    form.setAllowResponseEdits(false);
+
+    // 2. 기본 인적사항 질문 (선생님 요청 질문 순서 및 유효성 검사)
+    // 1) 반 (숫자만 입력)
+    var classItem = form.addTextItem();
+    classItem.setTitle('반 (숫자만 입력)')
+             .setRequired(true);
+    var classValidation = FormApp.createTextValidation()
+      .setHelpText('숫자만 입력해 주세요.')
+      .requireWholeNumber()
+      .build();
+    classItem.setValidation(classValidation);
+
+    // 2) 번호 (숫자만 입력)
+    var numItem = form.addTextItem();
+    numItem.setTitle('번호 (숫자만 입력)')
+           .setRequired(true);
+    var numValidation = FormApp.createTextValidation()
+      .setHelpText('숫자만 입력해 주세요.')
+      .requireWholeNumber()
+      .build();
+    numItem.setValidation(numValidation);
+
+    // 3) 이름
+    var nameItem = form.addTextItem();
+    nameItem.setTitle('이름')
+            .setRequired(true);
+
+    // 4) 진로, 관심학과
+    var careerItem = form.addTextItem();
+    careerItem.setTitle('진로, 관심학과')
+              .setHelpText('*진로 미정인 경우: 탐색중')
+              .setRequired(true);
+
+    // 3. 1학기 선택과목군 질문 생성
+    var sem1Groups = params.sem1Groups || [];
+    if (sem1Groups.length > 0) {
+      var total1 = sem1Groups.length;
+      sem1Groups.forEach(function(groupSubjs, idx) {
+        if (!groupSubjs || groupSubjs.length === 0) return;
+        var qTitle = '[1학기] ' + total1 + '개 선택과목 중 - ' + (idx + 1) + '번째 선택과목';
+        var mcItem = form.addMultipleChoiceItem();
+        mcItem.setTitle(qTitle).setRequired(true);
+        var choices = groupSubjs.map(function(s) {
+          return mcItem.createChoice(s);
+        });
+        mcItem.setChoices(choices);
+      });
+    }
+
+    // 4. 2학기 선택과목군 질문 생성
+    var sem2Groups = params.sem2Groups || [];
+    if (sem2Groups.length > 0) {
+      var total2 = sem2Groups.length;
+      sem2Groups.forEach(function(groupSubjs, idx) {
+        if (!groupSubjs || groupSubjs.length === 0) return;
+        var qTitle = '[2학기] ' + total2 + '개 선택과목 중 - ' + (idx + 1) + '번째 선택과목';
+        var mcItem = form.addMultipleChoiceItem();
+        mcItem.setTitle(qTitle).setRequired(true);
+        var choices = groupSubjs.map(function(s) {
+          return mcItem.createChoice(s);
+        });
+        mcItem.setChoices(choices);
+      });
+    }
+
+    // 5. 응답 수집용 구글 스프레드시트 자동 생성 및 폼 연동
+    var responseSs = SpreadsheetApp.create(title + ' (설문 응답 결과)');
+    form.setDestination(FormApp.DestinationType.SPREADSHEET, responseSs.getId());
+
+    return {
+      success: true,
+      title: title,
+      formId: form.getId(),
+      publishedUrl: form.getPublishedUrl(),
+      editUrl: form.getEditUrl(),
+      spreadsheetUrl: responseSs.getUrl(),
+      message: '구글 폼 설문지와 응답 스프레드시트가 성공적으로 생성되었습니다!'
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: '구글 폼 생성 실패: ' + err.toString()
+    };
+  }
+}
+
+/**
+ * 구글 스프레드시트 상단 메뉴에서 바로 폼 생성 호출용
+ */
+function createGoogleFormFromActivePlan() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) return;
+    var stateSheet = ss.getSheetByName('_APP_STATE');
+    if (!stateSheet) {
+      SpreadsheetApp.getUi().alert('먼저 웹앱에서 과목 그룹핑을 진행하고 [구글 시트에 저장]을 완료해주세요.');
+      return;
+    }
+    var rawJson = stateSheet.getRange(1, 1).getValue();
+    if (!rawJson) {
+      SpreadsheetApp.getUi().alert('저장된 그룹핑 작업 데이터가 없습니다.');
+      return;
+    }
+    var stateData = JSON.parse(rawJson);
+    var savedPlans = stateData.savedPlans || [];
+    var sem1Plan = savedPlans.filter(function(p) { return p.semester === 1; }).pop();
+    var sem2Plan = savedPlans.filter(function(p) { return p.semester === 2; }).pop();
+
+    var params = {
+      year: '2027',
+      grade: stateData.detectedGrade || '3학년',
+      sem1Groups: sem1Plan ? sem1Plan.groups : [],
+      sem2Groups: sem2Plan ? sem2Plan.groups : []
+    };
+
+    var res = createGoogleFormForCourseSelection(params);
+    if (res.success) {
+      SpreadsheetApp.getUi().alert('🎉 구글 폼 생성 완료!\n\n학생용 설문 링크:\n' + res.publishedUrl + '\n\n관리자 편집 링크:\n' + res.editUrl);
+    } else {
+      SpreadsheetApp.getUi().alert('폼 생성 실패: ' + res.message);
+    }
+  } catch (e) {
+    SpreadsheetApp.getUi().alert('오류 발생: ' + e.toString());
+  }
+}
+
+/**
+ * 6. 웹앱 HTTP POST 핸들러 (외부 연동 지원)
+ */
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    if (data.action === 'createGoogleForm') {
+      var result = createGoogleFormForCourseSelection(data.params);
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    } else if (data.action === 'saveGrouping') {
+      var resSave = saveGroupingResultsToSheets(data.payload);
+      return ContentService.createTextOutput(JSON.stringify(resSave))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '알 수 없는 action' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
