@@ -9491,13 +9491,36 @@
     // Helper to build fully styled Timetable and Placement sheets
     function buildStyledPlanSheets(wb, plan, idx) {
       const { groupCounts: expGroupCounts, studentGroupOverlaps: expOverlaps } = analyzeGroupConflicts(plan);
-      const sem = plan.semester;
+      const sem = plan.semester || AppState.currentSemester || 1;
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      // ==========================================
+      // 파스텔 톤 테마 정의 (연하고 부드러운 색감)
+      // ==========================================
+      const pastelGroupThemes = [
+        { headerBg: 'DBEAFE', headerText: '1E40AF', subBg: 'EFF6FF', subText: '1E40AF', border: '93C5FD' }, // 파스텔 소프트 블루
+        { headerBg: 'CCFBF1', headerText: '0F766E', subBg: 'F0FDFA', subText: '0F766E', border: '5EEAD4' }, // 파스텔 소프트 민트
+        { headerBg: 'EDE9FE', headerText: '5B21B6', subBg: 'F5F3FF', subText: '5B21B6', border: 'C4B5FD' }, // 파스텔 소프트 라벤더
+        { headerBg: 'FFEDD5', headerText: '9A3412', subBg: 'FFF7ED', subText: '9A3412', border: 'FDBA74' }, // 파스텔 소프트 피치
+        { headerBg: 'FEF3C7', headerText: '92400E', subBg: 'FFFBEB', subText: '92400E', border: 'FCD34D' }, // 파스텔 소프트 앰버
+        { headerBg: 'FFE4E6', headerText: '9F1239', subBg: 'FFF1F2', subText: '9F1239', border: 'FDA4AF' }, // 파스텔 소프트 로즈
+        { headerBg: 'E0E7FF', headerText: '3730A3', subBg: 'EEF2FF', subText: '3730A3', border: 'A5B4FC' }, // 파스텔 소프트 인디고
+        { headerBg: 'D1FAE5', headerText: '065F46', subBg: 'ECFDF5', subText: '065F46', border: '6EE7B7' }  // 파스텔 소프트 에메랄드
+      ];
+
+      const softBorder = {
+        top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
 
       // 1. Primary Sheet: Student Individual Timetable (학생별 배정 시간표)
       const ttSheetName = `${sem}학기_${idx + 1}안_학생시간표`.substring(0, 31);
       const ttRows = [
-        [`[상지대관령고등학교] ${AppState.detectedGrade} [${plan.name}] 학생별 그룹 배정 시간표 (개인별 이동수업 시간표)`],
-        [`대상 학년: ${AppState.detectedGrade} | 총 학생 수: ${AppState.students.length}명 | 수강 충돌 인원: ${plan.conflictCount}명 | 출력일시: ${new Date().toLocaleString()}`],
+        [`${acadYearStr} ${gradeStr} ${sem}학기 학생별 그룹 시간표`],
+        [`대상 학년: ${gradeStr} | 총 학생 수: ${AppState.students.length}명 | 수강 충돌 인원: ${plan.conflictCount}명 | 출력일시: ${new Date().toLocaleString()}`],
         []
       ];
 
@@ -9575,9 +9598,9 @@
           } else {
             groupSubjs.forEach(sName => {
               if (inGrp.includes(sName)) {
-                row.push('선택'); // '수강'/'중복수강' 대신 일관되게 '선택' 표기
+                row.push('선택');
               } else {
-                row.push('');
+                row.push(null); // Truly blank cell so COUNTA formula works dynamically
               }
             });
           }
@@ -9608,10 +9631,13 @@
         });
       });
 
-      // 1. Spacer Row (1행 띄움: 셀 없는 완전한 빈 행을 추가하여 엑셀 자동 필터 범위에서 하단 합계행 격리)
+      // 1. Spacer Row (1행 띄움: 엑셀 자동 필터 범위에서 하단 합계행 격리)
       ttRows.push([]);
 
-      // 2. Subject Totals Row (각 과목별 학생수 합계: N명)
+      // 2. Subject Totals Row (COUNTA 함수 수식 범위 계산: 엑셀 6행부터 학생 마지막 행까지)
+      const firstStudentRowExcel = 6;
+      const lastStudentRowExcel = 5 + AppState.students.length;
+
       const subjSumRow = ['과목 수강 총 인원', '', '', ''];
       plan.groups.forEach(groupSubjs => {
         if (groupSubjs.length === 0) {
@@ -9628,7 +9654,7 @@
       ttRows.push(subjSumRow);
       merges.push({ s: { r: subjSumR, c: 0 }, e: { r: subjSumR, c: 3 } });
 
-      // 3. Group Totals Row (그룹별 학생수 합계: 각 그룹의 첫 번째 과목 위치에 N명)
+      // 3. Group Totals Row (그룹별 학생수 합계)
       const grpSumRow = ['그룹별 총 인원', '', '', ''];
       plan.groups.forEach(groupSubjs => {
         const groupTotal = groupSubjs.reduce((acc, sName) => acc + (subjCounts[sName] || 0), 0);
@@ -9653,7 +9679,7 @@
       let memoHRIdx = -1;
       let memoCRIdx = -1;
       if (plan.memo && plan.memo.trim()) {
-        ttRows.push([]); // Empty spacer row without cells
+        ttRows.push([]);
 
         const memoHRow = ['📝 [시간표 작업 메모 및 특이사항]'];
         for (let c = 1; c < totalCols; c++) memoHRow.push('');
@@ -9684,31 +9710,88 @@
         { hpt: 24 }
       ];
 
-      // Style TT Sheet Title & Subtitle
-      ExcelStyler.setRange(wsTT, 0, 0, 0, totalCols - 1, ExcelStyler.titleStyle(true));
-      ExcelStyler.setRange(wsTT, 1, 0, 1, totalCols - 1, ExcelStyler.subtitleStyle(true));
-
-      // Header Row 3 & 4 (Info Columns: 반, 번호, 이름, 진로)
-      for (let c = 0; c < 4; c++) {
-        const isRight = (c === 3);
-        ExcelStyler.setCell(wsTT, 3, c, ExcelStyler.headerStyle('1E40AF', isRight, c === 0));
-        ExcelStyler.setCell(wsTT, 4, c, ExcelStyler.headerStyle('1E40AF', isRight, c === 0));
-      }
-
-      // Group Headers with distinct group border boundaries
-      groupColSpans.forEach(item => {
-        const fill = ExcelStyler.groupFills[item.gIdx % ExcelStyler.groupFills.length];
-        for (let c = item.startCol; c < item.startCol + item.span; c++) {
-          const isGroupRight = (c === item.startCol + item.span - 1);
-          const isGroupLeft = (c === item.startCol);
-          ExcelStyler.setCell(wsTT, 3, c, ExcelStyler.headerStyle(fill, isGroupRight, isGroupLeft));
-          ExcelStyler.setCell(wsTT, 4, c, ExcelStyler.subHeaderStyle(isGroupRight, isGroupLeft));
+      // Style TT Sheet Title & Subtitle (부드러운 파스텔 톤)
+      ExcelStyler.setRange(wsTT, 0, 0, 0, totalCols - 1, {
+        font: { name: ExcelStyler.fontFamily, sz: 14, bold: true, color: { rgb: '1E3A8A' } },
+        fill: { fgColor: { rgb: 'EEF2FF' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'medium', color: { rgb: '93C5FD' } },
+          bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        }
+      });
+      ExcelStyler.setRange(wsTT, 1, 0, 1, totalCols - 1, {
+        font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: '64748B' } },
+        fill: { fgColor: { rgb: 'F8FAFC' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          bottom: { style: 'medium', color: { rgb: '93C5FD' } },
+          left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          right: { style: 'thin', color: { rgb: 'CBD5E1' } }
         }
       });
 
-      // Status Header
-      ExcelStyler.setCell(wsTT, 3, colIdx, ExcelStyler.headerStyle('1E40AF', true, true));
-      ExcelStyler.setCell(wsTT, 4, colIdx, ExcelStyler.headerStyle('1E40AF', true, true));
+      // Header Row 3 & 4 (Info Columns: 반, 번호, 이름, 진로 - 연한 파스텔 블루)
+      for (let c = 0; c < 4; c++) {
+        const isRight = (c === 3);
+        const infoBorder = ExcelStyler.getBorder(isRight, c === 0, 'medium', 'medium');
+        ExcelStyler.setCell(wsTT, 3, c, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '1E3A8A' } },
+          fill: { fgColor: { rgb: 'E0E7FF' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: infoBorder
+        });
+        ExcelStyler.setCell(wsTT, 4, c, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '1E3A8A' } },
+          fill: { fgColor: { rgb: 'E0E7FF' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: infoBorder
+        });
+      }
+
+      // Group Headers with soft pastel colors
+      groupColSpans.forEach(item => {
+        const gTheme = pastelGroupThemes[item.gIdx % pastelGroupThemes.length];
+        for (let c = item.startCol; c < item.startCol + item.span; c++) {
+          const isGroupRight = (c === item.startCol + item.span - 1);
+          const isGroupLeft = (c === item.startCol);
+
+          // Row 3: 그룹명 헤더 (연한 파스텔 채우기 + 진한 글씨)
+          ExcelStyler.setCell(wsTT, 3, c, {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: gTheme.headerText } },
+            fill: { fgColor: { rgb: gTheme.headerBg } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: ExcelStyler.getBorder(isGroupRight, isGroupLeft, 'medium', 'thin')
+          });
+
+          // Row 4: 과목명 서브헤더 (더 부드러운 소프트 톤)
+          ExcelStyler.setCell(wsTT, 4, c, {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: gTheme.subText } },
+            fill: { fgColor: { rgb: gTheme.subBg } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+            border: ExcelStyler.getBorder(isGroupRight, isGroupLeft, 'thin', 'medium')
+          });
+        }
+      });
+
+      // Status & Memo Header (파스텔 슬레이트)
+      for (let c = colIdx - 1; c <= colIdx; c++) {
+        ExcelStyler.setCell(wsTT, 3, c, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '1E293B' } },
+          fill: { fgColor: { rgb: 'E2E8F0' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: ExcelStyler.getBorder(c === colIdx, c === colIdx - 1, 'medium', 'medium')
+        });
+        ExcelStyler.setCell(wsTT, 4, c, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '1E293B' } },
+          fill: { fgColor: { rgb: 'E2E8F0' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: ExcelStyler.getBorder(c === colIdx, c === colIdx - 1, 'medium', 'medium')
+        });
+      }
 
       // Student rows styling
       AppState.students.forEach((st, sIdx) => {
@@ -9720,7 +9803,7 @@
         ExcelStyler.setCell(wsTT, r, 0, ExcelStyler.dataCenter(isEven, false, true));
         ExcelStyler.setCell(wsTT, r, 1, ExcelStyler.dataCenter(isEven, false, false));
         ExcelStyler.setCell(wsTT, r, 2, ExcelStyler.dataBold(isEven, false, false));
-        ExcelStyler.setCell(wsTT, r, 3, ExcelStyler.dataLeft(isEven, true, false)); // 진로 오른쪽 굵은 테두리
+        ExcelStyler.setCell(wsTT, r, 3, ExcelStyler.dataLeft(isEven, true, false));
 
         let curC = 4;
         let hasConflict = false;
@@ -9729,7 +9812,11 @@
           const isGrpConf = inGrp.length > 1;
 
           if (groupSubjs.length === 0) {
-            ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataCenter(isEven, true, true));
+            const blankRef = XLSX.utils.encode_cell({ r, c: curC });
+            wsTT[blankRef] = {
+              t: 'z',
+              s: ExcelStyler.dataCenter(isEven, true, true)
+            };
             curC++;
           } else {
             groupSubjs.forEach((sName, sIdx) => {
@@ -9739,19 +9826,49 @@
               if (inGrp.includes(sName)) {
                 if (isGrpConf) {
                   hasConflict = true;
-                  ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataWarning(isGroupRight, isGroupLeft));
+                  ExcelStyler.setCell(wsTT, r, curC, {
+                    font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: 'DC2626' } },
+                    fill: { fgColor: { rgb: 'FEE2E2' } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: ExcelStyler.getBorder(isGroupRight, isGroupLeft)
+                  });
                 } else {
-                  ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataSelected(isEven, isGroupRight, isGroupLeft));
+                  ExcelStyler.setCell(wsTT, r, curC, {
+                    font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '1D4ED8' } },
+                    fill: { fgColor: { rgb: 'EFF6FF' } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: ExcelStyler.getBorder(isGroupRight, isGroupLeft)
+                  });
                 }
               } else {
-                ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataCenter(isEven, isGroupRight, isGroupLeft));
+                // Blank cell with type 'z' so COUNTA accurately ignores it
+                const blankRef = XLSX.utils.encode_cell({ r, c: curC });
+                wsTT[blankRef] = {
+                  t: 'z',
+                  s: ExcelStyler.dataCenter(isEven, isGroupRight, isGroupLeft)
+                };
               }
               curC++;
             });
           }
         });
 
-        ExcelStyler.setCell(wsTT, r, curC, hasConflict ? ExcelStyler.dataWarning(true, true) : ExcelStyler.dataCenter(isEven, true, true));
+        // 상태
+        ExcelStyler.setCell(wsTT, r, curC, {
+          font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: hasConflict, color: { rgb: hasConflict ? 'DC2626' : '15803D' } },
+          fill: { fgColor: { rgb: hasConflict ? 'FEE2E2' : (isEven ? 'F8FAFC' : 'FFFFFF') } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: ExcelStyler.getBorder(true, true)
+        });
+        curC++;
+
+        // 추천/상담 메모
+        ExcelStyler.setCell(wsTT, r, curC, {
+          font: { name: ExcelStyler.fontFamily, sz: 9, color: { rgb: '475569' } },
+          fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
+          alignment: { horizontal: 'left', vertical: 'center' },
+          border: ExcelStyler.getBorder(true, false)
+        });
       });
 
       // Bottom Summary Rows Styling
@@ -9759,49 +9876,118 @@
       rowHeights.push({ hpt: 24 }); // Subject count row
       rowHeights.push({ hpt: 26 }); // Group count row
 
-      // 1. Style Subject Sum Row
+      // 1. Style Subject Sum Row with COUNTA function
       ExcelStyler.setRange(wsTT, subjSumR, 0, subjSumR, 3, {
-        font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '1E40AF' } },
-        fill: { fgColor: { rgb: 'EFF6FF' } },
+        font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '1E3A8A' } },
+        fill: { fgColor: { rgb: 'EEF2FF' } },
         alignment: { vertical: 'center', horizontal: 'center' },
-        border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+        border: softBorder
       });
+
       let sumColIdx = 4;
-      plan.groups.forEach(groupSubjs => {
+      plan.groups.forEach((groupSubjs, gIdx) => {
+        const gTheme = pastelGroupThemes[gIdx % pastelGroupThemes.length];
         if (groupSubjs.length === 0) {
-          ExcelStyler.setCell(wsTT, subjSumR, sumColIdx, ExcelStyler.dataBold(false, true, true));
+          const sumCellRef = XLSX.utils.encode_cell({ r: subjSumR, c: sumColIdx });
+          wsTT[sumCellRef] = {
+            t: 's',
+            v: '-',
+            s: {
+              font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '64748B' } },
+              fill: { fgColor: { rgb: gTheme.subBg } },
+              alignment: { vertical: 'center', horizontal: 'center' },
+              border: softBorder
+            }
+          };
           sumColIdx++;
         } else {
           groupSubjs.forEach((sName, sIdx) => {
             const isGroupRight = (sIdx === groupSubjs.length - 1);
             const isGroupLeft = (sIdx === 0);
-            ExcelStyler.setCell(wsTT, subjSumR, sumColIdx, ExcelStyler.summaryCountStyle('EFF6FF', '1E40AF', isGroupRight, isGroupLeft));
+            const colLetter = XLSX.utils.encode_col(sumColIdx);
+            const sumCellRef = XLSX.utils.encode_cell({ r: subjSumR, c: sumColIdx });
+
+            // counta 함수 사용 (예: COUNTA(E6:E49))
+            const countaFormula = `COUNTA(${colLetter}${firstStudentRowExcel}:${colLetter}${lastStudentRowExcel})`;
+
+            wsTT[sumCellRef] = {
+              t: 'n',
+              f: countaFormula,
+              v: subjCounts[sName] || 0,
+              z: '#,##0"명"',
+              s: {
+                font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: gTheme.headerText } },
+                fill: { fgColor: { rgb: gTheme.subBg } },
+                alignment: { vertical: 'center', horizontal: 'center' },
+                border: ExcelStyler.getBorder(isGroupRight, isGroupLeft, 'thin', 'thin')
+              }
+            };
             sumColIdx++;
           });
         }
       });
       ExcelStyler.setCell(wsTT, subjSumR, sumColIdx, ExcelStyler.dataCenter(false, true, true));
 
-      // 2. Style Group Sum Row
+      // 2. Style Group Sum Row with SUM function
       ExcelStyler.setRange(wsTT, grpSumR, 0, grpSumR, 3, {
-        font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '1E3A8A' } },
-        fill: { fgColor: { rgb: 'DBEAFE' } },
+        font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '0F172A' } },
+        fill: { fgColor: { rgb: 'E2E8F0' } },
         alignment: { vertical: 'center', horizontal: 'center' },
-        border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+        border: softBorder
       });
+
       let grpColIdx = 4;
-      plan.groups.forEach(groupSubjs => {
+      plan.groups.forEach((groupSubjs, gIdx) => {
+        const gTheme = pastelGroupThemes[gIdx % pastelGroupThemes.length];
+        const groupTotal = groupSubjs.reduce((acc, sName) => acc + (subjCounts[sName] || 0), 0);
+
         if (groupSubjs.length === 0) {
-          ExcelStyler.setCell(wsTT, grpSumR, grpColIdx, ExcelStyler.summaryCountStyle('DBEAFE', '1E3A8A', true, true));
+          const grpCellRef = XLSX.utils.encode_cell({ r: grpSumR, c: grpColIdx });
+          wsTT[grpCellRef] = {
+            t: 's',
+            v: '-',
+            s: {
+              font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '64748B' } },
+              fill: { fgColor: { rgb: gTheme.headerBg } },
+              alignment: { vertical: 'center', horizontal: 'center' },
+              border: softBorder
+            }
+          };
           grpColIdx++;
         } else {
+          const startColLetter = XLSX.utils.encode_col(grpColIdx);
+          const endColLetter = XLSX.utils.encode_col(grpColIdx + groupSubjs.length - 1);
+          const subjSumRowExcel = subjSumR + 1;
+          const sumFormula = (groupSubjs.length === 1)
+            ? `${startColLetter}${subjSumRowExcel}`
+            : `SUM(${startColLetter}${subjSumRowExcel}:${endColLetter}${subjSumRowExcel})`;
+
           groupSubjs.forEach((sName, sIdx) => {
             const isGroupRight = (sIdx === groupSubjs.length - 1);
             const isGroupLeft = (sIdx === 0);
+            const grpCellRef = XLSX.utils.encode_cell({ r: grpSumR, c: grpColIdx });
+
             if (sIdx === 0) {
-              ExcelStyler.setCell(wsTT, grpSumR, grpColIdx, ExcelStyler.summaryCountStyle('DBEAFE', '1E3A8A', isGroupRight, isGroupLeft));
+              wsTT[grpCellRef] = {
+                t: 'n',
+                f: sumFormula,
+                v: groupTotal,
+                z: '#,##0"명"',
+                s: {
+                  font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: gTheme.headerText } },
+                  fill: { fgColor: { rgb: gTheme.headerBg } },
+                  alignment: { vertical: 'center', horizontal: 'center' },
+                  border: ExcelStyler.getBorder(isGroupRight, isGroupLeft, 'thin', 'double')
+                }
+              };
             } else {
-              ExcelStyler.setCell(wsTT, grpSumR, grpColIdx, ExcelStyler.dataCenter(false, isGroupRight, isGroupLeft));
+              wsTT[grpCellRef] = {
+                t: 'z',
+                s: {
+                  fill: { fgColor: { rgb: gTheme.headerBg } },
+                  border: ExcelStyler.getBorder(isGroupRight, isGroupLeft, 'thin', 'double')
+                }
+              };
             }
             grpColIdx++;
           });
@@ -9811,21 +9997,21 @@
 
       if (memoHRIdx !== -1 && memoCRIdx !== -1) {
         const memoLines = (plan.memo || '').trim().split('\n');
-        rowHeights.push({ hpt: 10 }); // Spacer row
-        rowHeights.push({ hpt: 24 }); // Memo header row
-        rowHeights.push({ hpt: Math.min(160, Math.max(40, memoLines.length * 18)) }); // Memo content row
+        rowHeights.push({ hpt: 10 });
+        rowHeights.push({ hpt: 24 });
+        rowHeights.push({ hpt: Math.min(160, Math.max(40, memoLines.length * 18)) });
 
         ExcelStyler.setRange(wsTT, memoHRIdx, 0, memoHRIdx, totalCols - 1, {
           font: { name: '맑은 고딕', sz: 10, bold: true, color: { rgb: '1E3A8A' } },
-          fill: { fgColor: { rgb: 'EFF6FF' } },
+          fill: { fgColor: { rgb: 'EEF2FF' } },
           alignment: { vertical: 'center', horizontal: 'left' },
-          border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+          border: softBorder
         });
         ExcelStyler.setRange(wsTT, memoCRIdx, 0, memoCRIdx, totalCols - 1, {
           font: { name: '맑은 고딕', sz: 10, color: { rgb: '334155' } },
           fill: { fgColor: { rgb: 'F8FAFC' } },
           alignment: { vertical: 'top', horizontal: 'left', wrapText: true },
-          border: ExcelStyler.cellBorders(true, true, true, true, false, false, false, false)
+          border: softBorder
         });
       }
 
@@ -9835,7 +10021,7 @@
       // 2. Secondary Sheet: Subject Placement Table (과목 그룹핑 배치표)
       const placementSheetName = `${sem}학기_${idx + 1}안_배치표`.substring(0, 31);
       const planRows = [
-        [`[상지대관령고등학교] ${AppState.detectedGrade} [${plan.name}] 과목 그룹핑 배치 현황`],
+        [`${acadYearStr} ${gradeStr} ${sem}학기 과목 그룹핑 배치표`],
         [`총 충돌 인원: ${plan.conflictCount}명 | 편성 그룹: ${plan.groups.length}개 | 출력일시: ${new Date().toLocaleString()}`],
         []
       ];
@@ -9871,12 +10057,32 @@
         { hpt: 28 }
       ];
 
-      ExcelStyler.setRange(wsPlan, 0, 0, 0, plan.groups.length - 1, ExcelStyler.titleStyle(true));
-      ExcelStyler.setRange(wsPlan, 1, 0, 1, plan.groups.length - 1, ExcelStyler.subtitleStyle(true));
+      ExcelStyler.setRange(wsPlan, 0, 0, 0, plan.groups.length - 1, {
+        font: { name: ExcelStyler.fontFamily, sz: 13, bold: true, color: { rgb: '1E3A8A' } },
+        fill: { fgColor: { rgb: 'EEF2FF' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: softBorder
+      });
+      ExcelStyler.setRange(wsPlan, 1, 0, 1, plan.groups.length - 1, {
+        font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: '64748B' } },
+        fill: { fgColor: { rgb: 'F8FAFC' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: softBorder
+      });
 
       plan.groups.forEach((_, gIdx) => {
-        const fill = ExcelStyler.groupFills[gIdx % ExcelStyler.groupFills.length];
-        ExcelStyler.setCell(wsPlan, 3, gIdx, ExcelStyler.headerStyle(fill, true, true));
+        const gTheme = pastelGroupThemes[gIdx % pastelGroupThemes.length];
+        ExcelStyler.setCell(wsPlan, 3, gIdx, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: gTheme.headerText } },
+          fill: { fgColor: { rgb: gTheme.headerBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'medium', color: { rgb: gTheme.border } },
+            bottom: { style: 'medium', color: { rgb: gTheme.border } },
+            left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+          }
+        });
       });
 
       for (let r = 0; r < maxLen; r++) {
@@ -9884,11 +10090,12 @@
         const isEven = r % 2 === 1;
         plan.groups.forEach((g, gIdx) => {
           const val = g[r];
-          if (val) {
-            ExcelStyler.setCell(wsPlan, 4 + r, gIdx, ExcelStyler.dataBold(isEven, true, true));
-          } else {
-            ExcelStyler.setCell(wsPlan, 4 + r, gIdx, ExcelStyler.dataCenter(isEven, true, true));
-          }
+          ExcelStyler.setCell(wsPlan, 4 + r, gIdx, {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: !!val, color: { rgb: val ? '0F172A' : '94A3B8' } },
+            fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
         });
       }
 
@@ -9896,7 +10103,6 @@
       XLSX.utils.book_append_sheet(wb, wsPlan, placementSheetName);
     }
 
-    // Export Single Plan as Formatted Excel
     window.exportSinglePlanExcel = function(planId) {
       let plan = AppState.savedPlans.find(p => p.id === planId || String(p.id) === String(planId));
       if (!plan && (planId === 'current' || !planId || (AppState.currentPlan && (AppState.currentPlan.id === planId || String(AppState.currentPlan.id) === String(planId))))) {
@@ -9943,7 +10149,9 @@
         XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
         const cleanPlanName = planName.replace(/[\s\(\):]/g, "_");
-        const outFileName = buildExportFileName(`${AppState.detectedGrade} ${cleanPlanName} 시간표`, "xlsx");
+        const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+        const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+        const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} ${sem}학기 학생별 그룹 시간표`, "xlsx");
         window.saveExcelFile(wb, outFileName);
         alert(`📥 [${planName}] 엑셀 파일이 다운로드되었습니다!\n(${outFileName})`);
       } catch (err) {
