@@ -4731,6 +4731,7 @@
         }
       }
 
+      runCrossCheckAnalysis();
       saveAllState();
 
       // Always re-render Step 1
@@ -4764,6 +4765,7 @@
         delete AppState.currentPlan.customAssignments[studentId];
       }
 
+      runCrossCheckAnalysis();
       saveAllState();
       renderStep1();
       if (AppState.currentPlan) {
@@ -4803,6 +4805,7 @@
         AppState.currentPlan.customAssignments = {};
       }
 
+      runCrossCheckAnalysis();
       saveAllState();
       renderStep1();
       if (AppState.currentPlan) {
@@ -4865,12 +4868,22 @@
         countEl.innerHTML = `현재 선택: <span class="text-base font-black ${active.length === expectedCount ? 'text-emerald-600' : 'text-amber-600'}">${active.length}과목</span> <span class="text-xs text-slate-500 font-normal">(기준: ${expectedCount}과목)</span>`;
       }
 
+      const dupSt = (AppState.crossCheckResult && AppState.crossCheckResult.duplicateEnrollments)
+        ? AppState.crossCheckResult.duplicateEnrollments.find(d => 
+            String(d.classNum).replace(/[^0-9]/g, '') === String(st.classNum).replace(/[^0-9]/g, '') &&
+            d.name.trim() === st.name.trim()
+          )
+        : null;
+      const dupItemsThisSem = dupSt ? (dupSt.dupList || []).filter(d => d.semester === sem) : [];
+
       let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">';
       subjects.forEach(s => {
         const normS = normalizeSubject(s);
         const wasOrig = origNorms.has(normS);
         const isAct = activeNorms.has(normS);
         const isClosed = closedNorms.has(normS);
+        const matchedDups = dupItemsThisSem.filter(d => d.normalized === normS);
+        const dupLabelStr = matchedDups.length > 0 ? Array.from(new Set(matchedDups.map(d => d.sourceLabel))).join(', ') : '';
 
         let badge = '';
         let cardBg = 'bg-white border-slate-200 hover:border-slate-400';
@@ -4891,10 +4904,11 @@
         const safeS = s.replace(/'/g, "\\'");
         html += `
           <div onclick="window.handleModalToggleSubject('${safeS}');" class="p-2.5 rounded-xl border ${cardBg} flex items-center justify-between gap-2 cursor-pointer transition select-none shadow-2xs">
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2.5 flex-wrap">
               <input type="checkbox" ${isAct ? 'checked' : ''} onclick="event.stopPropagation(); window.handleModalToggleSubject('${safeS}');" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
               <span class="text-xs font-bold ${isAct ? 'text-slate-900' : 'text-slate-500'} ${wasOrig && !isAct ? 'line-through text-rose-600' : ''}">${s}</span>
               ${isClosed ? '<span class="text-[10px] text-rose-600 font-semibold">(폐강)</span>' : ''}
+              ${dupLabelStr ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-400" title="⚠️ ${dupLabelStr}">⚠️ ${dupLabelStr}</span>` : ''}
             </div>
             <div>
               ${badge}
@@ -4924,7 +4938,7 @@
       }
     });
 
-    function renderStep1() {
+    function renderStep1() { runCrossCheckAnalysis();
       const sem = AppState.currentSemester;
       updateStep1SemesterTabs(sem);
       const subjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
@@ -5217,9 +5231,17 @@
             cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-bold text-[10px] bg-rose-100 text-rose-700 border border-rose-300 line-through decoration-rose-600 decoration-2 hover:bg-rose-200 transition select-none shadow-2xs" title="원래 선택했으나 취소됨 (집계 제외) - 클릭 시 원본 복원">✕ 취소됨</span>`;
             cellTitle = `[${s}] 원래 선택했으나 취소됨 (집계 제외) - 클릭 시 원본 복원`;
           } else if (!wasOriginallySelected && isCurrentlySelected) {
-            cellBg = 'style="background-color: #d1fae5;"';
-            cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border border-emerald-400 hover:bg-emerald-200 transition select-none shadow-2xs" title="새로 추가/수정된 과목 (집계 포함) - 클릭 시 취소">수정</span>`;
-            cellTitle = `[${s}] 새로 추가/수정된 과목 (집계 포함) - 클릭 시 취소`;
+            if (isDup) {
+              const dupItems = dupSt ? dupSt.dupList.filter(d => d.semester === sem && d.normalized === normS) : [];
+              const dupTip = dupItems.length > 0 ? Array.from(new Set(dupItems.map(d => d.sourceLabel))).join(', ') + ' 주의' : '중복 신청 주의';
+              cellBg = 'style="background-color: #fef3c7;"';
+              cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-extrabold text-[11px] bg-amber-100 text-amber-900 border border-amber-400 hover:bg-amber-200 transition select-none shadow-2xs" title="⚠️ ${dupTip} - 새로 추가/수정된 과목 (클릭 시 취소)">수정(중복)</span>`;
+              cellTitle = `⚠️ [${s}] ${dupTip} - 새로 추가/수정된 과목 (클릭 시 취소)`;
+            } else {
+              cellBg = 'style="background-color: #d1fae5;"';
+              cellContent = `<span class="inline-block px-1.5 py-0.5 rounded font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border border-emerald-400 hover:bg-emerald-200 transition select-none shadow-2xs" title="새로 추가/수정된 과목 (집계 포함) - 클릭 시 취소">수정</span>`;
+              cellTitle = `[${s}] 새로 추가/수정된 과목 (집계 포함) - 클릭 시 취소`;
+            }
           } else {
             cellContent = `<span class="text-slate-300 group-hover:text-blue-500 font-bold text-xs select-none transition-colors" title="클릭 시 [${s}] 추가">-</span>`;
             cellTitle = `클릭 시 [${s}] 추가`;
@@ -9090,6 +9112,14 @@
           const activeList = st ? getStudentActiveChoices(st, sem) : [];
           const isModified = st ? isStudentChoicesModified(st, sem) : false;
 
+          const dupSt = (AppState.crossCheckResult && AppState.crossCheckResult.duplicateEnrollments)
+            ? AppState.crossCheckResult.duplicateEnrollments.find(d => 
+                String(d.classNum).replace(/[^0-9]/g, '') === String(asgn.classNum).replace(/[^0-9]/g, '') &&
+                d.name.trim() === asgn.name.trim()
+              )
+            : null;
+          const dupItemsThisSem = dupSt ? (dupSt.dupList || []).filter(d => d.semester === sem) : [];
+
           tbody += `<tr class="${rowBg} hover:bg-indigo-50/50 transition-colors">`;
           tbody += `<td style="position: sticky; left: 0px; min-width: 44px; max-width: 44px; z-index: 10;" class="p-2 text-center border-r border-slate-200 font-medium ${rowBg} shadow-[1px_0_0_0_#e2e8f0]">${asgn.classNum}</td>`;
           tbody += `<td style="position: sticky; left: 44px; min-width: 44px; max-width: 44px; z-index: 10;" class="p-2 text-center border-r border-slate-200 font-medium ${rowBg} shadow-[1px_0_0_0_#e2e8f0]">${asgn.studentNum}</td>`;
@@ -9130,22 +9160,28 @@
 
                 if (isChosen) {
                   const isNewlyAdded = !wasOrig && isAct;
+                  const matchedDups = dupItemsThisSem.filter(d => d.normalized === normParent);
+                  const isDupEnroll = matchedDups.length > 0;
+                  const dupLabelText = isDupEnroll ? Array.from(new Set(matchedDups.map(d => d.sourceLabel))).join(', ') : '';
+                  const dupBadgeHtml = isDupEnroll ? `<span class="ml-1 px-1 py-0.2 rounded text-[9px] bg-amber-500 text-white font-black shrink-0" title="⚠️ ${dupLabelText}">⚠️중복</span>` : '';
+                  const dupTitleSuffix = isDupEnroll ? ` | ⚠️ ${dupLabelText}` : '';
+
                   if (isGroupConflicted) {
                     tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/80' : 'bg-rose-50'}">
-                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[115px] cursor-pointer hover:bg-rose-200 transition" title="⚠️ 동일 그룹 중복 충돌: ${sName} ${isNewlyAdded ? '(수정됨)' : ''} (클릭 시 수강 취소)">
-                        <span>⚠️ ${sName}</span>${isNewlyAdded ? '<span class="ml-1 px-1 py-0.2 rounded text-[9px] bg-amber-600 text-white font-black shrink-0">수정</span>' : ''}
+                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg font-black text-[11px] bg-rose-100 text-rose-800 border-2 border-rose-300 shadow-2xs animate-pulse truncate max-w-[130px] cursor-pointer hover:bg-rose-200 transition" title="⚠️ 동일 그룹 중복 충돌: ${sName} ${isNewlyAdded ? '(수정됨)' : ''}${dupTitleSuffix} (클릭 시 수강 취소)">
+                        <span>⚠️ ${sName}</span>${isNewlyAdded ? '<span class="ml-1 px-1 py-0.2 rounded text-[9px] bg-amber-600 text-white font-black shrink-0">수정</span>' : ''}${dupBadgeHtml}
                       </div>
                     </td>`;
                   } else if (isNewlyAdded) {
-                    tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/60' : 'bg-emerald-50/70'}">
-                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] bg-emerald-100 text-emerald-900 border-2 border-emerald-400 shadow-2xs hover:bg-emerald-200 transition cursor-pointer truncate max-w-[115px]" title="[${parentName}] 사용자가 수동 선택/수정함 (클릭 시 취소)">
-                        <span>${sName}</span><span class="ml-1 px-1 py-0.2 rounded text-[9px] bg-emerald-600 text-white font-black shrink-0">수정</span>
+                    tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/60' : (isDupEnroll ? 'bg-amber-50/80' : 'bg-emerald-50/70')}">
+                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] ${isDupEnroll ? 'bg-amber-100 text-amber-950 border-2 border-amber-400 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-900 border-2 border-emerald-400 hover:bg-emerald-200'} shadow-2xs transition cursor-pointer truncate max-w-[130px]" title="[${parentName}] 사용자가 수동 선택/수정함${dupTitleSuffix} (클릭 시 취소)">
+                        <span>${sName}</span><span class="ml-1 px-1 py-0.2 rounded text-[9px] bg-emerald-600 text-white font-black shrink-0">수정</span>${dupBadgeHtml}
                       </div>
                     </td>`;
                   } else {
-                    tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/60' : theme.cellChosenBg}">
-                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${theme.badgeCls} shadow-2xs hover:scale-105 hover:bg-blue-200 transition cursor-pointer truncate max-w-[105px]" title="${sName} 배정됨 (클릭 시 선택 취소/제외)">
-                        <span>${sName}</span>
+                    tbody += `<td class="p-1.5 text-center ${borderCls} ${isColSelectedForSwap ? 'bg-amber-100/60' : (isDupEnroll ? 'bg-amber-50/70' : theme.cellChosenBg)}">
+                      <div onclick="window.toggleStudentSubjectSelection('${asgn.id}', '${safeParent}', ${sem});" class="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-lg font-bold text-[11px] ${isDupEnroll ? 'bg-amber-100 text-amber-900 border border-amber-400' : theme.badgeCls} shadow-2xs hover:scale-105 hover:bg-blue-200 transition cursor-pointer truncate max-w-[125px]" title="${sName} 배정됨${dupTitleSuffix} (클릭 시 선택 취소/제외)">
+                        <span>${sName}</span>${dupBadgeHtml}
                       </div>
                     </td>`;
                   }
@@ -9168,6 +9204,9 @@
           });
 
           // Status cell
+          const dupSemSummary = dupItemsThisSem.length > 0
+            ? Array.from(new Set(dupItemsThisSem.map(d => `${d.subject}(${d.sourceLabel})`))).join(', ')
+            : '';
           tbody += `<td class="p-1.5 text-center text-[11px] border-l-4 border-slate-400 whitespace-nowrap">`;
           tbody += `<div class="flex items-center justify-center gap-1.5">`;
           if (hasAnyConflict || asgn.hasConflict) {
@@ -9176,6 +9215,11 @@
             </span>`;
           } else {
             tbody += `<span class="px-2.5 py-0.5 rounded-lg font-bold text-emerald-800 bg-emerald-100/90 border border-emerald-300 shadow-2xs">✅ 정상 배정</span>`;
+          }
+          if (dupSemSummary) {
+            tbody += `<span class="px-2 py-0.5 rounded-lg font-extrabold text-amber-900 bg-amber-100 border border-amber-400 shadow-2xs flex items-center gap-1" title="⚠️ 중복수강 의심: ${escapeHtml(dupSemSummary)}">
+              <span>⚠️ 중복수강</span>
+            </span>`;
           }
           tbody += `</div></td>`;
 
