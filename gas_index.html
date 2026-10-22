@@ -458,7 +458,7 @@
 
         <div class="pt-2.5 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-2">
           <span class="text-[11px] text-amber-700 font-medium">
-            💡 누락 과목을 편제표에 추가하면 교사 배정 및 시수 통계에 즉시 반영됩니다.
+            💡 각 과목 카드를 클릭하여 개별 설정 추가하거나, [일괄 추가하기] 버튼을 눌러 한 번에 편제표에 등록할 수 있습니다.
           </span>
           <button id="btnAddMissingToCurriculum" type="button" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
             <span>➕ 누락 과목 편제표에 일괄 추가하기</span>
@@ -2191,8 +2191,8 @@
             📚
           </div>
           <div>
-            <h3 class="text-base font-bold text-slate-900">새 과목 직접 추가</h3>
-            <p class="text-xs text-slate-500">편제표에 새로운 과목을 등록합니다. 학년, 학기, 과목명 등을 입력하세요.</p>
+            <h3 id="modalAddCourseTitle" class="text-base font-bold text-slate-900 flex items-center gap-2">새 과목 직접 추가</h3>
+            <p id="modalAddCourseSubtitle" class="text-xs text-slate-500">편제표에 새로운 과목을 등록합니다. 학년, 학기, 과목명 등을 입력하세요.</p>
           </div>
         </div>
         <button type="button" onclick="window.closeAddCourseModal();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer">
@@ -2274,6 +2274,89 @@
         <button type="button" onclick="window.submitAddCourseModal();" class="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-extrabold text-xs transition shadow-sm cursor-pointer flex items-center gap-1.5">
           <span>➕</span>
           <span>편제표에 과목 추가</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Add Missing Subjects Modal (누락 과목 일괄 편제표 추가 모달) -->
+  <div id="batchAddMissingModal" onclick="if(event.target.id === 'batchAddMissingModal') window.closeBatchAddMissingModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl shadow-xs">
+            📚
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>누락 과목 편제표 일괄 추가</span>
+              <span id="batchAddMissingCountBadge" class="text-xs px-2.5 py-0.5 rounded-full font-black bg-amber-100 text-amber-800 border border-amber-300">0건</span>
+            </h3>
+            <p class="text-xs text-slate-500">수강신청 개설 과목 중 편제표에 누락된 과목들의 정보를 확인하고 일괄 등록합니다. 학년과 학기는 수강신청 정보에 맞춰 기본 설정되어 있습니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeBatchAddMissingModal();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Quick Batch Setting Toolbar -->
+      <div class="p-3 bg-amber-50/60 rounded-2xl border border-amber-200 shrink-0 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2 font-bold text-amber-900">
+          <span class="text-sm">⚡</span>
+          <span>공통 기본값 일괄 적용:</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-700 font-semibold">구분:</span>
+            <select id="batchAddDefaultCategory" class="px-2.5 py-1 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 outline-none">
+              <option value="선택" selected>선택</option>
+              <option value="지정">지정</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-700 font-semibold">주당 총 시수:</span>
+            <input type="number" id="batchAddDefaultHours" value="4" min="0.5" max="40" step="0.5" class="w-16 px-2 py-1 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 outline-none" />
+          </div>
+          <button type="button" onclick="window.applyBatchAddDefaults();" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white rounded-lg font-bold transition shadow-2xs cursor-pointer">
+            전체 과목에 적용
+          </button>
+        </div>
+      </div>
+
+      <!-- Table of Missing Subjects (Scrollable) -->
+      <div class="overflow-x-auto overflow-y-auto custom-scrollbar border border-slate-200 rounded-2xl bg-white shadow-2xs flex-1 max-h-[50vh]">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
+            <tr>
+              <th class="p-2.5 text-center w-10">
+                <input type="checkbox" id="batchAddCheckAll" checked onchange="window.toggleBatchAddCheckAll(this.checked)" class="w-3.5 h-3.5 rounded text-amber-600 border-slate-300 cursor-pointer" title="전체 선택/해제" />
+              </th>
+              <th class="p-2.5 text-center w-24 border-r border-slate-200">학년</th>
+              <th class="p-2.5 text-center w-20 border-r border-slate-200">학기</th>
+              <th class="p-2.5 w-48 border-r border-slate-200 font-extrabold text-slate-900">과목명</th>
+              <th class="p-2.5 text-center w-24 border-r border-slate-200">구분</th>
+              <th class="p-2.5 text-center w-24 border-r border-slate-200 font-extrabold text-slate-900">총 시수</th>
+              <th class="p-2.5 text-center w-24 border-r border-slate-200">개설상태</th>
+              <th class="p-2.5 w-36 border-r border-slate-200 font-extrabold text-slate-900">담당 교사</th>
+              <th class="p-2.5 text-center w-20">개별설정</th>
+            </tr>
+          </thead>
+          <tbody id="batchAddMissingTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <!-- Dynamically generated rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <button type="button" onclick="window.closeBatchAddMissingModal();" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition border border-slate-300 cursor-pointer shadow-2xs">
+          취소 / 닫기
+        </button>
+        <button type="button" onclick="window.submitBatchAddMissingModal();" class="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-extrabold text-xs transition shadow-sm cursor-pointer flex items-center gap-1.5">
+          <span>➕</span>
+          <span id="batchAddSubmitBtnText">선택한 누락 과목 편제표에 일괄 추가</span>
         </button>
       </div>
     </div>
@@ -12552,6 +12635,8 @@ function renderYearGradeNav() {
       const container = document.getElementById('allGradesMissingListContainer');
       if (!alertEl || !container) return;
 
+      window.currentMissingSubjectsList = missingList || [];
+
       if (!missingList || missingList.length === 0) {
         alertEl.classList.add('hidden');
         return;
@@ -12560,14 +12645,31 @@ function renderYearGradeNav() {
       if (badgeEl) badgeEl.textContent = `${missingList.length}건 누락`;
       container.innerHTML = '';
 
-      missingList.forEach(item => {
-        const pill = document.createElement('div');
-        pill.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-amber-300 rounded-lg text-xs font-semibold text-amber-900 shadow-2xs';
+      missingList.forEach((item, idx) => {
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = 'group inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-amber-100 active:bg-amber-200 border-2 border-amber-300 hover:border-amber-500 rounded-xl text-xs font-semibold text-amber-950 shadow-2xs transition-all cursor-pointer text-left';
+        pill.title = `클릭하여 [${item.grade} ${item.semester}학기 ${item.subject}] 과목 편제표 추가 설정창 열기`;
         pill.innerHTML = `
-          <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">${item.grade} ${item.semester}학기</span>
-          <span class="font-bold">${escapeHtml(item.subject)}</span>
-          <span class="text-[10px] text-rose-600 font-bold">(미편제)</span>
+          <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 group-hover:bg-amber-200 transition-colors border border-amber-200">${item.grade} ${item.semester}학기</span>
+          <span class="font-bold text-slate-800 group-hover:text-amber-950">${escapeHtml(item.subject)}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500 group-hover:bg-amber-600 text-white font-extrabold flex items-center gap-0.5 shadow-2xs group-hover:scale-105 transition-transform">
+            <span>➕</span>
+            <span>추가</span>
+          </span>
         `;
+        pill.onclick = () => {
+          window.openAddCourseModal({
+            grade: item.grade,
+            semester: item.semester,
+            category: '선택',
+            subject: item.subject,
+            hours: 4,
+            status: '개설',
+            teacher: '',
+            isFromMissing: true
+          });
+        };
         container.appendChild(pill);
       });
 
@@ -12577,38 +12679,242 @@ function renderYearGradeNav() {
       const addBtn = document.getElementById('btnAddMissingToCurriculum');
       if (addBtn) {
         addBtn.onclick = () => {
-          const curriculum = getAllGradesCurriculum();
-          let addedCount = 0;
-          missingList.forEach(item => {
-            const exists = curriculum.some(c => 
-              c.grade === item.grade && c.semester === item.semester && 
-              normalizeSubjectKey(c.subject) === normalizeSubjectKey(item.subject)
-            );
-            if (!exists) {
-              curriculum.push({
-                id: 'curr_missing_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + addedCount,
-                semester: item.semester,
-                grade: item.grade,
-                category: '선택',
-                subject: item.subject,
-                baseSubject: getBaseSubjectName(item.subject),
-                division: '',
-                hours: 3,
-                originalTeacher: '',
-                teacher: '',
-                isModified: true,
-                status: '개설'
-              });
-              addedCount++;
-            }
-          });
-          setAllGradesCurriculum(curriculum);
-          applyStep2ToCurriculum(true);
-          renderAllGradesDashboard();
-          alert(`✅ 수강신청 개설 과목 중 누락되었던 [${addedCount}개] 과목이 편제표에 추가되었습니다!\n담당 교사 및 주당 시수를 확인해주세요.`);
+          if (!missingList || missingList.length === 0) {
+            alert('누락된 과목이 없습니다.');
+            return;
+          }
+          window.openBatchAddMissingModal(missingList);
         };
       }
     }
+
+    // ==========================================
+    // BATCH ADD MISSING SUBJECTS MODAL LOGIC
+    // ==========================================
+    window.openBatchAddMissingModal = function(missingList) {
+      const list = missingList || window.currentMissingSubjectsList || [];
+      window.currentMissingSubjectsList = list;
+
+      const badge = document.getElementById('batchAddMissingCountBadge');
+      if (badge) badge.textContent = `${list.length}건`;
+
+      // Populate teacher autocomplete datalist
+      const datalist = document.getElementById('curriculumTeacherDatalist');
+      if (datalist) {
+        const curriculum = getAllGradesCurriculum();
+        const teachers = new Set();
+        curriculum.forEach(c => {
+          if (c.teacher && c.teacher !== '폐강' && c.teacher !== '미배정') {
+            teachers.add(c.teacher.trim());
+          }
+        });
+        datalist.innerHTML = Array.from(teachers)
+          .sort((a, b) => a.localeCompare(b, 'ko'))
+          .map(t => `<option value="${escapeHtml(t)}"></option>`)
+          .join('');
+      }
+
+      window.renderBatchAddMissingRows();
+
+      const modal = document.getElementById('batchAddMissingModal');
+      if (modal) modal.classList.remove('hidden');
+    };
+
+    window.closeBatchAddMissingModal = function() {
+      const modal = document.getElementById('batchAddMissingModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.renderBatchAddMissingRows = function() {
+      const tbody = document.getElementById('batchAddMissingTableBody');
+      if (!tbody) return;
+      const list = window.currentMissingSubjectsList || [];
+      tbody.innerHTML = '';
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-400">누락된 과목이 없습니다.</td></tr>';
+        return;
+      }
+
+      list.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-amber-50/50 transition-colors';
+        tr.id = `batchAddRow_${index}`;
+
+        // Grade options
+        const gradeOpts = ['1학년', '2학년', '3학년'].map(g => 
+          `<option value="${g}" ${item.grade === g ? 'selected' : ''}>${g}</option>`
+        ).join('');
+
+        // Semester options
+        const semOpts = [1, 2].map(s => 
+          `<option value="${s}" ${item.semester === s ? 'selected' : ''}>${s}학기</option>`
+        ).join('');
+
+        tr.innerHTML = `
+          <td class="p-2.5 text-center">
+            <input type="checkbox" class="batch-add-check w-3.5 h-3.5 rounded text-amber-600 border-slate-300 cursor-pointer" data-idx="${index}" checked onchange="window.updateBatchAddSubmitButton();" />
+          </td>
+          <td class="p-2 text-center border-r border-slate-200">
+            <select class="batch-add-grade w-full px-2 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 outline-none">
+              ${gradeOpts}
+            </select>
+          </td>
+          <td class="p-2 text-center border-r border-slate-200">
+            <select class="batch-add-semester w-full px-2 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 outline-none">
+              ${semOpts}
+            </select>
+          </td>
+          <td class="p-2 border-r border-slate-200">
+            <input type="text" class="batch-add-subject w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white text-slate-900 outline-none" value="${escapeHtml(item.subject)}" />
+          </td>
+          <td class="p-2 text-center border-r border-slate-200">
+            <select class="batch-add-category w-full px-2 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 outline-none">
+              <option value="선택" selected>선택</option>
+              <option value="지정">지정</option>
+            </select>
+          </td>
+          <td class="p-2 text-center border-r border-slate-200">
+            <input type="number" class="batch-add-hours w-full px-2 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 outline-none" value="4" min="0.5" max="40" step="0.5" />
+          </td>
+          <td class="p-2 text-center border-r border-slate-200">
+            <select class="batch-add-status w-full px-2 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white text-slate-800 outline-none">
+              <option value="개설" selected>개설</option>
+              <option value="폐강">폐강</option>
+            </select>
+          </td>
+          <td class="p-2 border-r border-slate-200">
+            <input type="text" list="curriculumTeacherDatalist" class="batch-add-teacher w-full px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-900 outline-none" placeholder="교사명 (선택)" />
+          </td>
+          <td class="p-2 text-center">
+            <button type="button" onclick="window.openSingleFromBatch(${index})" class="px-2 py-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition cursor-pointer" title="단일 추가 화면으로 설정">
+              개별설정
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      window.updateBatchAddSubmitButton();
+    };
+
+    window.openSingleFromBatch = function(index) {
+      const item = window.currentMissingSubjectsList?.[index];
+      if (!item) return;
+      window.closeBatchAddMissingModal();
+      window.openAddCourseModal({
+        grade: item.grade,
+        semester: item.semester,
+        category: '선택',
+        subject: item.subject,
+        hours: 4,
+        status: '개설',
+        teacher: '',
+        isFromMissing: true
+      });
+    };
+
+    window.applyBatchAddDefaults = function() {
+      const defCat = document.getElementById('batchAddDefaultCategory')?.value || '선택';
+      const defHours = parseFloat(document.getElementById('batchAddDefaultHours')?.value || '4') || 4;
+
+      const tbody = document.getElementById('batchAddMissingTableBody');
+      if (!tbody) return;
+
+      tbody.querySelectorAll('.batch-add-category').forEach(sel => sel.value = defCat);
+      tbody.querySelectorAll('.batch-add-hours').forEach(inp => inp.value = defHours);
+    };
+
+    window.toggleBatchAddCheckAll = function(checked) {
+      const tbody = document.getElementById('batchAddMissingTableBody');
+      if (!tbody) return;
+      tbody.querySelectorAll('.batch-add-check').forEach(chk => chk.checked = checked);
+      window.updateBatchAddSubmitButton();
+    };
+
+    window.updateBatchAddSubmitButton = function() {
+      const tbody = document.getElementById('batchAddMissingTableBody');
+      const btnText = document.getElementById('batchAddSubmitBtnText');
+      if (!tbody || !btnText) return;
+
+      const count = tbody.querySelectorAll('.batch-add-check:checked').length;
+      btnText.textContent = `선택한 ${count}개 과목 편제표에 일괄 추가`;
+
+      const allCount = tbody.querySelectorAll('.batch-add-check').length;
+      const checkAll = document.getElementById('batchAddCheckAll');
+      if (checkAll) {
+        checkAll.checked = (allCount > 0 && count === allCount);
+        checkAll.indeterminate = (count > 0 && count < allCount);
+      }
+    };
+
+    window.submitBatchAddMissingModal = function() {
+      const tbody = document.getElementById('batchAddMissingTableBody');
+      if (!tbody) return;
+      const rows = tbody.querySelectorAll('tr');
+      if (!rows || rows.length === 0) {
+        alert('추가할 누락 과목이 없습니다.');
+        return;
+      }
+
+      const checkedItems = [];
+      rows.forEach(tr => {
+        const chk = tr.querySelector('.batch-add-check');
+        if (chk && chk.checked) {
+          const grade = tr.querySelector('.batch-add-grade')?.value || '1학년';
+          const semester = parseInt(tr.querySelector('.batch-add-semester')?.value || '1', 10);
+          const subject = (tr.querySelector('.batch-add-subject')?.value || '').trim();
+          const category = tr.querySelector('.batch-add-category')?.value || '선택';
+          const hours = parseFloat(tr.querySelector('.batch-add-hours')?.value || '4') || 4;
+          const status = tr.querySelector('.batch-add-status')?.value || '개설';
+          const teacher = (tr.querySelector('.batch-add-teacher')?.value || '').trim();
+
+          if (subject) {
+            checkedItems.push({ grade, semester, subject, category, hours, status, teacher });
+          }
+        }
+      });
+
+      if (checkedItems.length === 0) {
+        alert('선택된 과목이 없습니다. 편제표에 추가할 과목의 체크박스를 선택해주세요.');
+        return;
+      }
+
+      const curriculum = getAllGradesCurriculum();
+      let addedCount = 0;
+
+      checkedItems.forEach((item, idx) => {
+        const norm = normalizeSubjectKey(item.subject);
+        const exists = curriculum.some(c => 
+          c.grade === item.grade && c.semester === item.semester && 
+          normalizeSubjectKey(c.subject) === norm
+        );
+        if (!exists) {
+          curriculum.push({
+            id: 'curr_missing_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + idx,
+            grade: item.grade,
+            semester: item.semester,
+            category: item.category,
+            subject: item.subject,
+            baseSubject: getBaseSubjectName(item.subject),
+            division: getSubjectDivision(item.subject) || '',
+            hours: item.hours,
+            originalTeacher: item.teacher,
+            teacher: (item.status === '폐강' && !item.teacher) ? '폐강' : item.teacher,
+            isModified: true,
+            status: item.status
+          });
+          addedCount++;
+        }
+      });
+
+      setAllGradesCurriculum(curriculum);
+      applyStep2ToCurriculum(true, true);
+      renderAllGradesDashboard();
+      window.closeBatchAddMissingModal();
+
+      alert(`✅ 누락 과목 [${addedCount}개]가 편제표에 성공적으로 일괄 추가되었습니다!\n전체 시수 현황 및 교사별 배정표에 반영되었습니다.`);
+    };
 
     function applyStep2ToCurriculum(preserveEdits = true, silent = false) {
       const curriculum = getAllGradesCurriculum();
@@ -13252,33 +13558,65 @@ function renderYearGradeNav() {
       console.log(`🗑️ 과목 삭제 완료: [${item.grade} ${item.semester}학기] ${item.subject} (${itemId})`);
     };
 
-    window.openAddCourseModal = function() {
-      const filterGrade = document.getElementById('allGradesFilterGrade')?.value;
-      const filterSem = document.getElementById('allGradesFilterSemester')?.value;
-      const filterCat = document.getElementById('allGradesFilterCategory')?.value;
-
+    window.openAddCourseModal = function(initialData = null) {
       const gradeSelect = document.getElementById('modalAddCourseGrade');
       const semSelect = document.getElementById('modalAddCourseSemester');
       const catSelect = document.getElementById('modalAddCourseCategory');
-
-      if (gradeSelect && filterGrade && filterGrade !== 'all') {
-        gradeSelect.value = filterGrade;
-      }
-      if (semSelect && filterSem && filterSem !== 'all') {
-        semSelect.value = filterSem;
-      }
-      if (catSelect && filterCat && filterCat !== 'all') {
-        catSelect.value = filterCat;
-      }
-
       const subjInput = document.getElementById('modalAddCourseSubject');
-      if (subjInput) subjInput.value = '';
       const teacherInput = document.getElementById('modalAddCourseTeacher');
-      if (teacherInput) teacherInput.value = '';
       const hoursInput = document.getElementById('modalAddCourseHours');
-      if (hoursInput) hoursInput.value = '4';
       const statusSelect = document.getElementById('modalAddCourseStatus');
-      if (statusSelect) statusSelect.value = '개설';
+      const titleEl = document.getElementById('modalAddCourseTitle');
+      const subTitleEl = document.getElementById('modalAddCourseSubtitle');
+
+      if (initialData) {
+        if (gradeSelect) gradeSelect.value = initialData.grade || '1학년';
+        if (semSelect) semSelect.value = String(initialData.semester || '1');
+        if (catSelect) catSelect.value = initialData.category || '선택';
+        if (subjInput) subjInput.value = initialData.subject || '';
+        if (hoursInput) hoursInput.value = initialData.hours != null ? initialData.hours : '4';
+        if (statusSelect) statusSelect.value = initialData.status || '개설';
+        if (teacherInput) teacherInput.value = initialData.teacher || '';
+
+        if (titleEl) {
+          titleEl.innerHTML = initialData.isFromMissing
+            ? '<span>누락 과목 편제표 추가</span> <span class="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-300">수강신청 연동</span>'
+            : '새 과목 직접 추가';
+        }
+        if (subTitleEl) {
+          subTitleEl.textContent = initialData.isFromMissing
+            ? '수강신청 개설 과목 중 누락된 과목을 편제표에 추가합니다. 과목 정보 및 총 시수를 확인하세요.'
+            : '편제표에 새로운 과목을 등록합니다. 학년, 학기, 과목명 등을 입력하세요.';
+        }
+      } else {
+        const filterGrade = document.getElementById('allGradesFilterGrade')?.value;
+        const filterSem = document.getElementById('allGradesFilterSemester')?.value;
+        const filterCat = document.getElementById('allGradesFilterCategory')?.value;
+
+        if (gradeSelect && filterGrade && filterGrade !== 'all') {
+          gradeSelect.value = filterGrade;
+        } else if (gradeSelect) {
+          gradeSelect.value = '1학년';
+        }
+        if (semSelect && filterSem && filterSem !== 'all') {
+          semSelect.value = filterSem;
+        } else if (semSelect) {
+          semSelect.value = '1';
+        }
+        if (catSelect && filterCat && filterCat !== 'all') {
+          catSelect.value = filterCat;
+        } else if (catSelect) {
+          catSelect.value = '선택';
+        }
+
+        if (subjInput) subjInput.value = '';
+        if (teacherInput) teacherInput.value = '';
+        if (hoursInput) hoursInput.value = '4';
+        if (statusSelect) statusSelect.value = '개설';
+
+        if (titleEl) titleEl.textContent = '새 과목 직접 추가';
+        if (subTitleEl) subTitleEl.textContent = '편제표에 새로운 과목을 등록합니다. 학년, 학기, 과목명 등을 입력하세요.';
+      }
 
       // Populate teacher autocomplete datalist
       const datalist = document.getElementById('curriculumTeacherDatalist');
@@ -13299,13 +13637,24 @@ function renderYearGradeNav() {
       const modal = document.getElementById('addCourseModal');
       if (modal) {
         modal.classList.remove('hidden');
-        setTimeout(() => subjInput?.focus(), 60);
+        setTimeout(() => {
+          if (initialData?.subject) {
+            hoursInput?.focus();
+            hoursInput?.select();
+          } else {
+            subjInput?.focus();
+          }
+        }, 60);
       }
     };
 
     window.closeAddCourseModal = function() {
       const modal = document.getElementById('addCourseModal');
       if (modal) modal.classList.add('hidden');
+      const titleEl = document.getElementById('modalAddCourseTitle');
+      const subTitleEl = document.getElementById('modalAddCourseSubtitle');
+      if (titleEl) titleEl.textContent = '새 과목 직접 추가';
+      if (subTitleEl) subTitleEl.textContent = '편제표에 새로운 과목을 등록합니다. 학년, 학기, 과목명 등을 입력하세요.';
     };
 
     window.submitAddCourseModal = function() {
@@ -13360,6 +13709,7 @@ function renderYearGradeNav() {
 
       curriculum.push(newItem);
       setAllGradesCurriculum(curriculum);
+      applyStep2ToCurriculum(true, true);
 
       // Reset filters so that the newly added course is immediately visible in the table
       const filterGrade = document.getElementById('allGradesFilterGrade');
