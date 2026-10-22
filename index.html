@@ -5617,12 +5617,92 @@
       ];
       ws['!rows'] = rowHeights;
 
-      // 1학기 스타일링
-      ExcelStyler.setRange(ws, r1Start, 0, r1Start, 5, ExcelStyler.titleStyle(true));
-      ExcelStyler.setRange(ws, r1Start + 1, 0, r1Start + 1, 5, ExcelStyler.subtitleStyle(true));
+      // ==========================================
+      // 파스텔 톤 엑셀 스타일링 테마 적용
+      // ==========================================
+      const pastelSem1 = {
+        titleBg: 'EEF2FF',      // 부드러운 파스텔 라벤더/인디고
+        titleText: '1E3A8A',    // 단정한 짙은 네이비 텍스트
+        subBg: 'F8FAFC',        // 부드러운 슬레이트
+        subText: '64748B',      // 슬레이트 그레이
+        headerBg: 'E0E7FF',     // 파스텔 소프트 블루/인디고 헤더
+        headerText: '1E3A8A',   // 짙은 네이비 볼드
+        headerBorder: 'A5B4FC', // 파스텔 구분 테두리
+        sumBg: 'EEF2FF',        // 합계 파스텔 인디고 배경
+        sumText: '1E3A8A'       // 합계 네이비 텍스트
+      };
+
+      const pastelSem2 = {
+        titleBg: 'ECFDF5',      // 부드러운 파스텔 민트/에메랄드
+        titleText: '065F46',    // 단정한 짙은 그린/틸 텍스트
+        subBg: 'F8FAFC',        // 부드러운 슬레이트
+        subText: '64748B',      // 슬레이트 그레이
+        headerBg: 'CCFBF1',     // 파스텔 소프트 민트 헤더
+        headerText: '0F766E',   // 짙은 청록 볼드
+        headerBorder: '5EEAD4', // 파스텔 민트 구분 테두리
+        sumBg: 'ECFDF5',        // 합계 파스텔 민트 배경
+        sumText: '065F46'       // 합계 틸 텍스트
+      };
+
+      const pastelCommon = {
+        rowEven: 'F8FAFC',      // 은은한 슬레이트 화이트
+        rowOdd: 'FFFFFF',       // 순백색
+        borderSoft: 'CBD5E1',   // 부드러운 소프트 그리드 테두리
+        closedBg: 'FEE2E2',     // 파스텔 로즈 (폐강 확정)
+        closedText: 'DC2626',   // 부드러운 레드
+        underBg: 'FEF3C7',      // 파스텔 웜 앰버 (폐강 예정)
+        underText: 'B45309',    // 차분한 앰버 브라운
+        openBg: 'F0FDF4',       // 파스텔 라이트 그린 (개설 상태)
+        openText: '15803D'      // 차분한 그린
+      };
+
+      const softBorder = {
+        top: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+        bottom: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+        left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+        right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+      };
+
+      // 1학기 타이틀 & 부제목 (파스텔 톤)
+      ExcelStyler.setRange(ws, r1Start, 0, r1Start, 5, {
+        font: { name: ExcelStyler.fontFamily, sz: 13, bold: true, color: { rgb: pastelSem1.titleText } },
+        fill: { fgColor: { rgb: pastelSem1.titleBg } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'medium', color: { rgb: '93C5FD' } },
+          bottom: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+          left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+          right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+        }
+      });
+      ExcelStyler.setRange(ws, r1Start + 1, 0, r1Start + 1, 5, {
+        font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: pastelSem1.subText } },
+        fill: { fgColor: { rgb: pastelSem1.subBg } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+          bottom: { style: 'medium', color: { rgb: '93C5FD' } },
+          left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+          right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+        }
+      });
+
+      // 1학기 헤더 행 (파스텔 소프트 인디고)
       for (let c = 0; c < 6; c++) {
-        ExcelStyler.setCell(ws, r1Start + 3, c, ExcelStyler.headerStyle(ExcelStyler.colors.navyMid, c === 5, c === 0));
+        ExcelStyler.setCell(ws, r1Start + 3, c, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: pastelSem1.headerText } },
+          fill: { fgColor: { rgb: pastelSem1.headerBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'medium', color: { rgb: pastelSem1.headerBorder } },
+            bottom: { style: 'medium', color: { rgb: pastelSem1.headerBorder } },
+            left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+            right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+          }
+        });
       }
+
+      // 1학기 데이터 행
       fullSem1Subjs.forEach((s, idx) => {
         const r = r1Start + 4 + idx;
         const isEven = idx % 2 === 1;
@@ -5634,23 +5714,116 @@
         if (!sem1Subjs.includes(s) && prev1InfoMap[s]) count = prev1InfoMap[s].count || 0;
         const isUnder = count <= threshold;
         const isClosed = closed1List.includes(s) || prev1ClosedSet.has(s);
-        ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-        ExcelStyler.setCell(ws, r, 1, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 2, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 3, (isClosed || isUnder) ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 4, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 5, ExcelStyler.dataText(isEven, true, false));
+
+        const rowBg = isClosed ? pastelCommon.closedBg : (isUnder ? pastelCommon.underBg : (isEven ? pastelCommon.rowEven : pastelCommon.rowOdd));
+        const textColor = isClosed ? pastelCommon.closedText : (isUnder ? pastelCommon.underText : ExcelStyler.colors.slateText);
+
+        // 연번 (중앙)
+        ExcelStyler.setCell(ws, r, 0, {
+          font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
+          fill: { fgColor: { rgb: rowBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 과목명 (좌측, 볼드)
+        ExcelStyler.setCell(ws, r, 1, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: textColor } },
+          fill: { fgColor: { rgb: rowBg } },
+          alignment: { horizontal: 'left', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 수강 신청 인원 (중앙, 볼드)
+        ExcelStyler.setCell(ws, r, 2, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: textColor } },
+          fill: { fgColor: { rgb: rowBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 개설 상태 (중앙, 상태별 파스텔 뱃지 색감)
+        const statusBg = isClosed ? pastelCommon.closedBg : (isUnder ? pastelCommon.underBg : pastelCommon.openBg);
+        const statusColor = isClosed ? pastelCommon.closedText : (isUnder ? pastelCommon.underText : pastelCommon.openText);
+        ExcelStyler.setCell(ws, r, 3, {
+          font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, color: { rgb: statusColor } },
+          fill: { fgColor: { rgb: statusBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 폐강 확정 (중앙)
+        ExcelStyler.setCell(ws, r, 4, {
+          font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: isClosed, color: { rgb: isClosed ? pastelCommon.closedText : textColor } },
+          fill: { fgColor: { rgb: isClosed ? pastelCommon.closedBg : rowBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 폐강 보류 및 비고 메모 (좌측)
+        ExcelStyler.setCell(ws, r, 5, {
+          font: { name: ExcelStyler.fontFamily, sz: 9, color: { rgb: ExcelStyler.colors.slateMuted } },
+          fill: { fgColor: { rgb: rowBg } },
+          alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+          border: softBorder
+        });
       });
+
+      // 1학기 합계 행 (파스텔 소프트 인디고 요약)
       for (let c = 0; c < 6; c++) {
-        ExcelStyler.setCell(ws, r1Sum, c, ExcelStyler.summaryStyle(c === 3 && under1 > 0, c === 5, c === 0));
+        ExcelStyler.setCell(ws, r1Sum, c, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: pastelSem1.sumText } },
+          fill: { fgColor: { rgb: pastelSem1.sumBg } },
+          alignment: { horizontal: c === 1 || c === 5 ? 'left' : 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: pastelSem1.headerBorder } },
+            bottom: { style: 'double', color: { rgb: pastelSem1.headerBorder } },
+            left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+            right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+          }
+        });
       }
 
-      // 2학기 스타일링
-      ExcelStyler.setRange(ws, r2Start, 0, r2Start, 5, ExcelStyler.titleStyle(true));
-      ExcelStyler.setRange(ws, r2Start + 1, 0, r2Start + 1, 5, ExcelStyler.subtitleStyle(true));
+      // 2학기 타이틀 & 부제목 (파스텔 소프트 민트 톤)
+      ExcelStyler.setRange(ws, r2Start, 0, r2Start, 5, {
+        font: { name: ExcelStyler.fontFamily, sz: 13, bold: true, color: { rgb: pastelSem2.titleText } },
+        fill: { fgColor: { rgb: pastelSem2.titleBg } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'medium', color: { rgb: '6EE7B7' } },
+          bottom: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+          left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+          right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+        }
+      });
+      ExcelStyler.setRange(ws, r2Start + 1, 0, r2Start + 1, 5, {
+        font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: pastelSem2.subText } },
+        fill: { fgColor: { rgb: pastelSem2.subBg } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+          bottom: { style: 'medium', color: { rgb: '6EE7B7' } },
+          left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+          right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+        }
+      });
+
+      // 2학기 헤더 행 (파스텔 소프트 민트)
       for (let c = 0; c < 6; c++) {
-        ExcelStyler.setCell(ws, r2Start + 3, c, ExcelStyler.headerStyle('0F766E', c === 5, c === 0)); // 청록색 계열로 2학기 구분
+        ExcelStyler.setCell(ws, r2Start + 3, c, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: pastelSem2.headerText } },
+          fill: { fgColor: { rgb: pastelSem2.headerBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'medium', color: { rgb: pastelSem2.headerBorder } },
+            bottom: { style: 'medium', color: { rgb: pastelSem2.headerBorder } },
+            left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+            right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+          }
+        });
       }
+
+      // 2학기 데이터 행
       fullSem2Subjs.forEach((s, idx) => {
         const r = r2Start + 4 + idx;
         const isEven = idx % 2 === 1;
@@ -5662,15 +5835,74 @@
         if (!sem2Subjs.includes(s) && prev2InfoMap[s]) count = prev2InfoMap[s].count || 0;
         const isUnder = count <= threshold;
         const isClosed = closed2List.includes(s) || prev2ClosedSet.has(s);
-        ExcelStyler.setCell(ws, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-        ExcelStyler.setCell(ws, r, 1, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataBold(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 2, isUnder ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 3, (isClosed || isUnder) ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 4, isClosed ? ExcelStyler.dataWarning(false, false) : ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(ws, r, 5, ExcelStyler.dataText(isEven, true, false));
+
+        const rowBg = isClosed ? pastelCommon.closedBg : (isUnder ? pastelCommon.underBg : (isEven ? pastelCommon.rowEven : pastelCommon.rowOdd));
+        const textColor = isClosed ? pastelCommon.closedText : (isUnder ? pastelCommon.underText : ExcelStyler.colors.slateText);
+
+        // 연번 (중앙)
+        ExcelStyler.setCell(ws, r, 0, {
+          font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: textColor } },
+          fill: { fgColor: { rgb: rowBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 과목명 (좌측, 볼드)
+        ExcelStyler.setCell(ws, r, 1, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: textColor } },
+          fill: { fgColor: { rgb: rowBg } },
+          alignment: { horizontal: 'left', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 수강 신청 인원 (중앙, 볼드)
+        ExcelStyler.setCell(ws, r, 2, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: textColor } },
+          fill: { fgColor: { rgb: rowBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 개설 상태 (중앙, 상태별 파스텔 뱃지 색감)
+        const statusBg = isClosed ? pastelCommon.closedBg : (isUnder ? pastelCommon.underBg : pastelCommon.openBg);
+        const statusColor = isClosed ? pastelCommon.closedText : (isUnder ? pastelCommon.underText : pastelCommon.openText);
+        ExcelStyler.setCell(ws, r, 3, {
+          font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, color: { rgb: statusColor } },
+          fill: { fgColor: { rgb: statusBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 폐강 확정 (중앙)
+        ExcelStyler.setCell(ws, r, 4, {
+          font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: isClosed, color: { rgb: isClosed ? pastelCommon.closedText : textColor } },
+          fill: { fgColor: { rgb: isClosed ? pastelCommon.closedBg : rowBg } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 폐강 보류 및 비고 메모 (좌측)
+        ExcelStyler.setCell(ws, r, 5, {
+          font: { name: ExcelStyler.fontFamily, sz: 9, color: { rgb: ExcelStyler.colors.slateMuted } },
+          fill: { fgColor: { rgb: rowBg } },
+          alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+          border: softBorder
+        });
       });
+
+      // 2학기 합계 행 (파스텔 소프트 민트 요약)
       for (let c = 0; c < 6; c++) {
-        ExcelStyler.setCell(ws, r2Sum, c, ExcelStyler.summaryStyle(c === 3 && under2 > 0, c === 5, c === 0));
+        ExcelStyler.setCell(ws, r2Sum, c, {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: pastelSem2.sumText } },
+          fill: { fgColor: { rgb: pastelSem2.sumBg } },
+          alignment: { horizontal: c === 1 || c === 5 ? 'left' : 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: pastelSem2.headerBorder } },
+            bottom: { style: 'double', color: { rgb: pastelSem2.headerBorder } },
+            left: { style: 'thin', color: { rgb: pastelCommon.borderSoft } },
+            right: { style: 'thin', color: { rgb: pastelCommon.borderSoft } }
+          }
+        });
       }
 
       // ================= 페이지 인쇄 및 영역 설정 (한 페이지 인쇄 최적화) =================
