@@ -2565,6 +2565,15 @@
         };
       },
 
+      dataText(isEven, isGroupRight = false, isGroupLeft = false) {
+        return {
+          font: { name: this.fontFamily, sz: 10, color: { rgb: this.colors.slateText } },
+          fill: { fgColor: { rgb: isEven ? this.colors.slateBg : 'FFFFFF' } },
+          alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+          border: this.getBorder(isGroupRight, isGroupLeft)
+        };
+      },
+
       dataBold(isEven, isGroupRight = false, isGroupLeft = false) {
         return {
           font: { name: this.fontFamily, sz: 10, bold: true, color: { rgb: this.colors.slateDark } },
@@ -5479,8 +5488,14 @@
     });
 
     function exportSubjectSummaryExcel() {
-      const threshold = AppState.step1Threshold;
-      const wb = XLSX.utils.book_new();
+      try {
+        if (!AppState.students || AppState.students.length === 0) {
+          alert('다운로드할 1단계 학생 수강신청 데이터가 없습니다. 먼저 엑셀 파일을 업로드해주세요.');
+          return;
+        }
+
+        const threshold = AppState.step1Threshold;
+        const wb = XLSX.utils.book_new();
 
       const rows = [];
       const rowHeights = [];
@@ -5687,12 +5702,12 @@
         footer: 0.2
       };
 
-      // 인쇄 영역 설정 (A1부터 마지막 합계행 E열까지)
+      // 인쇄 영역 설정 (A1부터 마지막 합계행 F열까지, 총 6개 열)
       wb.Workbook = wb.Workbook || {};
       wb.Workbook.Names = wb.Workbook.Names || [];
       wb.Workbook.Names.push({
         Name: '_xlnm.Print_Area',
-        Ref: `'과목별_개설_폐강현황'!$A$1:$E$${rows.length}`,
+        Ref: `'과목별_개설_폐강현황'!$A$1:$F$${rows.length}`,
         Sheet: 0
       });
 
@@ -5701,18 +5716,28 @@
       // 다운로드 날짜 기입 (_YYMMDD 포맷, 예: _260101)
       const fileName = buildExportFileName(`${AppState.detectedGrade} 과목별 개설 폐강현황표`, "xlsx");
       window.saveExcelFile(wb, fileName);
+    } catch (err) {
+      console.error('exportSubjectSummaryExcel error:', err);
+      alert('과목별 개설·폐강 현황표 엑셀 다운로드 중 오류가 발생했습니다: ' + err.message);
     }
+  }
 
-    // Step 1 Single Excel Export (1학기 & 2학기 탭 구성)
-    btnExportStep1.addEventListener('click', () => {
-      exportStep1Excel();
-    });
+  // Step 1 Single Excel Export (1학기 & 2학기 탭 구성)
+  btnExportStep1?.addEventListener('click', () => {
+    exportStep1Excel();
+  });
 
-    function exportStep1Excel() {
+  function exportStep1Excel() {
+    try {
+      if (!AppState.students || AppState.students.length === 0) {
+        alert('다운로드할 1단계 학생 수강신청 데이터가 없습니다. 먼저 엑셀 파일을 업로드해주세요.');
+        return;
+      }
+
       const wb = XLSX.utils.book_new();
 
       [1, 2].forEach(sem => {
-        const subjects = sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects;
+        const subjects = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
         const threshold = AppState.step1Threshold;
         const counts = {};
         const normMap = {};
@@ -5889,7 +5914,11 @@
 
       const fileName = buildExportFileName(`${AppState.detectedGrade} 선택과목 1단계 현황표`, "xlsx");
       window.saveExcelFile(wb, fileName);
+    } catch (err) {
+      console.error('exportStep1Excel error:', err);
+      alert('1단계 현황표 엑셀 다운로드 중 오류가 발생했습니다: ' + err.message);
     }
+  }
 
     // ==========================================
     // 4. STEP 2: GROUPING / OPTIMIZATION ENGINE
