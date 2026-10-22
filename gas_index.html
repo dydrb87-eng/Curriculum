@@ -10212,7 +10212,7 @@
       const grpHeader = [];
       const placeCols = [];
       plan.groups.forEach((_, gIdx) => {
-        grpHeader.push(`${gIdx + 1}그룹 (중복 ${expGroupCounts[gIdx] || 0}명)`);
+        grpHeader.push(`${gIdx + 1}그룹`);
         placeCols.push({ wch: 22 });
       });
       planRows.push(grpHeader);
@@ -10328,9 +10328,7 @@
       rowHeights.push({ hpt: 34 });
 
       // Row 1: Subtitle
-      const conf1Str = plan1 ? `1학기: 충돌 ${plan1.conflictCount || 0}명 (${groups1.length}개 그룹)` : '1학기: 미편성';
-      const conf2Str = plan2 ? `2학기: 충돌 ${plan2.conflictCount || 0}명 (${groups2.length}개 그룹)` : '2학기: 미편성';
-      const subTitleRow = [`[상지대관령고등학교] ${conf1Str} | ${conf2Str} | 출력일시: ${new Date().toLocaleString()}`];
+      const subTitleRow = [`출력일시: ${new Date().toLocaleString()}`];
       for (let c = 1; c < totalCols; c++) subTitleRow.push('');
       rows.push(subTitleRow);
       merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } });
@@ -10342,7 +10340,7 @@
 
       // --- SECTION 1: 1학기 과목 그룹핑 배치표 ---
       const sem1BannerR = rows.length;
-      const sem1BannerText = `📘 [1학기] 과목 그룹핑 배치표 (총 ${groups1.length}개 그룹 / 학생 수강 충돌 ${plan1 ? (plan1.conflictCount || 0) : 0}명)`;
+      const sem1BannerText = `📘 [1학기] 과목 그룹핑 배치표 (총 ${groups1.length}개 그룹)`;
       const sem1BannerRow = [sem1BannerText];
       for (let c = 1; c < totalCols; c++) sem1BannerRow.push('');
       rows.push(sem1BannerRow);
@@ -10354,7 +10352,7 @@
       const sem1HeaderRow = [];
       for (let gIdx = 0; gIdx < totalCols; gIdx++) {
         if (gIdx < groups1.length) {
-          sem1HeaderRow.push(`${gIdx + 1}그룹 (중복 ${expGroupCounts1[gIdx] || 0}명)`);
+          sem1HeaderRow.push(`${gIdx + 1}그룹`);
         } else {
           sem1HeaderRow.push('');
         }
@@ -10389,7 +10387,7 @@
 
       // --- SECTION 2: 2학기 과목 그룹핑 배치표 ---
       const sem2BannerR = rows.length;
-      const sem2BannerText = `📗 [2학기] 과목 그룹핑 배치표 (총 ${groups2.length}개 그룹 / 학생 수강 충돌 ${plan2 ? (plan2.conflictCount || 0) : 0}명)`;
+      const sem2BannerText = `📗 [2학기] 과목 그룹핑 배치표 (총 ${groups2.length}개 그룹)`;
       const sem2BannerRow = [sem2BannerText];
       for (let c = 1; c < totalCols; c++) sem2BannerRow.push('');
       rows.push(sem2BannerRow);
@@ -10401,7 +10399,7 @@
       const sem2HeaderRow = [];
       for (let gIdx = 0; gIdx < totalCols; gIdx++) {
         if (gIdx < groups2.length) {
-          sem2HeaderRow.push(`${gIdx + 1}그룹 (중복 ${expGroupCounts2[gIdx] || 0}명)`);
+          sem2HeaderRow.push(`${gIdx + 1}그룹`);
         } else {
           sem2HeaderRow.push('');
         }
