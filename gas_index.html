@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_15:45)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_16:45)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_15:45)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_16:45)</p>
         </div>
       </div>
 
@@ -16004,6 +16004,8 @@ function renderYearGradeNav() {
             modCount = gData.students.filter(st => isStudentChoicesModified(st, 1) || isStudentChoicesModified(st, 2)).length;
           }
 
+          const countBadgeText = hasPrior ? `${count}명/${priorCount}명` : `${count}명`;
+
           return `
             <button type="button" 
                     onclick="window.switchAcademicContext('${MultiState.activeYear}', '${g}')"
@@ -16012,18 +16014,18 @@ function renderYearGradeNav() {
                         ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
                     }"
-                    title="${MultiState.activeYear}학년도 ${g} 작업 환경으로 전환">
+                    title="${MultiState.activeYear}학년도 ${g} (수강신청: ${count}명${hasPrior ? ` / 등록학생: ${priorCount}명` : ''})">
               <span class="whitespace-nowrap">${g}</span>
               <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold whitespace-nowrap ${
                 isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
               }">
-                ${count}명
+                ${countBadgeText}
               </span>
               ${hasPrior ? `
                 <span class="text-[10px] px-1 py-0.2 rounded font-bold whitespace-nowrap ${
                   isActive ? 'bg-emerald-400 text-slate-900 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
-                }" title="사전 명부 ${priorCount}명 등록됨">
-                  명부✓
+                }" title="사전 등록학생 명부 ${priorCount}명 등록 완료">
+                  ✓
                 </span>
               ` : ''}
               ${modCount > 0 ? `
