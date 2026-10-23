@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_13:20)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_15:45)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_13:20)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_15:45)</p>
         </div>
       </div>
 
@@ -308,7 +308,7 @@
         <!-- CARD 2: Survey Data (구글 폼 수강신청 결과 엑셀) -->
         <div class="bg-white rounded-2xl border-2 border-blue-200 hover:border-blue-400 p-6 shadow-sm transition-all flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between pb-3 border-b border-blue-100">
+            <div class="flex items-center justify-between pb-3 border-b border-blue-100 flex-wrap gap-2">
               <div class="flex items-center space-x-2.5">
                 <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm shadow-xs">2</span>
                 <div>
@@ -319,6 +319,10 @@
                   <p class="text-[11px] text-slate-500 mt-0.5">학생들이 응답한 선택과목 신청 결과 엑셀 파일</p>
                 </div>
               </div>
+              <button type="button" onclick="window.downloadSurveyExcelTemplate()" class="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 font-bold text-xs rounded-xl shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer" title="수강신청 조사 엑셀 양식 및 작성 가이드 다운로드">
+                <span class="text-sm">📄</span>
+                <span>수강신청 양식 다운로드</span>
+              </button>
             </div>
 
             <!-- Survey Drop Zone -->
@@ -350,12 +354,14 @@
           </div>
 
           <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3">
               <label for="dropzoneBackupInput" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer" title="저장한 백업 파일(.json)을 불러옵니다">
                 <span>📂 백업 파일(.json) 불러오기</span>
                 <input type="file" id="dropzoneBackupInput" accept=".json" class="hidden" onchange="if(this.files[0]) { window.importBackupJsonFile(this.files[0]); this.value=''; }" />
               </label>
-
+              <button type="button" onclick="window.downloadSurveyExcelTemplate()" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer" title="수강신청 조사 엑셀 양식 및 작성 가이드 다운로드">
+                <span>📄 조사 양식 다운로드 (.xlsx)</span>
+              </button>
             </div>
             <span class="text-[11px] text-slate-500 font-medium">
               💡 저장된 JSON 백업 파일 또는 엑셀 파일을 불러오면 바로 작업이 시작됩니다.
@@ -712,10 +718,10 @@
               <span class="text-2xl">🔍</span>
               <div>
                 <h3 class="text-sm sm:text-base font-black text-amber-950 flex items-center gap-2">
-                  <span>사전 데이터 대조 분석 결과</span>
-                  <span class="text-[10px] font-extrabold px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full">학생 명부 & 기이수·동일과목 교차 검증</span>
+                  <span>수강신청 미신청 학생 및 중복 신청자 명단</span>
+                  <span class="text-[10px] font-extrabold px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full">학생 명부 & 교차 검증</span>
                 </h3>
-                <p class="text-xs text-amber-800 mt-0.5">사전 등록된 학생 명부와 기이수 과목, 그리고 현재 학년 1·2학기 신청 내역을 대조하여 미신청자 및 동일 과목 중복 수강 신청을 탐지했습니다.</p>
+                <p class="text-xs text-amber-800 mt-0.5">사전 등록된 학생 명부와 기이수 과목, 그리고 현재 학년 1·2학기 신청 내역을 대조하여 미신청자 및 동일 과목 중복 수강 신청을 탐지한 명단입니다.</p>
               </div>
             </div>
             <div class="flex items-center space-x-2">
@@ -6053,6 +6059,69 @@
     }
     window.getPreviousDatesClosedSubjectsHistory = getPreviousDatesClosedSubjectsHistory;
 
+    // 수강신청 조사 엑셀 양식 및 작성 가이드 다운로드 함수
+    window.downloadSurveyExcelTemplate = function() {
+      if (typeof XLSX === 'undefined') {
+        alert('엑셀 라이브러리가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: 수강신청_조사_양식
+      const sampleRows = [
+        ['타임스탬프', '학번', '성명', '1학기 선택과목1', '1학기 선택과목2', '1학기 선택과목3', '2학기 선택과목1', '2학기 선택과목2', '2학기 선택과목3'],
+        ['2026. 10. 15. 오전 9:10:00', 2101, '김민준', '물리학Ⅰ', '화학Ⅰ', '세계지리', '물리학Ⅱ', '화학Ⅱ', '여행지리'],
+        ['2026. 10. 15. 오전 9:12:30', 2102, '이서연', '생명과학Ⅰ', '지구과학Ⅰ', '사회·문화', '생명과학Ⅱ', '지구과학Ⅱ', '생활과 윤리'],
+        ['2026. 10. 15. 오전 9:15:10', 2201, '박도윤', '세계사', '경제', '정치와 법', '동아시아사', '현대사회와 철학', '인간과 심리'],
+        ['2026. 10. 15. 오전 9:18:45', 2202, '최예은', '화학Ⅰ', '생명과학Ⅰ', '사회·문화', '화학Ⅱ', '생명과학Ⅱ', '윤리와 사상']
+      ];
+      const ws1 = XLSX.utils.aoa_to_sheet(sampleRows);
+      ws1['!cols'] = [
+        { wch: 25 }, { wch: 10 }, { wch: 12 },
+        { wch: 18 }, { wch: 18 }, { wch: 18 },
+        { wch: 18 }, { wch: 18 }, { wch: 18 }
+      ];
+      XLSX.utils.book_append_sheet(wb, ws1, '수강신청_조사_양식');
+
+      // Sheet 2: 작성_가이드_및_인식기준
+      const guideRows = [
+        ['수강신청 조사 엑셀 파일 작성 가이드 및 시스템 인식 기준'],
+        [''],
+        ['1. 권장 서식 및 기본 원칙'],
+        ['  - 1행은 반드시 열 헤더(타임스탬프, 학번, 성명, 1학기 선택과목 등)여야 합니다.'],
+        ['  - 구글 설문지, 네이버 폼, 리로스쿨 등에서 내려받은 엑셀(.xlsx) 원본을 그대로 업로드하셔도 대부분 자동 인식됩니다.'],
+        ['  - 학번은 4자리(예: 2101 -> 2학년 1반 1번) 또는 반, 번호 개별 열 모두 지원합니다.'],
+        [''],
+        ['2. 열(헤더) 자동 인식 키워드'],
+        ['  - 학번: [학번], [학생번호], [번호], [ID], [코드]'],
+        ['  - 성명: [이름], [성명], [학생명], [학생 성명]'],
+        ['  - 반 / 번호(개별 열일 경우): [반], [학급] / [번호], [출석번호]'],
+        ['  - 과목 열: [1학기], [2학기], [선택], [과목], [지망], [희망], [과목명]'],
+        [''],
+        ['3. 과목명 띄어쓰기 및 기호 자동 정규화 인식 기준'],
+        ['  - 띄어쓰기 무시: [세계 지리]와 [세계지리], [생활과 윤리]와 [생활과윤리] 등 공백 유무에 관계없이 100% 동일 과목으로 인식합니다.'],
+        ['  - 로마자 및 숫자 변환: [물리학Ⅰ], [물리학I], [물리학1] 등 로마숫자(Ⅰ,Ⅱ), 알파벳(I,II), 아라비아 숫자(1,2)를 상호 호환하여 인식합니다.'],
+        ['  - 특수기호 유연 처리: 가운뎃점(·), 슬래시(/), 쉼표(,), 하이픈(-), 밑줄(_) 등이 포함되어도 핵심 과목명을 찾아냅니다. (예: 사회·문화 = 사회문화)'],
+        ['  - 괄호 및 교과 코드 제거: [물리학Ⅰ(3단위)], [[선택] 화학Ⅰ] 등 접두/접미어나 단위수 표기는 자동으로 순수 과목명으로 정제됩니다.'],
+        [''],
+        ['4. 전체 수강 과목 (체육 및 학교지정 공통과목 안내)'],
+        ['  - 스포츠 문화, 스포츠 과학, 학교지정 공통 과목 등 학년 전체 학생이 이수하는 과목은 학생 선택 설문지에 없어도 무방합니다.'],
+        ['  - 시스템 1단계의 [사전 등록 데이터(NEIS 학생 명부)]를 기준으로 1반, 2반 전체 학생 인원 및 수강자 명단이 자동으로 배정·정리됩니다.'],
+        [''],
+        ['5. 비고 및 팁'],
+        ['  - 과목명이 교육과정 편제표와 크게 상이한 경우 편제표 기준 과목명으로 작성해주시면 더욱 정확하게 분석됩니다.']
+      ];
+      const ws2 = XLSX.utils.aoa_to_sheet(guideRows);
+      ws2['!cols'] = [{ wch: 110 }];
+      XLSX.utils.book_append_sheet(wb, ws2, '작성_가이드_및_인식기준');
+
+      const curGrade = MultiState.activeGrade || AppState.detectedGrade || '2학년';
+      const acadYear = MultiState.activeAcademicYear || '2027학년도';
+      const fileName = `${acadYear}_${curGrade}_수강신청_조사_양식_및_가이드.xlsx`;
+      XLSX.writeFile(wb, fileName);
+    };
+
+
     // Render Subject Summary & Retention Table (과목별 수강 인원 및 개설·폐강 현황)
     function renderSubjectSummaryTable() {
       const sem = AppState.currentSemester;
@@ -6166,14 +6235,9 @@
         });
       }
 
-      // 이전 기준 날짜의 폐강 과목들을 현재 탭의 closedSubjects에도 자동 동기화 보존
+      // 현재 학기 closedSubjects 초기화 (사용자 해제 상태 존중)
       if (!AppState.closedSubjects) AppState.closedSubjects = { 1: [], 2: [] };
       if (!AppState.closedSubjects[sem]) AppState.closedSubjects[sem] = [];
-      allPrevClosedSet.forEach(prevS => {
-        if (!AppState.closedSubjects[sem].includes(prevS)) {
-          AppState.closedSubjects[sem].push(prevS);
-        }
-      });
 
       const closedList = AppState.closedSubjects?.[sem] || [];
       const memoMap = AppState.subjectMemos?.[sem] || {};
@@ -19905,12 +19969,23 @@ function renderYearGradeNav() {
             rowStyleInfo.push({ isClosed: false, isEven });
           });
         } else if (gradeStr === '1학년') {
-          // 1학년 (신입생 전원 수강): 학급 수 기준 행 분리
-          const totalGrade1Students = students.length || 44;
-          const half1 = Math.floor(totalGrade1Students / 2);
-          const half2 = totalGrade1Students - half1;
+          // 1학년 (신입생 전원 수강): 사전데이터 우선 적용 및 학급 수 기준 행 분리
+          const priorG1 = yData['1학년']?.priorData?.students;
+          const g1Students = (priorG1 && priorG1.length > 0) ? priorG1 : students;
+          const totalGrade1Students = g1Students.length || 44;
+          const class1 = g1Students.filter(st => String(st.classNum).replace(/[^0-9]/g, '') === '1');
+          const class2 = g1Students.filter(st => String(st.classNum).replace(/[^0-9]/g, '') === '2');
+          const half1 = class1.length > 0 ? class1.length : Math.floor(totalGrade1Students / 2);
+          const half2 = class2.length > 0 ? class2.length : (totalGrade1Students - half1);
+          const l1 = class1.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+          const l2 = class2.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+          l1.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+          l2.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+
           const teacher1 = items[0]?.teacher || '-';
           const teacher2 = items[1]?.teacher || items[0]?.teacher || '-';
+          const r1Roster = l1.length > 0 ? l1.join(', ') : `전원 배정 (1반 ${half1}명)`;
+          const r2Roster = l2.length > 0 ? l2.join(', ') : `전원 배정 (2반 ${half2}명)`;
 
           rows.push([
             `${sem}학기`,
@@ -19918,12 +19993,12 @@ function renderYearGradeNav() {
             `${subjName} (${totalGrade1Students}명)`,
             '1반',
             `${half1}명`,
-            `전원 배정 (1반 ${half1}명)`,
+            r1Roster,
             publisher,
             teacher1
           ]);
           currentTeachers.push(teacher1);
-          rowHeights.push({ hpt: 24 });
+          rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(r1Roster.length / 50) * 13)) });
           rowStyleInfo.push({ isClosed: false, isEven });
 
           rows.push([
@@ -19932,16 +20007,24 @@ function renderYearGradeNav() {
             `${subjName} (${totalGrade1Students}명)`,
             '2반',
             `${half2}명`,
-            `전원 배정 (2반 ${half2}명)`,
+            r2Roster,
             publisher,
             teacher2
           ]);
           currentTeachers.push(teacher2);
-          rowHeights.push({ hpt: 24 });
+          rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(r2Roster.length / 50) * 13)) });
           rowStyleInfo.push({ isClosed: false, isEven });
-        } else if (items.some(it => it.category === '지정' || it.category === '학교지정')) {
-          // 2·3학년 학교지정(공통) 과목: 각 학급별(1반, 2반)로 행 분리
-          const totalCount = students.length || (gradeStr === '2학년' ? 44 : 19);
+        } else if (
+          items.some(it => it.category === '지정' || it.category === '학교지정') ||
+          ['스포츠문화', '스포츠과학', '스포츠생활', '운동과건강'].some(k => normSubj.includes(k) || k.includes(normSubj))
+        ) {
+          // 2·3학년 학교지정(공통) 및 전체 수강 과목 (스포츠 문화, 스포츠 과학 등):
+          // 전체가 듣는 과목은 수강신청 인원이 아니라 [사전데이터(priorData.students)] 기준!
+          const priorStudents = yData[gradeStr]?.priorData?.students;
+          const wholeGradeStudents = (priorStudents && priorStudents.length > 0) ? priorStudents : students;
+          const defaultTotal = (gradeStr === '2학년' ? 44 : 19);
+          const totalCount = wholeGradeStudents.length || defaultTotal;
+          const numClasses = parseInt(classCounts[gradeStr] || 2, 10) || 2;
 
           if (items.length > 1) {
             items.forEach((it, itIdx) => {
@@ -19950,11 +20033,11 @@ function renderYearGradeNav() {
                 classTarget = `${itIdx + 1}반`;
               }
               const classNum = classTarget.replace(/[^0-9]/g, '') || String(itIdx + 1);
-              const classStudents = students.filter(st => String(st.classNum) === classNum);
+              const classStudents = wholeGradeStudents.filter(st => String(st.classNum).replace(/[^0-9]/g, '') === classNum);
               const labels = classStudents.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
               labels.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
 
-              const cCount = classStudents.length > 0 ? `${classStudents.length}명` : (gradeStr === '2학년' ? '22명' : '10명');
+              const cCount = classStudents.length > 0 ? `${classStudents.length}명` : `${Math.floor(totalCount / items.length)}명`;
               const cRoster = labels.length > 0 ? labels.join(', ') : `전원 배정 (${classTarget})`;
 
               rows.push([
@@ -19973,48 +20056,32 @@ function renderYearGradeNav() {
               rowStyleInfo.push({ isClosed: false, isEven });
             });
           } else {
-            // 단일 행으로 들어온 경우: 1반과 2반으로 2개 행 분리
-            const class1 = students.filter(st => String(st.classNum) === '1');
-            const class2 = students.filter(st => String(st.classNum) === '2');
+            // 단일 행으로 들어온 경우: 각 반(1반, 2반...)으로 분리
+            for (let cIdx = 1; cIdx <= numClasses; cIdx++) {
+              const cNum = String(cIdx);
+              const classStudents = wholeGradeStudents.filter(st => String(st.classNum).replace(/[^0-9]/g, '') === cNum);
+              const labels = classStudents.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
+              labels.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
 
-            const l1 = class1.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
-            const l2 = class2.map(st => `${st.studentNum ? st.studentNum + '번 ' : ''}${st.name || '학생'}`.trim());
-            l1.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
-            l2.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+              const cCount = classStudents.length > 0 ? `${classStudents.length}명` : `${Math.floor(totalCount / numClasses)}명`;
+              const cRoster = labels.length > 0 ? labels.join(', ') : `전원 배정 (${cIdx}반)`;
+              const tName = representative.teacher || '-';
 
-            const tName = representative.teacher || '-';
-
-            // 1반 행
-            const r1Roster = l1.length > 0 ? l1.join(', ') : '전원 배정 (1반)';
-            rows.push([
-              `${sem}학기`,
-              gradeStr,
-              `${subjName} (${totalCount}명)`,
-              '1반',
-              class1.length > 0 ? `${class1.length}명` : '22명',
-              r1Roster,
-              publisher,
-              tName
-            ]);
-            currentTeachers.push(tName);
-            rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(r1Roster.length / 50) * 13)) });
-            rowStyleInfo.push({ isClosed: false, isEven });
-
-            // 2반 행
-            const r2Roster = l2.length > 0 ? l2.join(', ') : '전원 배정 (2반)';
-            rows.push([
-              `${sem}학기`,
-              gradeStr,
-              `${subjName} (${totalCount}명)`,
-              '2반',
-              class2.length > 0 ? `${class2.length}명` : '22명',
-              r2Roster,
-              publisher,
-              tName
-            ]);
-            currentTeachers.push(tName);
-            rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(r2Roster.length / 50) * 13)) });
-            rowStyleInfo.push({ isClosed: false, isEven });
+              rows.push([
+                `${sem}학기`,
+                gradeStr,
+                `${subjName} (${totalCount}명)`,
+                `${cIdx}반`,
+                cCount,
+                cRoster,
+                publisher,
+                tName
+              ]);
+              currentTeachers.push(tName);
+              const lineCount = Math.ceil((cRoster.length || 1) / 50);
+              rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + lineCount * 13)) });
+              rowStyleInfo.push({ isClosed: false, isEven });
+            }
           }
         } else {
           // 2·3학년 선택 과목
