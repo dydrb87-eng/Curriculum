@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:00)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:05)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:00)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:05)</p>
         </div>
       </div>
 
@@ -286,7 +286,7 @@
             </div>
 
             <!-- Prior File Loaded Info Banner (Shown after loaded) -->
-            <div id="priorLoadedInfo" class="hidden mt-4 p-3.5 bg-indigo-50/90 rounded-xl border border-indigo-200 flex items-center justify-between text-xs">
+            <div id="priorLoadedInfo" class="hidden mt-3 p-3 bg-indigo-50/90 rounded-xl border border-indigo-200 flex items-center justify-between text-xs">
               <div class="space-y-0.5">
                 <p id="priorLoadedSummary" class="font-bold text-indigo-950 text-xs">사전 등록 학생: 0명 | 이수 과목: 0건</p>
                 <p id="priorLoadedFileName" class="text-[11px] text-indigo-600 font-medium truncate max-w-xs">파일명.xlsx</p>
@@ -3637,7 +3637,8 @@
 
       if (AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0) {
         if (priorStatusBadge) priorStatusBadge.classList.remove('hidden');
-        if (priorUploadZone) priorUploadZone.classList.add('hidden');
+        // 드래그 공간 항상 유지 (Card 2와 동일하게 언제든 재드래그 가능)
+        if (priorUploadZone) priorUploadZone.classList.remove('hidden');
         if (priorLoadedInfo) priorLoadedInfo.classList.remove('hidden');
         if (priorLoadedSummary) {
           const stCount = AppState.priorData.students.length;
