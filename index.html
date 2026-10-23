@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:05)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:15)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:05)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:15)</p>
         </div>
       </div>
 
@@ -3792,6 +3792,15 @@
       curAcadData[activeYear][activeG].priorData = priorDataObj;
       AppState.priorData = priorDataObj;
 
+      // 동일 학년도 내 모든 기준 날짜 탭의 해당 학년(activeG)에 사전데이터 100% 완전 공유 동기화!
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+      dateList.forEach(d => {
+        if (!curAcadData[d]) curAcadData[d] = {};
+        if (!curAcadData[d][activeG]) curAcadData[d][activeG] = createEmptyGradeState(activeG);
+        curAcadData[d][activeG].priorData = JSON.parse(JSON.stringify(priorDataObj));
+      });
+
       updatePriorDataUI();
       if (AppState.students && AppState.students.length > 0) {
         renderStep1TableOnly();
@@ -3803,15 +3812,19 @@
     function clearPriorData() {
       const activeG = MultiState.activeGrade || '2학년';
       const activeY = MultiState.activeYear || '2027';
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+
+      const curAcadData = getAcadData();
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+      dateList.forEach(d => {
+        if (curAcadData[d] && curAcadData[d][activeG]) {
+          curAcadData[d][activeG].priorData = null;
+          curAcadData[d][activeG].crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
+        }
+      });
 
       AppState.priorData = null;
       AppState.crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
-
-      const curAcadData = getAcadData();
-      if (curAcadData[activeY] && curAcadData[activeY][activeG]) {
-        curAcadData[activeY][activeG].priorData = null;
-        curAcadData[activeY][activeG].crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
-      }
 
       updatePriorDataUI();
 
@@ -3819,6 +3832,7 @@
         renderStep1TableOnly();
       }
       saveAllState();
+      alert(`🗑️ [${activeG}]의 사전 데이터가 삭제되었습니다.`);
     }
 
     function loadSamplePriorData(showAlert = true) {
@@ -4759,15 +4773,13 @@
     }
 
     function detectGradeFromFileName(name) {
-      if (/1학년|고1|Grade\s*1/i.test(name)) {
-        AppState.detectedGrade = '1학년';
-      } else if (/3학년|고3|Grade\s*3/i.test(name)) {
-        AppState.detectedGrade = '3학년';
-      } else {
-        AppState.detectedGrade = '2학년';
+      // 사용자가 현재 작업 중인 탭 학년(MultiState.activeGrade)을 절대 기준으로 확정 (자동 변환 방지)
+      const curGrade = MultiState.activeGrade || '2학년';
+      AppState.detectedGrade = curGrade;
+      if (gradeBadge) {
+        gradeBadge.textContent = `🎯 ${curGrade} 작업 환경`;
+        gradeBadge.classList.remove('hidden');
       }
-      gradeBadge.textContent = `🎯 ${AppState.detectedGrade} 감지됨`;
-      gradeBadge.classList.remove('hidden');
     }
 
     // Parse Excel Workbook (Check for saved metadata sheet first!)
@@ -5015,24 +5027,16 @@
       AppState.studentPins = [];
       AppState.savedPlans = [];
 
-      // Show UI - 학생 데이터 및 파일 분석을 통한 정확한 학년 자동 감지
-      let count3 = 0, count2 = 0;
+      // 현재 사용자가 작업 중인 탭의 학년(MultiState.activeGrade)을 절대 기준으로 확정!
+      // (내년도 3학년 설문에 올해 2학년 학번이 적혀 있어도 절대 2학년 탭으로 덮어쓰지 않고 3학년 격리 보장)
+      const currentActiveGrade = MultiState.activeGrade || '2학년';
+      AppState.detectedGrade = currentActiveGrade;
+      MultiState.activeGrade = currentActiveGrade;
+
+      // 모든 학생의 학년 속성을 현재 작업 탭 학년으로 일괄 확정
       AppState.students.forEach(st => {
-        if (st.grade === '3학년') count3++;
-        else if (st.grade === '2학년') count2++;
+        st.grade = currentActiveGrade;
       });
-
-      let finalGrade = MultiState.activeGrade || '2학년';
-      if (count3 > count2 && count3 > 0) {
-        finalGrade = '3학년';
-      } else if (count2 > count3 && count2 > 0) {
-        finalGrade = '2학년';
-      } else if (AppState.detectedGrade === '3학년' || AppState.detectedGrade === '2학년') {
-        finalGrade = AppState.detectedGrade;
-      }
-
-      AppState.detectedGrade = finalGrade;
-      MultiState.activeGrade = finalGrade;
 
       if (gradeBadge) {
         gradeBadge.textContent = `🎯 ${AppState.detectedGrade} 작업 환경`;
@@ -13324,6 +13328,39 @@ function createSangjiCourseSelectionForm() {
       const cleanBase = createEmptyGradeState(targetGrade);
       const mergedData = Object.assign(cleanBase, JSON.parse(JSON.stringify(targetData)));
 
+      // 동일 학년도 내 다른 기준 날짜에 해당 학년(targetGrade)의 사전데이터가 등록되어 있다면 자동 상속/공유
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+      if (!mergedData.priorData || !mergedData.priorData.students || mergedData.priorData.students.length === 0) {
+        for (const otherDate of dateList) {
+          if (curAcadData[otherDate]?.[targetGrade]?.priorData?.students?.length > 0) {
+            mergedData.priorData = JSON.parse(JSON.stringify(curAcadData[otherDate][targetGrade].priorData));
+            curAcadData[targetYear][targetGrade].priorData = JSON.parse(JSON.stringify(mergedData.priorData));
+            break;
+          }
+        }
+      }
+
+      // 만약 해당 기준 날짜 탭에 아직 수강신청 조사 데이터가 없다면, 동일 학년(targetGrade)의 다른 날짜 탭에서 수강신청 조사 원본을 공유/상속
+      if (!mergedData.students || mergedData.students.length === 0) {
+        for (const otherDate of dateList) {
+          if (otherDate !== targetYear && curAcadData[otherDate]?.[targetGrade]?.students?.length > 0) {
+            const src = curAcadData[otherDate][targetGrade];
+            mergedData.students = JSON.parse(JSON.stringify(src.students || []));
+            mergedData.sem1Subjects = [...(src.sem1Subjects || [])];
+            mergedData.sem2Subjects = [...(src.sem2Subjects || [])];
+            mergedData.fileName = src.fileName || '';
+            mergedData.sem1GroupCount = src.sem1GroupCount || 5;
+            mergedData.sem2GroupCount = src.sem2GroupCount || 7;
+            curAcadData[targetYear][targetGrade].students = JSON.parse(JSON.stringify(mergedData.students));
+            curAcadData[targetYear][targetGrade].sem1Subjects = [...mergedData.sem1Subjects];
+            curAcadData[targetYear][targetGrade].sem2Subjects = [...mergedData.sem2Subjects];
+            curAcadData[targetYear][targetGrade].fileName = mergedData.fileName;
+            break;
+          }
+        }
+      }
+
       // 2. AppState의 기존 모든 속성을 완전히 삭제하여 이전 학년 데이터 오염을 100% 원천 차단!
       for (const key of Object.keys(AppState)) {
         delete AppState[key];
@@ -17212,151 +17249,10 @@ function renderYearGradeNav() {
       return opened;
     }
 
-    // 학년별 수강신청 데이터 자동 분리 및 오염 정화 (2학년에 섞인 3학년 학생/과목 치유)
+    // 학년 간 데이터 간섭 및 강제 이동 원천 차단 (2학년과 3학년은 100% 완전 독립)
     function healAcademicYearData(activeYear) {
-      const acadData = getAcadData();
-      const y = activeYear || MultiState.activeYear || '2027';
-      const yData = acadData[y];
-      if (!yData) return;
-
-      const g2 = yData['2학년'];
-      const g3 = yData['3학년'];
-      if (!g2 && !g3) return;
-
-      const currList = getAllGradesCurriculum();
-
-      function isStudent3rdGrade(st) {
-        if (!st) return false;
-        const g = String(st.grade || '');
-        if (g.includes('3')) return true;
-        if (g.includes('2')) return false;
-
-        const c = String(st.classNum || '').trim();
-        if (/^3-|^3반|^3\s*반/.test(c)) return true;
-        if (/^2-|^2반|^2\s*반/.test(c)) return false;
-
-        const n = String(st.studentNum || '').trim();
-        if (/^3\d{4}/.test(n) || /^3-/.test(n)) return true;
-        if (/^2\d{4}/.test(n) || /^2-/.test(n)) return false;
-
-        if (currList.length > 0) {
-          let g3SubjCount = 0;
-          let g2SubjCount = 0;
-          const choices = [...(st.sem1 || []), ...(st.sem2 || [])];
-          choices.forEach(s => {
-            const norm = normalizeSubjectKey(s);
-            const match = currList.find(item => normalizeSubjectKey(item.subject) === norm);
-            if (match) {
-              if (match.grade === '3학년') g3SubjCount++;
-              else if (match.grade === '2학년') g2SubjCount++;
-            }
-          });
-          if (g3SubjCount > 0 && g2SubjCount === 0) return true;
-          if (g3SubjCount > g2SubjCount) return true;
-        }
-        return false;
-      }
-
-      function isStudent2ndGrade(st) {
-        if (!st) return false;
-        const g = String(st.grade || '');
-        if (g.includes('2')) return true;
-        if (g.includes('3')) return false;
-
-        const c = String(st.classNum || '').trim();
-        if (/^2-|^2반|^2\s*반/.test(c)) return true;
-        if (/^3-|^3반|^3\s*반/.test(c)) return false;
-
-        const n = String(st.studentNum || '').trim();
-        if (/^2\d{4}/.test(n) || /^2-/.test(n)) return true;
-        if (/^3\d{4}/.test(n) || /^3-/.test(n)) return false;
-
-        if (currList.length > 0) {
-          let g3SubjCount = 0;
-          let g2SubjCount = 0;
-          const choices = [...(st.sem1 || []), ...(st.sem2 || [])];
-          choices.forEach(s => {
-            const norm = normalizeSubjectKey(s);
-            const match = currList.find(item => normalizeSubjectKey(item.subject) === norm);
-            if (match) {
-              if (match.grade === '3학년') g3SubjCount++;
-              else if (match.grade === '2학년') g2SubjCount++;
-            }
-          });
-          if (g2SubjCount > 0 && g3SubjCount === 0) return true;
-          if (g2SubjCount > g3SubjCount) return true;
-        }
-        return false;
-      }
-
-      function recomputeSubjects(gData) {
-        if (!gData) return;
-        const s1 = new Set();
-        const s2 = new Set();
-        (gData.students || []).forEach(st => {
-          (st.sem1 || []).forEach(s => { if (s && s.trim()) s1.add(s.trim()); });
-          (st.sem2 || []).forEach(s => { if (s && s.trim()) s2.add(s.trim()); });
-        });
-        gData.sem1Subjects = Array.from(s1).sort();
-        gData.sem2Subjects = Array.from(s2).sort();
-      }
-
-      if (g2 && Array.isArray(g2.students) && g2.students.length > 0) {
-        const studentsFor3 = g2.students.filter(isStudent3rdGrade);
-        if (studentsFor3.length > 0) {
-          if (!yData['3학년']) yData['3학년'] = createEmptyGradeState('3학년');
-          if (!Array.isArray(yData['3학년'].students)) yData['3학년'].students = [];
-
-          const existing3Keys = new Set(yData['3학년'].students.map(s => (s.name || '') + '_' + (s.classNum || '') + '_' + (s.studentNum || '')));
-          studentsFor3.forEach(st => {
-            const key = (st.name || '') + '_' + (st.classNum || '') + '_' + (st.studentNum || '');
-            if (!existing3Keys.has(key)) {
-              yData['3학년'].students.push(JSON.parse(JSON.stringify(st)));
-            }
-          });
-
-          const genuine2 = g2.students.filter(st => !isStudent3rdGrade(st));
-          if (genuine2.length > 0) {
-            g2.students = genuine2;
-          } else {
-            // 2학년 데이터 공간에 3학년 학생들만 들어있었던 경우 (3학년 파일이 2학년 탭에서 업로드됨)
-            g2.students = [];
-            g2.currentPlans = { 1: null, 2: null };
-            g2.currentPlan = null;
-            g2.savedPlans = [];
-          }
-          recomputeSubjects(g2);
-          recomputeSubjects(yData['3학년']);
-        }
-      }
-
-      if (g3 && Array.isArray(g3.students) && g3.students.length > 0) {
-        const studentsFor2 = g3.students.filter(isStudent2ndGrade);
-        if (studentsFor2.length > 0) {
-          if (!yData['2학년']) yData['2학년'] = createEmptyGradeState('2학년');
-          if (!Array.isArray(yData['2학년'].students)) yData['2학년'].students = [];
-
-          const existing2Keys = new Set(yData['2학년'].students.map(s => (s.name || '') + '_' + (s.classNum || '') + '_' + (s.studentNum || '')));
-          studentsFor2.forEach(st => {
-            const key = (st.name || '') + '_' + (st.classNum || '') + '_' + (st.studentNum || '');
-            if (!existing2Keys.has(key)) {
-              yData['2학년'].students.push(JSON.parse(JSON.stringify(st)));
-            }
-          });
-
-          const genuine3 = g3.students.filter(st => !isStudent2ndGrade(st));
-          if (genuine3.length > 0) {
-            g3.students = genuine3;
-          } else {
-            g3.students = [];
-            g3.currentPlans = { 1: null, 2: null };
-            g3.currentPlan = null;
-            g3.savedPlans = [];
-          }
-          recomputeSubjects(yData['2학년']);
-          recomputeSubjects(g3);
-        }
-      }
+      // 2학년과 3학년 간 학생/데이터 강제 이동을 전면 중단하여 학년 간 간섭 0% 보장
+      return;
     }
 
     // 과목의 실제 개설 학년 정확 판별 (편제표 및 이전 단계 학생 선택 데이터 기반)
