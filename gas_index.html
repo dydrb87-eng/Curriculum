@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_10:00)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_11:00)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_10:00)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_11:00)</p>
         </div>
       </div>
 
@@ -20954,7 +20954,7 @@ function renderYearGradeNav() {
       const sData = (typeof getStep3Data === 'function') ? getStep3Data() : { categories: [] };
       const mainSummaryBadge = document.getElementById('allGradesCategorySummaryBadge');
       if (mainSummaryBadge) {
-        mainSummaryBadge.textContent = \개 군;
+        mainSummaryBadge.textContent = `${(sData.categories || []).length}개 군`;
       }
 
       const curriculum = getAllGradesCurriculum();
