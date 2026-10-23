@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:20)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:30)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:20)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:30)</p>
         </div>
       </div>
 
@@ -110,8 +110,9 @@
           <input type="file" id="headerRestoreBackupJson" accept=".json,.xlsx,.xls" class="hidden" onchange="if(this.files[0]) { if(this.files[0].name.toLowerCase().endsWith('.json')) { window.importBackupJsonFile(this.files[0]); } else { processUploadedFile(this.files[0]); } this.value=''; }" />
         </label>
 
-        <button id="btnResetAll" class="hidden px-3.5 py-2 text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-200">
-          초기화
+        <button id="btnResetAll" type="button" class="hidden px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-200 flex items-center space-x-1 cursor-pointer select-none" title="현재 학년 또는 전체 데이터를 초기화하여 빈 화면으로 되돌립니다">
+          <span>🔄</span>
+          <span>초기화</span>
         </button>
       </div>
     </div>
@@ -5060,13 +5061,119 @@
     // 2. STATE CONTROLS (RESET)
     // ==========================================
 
+    window.resetCurrentGradeClean = function(grade) {
+      const targetGrade = grade || MultiState.activeGrade || '2학년';
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+      const curAcadData = getAcadData(currAY);
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+
+      // 1. 해당 학년의 모든 날짜 탭에서 수강신청 및 사전데이터를 완전히 비움 (타 탭에서의 자동 부활 원천 방지)
+      dateList.forEach(d => {
+        if (!curAcadData[d]) curAcadData[d] = {};
+        curAcadData[d][targetGrade] = createEmptyGradeState(targetGrade);
+        curAcadData[d][targetGrade]._cleared = true;
+      });
+
+      // 2. 현재 AppState 완전 초기화
+      for (const key of Object.keys(AppState)) {
+        delete AppState[key];
+      }
+      Object.assign(AppState, createEmptyGradeState(targetGrade));
+      AppState.detectedGrade = targetGrade;
+
+      // 3. UI 갱신 (화면을 파일 등록 전 완전한 빈 화면으로 전환)
+      updatePriorDataUI();
+      const appBody = document.getElementById('appBody');
+      const uploadSection = document.getElementById('uploadSection');
+      if (appBody) appBody.classList.add('hidden');
+      if (uploadSection) uploadSection.classList.remove('hidden');
+      if (btnResetAll) btnResetAll.classList.add('hidden');
+
+      // 4. 네비게이션 탭 갱신 및 상태 저장
+      saveAllState();
+      renderYearGradeNav();
+      updateModalStats();
+    };
+
+    window.resetEntireApplicationClean = function() {
+      const ay = '2027학년도';
+      const d = '2027.10.11.';
+      
+      MultiState.academicYearsList = [ay];
+      MultiState.activeAcademicYear = ay;
+      MultiState.datesByAcademicYear = { [ay]: [d] };
+      MultiState.yearsList = [d];
+      MultiState.activeYear = d;
+      MultiState.activeGrade = '2학년';
+      MultiState.activeStep = 1;
+      MultiState.curriculumByAcademicYear = { [ay]: [] };
+      MultiState.publishersByAcademicYear = { [ay]: {} };
+      MultiState.publisherSubjectNamesByAcademicYear = { [ay]: {} };
+      MultiState.subjectGroupsByAcademicYear = { [ay]: { categories: [], mappings: {} } };
+      MultiState.customTeacherOrder = [];
+      MultiState.gradeClassCounts = { '1학년': 2, '2학년': 2, '3학년': 2 };
+      MultiState.data = {
+        [ay]: {
+          [d]: {
+            '2학년': createEmptyGradeState('2학년'),
+            '3학년': createEmptyGradeState('3학년'),
+            '전체': { curriculum: [], lastUpdated: null }
+          }
+        }
+      };
+
+      for (const key of Object.keys(AppState)) {
+        delete AppState[key];
+      }
+      Object.assign(AppState, createEmptyGradeState('2학년'));
+
+      updatePriorDataUI();
+      const appBody = document.getElementById('appBody');
+      const uploadSection = document.getElementById('uploadSection');
+      const allGradesSection = document.getElementById('allGradesSection');
+      if (appBody) appBody.classList.add('hidden');
+      if (uploadSection) uploadSection.classList.remove('hidden');
+      if (allGradesSection) allGradesSection.classList.add('hidden');
+      if (btnResetAll) btnResetAll.classList.add('hidden');
+
+      saveAllState();
+      renderYearGradeNav();
+      updateModalStats();
+    };
+
     btnResetAll.addEventListener('click', () => {
-      if (confirm(`현재 [${MultiState.activeYear} ${MultiState.activeGrade}]의 분석 데이터를 초기화하시겠습니까?`)) {
-        const acadData = getAcadData();
-        if (!acadData[MultiState.activeYear]) acadData[MultiState.activeYear] = {};
-        acadData[MultiState.activeYear][MultiState.activeGrade] = createEmptyGradeState(MultiState.activeGrade);
-        switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
-        saveAllState();
+      const curGrade = MultiState.activeGrade;
+      const isAll = (curGrade === '전체');
+
+      if (isAll) {
+        if (confirm(`현재 [${MultiState.activeAcademicYear} 전체]의 교육과정 및 교원 시수 데이터를 초기화하시겠습니까?`)) {
+          MultiState.curriculumByAcademicYear[MultiState.activeAcademicYear] = [];
+          renderAllGradesDashboard();
+          saveAllState();
+          alert('전체 교육과정 데이터가 초기화되었습니다.');
+        }
+        return;
+      }
+
+      const choice = prompt(
+        `[데이터 초기화 안내]\n\n` +
+        `초기화 범위를 선택해주세요:\n\n` +
+        `1: 현재 [${curGrade}] 초기화 (사전데이터 및 수강신청 파일 비우고 파일 등록 전 빈 화면으로 복귀)\n` +
+        `2: 전체 데이터 초기화 (모든 학년도, 2·3학년, 교사 시수 등 전체를 처음 상태로 리셋)\n\n` +
+        `원하시는 번호(1 또는 2)를 입력해주세요 (취소는 [취소] 버튼):`,
+        "1"
+      );
+
+      if (!choice) return;
+
+      if (choice.trim() === '1') {
+        window.resetCurrentGradeClean(curGrade);
+        alert(`✅ [${curGrade}] 데이터가 완전히 초기화되어 빈 화면으로 되돌아갔습니다.`);
+      } else if (choice.trim() === '2') {
+        if (confirm(`⚠️ 경고: 모든 학년도(2학년, 3학년, 교사 시수 등)의 작업 데이터가 영구히 삭제됩니다.\n\n정말로 전체 데이터를 완전히 초기화하시겠습니까?`)) {
+          window.resetEntireApplicationClean();
+          alert(`✅ 전체 데이터가 깨끗하게 초기화되었습니다.`);
+        }
       }
     });
 
@@ -13266,6 +13373,9 @@ function createSangjiCourseSelectionForm() {
         MultiState.yearsList.push(targetYear);
       }
 
+      // 탭 전환 즉시 탭 활성화 색상 및 학기/단계 비활성화 해제(unfreeze) 즉각 반영
+      renderYearGradeNav();
+
       const acadData = getAcadData();
       if (!acadData[targetYear]) {
         acadData[targetYear] = {};
@@ -13334,7 +13444,7 @@ function createSangjiCourseSelectionForm() {
       // 동일 학년도 내 다른 기준 날짜에 해당 학년(targetGrade)의 사전데이터가 등록되어 있다면 자동 상속/공유
       const currAY = MultiState.activeAcademicYear || '2027학년도';
       const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
-      if (!mergedData.priorData || !mergedData.priorData.students || mergedData.priorData.students.length === 0) {
+      if ((!mergedData.priorData || !mergedData.priorData.students || mergedData.priorData.students.length === 0) && !curAcadData[targetYear][targetGrade]?._cleared) {
         for (const otherDate of dateList) {
           if (curAcadData[otherDate]?.[targetGrade]?.priorData?.students?.length > 0) {
             mergedData.priorData = JSON.parse(JSON.stringify(curAcadData[otherDate][targetGrade].priorData));
@@ -13345,7 +13455,7 @@ function createSangjiCourseSelectionForm() {
       }
 
       // 만약 해당 기준 날짜 탭에 아직 수강신청 조사 데이터가 없다면, 동일 학년(targetGrade)의 다른 날짜 탭에서 수강신청 조사 원본을 공유/상속
-      if (!mergedData.students || mergedData.students.length === 0) {
+      if ((!mergedData.students || mergedData.students.length === 0) && !curAcadData[targetYear][targetGrade]?._cleared) {
         for (const otherDate of dateList) {
           if (otherDate !== targetYear && curAcadData[otherDate]?.[targetGrade]?.students?.length > 0) {
             const src = curAcadData[otherDate][targetGrade];
@@ -13436,67 +13546,76 @@ function createSangjiCourseSelectionForm() {
         gradeBadge.classList.remove('hidden');
       }
 
-      // Update Prior Data Display
-      updatePriorDataUI();
+      try {
+        // Update Prior Data Display
+        updatePriorDataUI();
 
-      // Update Survey / Students Display
-      if (AppState.students && AppState.students.length > 0) {
-        AppState.students.forEach(st => {
-          if (!st.origSem1) st.origSem1 = [...(st.sem1 || [])];
-          if (!st.origSem2) st.origSem2 = [...(st.sem2 || [])];
-        });
-        appBody.classList.remove('hidden');
-        btnResetAll.classList.remove('hidden');
-        if (thresholdInput) thresholdInput.value = AppState.step1Threshold || 3;
+        // Update Survey / Students Display
+        if (AppState.students && AppState.students.length > 0) {
+          AppState.students.forEach(st => {
+            if (!st.origSem1) st.origSem1 = [...(st.sem1 || [])];
+            if (!st.origSem2) st.origSem2 = [...(st.sem2 || [])];
+          });
+          appBody.classList.remove('hidden');
+          btnResetAll.classList.remove('hidden');
+          if (thresholdInput) thresholdInput.value = AppState.step1Threshold || 3;
 
-        if (!AppState.savedPlans) AppState.savedPlans = [];
+          if (!AppState.savedPlans) AppState.savedPlans = [];
 
-        if (AppState.savedPlans && AppState.savedPlans.length > 0 && !AppState.currentPlan) {
-          const semSaved = AppState.savedPlans.filter(p => p.semester === curSem);
-          const chosenSaved = semSaved.length > 0 ? semSaved[semSaved.length - 1] : AppState.savedPlans[0];
-          AppState.currentPlan = JSON.parse(JSON.stringify(chosenSaved));
-          if (AppState.currentPlan && AppState.currentPlan.semester) {
-            AppState.currentPlans[AppState.currentPlan.semester] = AppState.currentPlan;
+          if (AppState.savedPlans && AppState.savedPlans.length > 0 && !AppState.currentPlan) {
+            const semSaved = AppState.savedPlans.filter(p => p.semester === curSem);
+            const chosenSaved = semSaved.length > 0 ? semSaved[semSaved.length - 1] : AppState.savedPlans[0];
+            AppState.currentPlan = JSON.parse(JSON.stringify(chosenSaved));
+            if (AppState.currentPlan && AppState.currentPlan.semester) {
+              AppState.currentPlans[AppState.currentPlan.semester] = AppState.currentPlan;
+            }
+          }
+
+          updateStep1SemesterTabs(preservedSemester);
+          updateStep2SemesterTabs(preservedSemester);
+
+          const activeStep = MultiState.activeStep || 1;
+          const step3View = document.getElementById('step3View');
+          if (activeStep === 1) {
+            if (step1View) step1View.classList.remove('hidden');
+            if (step2View) step2View.classList.add('hidden');
+            if (step3View) step3View.classList.add('hidden');
+            renderStep1();
+          } else if (activeStep === 2) {
+            if (step2View) step2View.classList.remove('hidden');
+            if (step1View) step1View.classList.add('hidden');
+            if (step3View) step3View.classList.add('hidden');
+            renderStep2UI();
+          } else if (activeStep === 3) {
+            if (step3View) step3View.classList.remove('hidden');
+            if (step1View) step1View.classList.add('hidden');
+            if (step2View) step2View.classList.add('hidden');
+            if (typeof renderStep3UI === 'function') renderStep3UI();
+          }
+
+          if (AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, AppState.currentPlan.semester)) {
+            const analysis = analyzeGroupConflicts(AppState.currentPlan);
+            AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
+            AppState.currentPlan.conflicts = analysis.conflictDetails;
+            renderStep2Results();
+          }
+          renderSavedPlansList();
+        } else {
+          appBody.classList.add('hidden');
+          const hasPrior = !!(AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0);
+          if (hasPrior) {
+            btnResetAll.classList.remove('hidden');
+          } else {
+            btnResetAll.classList.add('hidden');
           }
         }
-
-        updateStep1SemesterTabs(preservedSemester);
-        updateStep2SemesterTabs(preservedSemester);
-
-        const activeStep = MultiState.activeStep || 1;
-        const step3View = document.getElementById('step3View');
-        if (activeStep === 1) {
-          if (step1View) step1View.classList.remove('hidden');
-          if (step2View) step2View.classList.add('hidden');
-          if (step3View) step3View.classList.add('hidden');
-          renderStep1();
-        } else if (activeStep === 2) {
-          if (step2View) step2View.classList.remove('hidden');
-          if (step1View) step1View.classList.add('hidden');
-          if (step3View) step3View.classList.add('hidden');
-          renderStep2UI();
-        } else if (activeStep === 3) {
-          if (step3View) step3View.classList.remove('hidden');
-          if (step1View) step1View.classList.add('hidden');
-          if (step2View) step2View.classList.add('hidden');
-          if (typeof renderStep3UI === 'function') renderStep3UI();
-        }
-
-        if (AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, AppState.currentPlan.semester)) {
-          const analysis = analyzeGroupConflicts(AppState.currentPlan);
-          AppState.currentPlan.conflictCount = analysis.conflictStudentCount;
-          AppState.currentPlan.conflicts = analysis.conflictDetails;
-          renderStep2Results();
-        }
-        renderSavedPlansList();
-      } else {
-        appBody.classList.add('hidden');
-        btnResetAll.classList.add('hidden');
+      } catch (viewErr) {
+        console.error('Error rendering views in switchAcademicContext:', viewErr);
+      } finally {
+        renderYearGradeNav();
+        updateModalStats();
+        updateStep2ContextMemoUI();
       }
-
-      renderYearGradeNav();
-      updateModalStats();
-      updateStep2ContextMemoUI();
     }
 
 
@@ -16339,38 +16458,103 @@ function renderYearGradeNav() {
     }
 
     function applyExternalMultiState(externalData, showSuccessMsg = true) {
-      if (!externalData || !externalData.data) return;
-      const targetAY = externalData.activeAcademicYear || MultiState.activeAcademicYear || '2027학년도';
-      MultiState.data = migrateDataStructure(externalData.data, targetAY);
-      if (Array.isArray(externalData.yearsList) && externalData.yearsList.length > 0) {
-        MultiState.yearsList = [...externalData.yearsList];
-      } else {
-        const curAcadData = getAcadData(targetAY);
-        const keys = Object.keys(curAcadData).filter(k => k && k !== '전체');
-        MultiState.yearsList = keys.length > 0 ? keys : ['2027.10.11.'];
+      if (!externalData || typeof externalData !== 'object') {
+        alert('올바른 백업 데이터 형식이 아닙니다.');
+        return;
       }
-      if (!MultiState.yearsList.includes(externalData.activeYear)) {
-        MultiState.activeYear = MultiState.yearsList[0] || '2027';
-      } else {
-        MultiState.activeYear = externalData.activeYear;
-      }
-      MultiState.activeGrade = externalData.activeGrade || '2학년';
 
-      if (Array.isArray(externalData.customTeacherOrder)) {
-        MultiState.customTeacherOrder = [...externalData.customTeacherOrder];
+      // Case A: 단일 AppState 형태 (students 또는 sem1Subjects가 최상위에 직접 있는 경우)
+      if ((externalData.students || externalData.sem1Subjects) && !externalData.data) {
+        const detectedG = externalData.detectedGrade || (externalData.students?.[0]?.studentId?.startsWith('3') ? '3학년' : '2학년');
+        const ay = MultiState.activeAcademicYear || '2027학년도';
+        const d = MultiState.activeYear || '2027.10.11.';
+        
+        if (!MultiState.data[ay]) MultiState.data[ay] = {};
+        if (!MultiState.data[ay][d]) MultiState.data[ay][d] = {};
+        MultiState.data[ay][d][detectedG] = JSON.parse(JSON.stringify(externalData));
+        MultiState.activeGrade = detectedG;
+
+        switchAcademicContext(d, detectedG, false);
+        saveAllState();
+        renderYearGradeNav();
+        updateModalStats();
+        if (showSuccessMsg) {
+          alert(`🎉 [${detectedG}] 단일 작업 데이터가 성공적으로 복원되었습니다!\n(학생: ${(externalData.students || []).length}명)`);
+        }
+        return;
       }
-      if (Array.isArray(externalData.academicYearsList)) {
-        MultiState.academicYearsList = [...externalData.academicYearsList];
-      }
-      if (externalData.activeAcademicYear) {
+
+      // Case B: MultiState 구조 복원
+      const rawData = externalData.data || {};
+      const targetAY = externalData.activeAcademicYear || MultiState.activeAcademicYear || '2027학년도';
+      MultiState.data = migrateDataStructure(rawData, targetAY);
+
+      // 1. academicYearsList 복원 (MultiState.data에 있는 모든 학년도 키 포함 보장)
+      const dataAYKeys = Object.keys(MultiState.data).filter(k => k && k.includes('학년도'));
+      let restoredAYList = Array.isArray(externalData.academicYearsList) && externalData.academicYearsList.length > 0
+        ? [...externalData.academicYearsList]
+        : (dataAYKeys.length > 0 ? dataAYKeys : [targetAY]);
+      dataAYKeys.forEach(k => {
+        if (!restoredAYList.includes(k)) restoredAYList.push(k);
+      });
+      if (!restoredAYList.includes(targetAY)) restoredAYList.unshift(targetAY);
+      MultiState.academicYearsList = restoredAYList;
+
+      // 2. activeAcademicYear 설정
+      if (externalData.activeAcademicYear && restoredAYList.includes(externalData.activeAcademicYear)) {
         MultiState.activeAcademicYear = externalData.activeAcademicYear;
+      } else if (restoredAYList.includes(targetAY)) {
+        MultiState.activeAcademicYear = targetAY;
+      } else {
+        MultiState.activeAcademicYear = restoredAYList[0] || '2027학년도';
       }
+      const curAY = MultiState.activeAcademicYear;
+
+      // 3. datesByAcademicYear 복원
+      if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
       if (externalData.datesByAcademicYear && typeof externalData.datesByAcademicYear === 'object') {
         MultiState.datesByAcademicYear = JSON.parse(JSON.stringify(externalData.datesByAcademicYear));
+      }
+      // 각 학년도별로 datesByAcademicYear가 비어있다면 MultiState.data[ay]에서 날짜 키 자동 추출
+      MultiState.academicYearsList.forEach(ay => {
+        if (!MultiState.datesByAcademicYear[ay] || !Array.isArray(MultiState.datesByAcademicYear[ay]) || MultiState.datesByAcademicYear[ay].length === 0) {
+          const ayData = MultiState.data[ay] || {};
+          const dKeys = Object.keys(ayData).filter(k => k && k !== '전체');
+          if (dKeys.length > 0) {
+            MultiState.datesByAcademicYear[ay] = dKeys;
+          } else if (Array.isArray(externalData.yearsList) && externalData.yearsList.length > 0 && ay === curAY) {
+            MultiState.datesByAcademicYear[ay] = [...externalData.yearsList];
+          } else {
+            const defaultDate = ay.replace(/[^0-9]/g, '') + '.10.11.';
+            MultiState.datesByAcademicYear[ay] = [defaultDate];
+          }
+        }
+      });
+
+      // 4. yearsList 및 activeYear 설정
+      MultiState.yearsList = [...(MultiState.datesByAcademicYear[curAY] || ['2027.10.11.'])];
+      if (externalData.activeYear && MultiState.yearsList.includes(externalData.activeYear)) {
+        MultiState.activeYear = externalData.activeYear;
       } else {
-        const ay = MultiState.activeAcademicYear || '2027학년도';
-        if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
-        MultiState.datesByAcademicYear[ay] = [...MultiState.yearsList];
+        MultiState.activeYear = MultiState.yearsList[0] || '2027.10.11.';
+      }
+
+      // 5. activeGrade 설정 (기본은 '2학년', 만약 3학년 데이터만 있고 2학년 데이터가 없다면 3학년으로 설정)
+      const curDateData = (MultiState.data[curAY] && MultiState.data[curAY][MultiState.activeYear]) || {};
+      const hasG2 = curDateData['2학년']?.students?.length > 0 || curDateData['2학년']?.priorData?.students?.length > 0;
+      const hasG3 = curDateData['3학년']?.students?.length > 0 || curDateData['3학년']?.priorData?.students?.length > 0;
+      
+      if (externalData.activeGrade && ['2학년', '3학년', '전체'].includes(externalData.activeGrade)) {
+        MultiState.activeGrade = externalData.activeGrade;
+      } else if (!hasG2 && hasG3) {
+        MultiState.activeGrade = '3학년';
+      } else {
+        MultiState.activeGrade = '2학년';
+      }
+
+      // 6. 교사 순서, 교육과정, 출판사, 교과군 복원
+      if (Array.isArray(externalData.customTeacherOrder)) {
+        MultiState.customTeacherOrder = [...externalData.customTeacherOrder];
       }
       if (externalData.curriculumByAcademicYear && typeof externalData.curriculumByAcademicYear === 'object') {
         MultiState.curriculumByAcademicYear = {};
@@ -16383,10 +16567,8 @@ function renderYearGradeNav() {
           }
         }
       } else if (Array.isArray(externalData.curriculum)) {
-        // 단일 배열 형태의 curriculum 하위 호환 복원
-        const ay = MultiState.activeAcademicYear || '2027학년도';
         if (!MultiState.curriculumByAcademicYear) MultiState.curriculumByAcademicYear = {};
-        MultiState.curriculumByAcademicYear[ay] = externalData.curriculum.map((c, idx) => sanitizeCurriculumItem(c, idx)).filter(Boolean);
+        MultiState.curriculumByAcademicYear[curAY] = externalData.curriculum.map((c, idx) => sanitizeCurriculumItem(c, idx)).filter(Boolean);
       }
 
       if (externalData.publishersByAcademicYear && typeof externalData.publishersByAcademicYear === 'object') {
@@ -16405,13 +16587,28 @@ function renderYearGradeNav() {
           '3학년': Math.max(1, parseInt(externalData.gradeClassCounts['3학년'] || 2, 10))
         };
       }
+
       if (typeof updatePublisherButtonUI === 'function') updatePublisherButtonUI();
       if (typeof updateGradeClassCountBadge === 'function') updateGradeClassCountBadge();
 
+      // 7. 화면 및 UI 갱신
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
+      renderYearGradeNav();
+      updateModalStats();
+
       if (showSuccessMsg) {
-        alert('🎉 최신 데이터가 성공적으로 반영되었습니다!');
+        let totalCount = 0;
+        const curAcad = getAcadData();
+        const dateData = curAcad[MultiState.activeYear] || {};
+        ['2학년', '3학년'].forEach(g => {
+          if (dateData[g]?.students) totalCount += dateData[g].students.length;
+        });
+        alert(`🎉 백업 데이터가 성공적으로 반영되었습니다!\n\n` +
+              `• 기준 학년도: ${MultiState.activeAcademicYear}\n` +
+              `• 기준 날짜: ${MultiState.activeYear} (${MultiState.yearsList.length}개 날짜 탭)\n` +
+              `• 현재 활성: ${MultiState.activeGrade}\n` +
+              `• 등록 학생: 총 ${totalCount}명`);
       }
     }
 
@@ -16983,17 +17180,12 @@ function renderYearGradeNav() {
           if (json.MultiState && typeof json.MultiState === 'object') json = json.MultiState;
           else if (json.multiState && typeof json.multiState === 'object') json = json.multiState;
           else if (json.state && typeof json.state === 'object') json = json.state;
+          else if (json.appState && typeof json.appState === 'object') json = json.appState;
+          else if (json.AppState && typeof json.AppState === 'object') json = json.AppState;
 
-          if (json.data || json.yearsList || json.academicYearsList || json.curriculumByAcademicYear || json.curriculum) {
+          if (json.data || json.yearsList || json.academicYearsList || json.curriculumByAcademicYear || json.curriculum || json.students || json.sem1Subjects) {
             applyExternalMultiState(json, true);
             closeCloudModal();
-          } else if (json.students || json.sem1Subjects) {
-            Object.assign(AppState, json);
-            syncCurrentToMulti();
-            saveAllState();
-            renderStep1();
-            renderStep2UI();
-            alert(`🎉 [${AppState.detectedGrade || '수강신청'}] 작업 데이터가 복원되었습니다!\n(학생: ${(AppState.students || []).length}명)`);
           } else {
             alert('올바른 백업 JSON 파일 형식이 아닙니다.\n(필수 백업 항목인 data, yearsList, students 등을 찾을 수 없습니다)');
           }
@@ -17012,14 +17204,10 @@ function renderYearGradeNav() {
 
     // Reset active grade only
     document.getElementById('btnResetActiveGradeOnly')?.addEventListener('click', () => {
-      if (!confirm(`현재 [${MultiState.activeYear} ${MultiState.activeGrade}]의 학생 명단, 선택과목 매트릭스, 그룹핑 결과를 모두 초기화하시겠습니까?`)) return;
-      const acadData = getAcadData();
-      if (!acadData[MultiState.activeYear]) acadData[MultiState.activeYear] = {};
-      acadData[MultiState.activeYear][MultiState.activeGrade] = createEmptyGradeState(MultiState.activeGrade);
-      switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
-      saveAllState();
+      if (!confirm(`현재 [${MultiState.activeGrade}]의 학생 명단, 선택과목 매트릭스, 사전데이터 및 그룹핑 결과를 모두 초기화하시겠습니까?`)) return;
+      window.resetCurrentGradeClean(MultiState.activeGrade);
       closeCloudModal();
-      alert(`[${MultiState.activeYear} ${MultiState.activeGrade}] 데이터가 초기화되었습니다.`);
+      alert(`[${MultiState.activeGrade}] 데이터가 완전히 초기화되었습니다.`);
     });
 
     // ==========================================
