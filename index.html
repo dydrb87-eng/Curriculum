@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_16:45)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:00)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_16:45)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:00)</p>
         </div>
       </div>
 
@@ -5961,13 +5961,14 @@
       matrixTable.innerHTML = html;
     }
 
-    // Toggle Subject Closed (폐강 확정 / 해제)
+    // Toggle Subject Closed (폐강 확정 / 해제 - 현재 탭 고유 상태 관리)
     window.toggleSubjectClosed = function(subjectName) {
       const sem = AppState.currentSemester;
       if (!AppState.closedSubjects) AppState.closedSubjects = { 1: [], 2: [] };
       if (!AppState.closedSubjects[sem]) AppState.closedSubjects[sem] = [];
 
-      const idx = AppState.closedSubjects[sem].indexOf(subjectName);
+      const normTarget = normalizeSubject(subjectName);
+      const idx = AppState.closedSubjects[sem].findIndex(s => normalizeSubject(s) === normTarget);
       if (idx >= 0) {
         AppState.closedSubjects[sem].splice(idx, 1);
       } else {
@@ -6149,8 +6150,8 @@
           let noticeHtml = `
             <div class="mt-2.5 p-2.5 bg-rose-50/90 border border-rose-200 rounded-xl space-y-1.5 text-xs shadow-2xs">
               <div class="flex items-center gap-1.5 font-bold text-rose-900">
-                <span>🚫 이전 기준 날짜 폐강 확정 이력</span>
-                <span class="text-[11px] text-rose-600 font-normal">(이전 조사 탭에서 폐강 결정된 과목 목록입니다)</span>
+                <span>🚫 이전 기준 날짜 폐강 확정 이력 (참고용)</span>
+                <span class="text-[11px] text-rose-600 font-normal">(이전 조사 탭의 참고 기록이며, 현재 탭의 폐강 여부는 아래 표에서 자유롭게 변경 가능합니다)</span>
               </div>
               <div class="flex flex-col gap-1 text-slate-700">
           `;
@@ -6201,41 +6202,7 @@
         }
       }
 
-      // 기존에 2단계에서 추가했던 과목 중 이전 폐강 과목과 이름이 겹치거나 신설된 과목 자동 보정
-      const curPlanForSem = AppState.currentPlans?.[sem] || AppState.currentPlan;
-      if (curPlanForSem && curPlanForSem.groups) {
-        allPrevClosedSet.forEach(prevClosedName => {
-          const normPrev = normalizeSubject(prevClosedName);
-          curPlanForSem.groups.forEach((grp, gIdx) => {
-            grp.forEach((tName, tIdx) => {
-              const baseT = tName.replace(/-[A-Z]$/, '').trim();
-              if (normalizeSubject(baseT) === normPrev && !baseT.includes('(신설)')) {
-                const letterMatch = tName.match(/-[A-Z]$/);
-                const letter = letterMatch ? letterMatch[0] : '';
-                const newName = `${prevClosedName}(신설)${letter}`;
-                curPlanForSem.groups[gIdx][tIdx] = newName;
-
-                const targetSemList = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
-                const sIdx = targetSemList.findIndex(s => normalizeSubject(s) === normPrev && !s.includes('(신설)'));
-                if (sIdx !== -1) {
-                  targetSemList[sIdx] = `${prevClosedName}(신설)`;
-                } else if (!targetSemList.some(s => normalizeSubject(s) === normalizeSubject(`${prevClosedName}(신설)`))) {
-                  targetSemList.push(`${prevClosedName}(신설)`);
-                }
-
-                if (!AppState.subjectMemos) AppState.subjectMemos = { 1: {}, 2: {} };
-                if (!AppState.subjectMemos[sem]) AppState.subjectMemos[sem] = {};
-                if (!AppState.subjectMemos[sem][`${prevClosedName}(신설)`]) {
-                  const dStr = MultiState.activeYear || '';
-                  AppState.subjectMemos[sem][`${prevClosedName}(신설)`] = dStr ? `[${dStr} 2단계 과목 신설]` : '[2단계 과목 신설]';
-                }
-              }
-            });
-          });
-        });
-      }
-
-      // 현재 학기 closedSubjects 초기화 (사용자 해제 상태 존중)
+      // 현재 학기 closedSubjects 초기화 (현재 탭의 독립적인 폐강 설정 보존)
       if (!AppState.closedSubjects) AppState.closedSubjects = { 1: [], 2: [] };
       if (!AppState.closedSubjects[sem]) AppState.closedSubjects[sem] = [];
 
@@ -6291,22 +6258,6 @@
           memo: memoMap[subj] || '',
           isFromHistory: false
         };
-      });
-
-      // 아래 세부 데이터 연번 마지막에 이전 폐강 과목들 표시 및 폐강 확정 상태로 목록화
-      const missingPrevClosed = Array.from(allPrevClosedSet).filter(s => !displayedSubjects.includes(s));
-      missingPrevClosed.forEach(subj => {
-        const info = prevClosedInfoMap[subj] || { count: 0, date: '' };
-        subjectData.push({
-          index: subjectData.length + 1,
-          name: subj,
-          count: info.count,
-          isUnder: true,
-          isClosed: true,
-          memo: memoMap[subj] || (info.date ? `[${info.date} 폐강 확정 이력]` : '[이전 기준 날짜 폐강 확정]'),
-          isFromHistory: true,
-          historyDate: info.date
-        });
       });
 
       // Build Table HTML
@@ -6462,11 +6413,7 @@
       let under1 = 0;
       let closed1 = 0;
       let total1 = 0;
-      const { allPrevClosedSet: prev1ClosedSet, prevClosedInfoMap: prev1InfoMap } = getPreviousDatesClosedSubjectsHistory(1);
       const fullSem1Subjs = [...sem1Subjs];
-      Array.from(prev1ClosedSet).forEach(ps => {
-        if (!fullSem1Subjs.includes(ps)) fullSem1Subjs.push(ps);
-      });
 
       fullSem1Subjs.forEach((s, idx) => {
         const normS = normalizeSubject(s);
@@ -6474,18 +6421,15 @@
         AppState.students.forEach(st => {
           if ((st.sem1 || []).some(sub => normalizeSubject(sub) === normS)) count++;
         });
-        if (!sem1Subjs.includes(s) && prev1InfoMap[s]) {
-          count = prev1InfoMap[s].count || 0;
-        }
         total1 += count;
         const isUnder = count <= threshold;
         if (isUnder) under1++;
-        const isClosed = closed1List.includes(s) || prev1ClosedSet.has(s);
+        const isClosed = closed1List.some(c => normalizeSubject(c) === normS);
         if (isClosed) closed1++;
 
         const status = isClosed ? '[폐강 확정]' : (isUnder ? '[폐강 예정]' : '개설');
         const closedText = isClosed ? '확정 (제외)' : '';
-        const memoText = memo1Map[s] || (prev1InfoMap[s] ? `[${prev1InfoMap[s].date} 폐강 이력]` : '');
+        const memoText = memo1Map[s] || '';
         rows.push([idx + 1, s, `${count}명`, status, closedText, memoText]);
         rowHeights.push({ hpt: 20 });
       });
@@ -6516,11 +6460,7 @@
       let under2 = 0;
       let closed2 = 0;
       let total2 = 0;
-      const { allPrevClosedSet: prev2ClosedSet, prevClosedInfoMap: prev2InfoMap } = getPreviousDatesClosedSubjectsHistory(2);
       const fullSem2Subjs = [...sem2Subjs];
-      Array.from(prev2ClosedSet).forEach(ps => {
-        if (!fullSem2Subjs.includes(ps)) fullSem2Subjs.push(ps);
-      });
 
       fullSem2Subjs.forEach((s, idx) => {
         const normS = normalizeSubject(s);
@@ -6528,18 +6468,15 @@
         AppState.students.forEach(st => {
           if ((st.sem2 || []).some(sub => normalizeSubject(sub) === normS)) count++;
         });
-        if (!sem2Subjs.includes(s) && prev2InfoMap[s]) {
-          count = prev2InfoMap[s].count || 0;
-        }
         total2 += count;
         const isUnder = count <= threshold;
         if (isUnder) under2++;
-        const isClosed = closed2List.includes(s) || prev2ClosedSet.has(s);
+        const isClosed = closed2List.some(c => normalizeSubject(c) === normS);
         if (isClosed) closed2++;
 
         const status = isClosed ? '[폐강 확정]' : (isUnder ? '[폐강 예정]' : '개설');
         const closedText = isClosed ? '확정 (제외)' : '';
-        const memoText = memo2Map[s] || (prev2InfoMap[s] ? `[${prev2InfoMap[s].date} 폐강 이력]` : '');
+        const memoText = memo2Map[s] || '';
         rows.push([idx + 1, s, `${count}명`, status, closedText, memoText]);
         rowHeights.push({ hpt: 20 });
       });
@@ -8649,8 +8586,7 @@
 
       const groupCardsSection = document.getElementById('groupCardsSection');
       const closedList = AppState.closedSubjects?.[sem] || [];
-      const { allPrevClosedSet: prevClosedSetForZeroAlert } = getPreviousDatesClosedSubjectsHistory(sem);
-      const totalClosedCount = (closedList ? closedList.length : 0) + (prevClosedSetForZeroAlert ? prevClosedSetForZeroAlert.size : 0);
+      const totalClosedCount = closedList ? closedList.length : 0;
 
       if (plan.conflictCount === 0) {
         conflictStatusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
@@ -8715,14 +8651,10 @@
         window.toggleConflictTable(isConflictTableExpanded);
       }
 
-      // Render Closed Subjects from Previous Step (1단계 폐강 과목 및 신청인원)
+      // Render Closed Subjects from Previous Step (1단계 폐강 과목 및 신청인원 - 현재 탭 기준)
       const closedContainer = document.getElementById('conflictClosedSubjectsList');
       if (closedContainer) {
-        const { allPrevClosedSet, prevClosedInfoMap } = getPreviousDatesClosedSubjectsHistory(sem);
-
-        // 현재 탭의 폐강 목록 + 이전 기준 날짜의 폐강 과목 모두 병합
-        const allClosedSet = new Set([...(closedList || []), ...Array.from(allPrevClosedSet)]);
-        const mergedClosedList = Array.from(allClosedSet);
+        const mergedClosedList = closedList || [];
 
         if (mergedClosedList.length === 0) {
           closedContainer.innerHTML = `<span class="text-xs text-slate-500 italic bg-white/80 px-2.5 py-0.5 rounded-md border border-dashed border-rose-200">폐강 확정 과목 없음 (모든 선택과목 개설 대상)</span>`;
@@ -12180,18 +12112,15 @@
       const sem = AppState.currentSemester || 1;
       let baseSubj = cleanName.replace(/-[A-Z]$/, '').trim();
 
-      // 이전 기준 날짜의 폐강 과목 이력 확인
-      const { allPrevClosedSet } = getPreviousDatesClosedSubjectsHistory(sem);
       const curSemSubjs = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
       const normBase = normalizeSubject(baseSubj);
-
-      const isPrevClosed = Array.from(allPrevClosedSet).some(s => normalizeSubject(s) === normBase);
       const isAlreadyInSem = curSemSubjs.some(s => normalizeSubject(s) === normBase);
+      const curClosed = AppState.closedSubjects?.[sem] || [];
+      const isClosedInCurrent = curClosed.some(s => normalizeSubject(s) === normBase);
 
-      // 사용자 요구사항: 기존 폐강 데이터는 1단계에서 그대로 두고, 신설된 데이터는 뒤에 '신설' 표기를 붙여 분리
-      // 이전 날짜 폐강 과목이거나 1단계 미등록 과목인 경우 '(신설)' 표기 자동 부착
+      // 현재 학기에서 폐강된 과목이거나 미등록 과목인 경우 '(신설)' 표기 부착
       let finalBaseName = baseSubj;
-      if (isPrevClosed || !isAlreadyInSem) {
+      if (isClosedInCurrent || !isAlreadyInSem) {
         if (!finalBaseName.includes('(신설)')) {
           finalBaseName = `${finalBaseName}(신설)`;
         }
