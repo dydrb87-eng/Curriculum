@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_13:00)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_13:20)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_13:00)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_13:20)</p>
         </div>
       </div>
 
@@ -4841,14 +4841,15 @@
       const dataRows = rawRows.slice(headerRowIndex + 1);
 
       // Identify Column Indices based on Header Keywords
-      let colClass = -1, colNum = -1, colName = -1, colCareer = -1;
+      let colClass = -1, colNum = -1, colName = -1, colCareer = -1, colGrade = -1;
       let firstSem1Idx = -1, firstSem2Idx = -1;
       let targetCount1 = null, targetCount2 = null;
       const explicitSem1Cols = [];
       const explicitSem2Cols = [];
 
       headers.forEach((h, idx) => {
-        if (/^반$|반\s*\(/.test(h)) colClass = idx;
+        if (/^학년$|^학년\s*\(|grade/i.test(h)) colGrade = idx;
+        else if (/^반$|반\s*\(/.test(h)) colClass = idx;
         else if (/^번호$|번호\s*\(/.test(h)) colNum = idx;
         else if (/이름|성명/.test(h)) colName = idx;
         else if (/진로|관심/.test(h)) colCareer = idx;
@@ -4962,8 +4963,25 @@
 
         if (s1Subjects.length === 0 && s2Subjects.length === 0) return;
 
+        let gradeVal = '';
+        if (colGrade !== -1 && row[colGrade] !== undefined) {
+          const g = String(row[colGrade]).trim();
+          if (g.includes('3')) gradeVal = '3학년';
+          else if (g.includes('2')) gradeVal = '2학년';
+          else if (g.includes('1')) gradeVal = '1학년';
+        }
+        if (!gradeVal && classVal) {
+          if (/^3-|^3반|^3\s*반/.test(classVal)) gradeVal = '3학년';
+          else if (/^2-|^2반|^2\s*반/.test(classVal)) gradeVal = '2학년';
+        }
+        if (!gradeVal && numVal) {
+          if (/^3\d{4}/.test(numVal) || /^3-/.test(numVal)) gradeVal = '3학년';
+          else if (/^2\d{4}/.test(numVal) || /^2-/.test(numVal)) gradeVal = '2학년';
+        }
+
         AppState.students.push({
           id: `std_${AppState.students.length + 1}`,
+          grade: gradeVal || '',
           classNum: classVal || '1',
           studentNum: numVal || String(AppState.students.length + 1),
           name: nameVal,
@@ -4990,8 +5008,25 @@
       AppState.studentPins = [];
       AppState.savedPlans = [];
 
-      // Show UI
-      AppState.detectedGrade = MultiState.activeGrade || '2학년';
+      // Show UI - 학생 데이터 및 파일 분석을 통한 정확한 학년 자동 감지
+      let count3 = 0, count2 = 0;
+      AppState.students.forEach(st => {
+        if (st.grade === '3학년') count3++;
+        else if (st.grade === '2학년') count2++;
+      });
+
+      let finalGrade = MultiState.activeGrade || '2학년';
+      if (count3 > count2 && count3 > 0) {
+        finalGrade = '3학년';
+      } else if (count2 > count3 && count2 > 0) {
+        finalGrade = '2학년';
+      } else if (AppState.detectedGrade === '3학년' || AppState.detectedGrade === '2학년') {
+        finalGrade = AppState.detectedGrade;
+      }
+
+      AppState.detectedGrade = finalGrade;
+      MultiState.activeGrade = finalGrade;
+
       if (gradeBadge) {
         gradeBadge.textContent = `🎯 ${AppState.detectedGrade} 작업 환경`;
         gradeBadge.classList.remove('hidden');
@@ -5007,6 +5042,7 @@
       initStep2Controls();
       runOptimization(); // Run initial grouping
       saveAllState();
+      healAcademicYearData(MultiState.activeYear);
     }
 
     // ==========================================
@@ -17180,7 +17216,209 @@ function renderYearGradeNav() {
       return opened;
     }
 
-    // 2,3학년 수강신청 개설(미폐강) 과목 중 편제표 엑셀 누락 과목 대조 검사
+    // 학년별 수강신청 데이터 자동 분리 및 오염 정화 (2학년에 섞인 3학년 학생/과목 치유)
+    function healAcademicYearData(activeYear) {
+      const acadData = getAcadData();
+      const y = activeYear || MultiState.activeYear || '2027';
+      const yData = acadData[y];
+      if (!yData) return;
+
+      const g2 = yData['2학년'];
+      const g3 = yData['3학년'];
+      if (!g2 && !g3) return;
+
+      const currList = getAllGradesCurriculum();
+
+      function isStudent3rdGrade(st) {
+        if (!st) return false;
+        const g = String(st.grade || '');
+        if (g.includes('3')) return true;
+        if (g.includes('2')) return false;
+
+        const c = String(st.classNum || '').trim();
+        if (/^3-|^3반|^3\s*반/.test(c)) return true;
+        if (/^2-|^2반|^2\s*반/.test(c)) return false;
+
+        const n = String(st.studentNum || '').trim();
+        if (/^3\d{4}/.test(n) || /^3-/.test(n)) return true;
+        if (/^2\d{4}/.test(n) || /^2-/.test(n)) return false;
+
+        if (currList.length > 0) {
+          let g3SubjCount = 0;
+          let g2SubjCount = 0;
+          const choices = [...(st.sem1 || []), ...(st.sem2 || [])];
+          choices.forEach(s => {
+            const norm = normalizeSubjectKey(s);
+            const match = currList.find(item => normalizeSubjectKey(item.subject) === norm);
+            if (match) {
+              if (match.grade === '3학년') g3SubjCount++;
+              else if (match.grade === '2학년') g2SubjCount++;
+            }
+          });
+          if (g3SubjCount > 0 && g2SubjCount === 0) return true;
+          if (g3SubjCount > g2SubjCount) return true;
+        }
+        return false;
+      }
+
+      function isStudent2ndGrade(st) {
+        if (!st) return false;
+        const g = String(st.grade || '');
+        if (g.includes('2')) return true;
+        if (g.includes('3')) return false;
+
+        const c = String(st.classNum || '').trim();
+        if (/^2-|^2반|^2\s*반/.test(c)) return true;
+        if (/^3-|^3반|^3\s*반/.test(c)) return false;
+
+        const n = String(st.studentNum || '').trim();
+        if (/^2\d{4}/.test(n) || /^2-/.test(n)) return true;
+        if (/^3\d{4}/.test(n) || /^3-/.test(n)) return false;
+
+        if (currList.length > 0) {
+          let g3SubjCount = 0;
+          let g2SubjCount = 0;
+          const choices = [...(st.sem1 || []), ...(st.sem2 || [])];
+          choices.forEach(s => {
+            const norm = normalizeSubjectKey(s);
+            const match = currList.find(item => normalizeSubjectKey(item.subject) === norm);
+            if (match) {
+              if (match.grade === '3학년') g3SubjCount++;
+              else if (match.grade === '2학년') g2SubjCount++;
+            }
+          });
+          if (g2SubjCount > 0 && g3SubjCount === 0) return true;
+          if (g2SubjCount > g3SubjCount) return true;
+        }
+        return false;
+      }
+
+      function recomputeSubjects(gData) {
+        if (!gData) return;
+        const s1 = new Set();
+        const s2 = new Set();
+        (gData.students || []).forEach(st => {
+          (st.sem1 || []).forEach(s => { if (s && s.trim()) s1.add(s.trim()); });
+          (st.sem2 || []).forEach(s => { if (s && s.trim()) s2.add(s.trim()); });
+        });
+        gData.sem1Subjects = Array.from(s1).sort();
+        gData.sem2Subjects = Array.from(s2).sort();
+      }
+
+      if (g2 && Array.isArray(g2.students) && g2.students.length > 0) {
+        const studentsFor3 = g2.students.filter(isStudent3rdGrade);
+        if (studentsFor3.length > 0) {
+          if (!yData['3학년']) yData['3학년'] = createEmptyGradeState('3학년');
+          if (!Array.isArray(yData['3학년'].students)) yData['3학년'].students = [];
+
+          const existing3Keys = new Set(yData['3학년'].students.map(s => (s.name || '') + '_' + (s.classNum || '') + '_' + (s.studentNum || '')));
+          studentsFor3.forEach(st => {
+            const key = (st.name || '') + '_' + (st.classNum || '') + '_' + (st.studentNum || '');
+            if (!existing3Keys.has(key)) {
+              yData['3학년'].students.push(JSON.parse(JSON.stringify(st)));
+            }
+          });
+
+          const genuine2 = g2.students.filter(st => !isStudent3rdGrade(st));
+          if (genuine2.length > 0) {
+            g2.students = genuine2;
+          } else {
+            // 2학년 데이터 공간에 3학년 학생들만 들어있었던 경우 (3학년 파일이 2학년 탭에서 업로드됨)
+            g2.students = [];
+            g2.currentPlans = { 1: null, 2: null };
+            g2.currentPlan = null;
+            g2.savedPlans = [];
+          }
+          recomputeSubjects(g2);
+          recomputeSubjects(yData['3학년']);
+        }
+      }
+
+      if (g3 && Array.isArray(g3.students) && g3.students.length > 0) {
+        const studentsFor2 = g3.students.filter(isStudent2ndGrade);
+        if (studentsFor2.length > 0) {
+          if (!yData['2학년']) yData['2학년'] = createEmptyGradeState('2학년');
+          if (!Array.isArray(yData['2학년'].students)) yData['2학년'].students = [];
+
+          const existing2Keys = new Set(yData['2학년'].students.map(s => (s.name || '') + '_' + (s.classNum || '') + '_' + (s.studentNum || '')));
+          studentsFor2.forEach(st => {
+            const key = (st.name || '') + '_' + (st.classNum || '') + '_' + (st.studentNum || '');
+            if (!existing2Keys.has(key)) {
+              yData['2학년'].students.push(JSON.parse(JSON.stringify(st)));
+            }
+          });
+
+          const genuine3 = g3.students.filter(st => !isStudent2ndGrade(st));
+          if (genuine3.length > 0) {
+            g3.students = genuine3;
+          } else {
+            g3.students = [];
+            g3.currentPlans = { 1: null, 2: null };
+            g3.currentPlan = null;
+            g3.savedPlans = [];
+          }
+          recomputeSubjects(yData['2학년']);
+          recomputeSubjects(g3);
+        }
+      }
+    }
+
+    // 과목의 실제 개설 학년 정확 판별 (편제표 및 이전 단계 학생 선택 데이터 기반)
+    function getTrueGradeForSubject(subjectName, defaultGrade, currList, gData2, gData3) {
+      if (!subjectName) return defaultGrade || '2학년';
+      const norm = normalizeSubjectKey(subjectName);
+
+      // 1. 편제표에 이미 등록되어 있는 학년이 있는지 최우선 확인
+      if (currList && currList.length > 0) {
+        const currMatch = currList.find(c => normalizeSubjectKey(c.subject) === norm);
+        if (currMatch && currMatch.grade) {
+          return currMatch.grade;
+        }
+      }
+
+      // 2. 3학년 학생 vs 2학년 학생 선택 비율 확인
+      const st3 = (gData3?.students || []);
+      const st2 = (gData2?.students || []);
+
+      let count3 = 0;
+      let count2 = 0;
+
+      st3.forEach(st => {
+        if ([...(st.sem1 || []), ...(st.sem2 || [])].some(s => normalizeSubjectKey(s) === norm)) count3++;
+      });
+      st2.forEach(st => {
+        if ([...(st.sem1 || []), ...(st.sem2 || [])].some(s => normalizeSubjectKey(s) === norm)) count2++;
+      });
+
+      if (count3 > 0 && count2 === 0) return '3학년';
+      if (count2 > 0 && count3 === 0) return '2학년';
+      if (count3 > count2) return '3학년';
+      if (count2 > count3) return '2학년';
+
+      // 3. 학생 번호/학급 정보 추적
+      const allSt = [...st2, ...st3];
+      let g3ClassCount = 0;
+      let g2ClassCount = 0;
+      allSt.forEach(st => {
+        const hasSubj = [...(st.sem1 || []), ...(st.sem2 || [])].some(s => normalizeSubjectKey(s) === norm);
+        if (hasSubj) {
+          const cStr = String(st.classNum || '').trim();
+          const nStr = String(st.studentNum || '').trim();
+          const gStr = String(st.grade || '').trim();
+          if (gStr.includes('3') || /^3-|^3반|^3\s*반/.test(cStr) || /^3\d{4}/.test(nStr) || /^3-/.test(nStr)) {
+            g3ClassCount++;
+          } else if (gStr.includes('2') || /^2-|^2반|^2\s*반/.test(cStr) || /^2\d{4}/.test(nStr) || /^2-/.test(nStr)) {
+            g2ClassCount++;
+          }
+        }
+      });
+
+      if (g3ClassCount > g2ClassCount) return '3학년';
+      if (g2ClassCount > g3ClassCount) return '2학년';
+
+      return defaultGrade || '2학년';
+    }
+    // 2,3학년 수강신청 개설(미폐강) 과목 중 편제표 엑셀 누락 과목 대조 검사 (전학년 교차 검증 및 학년 오인식 차단)
     function checkMissingOpenSubjectsInCurriculum(curriculum) {
       const activeY = MultiState.activeYear || '2027';
       const currList = curriculum || getAllGradesCurriculum();
@@ -17189,82 +17427,84 @@ function renderYearGradeNav() {
         return [];
       }
 
+      // 학년 간 데이터 오염(2학년에 섞인 3학년 학생/과목) 선제적 정화
+      healAcademicYearData(activeY);
+
+      const acadData = getAcadData()[activeY] || {};
+      const gData2 = acadData['2학년'] || {};
+      const gData3 = acadData['3학년'] || {};
+
       const missing = [];
+      const seenMissingKeys = new Set();
 
       ['2학년', '3학년'].forEach(gradeStr => {
-        const gData = getAcadData()[activeY]?.[gradeStr];
+        const gData = acadData[gradeStr];
         if (!gData || !gData.students || gData.students.length === 0) return;
 
         [1, 2].forEach(sem => {
           const closedList = gData.closedSubjects?.[sem] || [];
           const closedNorms = new Set(closedList.map(s => normalizeSubjectKey(s)));
 
-          // 1. 후보 과목 수집 (1단계 조사 과목 - 오직 해당 학기 과목만!)
-          let semSubjects = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
-          if (!semSubjects || semSubjects.length === 0) {
-            const semKey = (sem === 1 ? 'sem1' : 'sem2');
-            const set = new Set();
-            (gData.students || []).forEach(st => {
-              (st[semKey] || []).forEach(s => { if (s && s.trim()) set.add(s.trim()); });
-            });
-            semSubjects = Array.from(set);
-          }
+          // 1. 2단계 그룹핑 배치안 개설 과목 수집
+          const step2Opened = getStep2OpenedSubjects(activeY, gradeStr, sem);
+          let openSubjectNames = [];
 
-          // 2. 2단계 그룹핑 배치안 과목 수집 (오직 해당 학기 plan만 엄격하게 조회!)
-          let plan = null;
-          if (gData.currentPlans && gData.currentPlans[sem]) {
-            plan = gData.currentPlans[sem];
-          } else if (gData.currentPlan && gData.currentPlan.semester === sem) {
-            plan = gData.currentPlan;
+          if (step2Opened !== null && step2Opened.size > 0) {
+            openSubjectNames = Array.from(step2Opened);
           } else {
-            const saved = (gData.savedPlans || []).filter(p => p.semester === sem);
-            if (saved.length > 0) plan = saved[saved.length - 1];
+            // 2단계가 없으면 1단계 수강신청 조사 과목 수집
+            let semSubjects = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
+            if (!semSubjects || semSubjects.length === 0) {
+              const semKey = (sem === 1 ? 'sem1' : 'sem2');
+              const set = new Set();
+              (gData.students || []).forEach(st => {
+                (st[semKey] || []).forEach(s => { if (s && s.trim()) set.add(s.trim()); });
+              });
+              semSubjects = Array.from(set);
+            }
+            openSubjectNames = semSubjects.map(s => getBaseSubjectName(s));
           }
 
-          const step2Grouped = new Set();
-          if (plan && plan.semester === sem && plan.groups && Array.isArray(plan.groups)) {
-            plan.groups.flat().forEach(tok => {
-              if (tok) {
-                const baseName = getBaseSubjectName(tok);
-                if (!closedNorms.has(normalizeSubjectKey(baseName)) && !closedNorms.has(normalizeSubjectKey(tok))) {
-                  step2Grouped.add(baseName);
-                }
-              }
-            });
-          }
-
-          // 3. 개설(미폐강) 대상 과목:
-          // 2단계 그룹에 포함된 과목이 있다면 그 과목들이 개설 과목.
-          // 2단계 그룹이 아직 없다면 1단계 미폐강 과목들을 개설 대상 과목으로 간주.
-          const openSubjectNames = new Set();
-          if (step2Grouped.size > 0) {
-            step2Grouped.forEach(s => {
-              if (!closedNorms.has(normalizeSubjectKey(s))) {
-                openSubjectNames.add(s);
-              }
-            });
-          } else {
-            semSubjects.forEach(s => {
-              const base = getBaseSubjectName(s);
-              if (!closedNorms.has(normalizeSubjectKey(s)) && !closedNorms.has(normalizeSubjectKey(base))) {
-                openSubjectNames.add(base);
-              }
-            });
-          }
-
-          // 4. 업로드된 편제표 과목들과 비교 (정확히 해당 학년, 해당 학기 매칭)
-          const currForGradeSem = currList.filter(item => 
-            item.grade === gradeStr && item.semester === sem
-          );
-          const currNorms = currForGradeSem.map(item => normalizeSubjectKey(item.subject));
+          // 폐강 과목 제외
+          openSubjectNames = openSubjectNames.filter(s => s && !closedNorms.has(normalizeSubjectKey(s)));
 
           openSubjectNames.forEach(openSubj => {
             if (!openSubj) return;
             const norm = normalizeSubjectKey(openSubj);
-            const matchFound = currNorms.some(cNorm => cNorm === norm);
-            if (!matchFound) {
+
+            // 1. 편제표 전체(currList)에 이 과목이 이미 등록되어 있는지 확인
+            const allCurrMatches = currList.filter(item => normalizeSubjectKey(item.subject) === norm);
+
+            if (allCurrMatches.length > 0) {
+              // 1-1. 해당 학년 및 학기에 완벽 일치하는 편제표 행이 있는 경우 -> 정상 등록됨!
+              const hasExactMatch = allCurrMatches.some(item => 
+                item.grade === gradeStr && item.semester === sem
+              );
+              if (hasExactMatch) return;
+
+              // 1-2. 편제표에 '다른 학년'(예: 3학년 과목인데 2학년 조사에 섞여 있던 경우)으로 이미 등록되어 있는 경우:
+              // 이미 편제표에 본래 학년으로 잘 등록되어 있으므로, 2학년 누락 과목으로 잘못 띄우지 않고 원천 배제!
+              const belongsToOtherGrade = allCurrMatches.some(item => item.grade !== gradeStr);
+              if (belongsToOtherGrade) {
+                return;
+              }
+
+              // 1-3. 동일 학년 내에서 학기만 다른 경우 (예: 연간/학기 차이)
+              const hasSameGradeOtherSem = allCurrMatches.some(item => item.grade === gradeStr);
+              if (hasSameGradeOtherSem) {
+                return;
+              }
+            }
+
+            // 2. 편제표 전체 어디에도 없는 '진짜 누락 과목'인 경우:
+            // 이전 단계(1·2단계 학생/그룹핑 데이터)를 바탕으로 이 과목의 실제 개설 학년(2학년 vs 3학년)을 정확히 판별
+            const trueGrade = getTrueGradeForSubject(openSubj, gradeStr, currList, gData2, gData3);
+
+            const missingKey = `${trueGrade}::${sem}::${norm}`;
+            if (!seenMissingKeys.has(missingKey)) {
+              seenMissingKeys.add(missingKey);
               missing.push({
-                grade: gradeStr,
+                grade: trueGrade,
                 semester: sem,
                 subject: openSubj
               });
