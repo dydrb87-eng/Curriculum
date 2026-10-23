@@ -1489,6 +1489,311 @@
 
       </section>
 
+
+      <!-- ============================================================= -->
+      <!-- ================= 3단계: 교과군 선택 조건 검증 ================= -->
+      <!-- ============================================================= -->
+      <section id="step3View" class="hidden space-y-6">
+
+        <!-- Top Header & Banner -->
+        <div class="bg-gradient-to-r from-purple-800 via-indigo-800 to-blue-800 text-white rounded-2xl p-6 shadow-md border border-purple-500/30">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="px-2.5 py-0.5 bg-purple-500/40 text-purple-200 border border-purple-400/40 rounded-full text-xs font-black tracking-wide">3단계 검증 엔진</span>
+                <span id="step3ActiveYearBadge" class="px-2.5 py-0.5 bg-white/20 text-white rounded-full text-xs font-bold">2027학년도</span>
+              </div>
+              <h2 class="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
+                <span>📋 교과군 선택 조건 종합 검증</span>
+              </h2>
+              <p class="text-purple-200 text-xs sm:text-sm mt-1 max-w-3xl leading-relaxed">
+                전체 시수 종합의 전학년(1·2·3학년) 과목 목록을 바탕으로 교과군 및 선택 개수 제한 조건을 등록하고, 
+                2·3학년 학생들의 최종 수강신청(선택과목)이 조건에 부합하는지 정밀 검증합니다.
+              </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+              <button type="button" onclick="window.runStep3Validation(true)" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm">
+                <span>🔄 검증 새로고침</span>
+              </button>
+              <button type="button" onclick="window.exportStep3ValidationExcel()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 transition cursor-pointer shadow-md">
+                <span>📥 검증 결과 엑셀 다운로드 (.xlsx)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Metrics Bar -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-purple-500/40">
+            <div class="bg-white/10 backdrop-blur-xs rounded-xl p-3 border border-white/15">
+              <span class="text-xs text-purple-200 font-medium">검증 대상 학생</span>
+              <div class="flex items-baseline gap-1.5 mt-0.5">
+                <span id="step3StatTotalStudents" class="text-xl sm:text-2xl font-black text-white">0</span>
+                <span class="text-xs text-purple-200">명</span>
+                <span id="step3StatGradeDetail" class="text-[10px] text-purple-300 ml-1">(2학년 0, 3학년 0)</span>
+              </div>
+            </div>
+            <div class="bg-emerald-500/20 backdrop-blur-xs rounded-xl p-3 border border-emerald-400/30">
+              <span class="text-xs text-emerald-200 font-medium">이수조건 충족 (정상)</span>
+              <div class="flex items-baseline gap-1.5 mt-0.5">
+                <span id="step3StatPassStudents" class="text-xl sm:text-2xl font-black text-emerald-300">0</span>
+                <span class="text-xs text-emerald-200">명</span>
+                <span id="step3StatPassRate" class="text-[10px] text-emerald-200 ml-1 font-bold">(0%)</span>
+              </div>
+            </div>
+            <div class="bg-rose-500/20 backdrop-blur-xs rounded-xl p-3 border border-rose-400/30">
+              <span class="text-xs text-rose-200 font-medium">이수조건 미달·위반</span>
+              <div class="flex items-baseline gap-1.5 mt-0.5">
+                <span id="step3StatViolatedStudents" class="text-xl sm:text-2xl font-black text-rose-300">0</span>
+                <span class="text-xs text-rose-200">명</span>
+                <span id="step3StatViolatedRate" class="text-[10px] text-rose-200 ml-1 font-bold">(0%)</span>
+              </div>
+            </div>
+            <div class="bg-amber-500/20 backdrop-blur-xs rounded-xl p-3 border border-amber-400/30">
+              <span class="text-xs text-amber-200 font-medium">등록 교과군 / 미지정 과목</span>
+              <div class="flex items-baseline gap-1.5 mt-0.5">
+                <span id="step3StatCategoryCount" class="text-xl sm:text-2xl font-black text-amber-300">0</span>
+                <span class="text-xs text-amber-200">개 군</span>
+                <span id="step3StatUnmappedNotice" class="text-[10px] text-amber-200 ml-1">/ 미지정 0개</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 Sub-Navigation Tabs (3단계 하위 탭) -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-2">
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button type="button" id="step3SubTabBtnResults" onclick="window.switchStep3SubTab('results')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-black transition cursor-pointer flex items-center gap-2 bg-white text-indigo-700 shadow-xs ring-1 ring-slate-200">
+              <span>🚨 학생별 조건 검증 대시보드</span>
+              <span id="step3TabViolatedBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-100 text-rose-800">0명 위반</span>
+            </button>
+            <button type="button" id="step3SubTabBtnCategories" onclick="window.switchStep3SubTab('categories')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition cursor-pointer flex items-center gap-1.5">
+              <span>🏷️ 1. 교과군 및 조건 등록/관리</span>
+              <span id="step3TabCategoryBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">0</span>
+            </button>
+            <button type="button" id="step3SubTabBtnMappings" onclick="window.switchStep3SubTab('mappings')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition cursor-pointer flex items-center gap-1.5">
+              <span>📋 2. 과목별 교과군 지정 매핑</span>
+              <span id="step3TabMappingBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">0과목</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs text-slate-500">
+            <span class="font-bold text-slate-700">💡 권장 진행 순서:</span>
+            <span>① 교과군 및 제한 조건 등록 ➔ ② 과목별 교과군 지정 ➔ ③ 학생별 검증 결과 확인</span>
+          </div>
+        </div>
+
+        <!-- SUB VIEW 1: RESULTS DASHBOARD -->
+        <div id="step3SubViewResults" class="space-y-4">
+
+          <div id="step3ResultsWarningBanner" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center justify-between gap-3 text-amber-900">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl">⚠️</span>
+              <span id="step3ResultsWarningText" class="text-xs sm:text-sm font-medium">교과군 등록이 필요합니다.</span>
+            </div>
+            <button type="button" onclick="window.switchStep3SubTab('categories')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shrink-0">
+              교과군 등록 바로가기 ➔
+            </button>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button type="button" id="step3FilterStatusViolated" onclick="window.setStep3ResultFilter('status', 'violated')" class="px-3 py-1.5 rounded-lg text-xs font-black transition bg-rose-600 text-white shadow-xs">
+                  <span>🚨 조건 위반 학생</span>
+                  <span id="step3FilterCountViolated" class="ml-1 text-[11px] opacity-90">(0)</span>
+                </button>
+                <button type="button" id="step3FilterStatusPass" onclick="window.setStep3ResultFilter('status', 'pass')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+                  <span>✅ 조건 충족 (정상)</span>
+                  <span id="step3FilterCountPass" class="ml-1 text-[11px] opacity-90">(0)</span>
+                </button>
+                <button type="button" id="step3FilterStatusAll" onclick="window.setStep3ResultFilter('status', 'all')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+                  <span>👥 전체 학생</span>
+                  <span id="step3FilterCountAll" class="ml-1 text-[11px] opacity-90">(0)</span>
+                </button>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <select id="step3FilterGrade" onchange="window.setStep3ResultFilter('grade', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
+                  <option value="all">전체 학년</option>
+                  <option value="2학년">2학년</option>
+                  <option value="3학년">3학년</option>
+                </select>
+
+                <select id="step3FilterClass" onchange="window.setStep3ResultFilter('classNum', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
+                  <option value="all">전체 반</option>
+                  <option value="1">1반</option>
+                  <option value="2">2반</option>
+                  <option value="3">3반</option>
+                </select>
+
+                <select id="step3FilterCategory" onchange="window.setStep3ResultFilter('categoryId', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
+                  <option value="all">모든 교과군</option>
+                </select>
+
+                <div class="relative">
+                  <input type="text" id="step3FilterSearch" oninput="window.setStep3ResultFilter('search', this.value)" placeholder="이름 또는 학번 검색..." class="text-xs bg-slate-50 border border-slate-300 rounded-lg pl-7 pr-3 py-1.5 w-44 focus:w-56 transition-all font-medium focus:ring-2 focus:ring-indigo-400">
+                  <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
+            <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 bg-slate-50/60">
+              <div class="flex items-center gap-2">
+                <span class="text-base font-black text-slate-800">📋 학생별 교과군 선택 조건 검증 결과 명단</span>
+                <span id="step3TableResultCount" class="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full font-bold">0명 표시 중</span>
+              </div>
+              <span class="text-xs text-slate-400">과목 태그에 마우스를 올리면 상세 정보를 확인할 수 있습니다.</span>
+            </div>
+
+            <div class="overflow-x-auto max-h-[680px]">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-100/80 text-slate-700 uppercase font-black tracking-wider text-[11px] sticky top-0 z-10 border-b border-slate-300">
+                  <tr>
+                    <th class="py-3 px-3 w-16 text-center">학년</th>
+                    <th class="py-3 px-3 w-20 text-center">반/번호</th>
+                    <th class="py-3 px-4 w-24 text-center">학생명</th>
+                    <th class="py-3 px-3 w-24 text-center">검증 상태</th>
+                    <th class="py-3 px-4 min-w-[280px]">위반 교과군 및 불일치 사유</th>
+                    <th class="py-3 px-4 min-w-[260px]">해당 교과군 선택 과목 (구체적 과목명)</th>
+                    <th class="py-3 px-4 min-w-[260px]">전체 선택 과목 (1학기 / 2학기)</th>
+                  </tr>
+                </thead>
+                <tbody id="step3ResultsTableBody" class="divide-y divide-slate-200 bg-white">
+                </tbody>
+              </table>
+            </div>
+
+            <div id="step3ResultsEmptyState" class="hidden p-12 text-center text-slate-400">
+              <div class="text-4xl mb-2">🎉</div>
+              <p class="text-sm font-bold text-slate-600">해당 조건에 해당하는 학생이 없습니다.</p>
+              <p class="text-xs text-slate-400 mt-1">모든 학생이 교과군 선택 조건을 충족했거나 필터 조건에 부합하는 학생이 없습니다.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- SUB VIEW 2: CATEGORY & RULES MANAGER -->
+        <div id="step3SubViewCategories" class="hidden space-y-4">
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
+                  <span>🏷️ 교과군 및 선택 개수 제한 조건 등록</span>
+                  <span class="text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full font-bold">1단계 설정</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">
+                  학교 교육과정 편제표에 따라 교과군(예: 기초, 탐구, 체육·예술, 생활·교양 등)을 등록하고, 
+                  학생 1인당 선택해야 하는 개수 제한 조건(최소 N과목 이상, 최대 N과목 이하 등)을 설정합니다.
+                </p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <button type="button" onclick="window.generateDefaultStep3Categories()" class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-2xs">
+                  <span>⚡ 표준 4대 교과군 자동 생성</span>
+                </button>
+                <button type="button" onclick="window.openStep3CategoryModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+                  <span>+ 새 교과군 추가</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="step3CategoryCardGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            </div>
+
+            <div id="step3CategoriesEmptyState" class="hidden p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+              <span class="text-4xl">🏷️</span>
+              <h4 class="text-sm font-black text-slate-700 mt-2">등록된 교과군이 없습니다.</h4>
+              <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                '+ 새 교과군 추가' 버튼을 눌러 직접 등록하시거나, '표준 4대 교과군 자동 생성' 버튼을 눌러 시작하세요.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- SUB VIEW 3: SUBJECT MAPPING TABLE -->
+        <div id="step3SubViewMappings" class="hidden space-y-4">
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
+                  <span>📋 전학년(1·2·3학년) 과목별 교과군 지정 매핑</span>
+                  <span class="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full font-bold">2단계 설정</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">
+                  전체 시수 종합의 전학년 교육과정 과목 목록을 가져와 각 과목이 속할 교과군을 지정합니다. 
+                  지정된 교과군 정보를 바탕으로 학생들의 선택 과목 개수를 자동으로 집계하여 검증합니다.
+                </p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <button type="button" onclick="window.autoAssignStep3CategoriesByName()" class="px-3.5 py-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+                  <span>⚡ 과목명 기반 교과군 자동 추천</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
+                  <button type="button" id="step3MapGradeFilterAll" onclick="window.setStep3MappingFilter('grade', 'all')" class="px-2.5 py-1 rounded font-black bg-indigo-600 text-white">전체</button>
+                  <button type="button" id="step3MapGradeFilter1" onclick="window.setStep3MappingFilter('grade', '1학년')" class="px-2.5 py-1 rounded font-bold text-slate-600 hover:text-slate-900">1학년</button>
+                  <button type="button" id="step3MapGradeFilter2" onclick="window.setStep3MappingFilter('grade', '2학년')" class="px-2.5 py-1 rounded font-bold text-slate-600 hover:text-slate-900">2학년</button>
+                  <button type="button" id="step3MapGradeFilter3" onclick="window.setStep3MappingFilter('grade', '3학년')" class="px-2.5 py-1 rounded font-bold text-slate-600 hover:text-slate-900">3학년</button>
+                </div>
+
+                <select id="step3MapFilterCategory" onchange="window.setStep3MappingFilter('categoryId', this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700">
+                  <option value="all">모든 교과군 보기</option>
+                  <option value="__unmapped__">⚠️ 미지정 과목만 보기</option>
+                </select>
+
+                <div class="relative">
+                  <input type="text" id="step3MapFilterSearch" oninput="window.setStep3MappingFilter('search', this.value)" placeholder="과목명 또는 교사 검색..." class="text-xs bg-white border border-slate-300 rounded-lg pl-7 pr-3 py-1.5 w-40 focus:w-52 transition-all font-medium">
+                  <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                <span class="text-xs font-bold text-slate-600"><span id="step3SelectedSubjectsCount">0</span>개 선택됨:</span>
+                <select id="step3BatchCategorySelect" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-bold text-slate-700">
+                  <option value="">교과군 선택...</option>
+                </select>
+                <button type="button" onclick="window.batchAssignStep3Categories()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition cursor-pointer">
+                  일괄 지정
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto max-h-[640px] border border-slate-200 rounded-xl">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-100 text-slate-700 uppercase font-black tracking-wider text-[11px] sticky top-0 z-10 border-b border-slate-300">
+                  <tr>
+                    <th class="py-3 px-3 w-10 text-center">
+                      <input type="checkbox" id="step3SubjectSelectAll" onchange="window.toggleStep3SelectAllSubjects(this.checked)" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    </th>
+                    <th class="py-3 px-3 w-16 text-center">학년</th>
+                    <th class="py-3 px-3 w-16 text-center">학기</th>
+                    <th class="py-3 px-3 w-16 text-center">구분</th>
+                    <th class="py-3 px-4 min-w-[160px]">과목명</th>
+                    <th class="py-3 px-3 w-16 text-center">시수</th>
+                    <th class="py-3 px-3 w-20 text-center">담당교사</th>
+                    <th class="py-3 px-3 w-16 text-center">상태</th>
+                    <th class="py-3 px-4 min-w-[200px]">배정 교과군 (클릭하여 변경)</th>
+                  </tr>
+                </thead>
+                <tbody id="step3MappingTableBody" class="divide-y divide-slate-200 bg-white">
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
     </div>
   </main>
 
@@ -1504,6 +1809,94 @@
   </footer>
 
   <!-- ================= MODALS ================= -->
+
+  <!-- Step 3: Category Edit/Add Modal -->
+  <div id="step3CategoryModal" onclick="if(event.target.id === 'step3CategoryModal') window.closeStep3CategoryModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 border border-slate-100" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 id="step3CategoryModalTitle" class="text-lg font-black text-slate-800 flex items-center gap-2">
+          <span>🏷️ 교과군 및 선택 조건 등록</span>
+        </h3>
+        <button type="button" onclick="window.closeStep3CategoryModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">✕</button>
+      </div>
+
+      <input type="hidden" id="step3CategoryModalId" value="">
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">교과군 이름 <span class="text-rose-500">*</span></label>
+          <input type="text" id="step3CategoryModalName" placeholder="예: 탐구(사회), 기초(국·영·수), 체육·예술" class="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-indigo-400">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">교과군 색상 테마</label>
+          <div id="step3CategoryModalColorPicker" class="flex flex-wrap gap-2">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">적용 대상 학년</label>
+            <select id="step3CategoryModalGrade" onchange="window.updateStep3ModalSummaryPreview()" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-indigo-400">
+              <option value="전체">2·3학년 전체 (합산)</option>
+              <option value="2학년">2학년만 적용</option>
+              <option value="3학년">3학년만 적용</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">적용 대상 학기</label>
+            <select id="step3CategoryModalSemester" onchange="window.updateStep3ModalSummaryPreview()" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-indigo-400">
+              <option value="all">연간 전체 (1·2학기 합산)</option>
+              <option value="1">1학기만 적용</option>
+              <option value="2">2학기만 적용</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-3.5 space-y-3">
+          <label class="block text-xs font-black text-indigo-950">선택 개수 제한 조건 설정 <span class="text-rose-500">*</span></label>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
+              <input type="radio" name="step3CategoryRuleType" value="min" checked onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
+              <span>최소 N과목 이상</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
+              <input type="radio" name="step3CategoryRuleType" value="max" onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
+              <span>최대 N과목 이하</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
+              <input type="radio" name="step3CategoryRuleType" value="range" onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
+              <span>N ~ M과목 범위</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
+              <input type="radio" name="step3CategoryRuleType" value="exact" onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
+              <span>정확히 N과목 선택</span>
+            </label>
+          </div>
+
+          <div id="step3ModalRuleCountContainer" class="flex items-center gap-2 pt-1">
+          </div>
+
+          <div class="text-[11px] font-bold text-indigo-800 bg-white/80 p-2 rounded-lg border border-indigo-100 flex items-center gap-1.5">
+            <span>📌 조건 요약:</span>
+            <span id="step3ModalRuleSummaryPreview" class="text-indigo-950 font-black">최소 1과목 이상</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex items-center justify-end gap-2 border-t border-slate-200 pt-3">
+        <button type="button" onclick="window.closeStep3CategoryModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer">
+          취소
+        </button>
+        <button type="button" onclick="window.saveStep3CategoryFromModal()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition cursor-pointer shadow-sm">
+          저장하기
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Cloud & Database Settings Modal -->
   <div id="cloudSettingsModal" onclick="if(event.target.id === 'cloudSettingsModal') closeCloudModal();" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150">
@@ -4402,7 +4795,15 @@
     navTab2?.addEventListener('click', () => switchStepView(2));
 
     function switchStepView(step) {
-      if (MultiState.activeGrade === '전체') return;
+      if (MultiState.activeGrade === '전체') {
+        MultiState.activeGrade = '2학년';
+        const allGradesSection = document.getElementById('allGradesSection');
+        const appBody = document.getElementById('appBody');
+        const uploadSection = document.getElementById('uploadSection');
+        if (allGradesSection) allGradesSection.classList.add('hidden');
+        if (appBody) appBody.classList.remove('hidden');
+        if (uploadSection) uploadSection.classList.remove('hidden');
+      }
       MultiState.activeStep = step;
 
       const activeClasses = ['bg-gradient-to-r', 'from-blue-600', 'to-indigo-700', 'text-white', 'shadow-lg', 'shadow-blue-600/30', 'ring-2', 'ring-blue-400/50'];
@@ -4410,6 +4811,9 @@
 
       const badge1 = document.getElementById('navTab1Badge');
       const badge2 = document.getElementById('navTab2Badge');
+      const step1View = document.getElementById('step1View');
+      const step2View = document.getElementById('step2View');
+      const step3View = document.getElementById('step3View');
 
       if (step === 1) {
         if (navTab1) {
@@ -4421,7 +4825,6 @@
         if (badge1) {
           badge1.className = 'w-7 h-7 rounded-full bg-white text-blue-700 font-extrabold text-xs shadow-sm flex items-center justify-center';
         }
-
         if (navTab2) {
           navTab2.classList.remove(...activeClasses);
           navTab2.classList.add(...inactiveClasses);
@@ -4434,8 +4837,9 @@
 
         step1View?.classList.remove('hidden');
         step2View?.classList.add('hidden');
+        step3View?.classList.add('hidden');
         renderStep1();
-      } else {
+      } else if (step === 2) {
         if (navTab2) {
           navTab2.classList.remove(...inactiveClasses);
           navTab2.classList.add(...activeClasses);
@@ -4445,7 +4849,6 @@
         if (badge2) {
           badge2.className = 'w-7 h-7 rounded-full bg-white text-blue-700 font-extrabold text-xs shadow-sm flex items-center justify-center';
         }
-
         if (navTab1) {
           navTab1.classList.remove(...activeClasses);
           navTab1.classList.add(...inactiveClasses);
@@ -4458,7 +4861,15 @@
 
         step2View?.classList.remove('hidden');
         step1View?.classList.add('hidden');
+        step3View?.classList.add('hidden');
         renderStep2UI();
+      } else if (step === 3) {
+        step3View?.classList.remove('hidden');
+        step1View?.classList.add('hidden');
+        step2View?.classList.add('hidden');
+        if (typeof renderStep3UI === 'function') {
+          renderStep3UI();
+        }
       }
 
       renderYearGradeNav();
@@ -12746,14 +13157,22 @@ function createSangjiCourseSelectionForm() {
         updateStep2SemesterTabs(preservedSemester);
 
         const activeStep = MultiState.activeStep || 1;
+        const step3View = document.getElementById('step3View');
         if (activeStep === 1) {
           if (step1View) step1View.classList.remove('hidden');
           if (step2View) step2View.classList.add('hidden');
+          if (step3View) step3View.classList.add('hidden');
           renderStep1();
-        } else {
+        } else if (activeStep === 2) {
           if (step2View) step2View.classList.remove('hidden');
           if (step1View) step1View.classList.add('hidden');
+          if (step3View) step3View.classList.add('hidden');
           renderStep2UI();
+        } else if (activeStep === 3) {
+          if (step3View) step3View.classList.remove('hidden');
+          if (step1View) step1View.classList.add('hidden');
+          if (step2View) step2View.classList.add('hidden');
+          if (typeof renderStep3UI === 'function') renderStep3UI();
         }
 
         if (AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, AppState.currentPlan.semester)) {
@@ -12772,6 +13191,1430 @@ function createSangjiCourseSelectionForm() {
       updateModalStats();
       updateStep2ContextMemoUI();
     }
+
+
+    // =========================================================================
+    // 5. STEP 3: 교과군 선택 조건 검증 엔진 및 UI 관리 모듈
+    // =========================================================================
+
+    const STEP3_COLOR_SCHEMES = {
+      blue: { key: 'blue', label: '블루', badge: 'bg-blue-100 text-blue-800 border-blue-200', border: 'border-blue-300', dot: 'bg-blue-500', ring: 'ring-blue-400' },
+      emerald: { key: 'emerald', label: '에메랄드', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', border: 'border-emerald-300', dot: 'bg-emerald-500', ring: 'ring-emerald-400' },
+      purple: { key: 'purple', label: '퍼플', badge: 'bg-purple-100 text-purple-800 border-purple-200', border: 'border-purple-300', dot: 'bg-purple-500', ring: 'ring-purple-400' },
+      amber: { key: 'amber', label: '앰버', badge: 'bg-amber-100 text-amber-800 border-amber-200', border: 'border-amber-300', dot: 'bg-amber-500', ring: 'ring-amber-400' },
+      rose: { key: 'rose', label: '로즈', badge: 'bg-rose-100 text-rose-800 border-rose-200', border: 'border-rose-300', dot: 'bg-rose-500', ring: 'ring-rose-400' },
+      cyan: { key: 'cyan', label: '시안', badge: 'bg-cyan-100 text-cyan-800 border-cyan-200', border: 'border-cyan-300', dot: 'bg-cyan-500', ring: 'ring-cyan-400' },
+      indigo: { key: 'indigo', label: '인디고', badge: 'bg-indigo-100 text-indigo-800 border-indigo-200', border: 'border-indigo-300', dot: 'bg-indigo-500', ring: 'ring-indigo-400' },
+      slate: { key: 'slate', label: '그레이', badge: 'bg-slate-100 text-slate-800 border-slate-200', border: 'border-slate-300', dot: 'bg-slate-500', ring: 'ring-slate-400' }
+    };
+
+    let _step3ActiveSubTab = 'results'; // 'results' | 'categories' | 'mappings'
+    let _step3ResultFilters = {
+      status: 'violated', // 'violated' | 'pass' | 'all'
+      grade: 'all',
+      classNum: 'all',
+      categoryId: 'all',
+      search: ''
+    };
+    let _step3MappingFilters = {
+      grade: 'all',
+      categoryId: 'all',
+      search: ''
+    };
+    let _step3SelectedSubjectIds = new Set();
+    window._step3LastValidationResult = null;
+
+    function getStep3Data(acadYear = null) {
+      const ay = acadYear || MultiState?.activeAcademicYear || '2027학년도';
+      if (!MultiState.subjectGroupsByAcademicYear) MultiState.subjectGroupsByAcademicYear = {};
+      if (!MultiState.subjectGroupsByAcademicYear[ay]) {
+        MultiState.subjectGroupsByAcademicYear[ay] = {
+          categories: [],
+          mappings: {}
+        };
+      }
+      const data = MultiState.subjectGroupsByAcademicYear[ay];
+      if (!Array.isArray(data.categories)) data.categories = [];
+      if (!data.mappings || typeof data.mappings !== 'object') data.mappings = {};
+      return data;
+    }
+
+    function saveStep3Data(data, acadYear = null) {
+      const ay = acadYear || MultiState?.activeAcademicYear || '2027학년도';
+      if (!MultiState.subjectGroupsByAcademicYear) MultiState.subjectGroupsByAcademicYear = {};
+      MultiState.subjectGroupsByAcademicYear[ay] = data;
+      saveAllState();
+    }
+
+    function createDefaultStep3Categories() {
+      const now = Date.now();
+      return [
+        {
+          id: 'cat_basic_' + now,
+          name: '기초 (국·영·수)',
+          color: 'blue',
+          targetGrade: '전체',
+          targetSemester: 'all',
+          ruleType: 'max',
+          minCount: 0,
+          maxCount: 8,
+          exactCount: 0
+        },
+        {
+          id: 'cat_inquiry_soc_' + now,
+          name: '탐구 (사회)',
+          color: 'amber',
+          targetGrade: '전체',
+          targetSemester: 'all',
+          ruleType: 'min',
+          minCount: 1,
+          maxCount: 0,
+          exactCount: 0
+        },
+        {
+          id: 'cat_inquiry_sci_' + now,
+          name: '탐구 (과학)',
+          color: 'emerald',
+          targetGrade: '전체',
+          targetSemester: 'all',
+          ruleType: 'min',
+          minCount: 1,
+          maxCount: 0,
+          exactCount: 0
+        },
+        {
+          id: 'cat_art_pe_' + now,
+          name: '체육·예술',
+          color: 'purple',
+          targetGrade: '전체',
+          targetSemester: 'all',
+          ruleType: 'min',
+          minCount: 1,
+          maxCount: 0,
+          exactCount: 0
+        },
+        {
+          id: 'cat_life_' + now,
+          name: '생활·교양',
+          color: 'cyan',
+          targetGrade: '전체',
+          targetSemester: 'all',
+          ruleType: 'min',
+          minCount: 1,
+          maxCount: 0,
+          exactCount: 0
+        }
+      ];
+    }
+
+    function formatStep3RuleDesc(cat) {
+      if (!cat) return '';
+      const gStr = cat.targetGrade === '전체' ? '2·3학년 전체' : cat.targetGrade;
+      const semStr = cat.targetSemester === '1' ? '1학기' : (cat.targetSemester === '2' ? '2학기' : '연간');
+      let ruleStr = '';
+      if (cat.ruleType === 'min') ruleStr = `최소 ${cat.minCount || 0}과목 이상`;
+      else if (cat.ruleType === 'max') ruleStr = `최대 ${cat.maxCount || 0}과목 이하`;
+      else if (cat.ruleType === 'range') ruleStr = `${cat.minCount || 0}~${cat.maxCount || 0}과목`;
+      else if (cat.ruleType === 'exact') ruleStr = `정확히 ${cat.exactCount || 0}과목`;
+      return `[${gStr} ${semStr}] ${ruleStr}`;
+    }
+
+    function getSubjectCategory(subject, grade) {
+      if (!subject) return null;
+      const sData = getStep3Data();
+      const mappings = sData.mappings || {};
+      const cleanSubj = String(subject).trim();
+
+      if (grade && mappings[`${grade}::${cleanSubj}`]) {
+        return mappings[`${grade}::${cleanSubj}`];
+      }
+      if (mappings[cleanSubj]) {
+        return mappings[cleanSubj];
+      }
+
+      const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanSubj) : cleanSubj.replace(/\s+/g, '');
+      for (const k in mappings) {
+        const rawSubj = k.includes('::') ? k.split('::')[1] : k;
+        const normK = (typeof normalizeSubject === 'function') ? normalizeSubject(rawSubj) : rawSubj.replace(/\s+/g, '');
+        if (normK === norm) {
+          return mappings[k];
+        }
+      }
+      return null;
+    }
+
+    function getStep3StudentsData() {
+      if (MultiState.activeGrade !== '전체' && typeof syncCurrentToMulti === 'function') {
+        syncCurrentToMulti();
+      }
+      const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+      const y = MultiState?.activeYear;
+
+      const g2List = (MultiState.activeGrade === '2학년' && AppState.students && AppState.students.length > 0)
+        ? AppState.students
+        : (acadData[y]?.['2학년']?.students || []);
+
+      const g3List = (MultiState.activeGrade === '3학년' && AppState.students && AppState.students.length > 0)
+        ? AppState.students
+        : (acadData[y]?.['3학년']?.students || []);
+
+      const grade2Students = JSON.parse(JSON.stringify(g2List || []));
+      const grade3Students = JSON.parse(JSON.stringify(g3List || []));
+
+      grade2Students.forEach(st => { if (!st.grade) st.grade = '2학년'; });
+      grade3Students.forEach(st => { if (!st.grade) st.grade = '3학년'; });
+
+      return { grade2Students, grade3Students };
+    }
+
+    function getAllCurriculumSubjectsForStep3() {
+      const curriculum = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
+      const map = new Map();
+
+      curriculum.forEach(item => {
+        const grade = item.grade || '2학년';
+        const sem = item.semester || 1;
+        const subj = item.subject || '과목';
+        const key = `${grade}::${sem}학기::${subj}`;
+        if (!map.has(key)) {
+          map.set(key, { ...item });
+        }
+      });
+
+      const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+      const y = MultiState?.activeYear;
+      ['2학년', '3학년'].forEach(grade => {
+        const gData = acadData[y]?.[grade] || {};
+        (gData.sem1Subjects || []).forEach(s => {
+          const key = `${grade}::1학기::${s}`;
+          if (!map.has(key)) {
+            map.set(key, {
+              id: 'step3_supp_1_' + grade + '_' + s,
+              grade: grade,
+              semester: 1,
+              category: '선택',
+              division: '',
+              subject: s,
+              baseSubject: (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(s) : s,
+              hours: 3,
+              teacher: '미배정',
+              status: '개설'
+            });
+          }
+        });
+        (gData.sem2Subjects || []).forEach(s => {
+          const key = `${grade}::2학기::${s}`;
+          if (!map.has(key)) {
+            map.set(key, {
+              id: 'step3_supp_2_' + grade + '_' + s,
+              grade: grade,
+              semester: 2,
+              category: '선택',
+              division: '',
+              subject: s,
+              baseSubject: (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(s) : s,
+              hours: 3,
+              teacher: '미배정',
+              status: '개설'
+            });
+          }
+        });
+      });
+
+      return Array.from(map.values()).sort((a, b) => {
+        if (a.grade !== b.grade) return a.grade.localeCompare(b.grade);
+        if (a.semester !== b.semester) return a.semester - b.semester;
+        return (a.subject || '').localeCompare(b.subject || '', 'ko');
+      });
+    }
+
+    function getStep3ValidationSummaryQuick() {
+      if (window._step3LastValidationResult && window._step3LastValidationResult.totalCount > 0) {
+        return {
+          total: window._step3LastValidationResult.totalCount,
+          violated: window._step3LastValidationResult.violatedCount,
+          passed: window._step3LastValidationResult.passedCount
+        };
+      }
+      return null;
+    }
+
+    function runStep3Validation(showAlert = false) {
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+      const { grade2Students, grade3Students } = getStep3StudentsData();
+      const allStudents = [...grade2Students, ...grade3Students];
+
+      const results = [];
+      const catViolationCounts = {};
+      categories.forEach(c => { catViolationCounts[c.id] = 0; });
+      const unmappedSubjSet = new Set();
+
+      allStudents.forEach(st => {
+        const studentSem1 = Array.isArray(st.sem1) ? st.sem1 : [];
+        const studentSem2 = Array.isArray(st.sem2) ? st.sem2 : [];
+        const studentAllChoices = [...studentSem1, ...studentSem2];
+
+        studentAllChoices.forEach(s => {
+          const cId = getSubjectCategory(s, st.grade);
+          if (!cId) unmappedSubjSet.add(s);
+        });
+
+        const violations = [];
+        const catEvaluations = [];
+
+        categories.forEach(cat => {
+          if (cat.targetGrade !== '전체' && cat.targetGrade !== st.grade) {
+            return;
+          }
+
+          let pool = [];
+          if (cat.targetSemester === '1') pool = studentSem1;
+          else if (cat.targetSemester === '2') pool = studentSem2;
+          else pool = studentAllChoices;
+
+          const chosenSubjectsInCat = [];
+          pool.forEach(subj => {
+            const cId = getSubjectCategory(subj, st.grade);
+            if (cId === cat.id) {
+              chosenSubjectsInCat.push(subj);
+            }
+          });
+
+          const count = chosenSubjectsInCat.length;
+          let isViolated = false;
+          let reason = '';
+
+          if (cat.ruleType === 'min') {
+            const minReq = parseInt(cat.minCount || 0, 10);
+            if (count < minReq) {
+              isViolated = true;
+              reason = `최소 ${minReq}과목 이상 필요 ➔ 현재 ${count}과목 선택 (${minReq - count}과목 미달)`;
+            }
+          } else if (cat.ruleType === 'max') {
+            const maxReq = parseInt(cat.maxCount || 0, 10);
+            if (count > maxReq) {
+              isViolated = true;
+              reason = `최대 ${maxReq}과목 이하 필요 ➔ 현재 ${count}과목 선택 (${count - maxReq}과목 초과)`;
+            }
+          } else if (cat.ruleType === 'range') {
+            const minReq = parseInt(cat.minCount || 0, 10);
+            const maxReq = parseInt(cat.maxCount || 0, 10);
+            if (count < minReq) {
+              isViolated = true;
+              reason = `${minReq}~${maxReq}과목 필요 ➔ 현재 ${count}과목 선택 (${minReq - count}과목 미달)`;
+            } else if (count > maxReq) {
+              isViolated = true;
+              reason = `${minReq}~${maxReq}과목 필요 ➔ 현재 ${count}과목 선택 (${count - maxReq}과목 초과)`;
+            }
+          } else if (cat.ruleType === 'exact') {
+            const exactReq = parseInt(cat.exactCount || 0, 10);
+            if (count !== exactReq) {
+              isViolated = true;
+              reason = `정확히 ${exactReq}과목 필요 ➔ 현재 ${count}과목 선택`;
+            }
+          }
+
+          const evalItem = {
+            category: cat,
+            ruleDesc: formatStep3RuleDesc(cat),
+            count: count,
+            subjects: chosenSubjectsInCat,
+            isViolated: isViolated,
+            reason: reason
+          };
+
+          catEvaluations.push(evalItem);
+
+          if (isViolated) {
+            violations.push(evalItem);
+            catViolationCounts[cat.id] = (catViolationCounts[cat.id] || 0) + 1;
+          }
+        });
+
+        results.push({
+          student: st,
+          grade: st.grade,
+          classNum: st.classNum,
+          studentNum: st.studentNum,
+          name: st.name,
+          sem1: studentSem1,
+          sem2: studentSem2,
+          allChoices: studentAllChoices,
+          isPass: violations.length === 0,
+          violations: violations,
+          evaluations: catEvaluations
+        });
+      });
+
+      results.sort((a, b) => {
+        if (a.isPass !== b.isPass) return a.isPass ? 1 : -1;
+        if (a.grade !== b.grade) return a.grade.localeCompare(b.grade);
+        if (a.classNum !== b.classNum) return (a.classNum || 0) - (b.classNum || 0);
+        return (a.studentNum || 0) - (b.studentNum || 0);
+      });
+
+      const passedCount = results.filter(r => r.isPass).length;
+      const violatedCount = results.filter(r => !r.isPass).length;
+
+      window._step3LastValidationResult = {
+        results: results,
+        totalCount: allStudents.length,
+        grade2Count: grade2Students.length,
+        grade3Count: grade3Students.length,
+        passedCount: passedCount,
+        violatedCount: violatedCount,
+        catViolationCounts: catViolationCounts,
+        unmappedSubjects: Array.from(unmappedSubjSet),
+        timestamp: new Date()
+      };
+
+      renderStep3UI();
+
+      if (showAlert) {
+        if (categories.length === 0) {
+          alert('ℹ️ 등록된 교과군이 없습니다. [1. 교과군 및 조건 등록/관리]에서 교과군을 먼저 추가해주세요.');
+        } else if (allStudents.length === 0) {
+          alert('⚠️ 검증할 2학년 및 3학년 학생 데이터가 없습니다. 학생 수강신청 엑셀 파일을 먼저 업로드해주세요.');
+        } else {
+          alert(`✅ 교과군 선택 조건 검증 완료!
+- 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명)
+- 조건 충족 (정상): ${passedCount}명
+- 조건 미달·위반: ${violatedCount}명${unmappedSubjSet.size > 0 ? `
+- 교과군 미지정 과목: ${unmappedSubjSet.size}건` : ''}`);
+        }
+      }
+
+      return window._step3LastValidationResult;
+    }
+    window.getStep3Data = getStep3Data;
+    window.getAllCurriculumSubjectsForStep3 = getAllCurriculumSubjectsForStep3;
+    window.runStep3Validation = runStep3Validation;
+
+    // Subtab switching
+    function switchStep3SubTab(tabName) {
+      _step3ActiveSubTab = tabName;
+
+      const btnResults = document.getElementById('step3SubTabBtnResults');
+      const btnCategories = document.getElementById('step3SubTabBtnCategories');
+      const btnMappings = document.getElementById('step3SubTabBtnMappings');
+
+      const viewResults = document.getElementById('step3SubViewResults');
+      const viewCategories = document.getElementById('step3SubViewCategories');
+      const viewMappings = document.getElementById('step3SubViewMappings');
+
+      const activeBtnCls = ['bg-white', 'text-indigo-700', 'shadow-xs', 'ring-1', 'ring-slate-200', 'font-black'];
+      const inactiveBtnCls = ['text-slate-600', 'font-bold', 'hover:text-slate-900'];
+
+      [btnResults, btnCategories, btnMappings].forEach(b => {
+        if (b) {
+          b.classList.remove(...activeBtnCls);
+          b.classList.add(...inactiveBtnCls);
+        }
+      });
+
+      if (viewResults) viewResults.classList.add('hidden');
+      if (viewCategories) viewCategories.classList.add('hidden');
+      if (viewMappings) viewMappings.classList.add('hidden');
+
+      if (tabName === 'results') {
+        if (btnResults) {
+          btnResults.classList.remove(...inactiveBtnCls);
+          btnResults.classList.add(...activeBtnCls);
+        }
+        if (viewResults) viewResults.classList.remove('hidden');
+      } else if (tabName === 'categories') {
+        if (btnCategories) {
+          btnCategories.classList.remove(...inactiveBtnCls);
+          btnCategories.classList.add(...activeBtnCls);
+        }
+        if (viewCategories) viewCategories.classList.remove('hidden');
+      } else if (tabName === 'mappings') {
+        if (btnMappings) {
+          btnMappings.classList.remove(...inactiveBtnCls);
+          btnMappings.classList.add(...activeBtnCls);
+        }
+        if (viewMappings) viewMappings.classList.remove('hidden');
+      }
+
+      renderStep3UI();
+    }
+    window.switchStep3SubTab = switchStep3SubTab;
+
+    // Filter updates
+    function setStep3ResultFilter(key, value) {
+      _step3ResultFilters[key] = value;
+      renderStep3ValidationResults();
+    }
+    window.setStep3ResultFilter = setStep3ResultFilter;
+
+    function setStep3MappingFilter(key, value) {
+      _step3MappingFilters[key] = value;
+      renderStep3SubjectMappingTable();
+    }
+    window.setStep3MappingFilter = setStep3MappingFilter;
+
+    // Main Render for Step 3
+    function renderStep3UI() {
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+      const acadYear = MultiState?.activeAcademicYear || '2027학년도';
+
+      const yearBadge = document.getElementById('step3ActiveYearBadge');
+      if (yearBadge) yearBadge.textContent = acadYear;
+
+      if (!window._step3LastValidationResult) {
+        runStep3Validation(false);
+        return;
+      }
+
+      const val = window._step3LastValidationResult;
+
+      const totalEl = document.getElementById('step3StatTotalStudents');
+      const gradeDetailEl = document.getElementById('step3StatGradeDetail');
+      const passEl = document.getElementById('step3StatPassStudents');
+      const passRateEl = document.getElementById('step3StatPassRate');
+      const violEl = document.getElementById('step3StatViolatedStudents');
+      const violRateEl = document.getElementById('step3StatViolatedRate');
+      const catCountEl = document.getElementById('step3StatCategoryCount');
+      const unmappedNoticeEl = document.getElementById('step3StatUnmappedNotice');
+
+      if (totalEl) totalEl.textContent = val.totalCount;
+      if (gradeDetailEl) gradeDetailEl.textContent = `(2학년 ${val.grade2Count}, 3학년 ${val.grade3Count})`;
+
+      const pRate = val.totalCount > 0 ? ((val.passedCount / val.totalCount) * 100).toFixed(0) : 0;
+      const vRate = val.totalCount > 0 ? ((val.violatedCount / val.totalCount) * 100).toFixed(0) : 0;
+
+      if (passEl) passEl.textContent = val.passedCount;
+      if (passRateEl) passRateEl.textContent = `(${pRate}%)`;
+      if (violEl) violEl.textContent = val.violatedCount;
+      if (violRateEl) violRateEl.textContent = `(${vRate}%)`;
+
+      if (catCountEl) catCountEl.textContent = categories.length;
+      if (unmappedNoticeEl) {
+        unmappedNoticeEl.textContent = val.unmappedSubjects.length > 0 
+          ? `/ 미지정 ${val.unmappedSubjects.length}개 ⚠️`
+          : '/ 미지정 0개';
+      }
+
+      const tabViolBadge = document.getElementById('step3TabViolatedBadge');
+      const tabCatBadge = document.getElementById('step3TabCategoryBadge');
+      const tabMapBadge = document.getElementById('step3TabMappingBadge');
+
+      if (tabViolBadge) {
+        tabViolBadge.textContent = `${val.violatedCount}명 위반`;
+        tabViolBadge.className = val.violatedCount > 0 
+          ? 'px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-100 text-rose-800'
+          : 'px-1.5 py-0.2 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800';
+      }
+      if (tabCatBadge) tabCatBadge.textContent = categories.length;
+      if (tabMapBadge) tabMapBadge.textContent = Object.keys(sData.mappings || {}).length + '과목';
+
+      const warnBanner = document.getElementById('step3ResultsWarningBanner');
+      const warnText = document.getElementById('step3ResultsWarningText');
+      if (warnBanner && warnText) {
+        if (categories.length === 0) {
+          warnText.textContent = '등록된 교과군이 없습니다. [1. 교과군 및 조건 등록/관리]에서 교과군과 제한 조건을 먼저 등록해주세요.';
+          warnBanner.classList.remove('hidden');
+        } else if (val.unmappedSubjects.length > 0) {
+          warnText.textContent = `교과군이 지정되지 않은 과목이 ${val.unmappedSubjects.length}개 있습니다 (${val.unmappedSubjects.slice(0, 3).join(', ')}...). [2. 과목별 교과군 지정 매핑]에서 교과군을 배정해주세요.`;
+          warnBanner.classList.remove('hidden');
+        } else {
+          warnBanner.classList.add('hidden');
+        }
+      }
+
+      if (_step3ActiveSubTab === 'results') {
+        renderStep3ValidationResults();
+      } else if (_step3ActiveSubTab === 'categories') {
+        renderStep3CategoryList();
+      } else if (_step3ActiveSubTab === 'mappings') {
+        renderStep3SubjectMappingTable();
+      }
+    }
+    window.renderStep3UI = renderStep3UI;
+
+    function renderStep3ValidationResults() {
+      const val = window._step3LastValidationResult;
+      if (!val) return;
+
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+
+      const btnV = document.getElementById('step3FilterStatusViolated');
+      const btnP = document.getElementById('step3FilterStatusPass');
+      const btnA = document.getElementById('step3FilterStatusAll');
+      const cntV = document.getElementById('step3FilterCountViolated');
+      const cntP = document.getElementById('step3FilterCountPass');
+      const cntA = document.getElementById('step3FilterCountAll');
+
+      if (cntV) cntV.textContent = `(${val.violatedCount})`;
+      if (cntP) cntP.textContent = `(${val.passedCount})`;
+      if (cntA) cntA.textContent = `(${val.totalCount})`;
+
+      const curStatus = _step3ResultFilters.status;
+      [btnV, btnP, btnA].forEach(b => {
+        if (b) b.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition';
+      });
+
+      if (curStatus === 'violated' && btnV) {
+        btnV.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition bg-rose-600 text-white shadow-xs';
+      } else if (curStatus === 'pass' && btnP) {
+        btnP.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition bg-emerald-600 text-white shadow-xs';
+      } else if (curStatus === 'all' && btnA) {
+        btnA.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition bg-indigo-600 text-white shadow-xs';
+      }
+
+      const catSelect = document.getElementById('step3FilterCategory');
+      if (catSelect) {
+        const curCatVal = _step3ResultFilters.categoryId;
+        let optHtml = '<option value="all">모든 교과군</option>';
+        categories.forEach(c => {
+          const violCnt = val.catViolationCounts[c.id] || 0;
+          optHtml += `<option value="${c.id}" ${curCatVal === c.id ? 'selected' : ''}>${c.name} (${violCnt}명 위반)</option>`;
+        });
+        catSelect.innerHTML = optHtml;
+      }
+
+      const tbody = document.getElementById('step3ResultsTableBody');
+      const emptyState = document.getElementById('step3ResultsEmptyState');
+      const countBadge = document.getElementById('step3TableResultCount');
+
+      let filtered = val.results.filter(stRes => {
+        if (_step3ResultFilters.status === 'violated' && stRes.isPass) return false;
+        if (_step3ResultFilters.status === 'pass' && !stRes.isPass) return false;
+        if (_step3ResultFilters.grade !== 'all' && stRes.grade !== _step3ResultFilters.grade) return false;
+        if (_step3ResultFilters.classNum !== 'all' && String(stRes.classNum) !== String(_step3ResultFilters.classNum)) return false;
+
+        if (_step3ResultFilters.categoryId !== 'all') {
+          const hasCatViol = stRes.violations.some(v => v.category && v.category.id === _step3ResultFilters.categoryId);
+          if (!hasCatViol) return false;
+        }
+
+        if (_step3ResultFilters.search.trim()) {
+          const q = _step3ResultFilters.search.trim().toLowerCase();
+          const matchName = (stRes.name || '').toLowerCase().includes(q);
+          const matchId = String(stRes.studentNum || '').includes(q);
+          const matchClass = `${stRes.grade} ${stRes.classNum}반`.toLowerCase().includes(q);
+          if (!matchName && !matchId && !matchClass) return false;
+        }
+
+        return true;
+      });
+
+      if (countBadge) countBadge.textContent = `${filtered.length}명 표시 중`;
+
+      if (!tbody) return;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+      }
+
+      if (emptyState) emptyState.classList.add('hidden');
+
+      tbody.innerHTML = filtered.map((item, idx) => {
+        const isPass = item.isPass;
+        const rowBg = isPass ? (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50') : 'bg-rose-50/40 hover:bg-rose-50/70';
+
+        let violHtml = '';
+        if (isPass) {
+          violHtml = '<span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-lg">✅ 모든 교과군 이수 조건 충족</span>';
+        } else {
+          violHtml = '<div class="space-y-1.5">';
+          item.violations.forEach(v => {
+            const cat = v.category;
+            const cColor = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : STEP3_COLOR_SCHEMES.blue;
+            violHtml += `
+              <div class="p-1.5 rounded-lg border border-rose-200 bg-white/90 shadow-2xs space-y-0.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-[10px] font-black px-1.5 py-0.2 rounded ${cColor.badge}">${cat ? cat.name : '교과군'}</span>
+                  <span class="text-[10px] font-bold text-slate-500">${v.ruleDesc}</span>
+                </div>
+                <div class="text-xs font-bold text-rose-800 flex items-center gap-1">
+                  <span>🚨 ${v.reason}</span>
+                </div>
+              </div>
+            `;
+          });
+          violHtml += '</div>';
+        }
+
+        let chosenInCatHtml = '';
+        if (isPass) {
+          chosenInCatHtml = '<span class="text-slate-400 text-xs">-</span>';
+        } else {
+          chosenInCatHtml = '<div class="space-y-1.5">';
+          item.violations.forEach(v => {
+            const cat = v.category;
+            const cColor = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : STEP3_COLOR_SCHEMES.blue;
+            if (v.subjects.length === 0) {
+              chosenInCatHtml += `
+                <div class="py-1 px-2 rounded-lg bg-slate-100/80 border border-slate-200 text-slate-400 text-xs italic">
+                  [${cat ? cat.name : ''}] 해당 교과군 선택 과목 없음 (0개)
+                </div>
+              `;
+            } else {
+              chosenInCatHtml += `
+                <div class="py-1 px-2 rounded-lg bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <span class="text-[10px] font-black text-slate-500">[${cat ? cat.name : ''}] 선택 (${v.subjects.length}개):</span>
+                  <div class="flex flex-wrap gap-1">
+                    ${v.subjects.map(s => `
+                      <span class="text-[11px] font-extrabold px-1.5 py-0.5 rounded ${cColor.badge} border shadow-2xs" title="${cat ? cat.name : ''}">${s}</span>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }
+          });
+          chosenInCatHtml += '</div>';
+        }
+
+        const renderSubjTag = (subj) => {
+          const cId = getSubjectCategory(subj, item.grade);
+          const cat = cId ? categories.find(c => c.id === cId) : null;
+          const cColor = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : null;
+          const tagClass = cColor ? cColor.badge : 'bg-slate-100 text-slate-600 border-slate-200';
+          const title = cat ? `${subj} [${cat.name}]` : `${subj} [교과군 미지정]`;
+          return `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${tagClass} border" title="${title}">${subj}</span>`;
+        };
+
+        const sem1Tags = (item.sem1 || []).map(renderSubjTag).join('');
+        const sem2Tags = (item.sem2 || []).map(renderSubjTag).join('');
+
+        return `
+          <tr class="${rowBg} transition-colors">
+            <td class="py-3 px-3 text-center font-black text-slate-700 whitespace-nowrap">${item.grade}</td>
+            <td class="py-3 px-3 text-center font-bold text-slate-600 whitespace-nowrap">${item.classNum}반 ${item.studentNum}번</td>
+            <td class="py-3 px-4 text-center font-black text-slate-900 whitespace-nowrap">${item.name}</td>
+            <td class="py-3 px-3 text-center whitespace-nowrap">
+              ${isPass 
+                ? '<span class="px-2 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">정상</span>' 
+                : `<span class="px-2 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">위반 ${item.violations.length}건</span>`
+              }
+            </td>
+            <td class="py-3 px-4">${violHtml}</td>
+            <td class="py-3 px-4">${chosenInCatHtml}</td>
+            <td class="py-3 px-4">
+              <div class="space-y-1">
+                <div class="flex items-center gap-1 flex-wrap">
+                  <span class="text-[10px] font-black text-blue-700 bg-blue-50 px-1 rounded">1학기:</span>
+                  ${sem1Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+                </div>
+                <div class="flex items-center gap-1 flex-wrap">
+                  <span class="text-[10px] font-black text-indigo-700 bg-indigo-50 px-1 rounded">2학기:</span>
+                  ${sem2Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderStep3CategoryList() {
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+      const grid = document.getElementById('step3CategoryCardGrid');
+      const emptyState = document.getElementById('step3CategoriesEmptyState');
+
+      if (!grid) return;
+
+      if (categories.length === 0) {
+        grid.innerHTML = '';
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+      }
+
+      if (emptyState) emptyState.classList.add('hidden');
+
+      const mappings = sData.mappings || {};
+      const catCountMap = {};
+      categories.forEach(c => { catCountMap[c.id] = 0; });
+      for (const k in mappings) {
+        const cId = mappings[k];
+        if (catCountMap[cId] !== undefined) catCountMap[cId]++;
+      }
+
+      grid.innerHTML = categories.map(cat => {
+        const color = STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue;
+        const ruleText = formatStep3RuleDesc(cat);
+        const mappedCount = catCountMap[cat.id] || 0;
+
+        return `
+          <div class="bg-white border ${color.border} rounded-2xl p-4 shadow-sm hover:shadow-md transition space-y-3 relative overflow-hidden">
+            <div class="h-1.5 w-full ${color.dot} absolute top-0 left-0"></div>
+
+            <div class="flex items-start justify-between gap-2 pt-1">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full ${color.dot} shrink-0"></span>
+                <h4 class="text-sm font-black text-slate-800">${cat.name}</h4>
+              </div>
+              <span class="text-xs px-2 py-0.5 rounded-full font-bold ${color.badge}">
+                ${mappedCount}과목 매핑됨
+              </span>
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+              <div class="text-[11px] font-bold text-slate-500">선택 제한 조건:</div>
+              <div class="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                <span>📌 ${ruleText}</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-600">
+              <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200 text-center">
+                <span class="text-slate-400 block text-[10px]">적용 대상</span>
+                <span>${cat.targetGrade === '전체' ? '2·3학년 전체' : cat.targetGrade}</span>
+              </div>
+              <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200 text-center">
+                <span class="text-slate-400 block text-[10px]">학기 범위</span>
+                <span>${cat.targetSemester === '1' ? '1학기만' : (cat.targetSemester === '2' ? '2학기만' : '연간 1·2학기')}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100">
+              <button type="button" onclick="window.openStep3CategoryModal('${cat.id}')" class="px-2.5 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+                ✏️ 수정
+              </button>
+              <button type="button" onclick="window.deleteStep3Category('${cat.id}')" class="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                🗑️ 삭제
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStep3SubjectMappingTable() {
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+      const subjects = getAllCurriculumSubjectsForStep3();
+
+      const curGrade = _step3MappingFilters.grade;
+      ['All', '1', '2', '3'].forEach(k => {
+        const btn = document.getElementById('step3MapGradeFilter' + k);
+        if (!btn) return;
+        const targetVal = k === 'All' ? 'all' : (k + '학년');
+        if (curGrade === targetVal) {
+          btn.className = 'px-2.5 py-1 rounded font-black bg-indigo-600 text-white';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded font-bold text-slate-600 hover:text-slate-900';
+        }
+      });
+
+      const catSelect = document.getElementById('step3MapFilterCategory');
+      if (catSelect) {
+        const curCat = _step3MappingFilters.categoryId;
+        let optHtml = '<option value="all">모든 교과군 보기</option><option value="__unmapped__">⚠️ 미지정 과목만 보기</option>';
+        categories.forEach(c => {
+          optHtml += `<option value="${c.id}" ${curCat === c.id ? 'selected' : ''}>${c.name}</option>`;
+        });
+        catSelect.innerHTML = optHtml;
+      }
+
+      const batchCatSelect = document.getElementById('step3BatchCategorySelect');
+      if (batchCatSelect) {
+        let bHtml = '<option value="">교과군 선택...</option><option value="__clear__">[미지정으로 해제]</option>';
+        categories.forEach(c => {
+          bHtml += `<option value="${c.id}">${c.name}</option>`;
+        });
+        batchCatSelect.innerHTML = bHtml;
+      }
+
+      let filtered = subjects.filter(cs => {
+        if (_step3MappingFilters.grade !== 'all' && cs.grade !== _step3MappingFilters.grade) return false;
+
+        const assignedCatId = getSubjectCategory(cs.subject, cs.grade);
+        if (_step3MappingFilters.categoryId === '__unmapped__' && assignedCatId) return false;
+        if (_step3MappingFilters.categoryId !== 'all' && _step3MappingFilters.categoryId !== '__unmapped__' && assignedCatId !== _step3MappingFilters.categoryId) return false;
+
+        if (_step3MappingFilters.search.trim()) {
+          const q = _step3MappingFilters.search.trim().toLowerCase();
+          const matchSubj = (cs.subject || '').toLowerCase().includes(q);
+          const matchTeacher = (cs.teacher || '').toLowerCase().includes(q);
+          if (!matchSubj && !matchTeacher) return false;
+        }
+
+        return true;
+      });
+
+      const tbody = document.getElementById('step3MappingTableBody');
+      const selCountEl = document.getElementById('step3SelectedSubjectsCount');
+      if (selCountEl) selCountEl.textContent = _step3SelectedSubjectIds.size;
+
+      if (!tbody) return;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-slate-400 font-bold">조건에 해당하는 과목이 없습니다.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((cs) => {
+        const assignedCatId = getSubjectCategory(cs.subject, cs.grade);
+        const assignedCat = assignedCatId ? categories.find(c => c.id === assignedCatId) : null;
+        const color = assignedCat ? (STEP3_COLOR_SCHEMES[assignedCat.color] || STEP3_COLOR_SCHEMES.blue) : null;
+        const rowId = `${cs.grade}::${cs.subject}`;
+        const isChecked = _step3SelectedSubjectIds.has(rowId);
+
+        let selectOptions = '<option value="">-- 미지정 --</option>';
+        categories.forEach(c => {
+          selectOptions += `<option value="${c.id}" ${assignedCatId === c.id ? 'selected' : ''}>${c.name}</option>`;
+        });
+
+        const statusBadge = cs.status === '폐강' 
+          ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-800">폐강</span>'
+          : '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">개설</span>';
+
+        const catSelectorBg = assignedCat ? (color ? color.badge : 'bg-slate-100') : 'bg-slate-100 text-slate-500';
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="py-2.5 px-3 text-center">
+              <input type="checkbox" onchange="window.toggleStep3SubjectSelect('${rowId}', this.checked)" ${isChecked ? 'checked' : ''} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+            </td>
+            <td class="py-2.5 px-3 text-center font-bold text-slate-700">${cs.grade}</td>
+            <td class="py-2.5 px-3 text-center font-bold text-slate-600">${cs.semester}학기</td>
+            <td class="py-2.5 px-3 text-center font-medium text-slate-500">${cs.category || '선택'}</td>
+            <td class="py-2.5 px-4 font-black text-slate-900">${cs.subject}</td>
+            <td class="py-2.5 px-3 text-center font-bold text-slate-600">${cs.hours || 0}</td>
+            <td class="py-2.5 px-3 text-center font-bold text-slate-700">${cs.teacher || '-'}</td>
+            <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+            <td class="py-2.5 px-4">
+              <select onchange="window.handleStep3SubjectCategoryChange('${cs.grade}', '${cs.subject}', this.value)" class="text-xs font-bold rounded-lg px-2.5 py-1 border border-slate-300 ${catSelectorBg} focus:ring-2 focus:ring-indigo-400 cursor-pointer">
+                ${selectOptions}
+              </select>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleStep3SubjectSelect(rowId, checked) {
+      if (checked) {
+        _step3SelectedSubjectIds.add(rowId);
+      } else {
+        _step3SelectedSubjectIds.delete(rowId);
+      }
+      const selCountEl = document.getElementById('step3SelectedSubjectsCount');
+      if (selCountEl) selCountEl.textContent = _step3SelectedSubjectIds.size;
+    }
+    window.toggleStep3SubjectSelect = toggleStep3SubjectSelect;
+
+    function toggleStep3SelectAllSubjects(checked) {
+      const subjects = getAllCurriculumSubjectsForStep3();
+      if (checked) {
+        subjects.forEach(cs => {
+          _step3SelectedSubjectIds.add(`${cs.grade}::${cs.subject}`);
+        });
+      } else {
+        _step3SelectedSubjectIds.clear();
+      }
+      renderStep3SubjectMappingTable();
+    }
+    window.toggleStep3SelectAllSubjects = toggleStep3SelectAllSubjects;
+
+    function handleStep3SubjectCategoryChange(grade, subject, categoryId) {
+      const sData = getStep3Data();
+      if (!sData.mappings) sData.mappings = {};
+
+      const key = `${grade}::${subject}`;
+      if (categoryId) {
+        sData.mappings[key] = categoryId;
+        if (!sData.mappings[subject]) {
+          sData.mappings[subject] = categoryId;
+        }
+      } else {
+        delete sData.mappings[key];
+        delete sData.mappings[subject];
+      }
+
+      saveStep3Data(sData);
+      runStep3Validation(false);
+      renderStep3SubjectMappingTable();
+    }
+    window.handleStep3SubjectCategoryChange = handleStep3SubjectCategoryChange;
+
+    function batchAssignStep3Categories() {
+      if (_step3SelectedSubjectIds.size === 0) {
+        alert('먼저 교과군을 지정할 과목들의 체크박스를 선택해주세요.');
+        return;
+      }
+      const selectEl = document.getElementById('step3BatchCategorySelect');
+      const targetCatId = selectEl ? selectEl.value : '';
+      if (!targetCatId) {
+        alert('일괄 적용할 교과군을 선택해주세요.');
+        return;
+      }
+
+      const sData = getStep3Data();
+      if (!sData.mappings) sData.mappings = {};
+
+      _step3SelectedSubjectIds.forEach(rowId => {
+        const parts = rowId.split('::');
+        const grade = parts[0];
+        const subject = parts[1];
+        if (targetCatId === '__clear__') {
+          delete sData.mappings[rowId];
+          delete sData.mappings[subject];
+        } else {
+          sData.mappings[rowId] = targetCatId;
+          if (!sData.mappings[subject]) {
+            sData.mappings[subject] = targetCatId;
+          }
+        }
+      });
+
+      _step3SelectedSubjectIds.clear();
+      saveStep3Data(sData);
+      runStep3Validation(false);
+      renderStep3SubjectMappingTable();
+      alert('선택한 과목의 교과군이 일괄 적용되었습니다.');
+    }
+    window.batchAssignStep3Categories = batchAssignStep3Categories;
+
+    function autoAssignStep3CategoriesByName() {
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+      if (categories.length === 0) {
+        alert('교과군이 아직 등록되지 않았습니다. [1. 교과군 및 조건 등록/관리]에서 교과군을 먼저 등록해주세요.');
+        return;
+      }
+
+      const subjects = getAllCurriculumSubjectsForStep3();
+      let matchedCount = 0;
+
+      subjects.forEach(cs => {
+        const curCatId = getSubjectCategory(cs.subject, cs.grade);
+        if (curCatId) return;
+
+        const suggestedCatId = getSuggestedCategoryForSubjectName(cs.subject, categories);
+        if (suggestedCatId) {
+          const key = `${cs.grade}::${cs.subject}`;
+          sData.mappings[key] = suggestedCatId;
+          if (!sData.mappings[cs.subject]) {
+            sData.mappings[cs.subject] = suggestedCatId;
+          }
+          matchedCount++;
+        }
+      });
+
+      if (matchedCount > 0) {
+        saveStep3Data(sData);
+        runStep3Validation(false);
+        renderStep3SubjectMappingTable();
+        alert(`⚡ 총 ${matchedCount}개 과목의 교과군이 과목명을 바탕으로 자동 추천 배정되었습니다!`);
+      } else {
+        alert('추가로 자동 추천 매칭할 수 있는 과목이 없거나 이미 모두 지정되어 있습니다.');
+      }
+    }
+    window.autoAssignStep3CategoriesByName = autoAssignStep3CategoriesByName;
+
+    function getSuggestedCategoryForSubjectName(subjectName, categories) {
+      if (!subjectName || !categories || categories.length === 0) return null;
+      const s = subjectName.toLowerCase();
+
+      const findCategoryByKeywords = (keywords) => {
+        return categories.find(c => {
+          const cName = c.name.toLowerCase();
+          return keywords.some(kw => cName.includes(kw));
+        });
+      };
+
+      const basicKeywords = ['국어', '문학', '독서', '화법', '작문', '언어', '매체', '수학', '미적분', '확률', '통계', '기하', '대수', '인공지능 수학', '실용 수학', '경제 수학', '영어', '회화', '독해', '작문', '심화 영어', '영어권'];
+      if (basicKeywords.some(kw => s.includes(kw))) {
+        const cat = findCategoryByKeywords(['기초', '국어', '수학', '영어']);
+        if (cat) return cat.id;
+      }
+
+      const socKeywords = ['한국사', '세계사', '동아시아', '역사', '지리', '여행지리', '윤리', '사상', '생활과 윤리', '현대사회', '정치', '법', '경제', '사회문화', '사회', '인간', '심리'];
+      if (socKeywords.some(kw => s.includes(kw))) {
+        const cat = findCategoryByKeywords(['사회', '탐구(사회)', '탐구']);
+        if (cat) return cat.id;
+      }
+
+      const sciKeywords = ['물리', '역학', '화학', '물질', '생명과학', '생물', '지구과학', '융합과학', '과학', '세포', '유전'];
+      if (sciKeywords.some(kw => s.includes(kw))) {
+        const cat = findCategoryByKeywords(['과학', '탐구(과학)', '탐구']);
+        if (cat) return cat.id;
+      }
+
+      const peArtKeywords = ['체육', '운동', '건강', '스포츠', '육상', '실기', '미술', '창작', '음악', '감상', '비평', '연주'];
+      if (peArtKeywords.some(kw => s.includes(kw))) {
+        const cat = findCategoryByKeywords(['체육', '예술', '음악', '미술']);
+        if (cat) return cat.id;
+      }
+
+      const lifeKeywords = ['기술', '가정', '정보', '프로그래밍', '인공지능 기초', '한문', '일본', '중국', '외국어', '보건', '철학', '논술', '회계', '상업'];
+      if (lifeKeywords.some(kw => s.includes(kw))) {
+        const cat = findCategoryByKeywords(['생활', '교양', '제2외국어', '외국어']);
+        if (cat) return cat.id;
+      }
+
+      return null;
+    }
+
+    // Modal Category Management
+    window._step3ModalCurColor = 'blue';
+    window._step3ModalCurRuleValues = { minCount: 1, maxCount: 4, exactCount: 2 };
+
+    function renderStep3ModalColorPicker(activeColor = 'blue') {
+      window._step3ModalCurColor = activeColor;
+      const picker = document.getElementById('step3CategoryModalColorPicker');
+      if (!picker) return;
+
+      picker.innerHTML = Object.keys(STEP3_COLOR_SCHEMES).map(cKey => {
+        const col = STEP3_COLOR_SCHEMES[cKey];
+        const isSel = col.key === activeColor;
+        return `
+          <button type="button" onclick="window.selectStep3ModalColor('${col.key}')" class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${col.badge} ${isSel ? 'ring-2 ' + col.ring + ' font-black shadow-xs' : 'opacity-70 hover:opacity-100'}">
+            <span class="w-2.5 h-2.5 rounded-full ${col.dot}"></span>
+            <span>${col.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectStep3ModalColor(cKey) {
+      renderStep3ModalColorPicker(cKey);
+    }
+    window.selectStep3ModalColor = selectStep3ModalColor;
+
+    function openStep3CategoryModal(catId = null) {
+      const modal = document.getElementById('step3CategoryModal');
+      if (!modal) return;
+
+      const idInput = document.getElementById('step3CategoryModalId');
+      const nameInput = document.getElementById('step3CategoryModalName');
+      const gradeSelect = document.getElementById('step3CategoryModalGrade');
+      const semSelect = document.getElementById('step3CategoryModalSemester');
+      const titleEl = document.getElementById('step3CategoryModalTitle');
+
+      const sData = getStep3Data();
+      const cat = catId ? (sData.categories || []).find(c => c.id === catId) : null;
+
+      if (idInput) idInput.value = cat ? cat.id : '';
+      if (nameInput) nameInput.value = cat ? cat.name : '';
+      if (gradeSelect) gradeSelect.value = cat ? cat.targetGrade : '전체';
+      if (semSelect) semSelect.value = cat ? cat.targetSemester : 'all';
+
+      if (titleEl) {
+        titleEl.innerHTML = cat 
+          ? `<span>✏️ 교과군 및 선택 조건 수정: ${cat.name}</span>`
+          : `<span>🏷️ 새 교과군 및 선택 조건 등록</span>`;
+      }
+
+      renderStep3ModalColorPicker(cat ? cat.color : 'blue');
+
+      const ruleType = cat ? cat.ruleType : 'min';
+      const radio = document.querySelector(`input[name="step3CategoryRuleType"][value="${ruleType}"]`);
+      if (radio) radio.checked = true;
+
+      window._step3ModalCurRuleValues = {
+        minCount: cat ? (cat.minCount ?? 1) : 1,
+        maxCount: cat ? (cat.maxCount ?? 4) : 4,
+        exactCount: cat ? (cat.exactCount ?? 2) : 2
+      };
+
+      updateStep3ModalRuleInputs();
+
+      modal.classList.remove('hidden');
+      if (nameInput) nameInput.focus();
+    }
+    window.openStep3CategoryModal = openStep3CategoryModal;
+
+    function closeStep3CategoryModal() {
+      const modal = document.getElementById('step3CategoryModal');
+      if (modal) modal.classList.add('hidden');
+    }
+    window.closeStep3CategoryModal = closeStep3CategoryModal;
+
+    function updateStep3ModalRuleInputs() {
+      const selectedRadio = document.querySelector('input[name="step3CategoryRuleType"]:checked');
+      const rType = selectedRadio ? selectedRadio.value : 'min';
+      const container = document.getElementById('step3ModalRuleCountContainer');
+      if (!container) return;
+
+      if (rType === 'min') {
+        container.innerHTML = `
+          <span class="text-xs font-bold text-slate-700">최소</span>
+          <input type="number" id="step3InputMinCount" value="${window._step3ModalCurRuleValues.minCount ?? 1}" min="1" max="20" oninput="window.updateStep3ModalSummaryPreview()" class="w-20 text-xs border border-indigo-300 rounded-lg px-2.5 py-1 font-black text-center focus:ring-2 focus:ring-indigo-400">
+          <span class="text-xs font-bold text-slate-700">과목 이상 필수 선택</span>
+        `;
+      } else if (rType === 'max') {
+        container.innerHTML = `
+          <span class="text-xs font-bold text-slate-700">최대</span>
+          <input type="number" id="step3InputMaxCount" value="${window._step3ModalCurRuleValues.maxCount ?? 4}" min="1" max="20" oninput="window.updateStep3ModalSummaryPreview()" class="w-20 text-xs border border-indigo-300 rounded-lg px-2.5 py-1 font-black text-center focus:ring-2 focus:ring-indigo-400">
+          <span class="text-xs font-bold text-slate-700">과목 이하까지만 선택 가능</span>
+        `;
+      } else if (rType === 'range') {
+        container.innerHTML = `
+          <span class="text-xs font-bold text-slate-700">최소</span>
+          <input type="number" id="step3InputMinCount" value="${window._step3ModalCurRuleValues.minCount ?? 1}" min="0" max="20" oninput="window.updateStep3ModalSummaryPreview()" class="w-16 text-xs border border-indigo-300 rounded-lg px-2 py-1 font-black text-center focus:ring-2 focus:ring-indigo-400">
+          <span class="text-xs font-bold text-slate-700">~ 최대</span>
+          <input type="number" id="step3InputMaxCount" value="${window._step3ModalCurRuleValues.maxCount ?? 3}" min="1" max="20" oninput="window.updateStep3ModalSummaryPreview()" class="w-16 text-xs border border-indigo-300 rounded-lg px-2 py-1 font-black text-center focus:ring-2 focus:ring-indigo-400">
+          <span class="text-xs font-bold text-slate-700">과목 범위</span>
+        `;
+      } else if (rType === 'exact') {
+        container.innerHTML = `
+          <span class="text-xs font-bold text-slate-700">정확히</span>
+          <input type="number" id="step3InputExactCount" value="${window._step3ModalCurRuleValues.exactCount ?? 2}" min="1" max="20" oninput="window.updateStep3ModalSummaryPreview()" class="w-20 text-xs border border-indigo-300 rounded-lg px-2.5 py-1 font-black text-center focus:ring-2 focus:ring-indigo-400">
+          <span class="text-xs font-bold text-slate-700">과목 반드시 선택</span>
+        `;
+      }
+
+      updateStep3ModalSummaryPreview();
+    }
+    window.updateStep3ModalRuleInputs = updateStep3ModalRuleInputs;
+
+    function updateStep3ModalSummaryPreview() {
+      const selectedRadio = document.querySelector('input[name="step3CategoryRuleType"]:checked');
+      const rType = selectedRadio ? selectedRadio.value : 'min';
+      const grade = document.getElementById('step3CategoryModalGrade')?.value || '전체';
+      const sem = document.getElementById('step3CategoryModalSemester')?.value || 'all';
+
+      const minVal = parseInt(document.getElementById('step3InputMinCount')?.value || 1, 10);
+      const maxVal = parseInt(document.getElementById('step3InputMaxCount')?.value || 4, 10);
+      const exactVal = parseInt(document.getElementById('step3InputExactCount')?.value || 2, 10);
+
+      window._step3ModalCurRuleValues = { minCount: minVal, maxCount: maxVal, exactCount: exactVal };
+
+      const dummyCat = {
+        targetGrade: grade,
+        targetSemester: sem,
+        ruleType: rType,
+        minCount: minVal,
+        maxCount: maxVal,
+        exactCount: exactVal
+      };
+
+      const previewEl = document.getElementById('step3ModalRuleSummaryPreview');
+      if (previewEl) previewEl.textContent = formatStep3RuleDesc(dummyCat);
+    }
+    window.updateStep3ModalSummaryPreview = updateStep3ModalSummaryPreview;
+
+    function saveStep3CategoryFromModal() {
+      const idInput = document.getElementById('step3CategoryModalId');
+      const nameInput = document.getElementById('step3CategoryModalName');
+      const gradeSelect = document.getElementById('step3CategoryModalGrade');
+      const semSelect = document.getElementById('step3CategoryModalSemester');
+      const selectedRadio = document.querySelector('input[name="step3CategoryRuleType"]:checked');
+
+      const name = nameInput ? nameInput.value.trim() : '';
+      if (!name) {
+        alert('교과군 이름을 입력해주세요.');
+        if (nameInput) nameInput.focus();
+        return;
+      }
+
+      const catId = idInput?.value || ('cat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+      const grade = gradeSelect ? gradeSelect.value : '전체';
+      const sem = semSelect ? semSelect.value : 'all';
+      const rType = selectedRadio ? selectedRadio.value : 'min';
+
+      const minVal = parseInt(document.getElementById('step3InputMinCount')?.value || 1, 10);
+      const maxVal = parseInt(document.getElementById('step3InputMaxCount')?.value || 4, 10);
+      const exactVal = parseInt(document.getElementById('step3InputExactCount')?.value || 2, 10);
+
+      const sData = getStep3Data();
+      if (!Array.isArray(sData.categories)) sData.categories = [];
+
+      const newCat = {
+        id: catId,
+        name: name,
+        color: window._step3ModalCurColor || 'blue',
+        targetGrade: grade,
+        targetSemester: sem,
+        ruleType: rType,
+        minCount: minVal,
+        maxCount: maxVal,
+        exactCount: exactVal
+      };
+
+      const existingIdx = sData.categories.findIndex(c => c.id === catId);
+      if (existingIdx >= 0) {
+        sData.categories[existingIdx] = newCat;
+      } else {
+        sData.categories.push(newCat);
+      }
+
+      saveStep3Data(sData);
+      closeStep3CategoryModal();
+      runStep3Validation(false);
+      renderStep3CategoryList();
+      renderStep3SubjectMappingTable();
+    }
+    window.saveStep3CategoryFromModal = saveStep3CategoryFromModal;
+
+    function deleteStep3Category(catId) {
+      if (!confirm('이 교과군을 삭제하시겠습니까?\n(해당 교과군에 매핑된 과목 정보도 함께 해제됩니다.)')) return;
+
+      const sData = getStep3Data();
+      sData.categories = (sData.categories || []).filter(c => c.id !== catId);
+
+      if (sData.mappings) {
+        for (const k in sData.mappings) {
+          if (sData.mappings[k] === catId) {
+            delete sData.mappings[k];
+          }
+        }
+      }
+
+      saveStep3Data(sData);
+      runStep3Validation(false);
+      renderStep3CategoryList();
+      renderStep3SubjectMappingTable();
+    }
+    window.deleteStep3Category = deleteStep3Category;
+
+    function generateDefaultStep3Categories() {
+      const sData = getStep3Data();
+      if (sData.categories && sData.categories.length > 0) {
+        if (!confirm('기존 교과군 목록이 있습니다. 표준 4대 교과군을 추가하시겠습니까?')) return;
+      }
+
+      const defaults = createDefaultStep3Categories();
+      defaults.forEach(d => {
+        if (!sData.categories.some(c => c.name === d.name)) {
+          sData.categories.push(d);
+        }
+      });
+
+      saveStep3Data(sData);
+      autoAssignStep3CategoriesByName();
+      runStep3Validation(false);
+      renderStep3CategoryList();
+      renderStep3SubjectMappingTable();
+      alert('✅ 표준 4대 교과군(기초, 탐구, 체육·예술, 생활·교양)이 등록되었습니다!');
+    }
+    window.generateDefaultStep3Categories = generateDefaultStep3Categories;
+
+    function exportStep3ValidationExcel() {
+      const lastResult = window._step3LastValidationResult || runStep3Validation(false);
+      if (!lastResult || !lastResult.results || lastResult.results.length === 0) {
+        alert('다운로드할 검증 데이터가 없습니다. 먼저 학생 수강신청 엑셀 파일을 업로드해주세요.');
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const acadYear = MultiState?.activeAcademicYear || '2027학년도';
+      const curDate = MultiState?.activeYear || '기준';
+
+      const s1Data = [];
+      s1Data.push([`[상지대관령고등학교] ${acadYear} (${curDate}) 교과군 선택 조건 위반 학생 명단`]);
+      s1Data.push([`총 검증 학생: ${lastResult.totalCount}명 | 충족: ${lastResult.passedCount}명 | 위반: ${lastResult.violatedCount}명 | 출력일시: ${new Date().toLocaleString()}`]);
+      s1Data.push([]);
+      s1Data.push(['학년', '반', '번호', '학생명', '위반 교과군', '설정 조건', '실제 선택 수', '판정 사유', '해당 교과군 선택 과목 목록', '1학기 전체 선택과목', '2학기 전체 선택과목']);
+
+      const violatedList = lastResult.results.filter(r => !r.isPass);
+      if (violatedList.length === 0) {
+        s1Data.push(['-', '-', '-', '-', '위반 사항 없음 (모든 학생이 조건을 충족함)', '-', '-', '-', '-', '-', '-']);
+      } else {
+        violatedList.forEach(item => {
+          item.violations.forEach((v) => {
+            s1Data.push([
+              item.grade,
+              item.classNum + '반',
+              item.studentNum,
+              item.name,
+              v.category ? v.category.name : '-',
+              v.ruleDesc,
+              v.count + '과목',
+              v.reason,
+              v.subjects.length > 0 ? v.subjects.join(', ') : '선택 과목 없음 (0개)',
+              (item.sem1 || []).join(', '),
+              (item.sem2 || []).join(', ')
+            ]);
+          });
+        });
+      }
+
+      const ws1 = XLSX.utils.aoa_to_sheet(s1Data);
+      XLSX.utils.book_append_sheet(wb, ws1, '조건 위반 학생 명단');
+
+      const s2Data = [];
+      s2Data.push([`[상지대관령고등학교] ${acadYear} (${curDate}) 학생별 교과군 선택 종합 집계표`]);
+      s2Data.push([`총 학생 수: ${lastResult.totalCount}명 | 검증 통과율: ${((lastResult.passedCount / (lastResult.totalCount || 1)) * 100).toFixed(1)}%`]);
+      s2Data.push([]);
+
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+
+      const catHeaders = [];
+      categories.forEach(c => {
+        catHeaders.push(`[${c.name}] 선택수`);
+        catHeaders.push(`[${c.name}] 충족여부`);
+      });
+
+      s2Data.push(['학년', '반', '번호', '학생명', '최종 판정', '위반 건수', ...catHeaders, '1학기 선택과목', '2학기 선택과목']);
+
+      lastResult.results.forEach(stRes => {
+        const row = [
+          stRes.grade,
+          stRes.classNum + '반',
+          stRes.studentNum,
+          stRes.name,
+          stRes.isPass ? '정상 (충족)' : '위반',
+          stRes.violations.length
+        ];
+
+        categories.forEach(c => {
+          const evalItem = stRes.evaluations.find(e => e.category && e.category.id === c.id);
+          if (evalItem) {
+            row.push(evalItem.count + '과목');
+            row.push(evalItem.isViolated ? '위반' : '충족');
+          } else {
+            row.push('-');
+            row.push('해당없음');
+          }
+        });
+
+        row.push((stRes.sem1 || []).join(', '));
+        row.push((stRes.sem2 || []).join(', '));
+        s2Data.push(row);
+      });
+
+      const ws2 = XLSX.utils.aoa_to_sheet(s2Data);
+      XLSX.utils.book_append_sheet(wb, ws2, '전체 학생 검증 집계표');
+
+      const s3Data = [];
+      s3Data.push([`[상지대관령고등학교] ${acadYear} 교육과정 과목별 교과군 지정 기준표`]);
+      s3Data.push([`등록 교과군: ${categories.length}개 군 | 매핑 과목 수: ${Object.keys(sData.mappings || {}).length}개`]);
+      s3Data.push([]);
+      s3Data.push(['학년', '학기', '구분', '과목명', '배정 교과군', '교과군 조건', '단위(시수)', '담당교사', '개설상태']);
+
+      const currSubjects = getAllCurriculumSubjectsForStep3();
+      currSubjects.forEach(cs => {
+        const catId = getSubjectCategory(cs.subject, cs.grade);
+        const cat = catId ? categories.find(c => c.id === catId) : null;
+        s3Data.push([
+          cs.grade,
+          cs.semester + '학기',
+          cs.category || '선택',
+          cs.subject,
+          cat ? cat.name : '미지정',
+          cat ? formatStep3RuleDesc(cat) : '-',
+          cs.hours || 0,
+          cs.teacher || '',
+          cs.status || '개설'
+        ]);
+      });
+
+      const ws3 = XLSX.utils.aoa_to_sheet(s3Data);
+      XLSX.utils.book_append_sheet(wb, ws3, '과목별 교과군 기준');
+
+      const fileName = (typeof buildExportFileName === 'function') 
+        ? buildExportFileName(`${acadYear}_교과군_선택조건_검증결과`, 'xlsx')
+        : `${acadYear}_교과군_선택조건_검증결과.xlsx`;
+
+      if (typeof window.saveExcelFile === 'function') {
+        window.saveExcelFile(wb, fileName);
+      } else {
+        XLSX.writeFile(wb, fileName);
+      }
+    }
+    window.exportStep3ValidationExcel = exportStep3ValidationExcel;
 
         // ==========================================
     // CRITERIA ACADEMIC YEAR (상위: 기준 학년도) HANDLERS
@@ -13155,7 +14998,8 @@ function renderYearGradeNav() {
       if (stepContainer) {
         stepContainer.innerHTML = [
           { step: 1, label: '1단계', desc: '선택 매트릭스' },
-          { step: 2, label: '2단계', desc: '그룹핑 & 시간표' }
+          { step: 2, label: '2단계', desc: '그룹핑 & 시간표' },
+          { step: 3, label: '3단계', desc: '선택조건 검증' }
         ].map(item => {
           const isActive = !isAllGrades && curStep === item.step;
           
@@ -13179,6 +15023,19 @@ function renderYearGradeNav() {
                     : (isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800')
                 }">${conflicts === 0 ? '충돌 0명' : `충돌 ${conflicts}명`}</span>`;
               }
+            } else if (item.step === 3) {
+              const vSummary = (typeof getStep3ValidationSummaryQuick === 'function') ? getStep3ValidationSummaryQuick() : null;
+              if (vSummary && vSummary.total > 0) {
+                if (vSummary.violated > 0) {
+                  badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                    isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800'
+                  }">위반 ${vSummary.violated}명</span>`;
+                } else {
+                  badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                    isActive ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
+                  }">정상</span>`;
+                }
+              }
             }
           }
 
@@ -13186,7 +15043,7 @@ function renderYearGradeNav() {
             <button type="button" 
                     onclick="window.switchStepView(${item.step})"
                     ${isAllGrades ? 'disabled' : ''}
-                    class="px-3 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
+                    class="px-2.5 py-0.5 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
                       isActive
                         ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
@@ -13468,6 +15325,9 @@ function renderYearGradeNav() {
       }
       if (externalData.publisherSubjectNamesByAcademicYear && typeof externalData.publisherSubjectNamesByAcademicYear === 'object') {
         MultiState.publisherSubjectNamesByAcademicYear = JSON.parse(JSON.stringify(externalData.publisherSubjectNamesByAcademicYear));
+      }
+      if (externalData.subjectGroupsByAcademicYear && typeof externalData.subjectGroupsByAcademicYear === 'object') {
+        MultiState.subjectGroupsByAcademicYear = JSON.parse(JSON.stringify(externalData.subjectGroupsByAcademicYear));
       }
       if (externalData.gradeClassCounts && typeof externalData.gradeClassCounts === 'object') {
         MultiState.gradeClassCounts = {
