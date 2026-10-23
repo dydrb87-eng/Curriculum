@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_12:35)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_13:00)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_12:35)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_13:00)</p>
         </div>
       </div>
 
@@ -1698,7 +1698,7 @@
               </div>
               <div class="flex flex-wrap items-center gap-2 shrink-0">
                 <button type="button" onclick="window.generateDefaultStep3Categories()" class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-2xs">
-                  <span>⚡ 표준 4대 교과군 자동 생성</span>
+                  <span>⚡ 표준 교과군 자동 생성</span>
                 </button>
                 <button type="button" onclick="window.openStep3CategoryModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-sm">
                   <span>+ 새 교과군 추가</span>
@@ -1713,7 +1713,7 @@
               <span class="text-4xl">🏷️</span>
               <h4 class="text-sm font-black text-slate-700 mt-2">등록된 교과군이 없습니다.</h4>
               <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                '+ 새 교과군 추가' 버튼을 눌러 직접 등록하시거나, '표준 4대 교과군 자동 생성' 버튼을 눌러 시작하세요.
+                '+ 새 교과군 추가' 버튼을 눌러 직접 등록하시거나, '표준 교과군 자동 생성' 버튼을 눌러 시작하세요.
               </p>
             </div>
           </div>
@@ -1842,8 +1842,8 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button type="button" onclick="window.generateDefaultStep3Categories()" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/90 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs" title="기초·탐구·체육예술·생활교양 4대 기본 교과군 일괄 자동 생성">
-            <span>⚡ 표준 4대 교과군 자동 생성</span>
+          <button type="button" onclick="window.generateDefaultStep3Categories()" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/90 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs" title="기초·탐구(사회/과학)·체육예술·생활교양기술정보외국어·한국사 표준 교과군 일괄 자동 생성">
+            <span>⚡ 표준 교과군 자동 생성</span>
           </button>
           <button type="button" onclick="window.closeSubjectCategoryManagerModal()" class="text-slate-400 hover:text-slate-700 text-2xl font-light p-1 leading-none cursor-pointer transition">✕</button>
         </div>
@@ -13498,7 +13498,7 @@ function createSangjiCourseSelectionForm() {
           exactCount: 0
         },
         {
-          id: 'cat_inquiry_soc_' + now,
+          id: 'cat_inquiry_soc_' + (now + 1),
           name: '탐구 (사회)',
           color: 'amber',
           targetGrade: '전체',
@@ -13509,7 +13509,7 @@ function createSangjiCourseSelectionForm() {
           exactCount: 0
         },
         {
-          id: 'cat_inquiry_sci_' + now,
+          id: 'cat_inquiry_sci_' + (now + 2),
           name: '탐구 (과학)',
           color: 'emerald',
           targetGrade: '전체',
@@ -13520,7 +13520,7 @@ function createSangjiCourseSelectionForm() {
           exactCount: 0
         },
         {
-          id: 'cat_art_pe_' + now,
+          id: 'cat_art_pe_' + (now + 3),
           name: '체육·예술',
           color: 'purple',
           targetGrade: '전체',
@@ -13531,9 +13531,20 @@ function createSangjiCourseSelectionForm() {
           exactCount: 0
         },
         {
-          id: 'cat_life_' + now,
-          name: '생활·교양',
+          id: 'cat_life_' + (now + 4),
+          name: '생활·교양·기술·가정·정보·제2외국어',
           color: 'cyan',
+          targetGrade: '전체',
+          targetSemester: 'all',
+          ruleType: 'min',
+          minCount: 1,
+          maxCount: 0,
+          exactCount: 0
+        },
+        {
+          id: 'cat_history_' + (now + 5),
+          name: '한국사',
+          color: 'rose',
           targetGrade: '전체',
           targetSemester: 'all',
           ruleType: 'min',
@@ -13905,7 +13916,7 @@ function createSangjiCourseSelectionForm() {
       const tabsContainer = document.getElementById('scmCategoryTabsContainer');
       if (tabsContainer) {
         if (categories.length === 0) {
-          tabsContainer.innerHTML = '<span class="text-xs text-slate-400 p-1">등록된 교과군이 없습니다. [⚡ 표준 4대 교과군 자동 생성] 또는 [+ 교과군 추가]를 클릭하세요.</span>';
+          tabsContainer.innerHTML = '<span class="text-xs text-slate-400 p-1">등록된 교과군이 없습니다. [⚡ 표준 교과군 자동 생성] 또는 [+ 교과군 추가]를 클릭하세요.</span>';
         } else {
           tabsContainer.innerHTML = categories.map(cat => {
             const isSel = cat.id === window._scmActiveCategoryId;
@@ -15037,34 +15048,65 @@ function createSangjiCourseSelectionForm() {
 
     function autoAssignStep3CategoriesByName(silent = false) {
       const sData = getStep3Data();
-      const categories = sData.categories || [];
+      if (!Array.isArray(sData.categories)) sData.categories = [];
+      const categories = sData.categories;
+
+      // 1. 기존 '생활·교양' 명칭을 신규 '생활·교양·기술·가정·정보·제2외국어'로 자동 명칭 마이그레이션
+      categories.forEach(c => {
+        if (c.name === '생활·교양' || c.name === '생활 교양') {
+          c.name = '생활·교양·기술·가정·정보·제2외국어';
+        }
+      });
+
+      const subjects = getAllCurriculumSubjectsForStep3();
+
+      // 2. 한국사 과목이 존재하는데 한국사 교과군이 없으면 자동으로 한국사 교과군 생성
+      let historyCat = categories.find(c => c.name.includes('한국사'));
+      if (!historyCat && subjects.some(cs => cs.subject.includes('한국사'))) {
+        historyCat = {
+          id: 'cat_history_' + Date.now(),
+          name: '한국사',
+          color: 'rose',
+          targetGrade: '전체',
+          targetSemester: 'all',
+          ruleType: 'min',
+          minCount: 1,
+          maxCount: 0,
+          exactCount: 0
+        };
+        categories.push(historyCat);
+      }
+
       if (categories.length === 0) {
-        if (!silent) alert('교과군이 아직 등록되지 않았습니다. 교과군을 먼저 등록해주세요.');
+        if (!silent) alert('교과군이 아직 등록되지 않았습니다. [⚡ 표준 교과군 자동 생성]을 먼저 실행해주세요.');
         return;
       }
 
-      const subjects = getAllCurriculumSubjectsForStep3();
+      if (!sData.mappings) sData.mappings = {};
       let matchedCount = 0;
 
       subjects.forEach(cs => {
+        const key = `${cs.grade}::${cs.subject}`;
         const curCatId = getSubjectCategory(cs.subject, cs.grade);
-        const curCat = curCatId ? categories.find(c => c.id === curCatId) : null;
-        const curCatName = curCat ? curCat.name.toLowerCase() : '';
 
-        // If mapped to the wrong inquiry category (e.g. science subject in social category or vice versa), allow correction!
-        const isScienceSubj = ['물리', '화학', '생명', '지구과학', '융합과학', '과학', '역학', '물질', '세포'].some(kw => cs.subject.includes(kw));
-        const isSocialSubj = ['한국사', '세계사', '동아시아', '역사', '지리', '윤리', '사상', '정치', '법', '경제', '사회'].some(kw => cs.subject.includes(kw));
-        
-        const isWrongInquiryMapping = curCat && (
-          (curCatName.includes('사회') && isScienceSubj) ||
-          (curCatName.includes('과학') && isSocialSubj && !isScienceSubj)
-        );
-
-        if (curCatId && !isWrongInquiryMapping) return;
+        // 3. 회계원리: 미포함 (기존에 배정되어 있었더라도 해제)
+        if (cs.subject.includes('회계원리') || cs.subject.includes('회계')) {
+          if (sData.mappings[key] || sData.mappings[cs.subject]) {
+            delete sData.mappings[key];
+            delete sData.mappings[cs.subject];
+            matchedCount++;
+          }
+          return;
+        }
 
         const suggestedCatId = getSuggestedCategoryForSubjectName(cs.subject, categories);
-        if (suggestedCatId && suggestedCatId !== curCatId) {
-          const key = `${cs.grade}::${cs.subject}`;
+
+        // 미배정 과목 배정 또는 오분류된 과목 재배정 (예: 스포츠 과학 -> 체육, 전자기와 양자 -> 과학, 한국사 -> 한국사, 인간과 심리 -> 생활교양)
+        if (!curCatId && suggestedCatId) {
+          sData.mappings[key] = suggestedCatId;
+          sData.mappings[cs.subject] = suggestedCatId;
+          matchedCount++;
+        } else if (curCatId && suggestedCatId && curCatId !== suggestedCatId) {
           sData.mappings[key] = suggestedCatId;
           sData.mappings[cs.subject] = suggestedCatId;
           matchedCount++;
@@ -15077,7 +15119,7 @@ function createSangjiCourseSelectionForm() {
         renderStep3SubjectMappingTable();
         if (typeof renderScmModal === 'function') renderScmModal();
         if (typeof renderAllGradesCurriculumTable === 'function') renderAllGradesCurriculumTable();
-        if (!silent) alert(`⚡ 총 ${matchedCount}개 과목의 교과군이 과목명을 바탕으로 자동 추천 배정되었습니다!`);
+        if (!silent) alert(`⚡ 총 ${matchedCount}개 과목의 교과군이 최신 규칙(한국사, 생활교양기술정보, 스포츠과학 체육, 전자기양자 과학 등)에 따라 자동 추천/재배정되었습니다!`);
       } else {
         if (!silent) alert('추가로 자동 추천 매칭할 수 있는 과목이 없거나 이미 모두 올바르게 지정되어 있습니다.');
       }
@@ -15086,30 +15128,45 @@ function createSangjiCourseSelectionForm() {
 
     function getSuggestedCategoryForSubjectName(subjectName, categories) {
       if (!subjectName || !categories || categories.length === 0) return null;
-      const s = subjectName.toLowerCase();
+      const s = subjectName.toLowerCase().replace(/\s+/g, '');
 
-      // 1. 기초 (국어, 수학, 영어)
-      const basicKeywords = [
-        '국어', '문학', '독서', '화법', '작문', '언어', '매체',
-        '수학', '미적분', '확률', '통계', '기하', '대수', '인공지능 수학', '실용 수학', '경제 수학',
-        '영어', '회화', '독해', '작문', '심화 영어', '영어권'
+      // 0. 회계원리 - 미포함 (절대 자동 배정하지 않음)
+      if (s.includes('회계원리') || s.includes('회계')) {
+        return null;
+      }
+
+      // 1. 한국사 (한국사1, 한국사2, 한국사1-, 한국사2- 등)
+      if (s.includes('한국사')) {
+        const cat = categories.find(c => c.name.includes('한국사'));
+        if (cat) return cat.id;
+      }
+
+      // 2. 체육·예술 (스포츠 과학 포함!)
+      // '스포츠 과학'은 '과학'이 들어가 있지만 반드시 체육에 포함하도록 최우선 처리!
+      const isSportsSci = s.includes('스포츠과학') || (s.includes('스포츠') && s.includes('과학'));
+      const peArtKeywords = [
+        '체육', '운동', '건강', '스포츠', '육상', '실기',
+        '미술', '창작', '음악', '감상', '비평', '연주', '무용', '디자인', '연극'
       ];
-      if (basicKeywords.some(kw => s.includes(kw))) {
+      if (isSportsSci || peArtKeywords.some(kw => s.includes(kw))) {
         const cat = categories.find(c => {
           const n = c.name.toLowerCase();
-          return n.includes('기초') || n.includes('국어') || n.includes('수학') || n.includes('영어');
+          return n.includes('체육') || n.includes('예술') || n.includes('스포츠') || n.includes('음악') || n.includes('미술');
         });
         if (cat) return cat.id;
       }
 
-      // 2. 탐구 (과학) - 과학을 사회보다 먼저 판별하고 탐구(사회)로 빠지지 않도록 엄격 분리!
+      // 3. 탐구 (과학) (전자기와 양자 포함!)
+      // 스포츠 관련 과목은 위에서 체육으로 처리되었으므로 과학에서 제외
       const sciKeywords = [
-        '물리', '역학', '화학', '물질', '생명과학', '생물', '지구과학', '융합과학', '과학', '세포', '유전'
+        '전자기와양자', '전자기', '양자', '물리', '역학', '화학', '물질',
+        '생명과학', '생물', '지구과학', '융합과학', '과학', '세포', '유전', '행성', '우주'
       ];
       if (sciKeywords.some(kw => s.includes(kw))) {
-        // 우선 교과군명에 '과학'이 들어있는 교과군을 최우선 매칭!
-        let cat = categories.find(c => c.name.toLowerCase().includes('과학'));
-        // '과학' 교과군이 따로 없고 단일 '탐구'만 있는 경우 ('사회' 단어가 들어간 교과군은 절대 제외)
+        let cat = categories.find(c => {
+          const n = c.name.toLowerCase();
+          return n.includes('과학') && !n.includes('체육');
+        });
         if (!cat) {
           cat = categories.find(c => {
             const n = c.name.toLowerCase();
@@ -15119,48 +15176,58 @@ function createSangjiCourseSelectionForm() {
         if (cat) return cat.id;
       }
 
-      // 3. 탐구 (사회)
+      // 4. 생활·교양·기술·가정·정보·제2외국어
+      // 진로와직업, 생애설계와자립, 중국어, 일본어, 중국어 회화, 일본어 회화, 인간과 심리 포함!
+      const lifeKeywords = [
+        '진로와직업', '진로', '직업',
+        '생애설계와자립', '생애설계', '자립',
+        '중국어', '중국어회화', '중국',
+        '일본어', '일본어회화', '일본',
+        '인간과심리', '인간과심리', '심리학', '심리',
+        '기술', '가정', '기술가정', '기술·가정', '정보', '프로그래밍', '인공지능기초', 'ai기초',
+        '한문', '제2외국어', '외국어', '독일어', '프랑스어', '스페인어', '러시아어', '베트남어',
+        '보건', '철학', '논술', '환경', '교양'
+      ];
+      if (lifeKeywords.some(kw => s.includes(kw))) {
+        const cat = categories.find(c => {
+          const n = c.name.toLowerCase();
+          return n.includes('생활') || n.includes('교양') || n.includes('기술') || n.includes('가정') || n.includes('정보') || n.includes('외국어') || n.includes('제2외국어');
+        });
+        if (cat) return cat.id;
+      }
+
+      // 5. 기초 (국어, 수학, 영어)
+      const basicKeywords = [
+        '국어', '문학', '독서', '화법', '작문', '언어', '매체', '고전',
+        '수학', '미적분', '확률', '통계', '기하', '대수', '인공지능수학', '실용수학', '경제수학',
+        '영어', '영어회화', '영어독해', '영어작문', '심화영어', '영어권'
+      ];
+      if (basicKeywords.some(kw => s.includes(kw))) {
+        const cat = categories.find(c => {
+          const n = c.name.toLowerCase();
+          return n.includes('기초') || n.includes('국어') || n.includes('수학') || n.includes('영어');
+        });
+        if (cat) return cat.id;
+      }
+
+      // 6. 탐구 (사회)
+      // 한국사는 별도 교과군으로 분리되었고, 인간과 심리는 생활교양에 포함되었으므로 제외
       const socKeywords = [
-        '한국사', '세계사', '동아시아', '역사', '지리', '여행지리',
-        '윤리', '사상', '생활과 윤리', '현대사회', '정치', '법', '법과 사회',
-        '경제', '사회문화', '사회', '인간', '심리'
+        '세계사', '동아시아', '역사', '지리', '여행지리', '한국지리', '세계지리',
+        '윤리', '사상', '생활과윤리', '현대사회', '정치', '법', '법과사회', '정치와법',
+        '경제', '사회문화', '사회'
       ];
       if (socKeywords.some(kw => s.includes(kw))) {
-        // 우선 교과군명에 '사회' 또는 '역사' 또는 '지리'가 들어있는 교과군 매칭 ('과학' 제외)
         let cat = categories.find(c => {
           const n = c.name.toLowerCase();
           return (n.includes('사회') || n.includes('역사') || n.includes('지리') || n.includes('도덕')) && !n.includes('과학');
         });
-        // '사회' 교과군이 따로 없고 단일 '탐구'만 있는 경우 ('과학' 단어가 들어간 교과군은 제외)
         if (!cat) {
           cat = categories.find(c => {
             const n = c.name.toLowerCase();
             return n.includes('탐구') && !n.includes('과학');
           });
         }
-        if (cat) return cat.id;
-      }
-
-      // 4. 체육·예술
-      const peArtKeywords = ['체육', '운동', '건강', '스포츠', '육상', '실기', '미술', '창작', '음악', '감상', '비평', '연주'];
-      if (peArtKeywords.some(kw => s.includes(kw))) {
-        const cat = categories.find(c => {
-          const n = c.name.toLowerCase();
-          return n.includes('체육') || n.includes('예술') || n.includes('음악') || n.includes('미술');
-        });
-        if (cat) return cat.id;
-      }
-
-      // 5. 생활·교양
-      const lifeKeywords = [
-        '기술', '가정', '정보', '프로그래밍', '인공지능 기초', '한문', '일본', '중국',
-        '외국어', '보건', '철학', '논술', '회계', '상업'
-      ];
-      if (lifeKeywords.some(kw => s.includes(kw))) {
-        const cat = categories.find(c => {
-          const n = c.name.toLowerCase();
-          return n.includes('생활') || n.includes('교양') || n.includes('외국어') || n.includes('제2외국어') || n.includes('정보');
-        });
         if (cat) return cat.id;
       }
 
@@ -15387,8 +15454,15 @@ function createSangjiCourseSelectionForm() {
     function generateDefaultStep3Categories() {
       const sData = getStep3Data();
       if (sData.categories && sData.categories.length > 0) {
-        if (!confirm('기존 교과군 목록이 있습니다. 표준 기본 교과군(기초, 탐구(사회), 탐구(과학), 체육·예술, 생활·교양)을 추가하시겠습니까?')) return;
+        if (!confirm('기존 교과군 목록이 있습니다. 표준 교과군(기초, 탐구(사회), 탐구(과학), 체육·예술, 생활·교양·기술·가정·정보·제2외국어, 한국사)을 추가/업데이트하시겠습니까?')) return;
       }
+
+      // 1. 기존 '생활·교양' 명칭을 신규 '생활·교양·기술·가정·정보·제2외국어'로 자동 명칭 마이그레이션
+      (sData.categories || []).forEach(c => {
+        if (c.name === '생활·교양' || c.name === '생활 교양') {
+          c.name = '생활·교양·기술·가정·정보·제2외국어';
+        }
+      });
 
       const defaults = createDefaultStep3Categories();
       defaults.forEach(d => {
@@ -15409,7 +15483,7 @@ function createSangjiCourseSelectionForm() {
       renderStep3SubjectMappingTable();
       if (typeof renderScmModal === 'function') renderScmModal();
       if (typeof renderAllGradesCurriculumTable === 'function') renderAllGradesCurriculumTable();
-      alert('✅ 표준 기본 교과군(기초, 탐구(사회), 탐구(과학), 체육·예술, 생활·교양)이 즉시 생성 및 배정되었습니다!');
+      alert('✅ 표준 교과군(기초, 탐구(사회), 탐구(과학), 체육·예술, 생활·교양·기술·가정·정보·제2외국어, 한국사)이 즉시 생성 및 배정되었습니다!');
     }
     window.generateDefaultStep3Categories = generateDefaultStep3Categories;
 
