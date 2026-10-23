@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:15)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:20)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:15)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:20)</p>
         </div>
       </div>
 
@@ -8660,6 +8660,9 @@
       const closedContainer = document.getElementById('conflictClosedSubjectsList');
       if (closedContainer) {
         const mergedClosedList = closedList || [];
+        const { prevClosedInfoMap } = (typeof getPreviousDatesClosedSubjectsHistory === 'function')
+          ? getPreviousDatesClosedSubjectsHistory(sem)
+          : { prevClosedInfoMap: {} };
 
         if (mergedClosedList.length === 0) {
           closedContainer.innerHTML = `<span class="text-xs text-slate-500 italic bg-white/80 px-2.5 py-0.5 rounded-md border border-dashed border-rose-200">폐강 확정 과목 없음 (모든 선택과목 개설 대상)</span>`;
@@ -8684,11 +8687,11 @@
             let dateNotice = '현재 기준';
 
             // 현재 탭에서 신청 학생이 0명이고, 이전 기준 날짜 폐강 이력이 있다면 그 당시 데이터 활용
-            if (count === 0 && prevClosedInfoMap[subj]) {
+            if (count === 0 && prevClosedInfoMap && prevClosedInfoMap[subj]) {
               count = prevClosedInfoMap[subj].count || 0;
               studentList = prevClosedInfoMap[subj].students || [];
               dateNotice = `${prevClosedInfoMap[subj].date} 폐강 당시`;
-            } else if (prevClosedInfoMap[subj]) {
+            } else if (prevClosedInfoMap && prevClosedInfoMap[subj]) {
               dateNotice = `${prevClosedInfoMap[subj].date} 폐강 이력`;
             }
 
