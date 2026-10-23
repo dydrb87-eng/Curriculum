@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_09:45)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_10:00)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_09:45)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_10:00)</p>
         </div>
       </div>
 
@@ -653,6 +653,10 @@
               </div>
             </div>
 
+            <button type="button" onclick="window.openSubjectCategoryManagerModal()" class="px-3 py-1.5 text-xs font-extrabold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 rounded-lg shadow-2xs flex items-center gap-1.5 cursor-pointer transition select-none ring-1 ring-purple-300/60" title="전학년 과목별 교과군 설정 및 과목 클릭클릭 배정">
+              <span>🏷️ 교과군 설정</span>
+              <span id="allGradesCategorySummaryBadge" class="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-200 text-purple-900 font-black">0개 군</span>
+            </button>
             <button type="button" onclick="window.openAddCourseModal()" class="px-3 py-1.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer select-none ring-2 ring-indigo-400/40" title="편제표에 새 과목을 직접 추가합니다">
               <span>➕</span>
               <span>과목 추가</span>
@@ -671,6 +675,7 @@
                 <th class="p-2.5 text-center w-24 border-r border-slate-200 font-extrabold text-slate-900">반 구분</th>
                 <th class="p-2.5 w-52 min-w-[200px] border-r border-slate-200 font-extrabold text-slate-900">과목명 (수정 가능)</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200 font-extrabold text-slate-900">총 시수 (수정 가능)</th>
+                <th class="p-2.5 text-center w-28 border-r border-slate-200 font-extrabold text-slate-900">교과군</th>
                 <th class="p-2.5 text-center w-24 border-r border-slate-200">개설 상태</th>
                 <th class="p-2.5 w-48 border-r border-slate-200 font-extrabold text-slate-900">담당 교사 (수정 가능)</th>
                 <th class="p-2.5 text-center w-20 border-r border-slate-200">수정 여부</th>
@@ -1512,8 +1517,11 @@
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2 shrink-0">
-              <button type="button" onclick="window.runStep3Validation(true)" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm">
+              <button type="button" onclick="window.runStep3Validation(true)" class="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm">
                 <span>🔄 검증 새로고침</span>
+              </button>
+              <button type="button" onclick="window.openSubjectCategoryManagerModal()" class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 transition cursor-pointer shadow-md">
+                <span>🏷️ 교과군 및 과목 배정 설정</span>
               </button>
               <button type="button" onclick="window.exportStep3ValidationExcel()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 transition cursor-pointer shadow-md">
                 <span>📥 검증 결과 엑셀 다운로드 (.xlsx)</span>
@@ -1809,6 +1817,210 @@
   </footer>
 
   <!-- ================= MODALS ================= -->
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: 전학년 교과군 설정 및 과목 클릭클릭 배정 모달 -->
+  <!-- ========================================================================= -->
+  <div id="subjectCategoryManagerModal" onclick="if(event.target.id === 'subjectCategoryManagerModal') window.closeSubjectCategoryManagerModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-purple-800 via-indigo-800 to-slate-900 text-white flex items-center justify-between shrink-0 shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-xl shadow-xs">
+            🏷️
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-black flex items-center gap-2">
+              <span>전학년(1·2·3학년) 교과군 설정 및 과목 배정</span>
+              <span id="scmActiveYearBadge" class="text-xs px-2 py-0.5 rounded-full bg-white/20 font-bold">2027학년도</span>
+            </h3>
+            <p class="text-xs text-purple-200 mt-0.5">
+              왼쪽에서 교과군을 선택한 뒤, 오른쪽의 과목 카드를 <span class="text-amber-300 font-black underline">클릭클릭</span>하여 해당 교과군에 즉시 넣을 수 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.generateDefaultStep3Categories()" class="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 shadow-sm">
+            <span>⚡ 표준 4대 교과군 자동 생성</span>
+          </button>
+          <button type="button" onclick="window.closeSubjectCategoryManagerModal()" class="text-white/70 hover:text-white text-2xl font-bold p-1 leading-none cursor-pointer">✕</button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Two-Column Layout) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 flex-1 overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+        
+        <!-- Left Panel: Categories & Rules (cols-5) -->
+        <div class="lg:col-span-5 flex flex-col p-4 sm:p-5 bg-slate-50/80 overflow-y-auto space-y-4 custom-scrollbar">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+            <div>
+              <h4 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                <span>📁 교과군 목록</span>
+                <span id="scmCategoryCountBadge" class="text-[11px] px-2 py-0.2 rounded-full font-bold bg-purple-100 text-purple-800">0개</span>
+              </h4>
+              <span class="text-[11px] text-slate-500">배정할 교과군 카드를 클릭하여 활성화하세요.</span>
+            </div>
+            <button type="button" onclick="window.toggleScmCategoryForm(true)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 shadow-xs">
+              <span>+ 교과군 추가</span>
+            </button>
+          </div>
+
+          <!-- Inline Category Add / Edit Form -->
+          <div id="scmCategoryFormWrapper" class="hidden bg-white rounded-2xl p-4 border-2 border-indigo-400 shadow-md space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h5 id="scmFormTitle" class="text-xs font-black text-indigo-950">새 교과군 등록</h5>
+              <button type="button" onclick="window.toggleScmCategoryForm(false)" class="text-slate-400 hover:text-slate-600 text-sm font-bold">✕</button>
+            </div>
+            <input type="hidden" id="scmFormCatId" value="">
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">교과군 이름 <span class="text-rose-500">*</span></label>
+              <input type="text" id="scmFormName" placeholder="예: 탐구 (과학), 기초 (국·영·수)" class="w-full text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">색상 테마</label>
+              <div id="scmFormColorPicker" class="flex flex-wrap gap-1.5">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">적용 학년</label>
+                <select id="scmFormGrade" onchange="window.updateScmFormPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-2 py-1 font-bold">
+                  <option value="전체">2·3학년 전체</option>
+                  <option value="2학년">2학년만</option>
+                  <option value="3학년">3학년만</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">적용 학기</label>
+                <select id="scmFormSemester" onchange="window.updateScmFormPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-2 py-1 font-bold">
+                  <option value="all">연간 전체</option>
+                  <option value="1">1학기만</option>
+                  <option value="2">2학기만</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="bg-indigo-50/70 p-2.5 rounded-xl border border-indigo-200 space-y-2">
+              <label class="block text-[11px] font-black text-indigo-950">선택 개수 제한 조건 설정</label>
+              <div class="grid grid-cols-2 gap-1.5 text-xs">
+                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
+                  <input type="radio" name="scmFormRuleType" value="min" checked onchange="window.updateScmFormRuleInputs()">
+                  <span>최소 N개 이상</span>
+                </label>
+                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
+                  <input type="radio" name="scmFormRuleType" value="max" onchange="window.updateScmFormRuleInputs()">
+                  <span>최대 N개 이하</span>
+                </label>
+                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
+                  <input type="radio" name="scmFormRuleType" value="range" onchange="window.updateScmFormRuleInputs()">
+                  <span>N~M개 범위</span>
+                </label>
+                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
+                  <input type="radio" name="scmFormRuleType" value="exact" onchange="window.updateScmFormRuleInputs()">
+                  <span>정확히 N개</span>
+                </label>
+              </div>
+
+              <div id="scmFormRuleInputsContainer" class="flex items-center gap-1.5 pt-1">
+              </div>
+
+              <div class="text-[10px] font-bold text-indigo-900 bg-white p-1.5 rounded border border-indigo-100">
+                <span>📌 요약: </span><span id="scmFormRuleSummaryPreview" class="font-black text-indigo-950">최소 1과목 이상</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+              <button type="button" onclick="window.toggleScmCategoryForm(false)" class="px-3 py-1 border border-slate-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">취소</button>
+              <button type="button" onclick="window.saveScmCategoryFromForm()" class="px-4 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition cursor-pointer shadow-xs">저장</button>
+            </div>
+          </div>
+
+          <!-- Category Cards List -->
+          <div id="scmCategoryCardsContainer" class="space-y-3 flex-1">
+          </div>
+        </div>
+
+        <!-- Right Panel: Subjects Cards List (cols-7) -->
+        <div class="lg:col-span-7 flex flex-col p-4 sm:p-5 bg-white overflow-hidden space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
+            <div>
+              <h4 class="text-sm font-black text-slate-800 flex items-center gap-2">
+                <span>📚 전학년 과목 목록 (클릭하여 배정)</span>
+                <span id="scmSubjectCountBadge" class="text-[11px] px-2 py-0.2 rounded-full font-bold bg-slate-100 text-slate-700">총 0과목</span>
+              </h4>
+              <div class="text-[11px] text-indigo-700 font-bold flex items-center gap-1.5 mt-1">
+                <span>👉 현재 활성 교과군:</span>
+                <span id="scmActiveCategoryNotice" class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900 font-black">선택되지 않음</span>
+                <span class="text-slate-500 font-normal">(과목 카드를 클릭하면 즉시 배정/해제됩니다)</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="window.autoAssignStep3CategoriesByName()" class="px-2.5 py-1.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer flex items-center gap-1">
+                <span>⚡ 과목명 기반 자동 추천 배정</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="flex flex-wrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+            <div class="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+              <button type="button" id="scmFilterGradeAll" onclick="window.setScmSubjectFilter('grade', 'all')" class="px-2 py-0.5 rounded font-black bg-indigo-600 text-white">전체</button>
+              <button type="button" id="scmFilterGrade1" onclick="window.setScmSubjectFilter('grade', '1학년')" class="px-2 py-0.5 rounded font-bold text-slate-600 hover:text-slate-900">1학년</button>
+              <button type="button" id="scmFilterGrade2" onclick="window.setScmSubjectFilter('grade', '2학년')" class="px-2 py-0.5 rounded font-bold text-slate-600 hover:text-slate-900">2학년</button>
+              <button type="button" id="scmFilterGrade3" onclick="window.setScmSubjectFilter('grade', '3학년')" class="px-2 py-0.5 rounded font-bold text-slate-600 hover:text-slate-900">3학년</button>
+            </div>
+
+            <select id="scmFilterType" onchange="window.setScmSubjectFilter('type', this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-2 py-1 font-bold text-slate-700">
+              <option value="all">구분 (전체)</option>
+              <option value="선택">선택과목만</option>
+              <option value="지정">지정과목만</option>
+            </select>
+
+            <select id="scmFilterCatStatus" onchange="window.setScmSubjectFilter('catStatus', this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-2 py-1 font-bold text-slate-700">
+              <option value="all">교과군 배정 상태 (전체)</option>
+              <option value="active">현재 선택된 교과군 과목만</option>
+              <option value="unmapped">⚠️ 미지정 과목만</option>
+            </select>
+
+            <div class="relative flex-1 min-w-[140px]">
+              <input type="text" id="scmFilterSearch" oninput="window.setScmSubjectFilter('search', this.value)" placeholder="과목명 또는 교사 검색..." class="w-full text-xs bg-white border border-slate-300 rounded-lg pl-7 pr-2.5 py-1 font-medium">
+              <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+            </div>
+          </div>
+
+          <!-- Vertical Cards List (Scrollable) -->
+          <div id="scmSubjectCardsContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+            <!-- Dynamically populated vertical subject cards -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-slate-100 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div class="flex items-center gap-3 text-xs text-slate-600">
+          <span id="scmFooterSummaryText" class="font-bold">배정 통계: 0과목 배정 완료 / 0과목 미지정</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.switchStepView(3); window.closeSubjectCategoryManagerModal();" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5">
+            <span>3단계 선택조건 검증 바로가기 ➔</span>
+          </button>
+          <button type="button" onclick="window.closeSubjectCategoryManagerModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition cursor-pointer">
+            완료 및 닫기
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 
   <!-- Step 3: Category Edit/Add Modal -->
   <div id="step3CategoryModal" onclick="if(event.target.id === 'step3CategoryModal') window.closeStep3CategoryModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -13587,6 +13799,524 @@ function createSangjiCourseSelectionForm() {
 
       return window._step3LastValidationResult;
     }
+
+    // =========================================================================
+    // 6. SUBJECT CATEGORY MANAGER (전체 시수종합 연동 교과군 및 과목 클릭클릭 배정)
+    // =========================================================================
+
+    window._scmActiveCategoryId = null;
+    window._scmSubjectFilters = {
+      grade: 'all',
+      type: 'all',
+      catStatus: 'all',
+      search: ''
+    };
+    window._scmFormCurColor = 'blue';
+
+    function openSubjectCategoryManagerModal(preferredSubject = null) {
+      const modal = document.getElementById('subjectCategoryManagerModal');
+      if (!modal) return;
+
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+
+      // Set active category to first one if not set
+      if (!window._scmActiveCategoryId || !categories.some(c => c.id === window._scmActiveCategoryId)) {
+        window._scmActiveCategoryId = categories.length > 0 ? categories[0].id : null;
+      }
+
+      // If preferredSubject passed (e.g. from table click), prefill search or category
+      if (preferredSubject) {
+        const catId = getSubjectCategory(preferredSubject);
+        if (catId) window._scmActiveCategoryId = catId;
+        const searchInput = document.getElementById('scmFilterSearch');
+        if (searchInput) {
+          searchInput.value = preferredSubject;
+          window._scmSubjectFilters.search = preferredSubject;
+        }
+      }
+
+      const yearBadge = document.getElementById('scmActiveYearBadge');
+      if (yearBadge) yearBadge.textContent = MultiState?.activeAcademicYear || '2027학년도';
+
+      renderScmModal();
+      modal.classList.remove('hidden');
+    }
+    window.openSubjectCategoryManagerModal = openSubjectCategoryManagerModal;
+
+    function closeSubjectCategoryManagerModal() {
+      const modal = document.getElementById('subjectCategoryManagerModal');
+      if (modal) modal.classList.add('hidden');
+      renderAllGradesCurriculumTable();
+      if (typeof renderStep3UI === 'function') {
+        runStep3Validation(false);
+      }
+    }
+    window.closeSubjectCategoryManagerModal = closeSubjectCategoryManagerModal;
+
+    function renderScmModal() {
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+      const subjects = getAllCurriculumSubjectsForStep3();
+
+      // Update toolbar summary badge in main allGrades section
+      const mainSummaryBadge = document.getElementById('allGradesCategorySummaryBadge');
+      if (mainSummaryBadge) {
+        mainSummaryBadge.textContent = `${categories.length}개 군`;
+      }
+
+      // Left panel header badge
+      const catCountBadge = document.getElementById('scmCategoryCountBadge');
+      if (catCountBadge) catCountBadge.textContent = `${categories.length}개`;
+
+      // Render Left Panel Category Cards
+      const catContainer = document.getElementById('scmCategoryCardsContainer');
+      if (catContainer) {
+        if (categories.length === 0) {
+          catContainer.innerHTML = `
+            <div class="p-6 text-center border-2 border-dashed border-slate-300 rounded-2xl bg-white space-y-2">
+              <span class="text-3xl">🏷️</span>
+              <p class="text-xs font-bold text-slate-700">등록된 교과군이 없습니다.</p>
+              <p class="text-[11px] text-slate-400">상단의 [⚡ 표준 4대 교과군 자동 생성]을 누르거나 [+ 교과군 추가]를 클릭하세요.</p>
+            </div>
+          `;
+        } else {
+          catContainer.innerHTML = categories.map(cat => {
+            const isActive = cat.id === window._scmActiveCategoryId;
+            const col = STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue;
+            const ruleDesc = formatStep3RuleDesc(cat);
+
+            // Find subjects assigned to this category
+            const assignedSubjs = [];
+            subjects.forEach(cs => {
+              if (getSubjectCategory(cs.subject, cs.grade) === cat.id) {
+                if (!assignedSubjs.includes(cs.subject)) {
+                  assignedSubjs.push(cs.subject);
+                }
+              }
+            });
+
+            return `
+              <div onclick="window.selectScmActiveCategory('${cat.id}')" 
+                   class="p-3.5 rounded-2xl border-2 transition cursor-pointer select-none space-y-2.5 relative bg-white ${
+                     isActive 
+                       ? 'border-indigo-600 ring-2 ring-indigo-300/80 shadow-md' 
+                       : 'border-slate-200 hover:border-slate-300 hover:shadow-xs'
+                   }">
+                ${isActive ? `<div class="absolute -top-2.5 right-3 px-2 py-0.5 bg-indigo-600 text-white rounded-full text-[10px] font-black shadow-xs flex items-center gap-1"><span>👉 과목 담는 중</span></div>` : ''}
+
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full ${col.dot}"></span>
+                    <span class="text-xs sm:text-sm font-black text-slate-900">${cat.name}</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-black ${col.badge}">
+                    ${assignedSubjs.length}과목 담김
+                  </span>
+                </div>
+
+                <div class="p-2 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                  <span>📌 ${ruleDesc}</span>
+                  <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+                    <button type="button" onclick="window.openScmCategoryEditForm('${cat.id}')" class="px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 hover:bg-indigo-50 rounded" title="조건 수정">수정</button>
+                    <button type="button" onclick="window.deleteStep3Category('${cat.id}'); window.renderScmModal();" class="px-1.5 py-0.5 text-[10px] font-bold text-rose-600 hover:bg-rose-50 rounded" title="삭제">삭제</button>
+                  </div>
+                </div>
+
+                <!-- Assigned Subjects Chips with removal -->
+                <div class="flex flex-wrap gap-1 max-h-24 overflow-y-auto custom-scrollbar pt-0.5">
+                  ${assignedSubjs.length > 0 ? assignedSubjs.map(s => `
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${col.badge} border shadow-3xs" onclick="event.stopPropagation()">
+                      <span>${s}</span>
+                      <button type="button" onclick="window.unassignSubjectFromScm('${s}')" class="text-slate-500 hover:text-rose-700 font-bold ml-0.5 cursor-pointer" title="이 과목 교과군 배정 해제">✕</button>
+                    </span>
+                  `).join('') : '<span class="text-[11px] text-slate-400 italic">아직 배정된 과목이 없습니다. 오른쪽에서 과목을 클릭하세요.</span>'}
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // Update Right Panel Header Notice
+      const activeCat = categories.find(c => c.id === window._scmActiveCategoryId);
+      const activeNoticeEl = document.getElementById('scmActiveCategoryNotice');
+      if (activeNoticeEl) {
+        if (activeCat) {
+          const col = STEP3_COLOR_SCHEMES[activeCat.color] || STEP3_COLOR_SCHEMES.blue;
+          activeNoticeEl.textContent = activeCat.name;
+          activeNoticeEl.className = `px-2.5 py-0.5 rounded-full text-xs font-black ${col.badge} shadow-3xs`;
+        } else {
+          activeNoticeEl.textContent = '선택되지 않음 (왼쪽 교과군 카드를 클릭하세요)';
+          activeNoticeEl.className = 'px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold text-xs';
+        }
+      }
+
+      // Filter Right Panel Subjects
+      const filter = window._scmSubjectFilters;
+      let filteredSubjs = subjects.filter(cs => {
+        if (filter.grade !== 'all' && cs.grade !== filter.grade) return false;
+        if (filter.type === '선택' && cs.category !== '선택' && cs.category !== '학생선택') return false;
+        if (filter.type === '지정' && cs.category !== '지정' && cs.category !== '학교지정') return false;
+
+        const catId = getSubjectCategory(cs.subject, cs.grade);
+        if (filter.catStatus === 'active') {
+          if (!window._scmActiveCategoryId || catId !== window._scmActiveCategoryId) return false;
+        } else if (filter.catStatus === 'unmapped') {
+          if (catId) return false;
+        }
+
+        if (filter.search.trim()) {
+          const q = filter.search.trim().toLowerCase();
+          const matchSubj = (cs.subject || '').toLowerCase().includes(q);
+          const matchTeacher = (cs.teacher || '').toLowerCase().includes(q);
+          if (!matchSubj && !matchTeacher) return false;
+        }
+
+        return true;
+      });
+
+      // Update count badge
+      const subjCountBadge = document.getElementById('scmSubjectCountBadge');
+      if (subjCountBadge) subjCountBadge.textContent = `${filteredSubjs.length}과목 표시 / 총 ${subjects.length}과목`;
+
+      // Render Right Panel Vertical Subject Cards
+      const cardsContainer = document.getElementById('scmSubjectCardsContainer');
+      if (cardsContainer) {
+        if (filteredSubjs.length === 0) {
+          cardsContainer.innerHTML = '<div class="p-8 text-center text-slate-400 font-bold">조건에 해당하는 과목이 없습니다.</div>';
+        } else {
+          cardsContainer.innerHTML = filteredSubjs.map(cs => {
+            const assignedCatId = getSubjectCategory(cs.subject, cs.grade);
+            const assignedCat = assignedCatId ? categories.find(c => c.id === assignedCatId) : null;
+            const isCurrentActive = assignedCatId && assignedCatId === window._scmActiveCategoryId;
+            const col = assignedCat ? (STEP3_COLOR_SCHEMES[assignedCat.color] || STEP3_COLOR_SCHEMES.blue) : null;
+
+            let borderStyle = 'border-slate-200 bg-white hover:border-indigo-400 hover:shadow-xs';
+            if (isCurrentActive) {
+              borderStyle = `border-2 border-indigo-600 bg-indigo-50/50 shadow-xs ring-1 ring-indigo-300`;
+            } else if (assignedCat) {
+              borderStyle = `border-slate-200 bg-slate-50/60 hover:border-slate-300`;
+            }
+
+            const statusBadge = cs.status === '폐강'
+              ? '<span class="text-[9px] px-1 rounded bg-rose-100 text-rose-800 font-bold">폐강</span>'
+              : '';
+
+            return `
+              <div onclick="window.handleScmSubjectCardClick('${cs.grade}', '${escapeHtml(cs.subject)}')" 
+                   class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${borderStyle} hover:scale-[1.01] active:scale-[0.99] select-none">
+                
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="flex items-center gap-1 shrink-0">
+                    <span class="text-[10px] font-black px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200">${cs.grade} ${cs.semester}학기</span>
+                    <span class="text-[10px] font-bold px-1 py-0.2 rounded ${cs.category === '지정' ? 'bg-amber-100 text-amber-900' : 'bg-blue-100 text-blue-900'}">${cs.category || '선택'}</span>
+                    ${statusBadge}
+                  </div>
+                  <div class="font-black text-xs sm:text-sm text-slate-900 truncate">
+                    ${cs.subject}
+                  </div>
+                  <div class="text-[11px] text-slate-500 shrink-0 font-medium">
+                    (${cs.hours}시수 | ${cs.teacher || '미배정'})
+                  </div>
+                </div>
+
+                <div class="shrink-0 flex items-center gap-1.5">
+                  ${isCurrentActive ? `
+                    <span class="text-xs font-black px-2.5 py-1 rounded-full ${col ? col.badge : 'bg-indigo-100 text-indigo-900'} border flex items-center gap-1 shadow-3xs">
+                      <span>✓ 배정됨 (클릭 시 해제)</span>
+                    </span>
+                  ` : (assignedCat ? `
+                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${col ? col.badge : 'bg-slate-100 text-slate-700'} border" title="현재 ${assignedCat.name} 교과군">
+                      ${assignedCat.name}
+                    </span>
+                  ` : `
+                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 border border-dashed border-slate-300">
+                      미지정 (클릭하여 추가)
+                    </span>
+                  `)}
+                </div>
+
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // Update Footer stats
+      const footerEl = document.getElementById('scmFooterSummaryText');
+      if (footerEl) {
+        let assignedCount = 0;
+        subjects.forEach(cs => {
+          if (getSubjectCategory(cs.subject, cs.grade)) assignedCount++;
+        });
+        footerEl.textContent = `배정 통계: ${assignedCount}과목 교과군 배정 완료 / ${subjects.length - assignedCount}과목 미지정 (전체 ${subjects.length}과목 중)`;
+      }
+    }
+    window.renderScmModal = renderScmModal;
+
+    function selectScmActiveCategory(catId) {
+      window._scmActiveCategoryId = catId;
+      renderScmModal();
+    }
+    window.selectScmActiveCategory = selectScmActiveCategory;
+
+    function setScmSubjectFilter(key, value) {
+      window._scmSubjectFilters[key] = value;
+      // Grade button highlight
+      ['All', '1', '2', '3'].forEach(k => {
+        const btn = document.getElementById('scmFilterGrade' + k);
+        if (!btn) return;
+        const targetVal = k === 'All' ? 'all' : (k + '학년');
+        if (window._scmSubjectFilters.grade === targetVal) {
+          btn.className = 'px-2 py-0.5 rounded font-black bg-indigo-600 text-white';
+        } else {
+          btn.className = 'px-2 py-0.5 rounded font-bold text-slate-600 hover:text-slate-900';
+        }
+      });
+      renderScmModal();
+    }
+    window.setScmSubjectFilter = setScmSubjectFilter;
+
+    // Handle clicking a subject card
+    function handleScmSubjectCardClick(grade, subject) {
+      const sData = getStep3Data();
+      if (!sData.mappings) sData.mappings = {};
+
+      const activeCatId = window._scmActiveCategoryId;
+      if (!activeCatId) {
+        alert('먼저 왼쪽에서 배정할 교과군 카드를 클릭하여 선택해주세요.');
+        return;
+      }
+
+      const curCatId = getSubjectCategory(subject, grade);
+      const key = `${grade}::${subject}`;
+
+      if (curCatId === activeCatId) {
+        // Toggle removal
+        delete sData.mappings[key];
+        delete sData.mappings[subject];
+      } else {
+        // Assign to active category
+        sData.mappings[key] = activeCatId;
+        if (!sData.mappings[subject]) {
+          sData.mappings[subject] = activeCatId;
+        }
+      }
+
+      saveStep3Data(sData);
+      renderScmModal();
+    }
+    window.handleScmSubjectCardClick = handleScmSubjectCardClick;
+
+    function unassignSubjectFromScm(subject) {
+      const sData = getStep3Data();
+      if (!sData.mappings) return;
+
+      for (const k in sData.mappings) {
+        if (k === subject || k.endsWith('::' + subject)) {
+          delete sData.mappings[k];
+        }
+      }
+
+      saveStep3Data(sData);
+      renderScmModal();
+    }
+    window.unassignSubjectFromScm = unassignSubjectFromScm;
+
+    // Inline Category Form handling
+    function toggleScmCategoryForm(show = true) {
+      const wrapper = document.getElementById('scmCategoryFormWrapper');
+      if (!wrapper) return;
+      if (show) {
+        document.getElementById('scmFormCatId').value = '';
+        document.getElementById('scmFormName').value = '';
+        document.getElementById('scmFormGrade').value = '전체';
+        document.getElementById('scmFormSemester').value = 'all';
+        document.getElementById('scmFormTitle').textContent = '새 교과군 등록';
+        renderScmColorPicker('blue');
+        const minRadio = document.querySelector('input[name="scmFormRuleType"][value="min"]');
+        if (minRadio) minRadio.checked = true;
+        updateScmFormRuleInputs();
+        wrapper.classList.remove('hidden');
+        document.getElementById('scmFormName')?.focus();
+      } else {
+        wrapper.classList.add('hidden');
+      }
+    }
+    window.toggleScmCategoryForm = toggleScmCategoryForm;
+
+    function openScmCategoryEditForm(catId) {
+      const sData = getStep3Data();
+      const cat = (sData.categories || []).find(c => c.id === catId);
+      if (!cat) return;
+
+      const wrapper = document.getElementById('scmCategoryFormWrapper');
+      if (!wrapper) return;
+
+      document.getElementById('scmFormCatId').value = cat.id;
+      document.getElementById('scmFormName').value = cat.name;
+      document.getElementById('scmFormGrade').value = cat.targetGrade || '전체';
+      document.getElementById('scmFormSemester').value = cat.targetSemester || 'all';
+      document.getElementById('scmFormTitle').textContent = '교과군 수정: ' + cat.name;
+
+      renderScmColorPicker(cat.color || 'blue');
+
+      const radio = document.querySelector(`input[name="scmFormRuleType"][value="${cat.ruleType || 'min'}"]`);
+      if (radio) radio.checked = true;
+
+      window._scmFormCurRuleValues = {
+        minCount: cat.minCount ?? 1,
+        maxCount: cat.maxCount ?? 4,
+        exactCount: cat.exactCount ?? 2
+      };
+
+      updateScmFormRuleInputs();
+      wrapper.classList.remove('hidden');
+      document.getElementById('scmFormName')?.focus();
+    }
+    window.openScmCategoryEditForm = openScmCategoryEditForm;
+
+    function renderScmColorPicker(activeColor = 'blue') {
+      window._scmFormCurColor = activeColor;
+      const picker = document.getElementById('scmFormColorPicker');
+      if (!picker) return;
+
+      picker.innerHTML = Object.keys(STEP3_COLOR_SCHEMES).map(cKey => {
+        const col = STEP3_COLOR_SCHEMES[cKey];
+        const isSel = col.key === activeColor;
+        return `
+          <button type="button" onclick="window.selectScmColor('${col.key}')" class="px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 transition ${col.badge} ${isSel ? 'ring-2 ' + col.ring + ' font-black' : 'opacity-60'}">
+            <span class="w-2 h-2 rounded-full ${col.dot}"></span>
+            <span>${col.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectScmColor(colorKey) {
+      renderScmColorPicker(colorKey);
+    }
+    window.selectScmColor = selectScmColor;
+
+    window._scmFormCurRuleValues = { minCount: 1, maxCount: 4, exactCount: 2 };
+
+    function updateScmFormRuleInputs() {
+      const selectedRadio = document.querySelector('input[name="scmFormRuleType"]:checked');
+      const rType = selectedRadio ? selectedRadio.value : 'min';
+      const container = document.getElementById('scmFormRuleInputsContainer');
+      if (!container) return;
+
+      if (rType === 'min') {
+        container.innerHTML = `
+          <span class="text-xs font-bold text-slate-700">최소</span>
+          <input type="number" id="scmInputMinCount" value="${window._scmFormCurRuleValues.minCount ?? 1}" min="1" max="20" oninput="window.updateScmFormPreview()" class="w-16 text-xs border border-indigo-300 rounded px-2 py-0.5 font-black text-center">
+          <span class="text-xs font-bold text-slate-700">과목 이상 필수 선택</span>
+        `;
+      } else if (rType === 'max') {
+        container.innerHTML = `
+          <span class="text-xs font-bold text-slate-700">최대</span>
+          <input type="number" id="scmInputMaxCount" value="${window._scmFormCurRuleValues.maxCount ?? 4}" min="1" max="20" oninput="window.updateScmFormPreview()" class="w-16 text-xs border border-indigo-300 rounded px-2 py-0.5 font-black text-center">
+          <span class="text-xs font-bold text-slate-700">과목 이하까지만</span>
+        `;
+      } else if (rType === 'range') {
+        container.innerHTML = `
+          <span class="text-xs font-bold text-slate-700">최소</span>
+          <input type="number" id="scmInputMinCount" value="${window._scmFormCurRuleValues.minCount ?? 1}" min="0" max="20" oninput="window.updateScmFormPreview()" class="w-14 text-xs border border-indigo-300 rounded px-1.5 py-0.5 font-black text-center">
+          <span class="text-xs font-bold text-slate-700">~ 최대</span>
+          <input type="number" id="scmInputMaxCount" value="${window._scmFormCurRuleValues.maxCount ?? 3}" min="1" max="20" oninput="window.updateScmFormPreview()" class="w-14 text-xs border border-indigo-300 rounded px-1.5 py-0.5 font-black text-center">
+        `;
+      } else if (rType === 'exact') {
+        container.innerHTML = `
+          <span class="text-xs font-bold text-slate-700">정확히</span>
+          <input type="number" id="scmInputExactCount" value="${window._scmFormCurRuleValues.exactCount ?? 2}" min="1" max="20" oninput="window.updateScmFormPreview()" class="w-16 text-xs border border-indigo-300 rounded px-2 py-0.5 font-black text-center">
+          <span class="text-xs font-bold text-slate-700">과목 선택</span>
+        `;
+      }
+
+      updateScmFormPreview();
+    }
+    window.updateScmFormRuleInputs = updateScmFormRuleInputs;
+
+    function updateScmFormPreview() {
+      const selectedRadio = document.querySelector('input[name="scmFormRuleType"]:checked');
+      const rType = selectedRadio ? selectedRadio.value : 'min';
+      const grade = document.getElementById('scmFormGrade')?.value || '전체';
+      const sem = document.getElementById('scmFormSemester')?.value || 'all';
+
+      const minVal = parseInt(document.getElementById('scmInputMinCount')?.value || 1, 10);
+      const maxVal = parseInt(document.getElementById('scmInputMaxCount')?.value || 4, 10);
+      const exactVal = parseInt(document.getElementById('scmInputExactCount')?.value || 2, 10);
+
+      window._scmFormCurRuleValues = { minCount: minVal, maxCount: maxVal, exactCount: exactVal };
+
+      const dummyCat = {
+        targetGrade: grade,
+        targetSemester: sem,
+        ruleType: rType,
+        minCount: minVal,
+        maxCount: maxVal,
+        exactCount: exactVal
+      };
+
+      const previewEl = document.getElementById('scmFormRuleSummaryPreview');
+      if (previewEl) previewEl.textContent = formatStep3RuleDesc(dummyCat);
+    }
+    window.updateScmFormPreview = updateScmFormPreview;
+
+    function saveScmCategoryFromForm() {
+      const idInput = document.getElementById('scmFormCatId');
+      const nameInput = document.getElementById('scmFormName');
+      const gradeSelect = document.getElementById('scmFormGrade');
+      const semSelect = document.getElementById('scmFormSemester');
+      const selectedRadio = document.querySelector('input[name="scmFormRuleType"]:checked');
+
+      const name = nameInput ? nameInput.value.trim() : '';
+      if (!name) {
+        alert('교과군 이름을 입력해주세요.');
+        if (nameInput) nameInput.focus();
+        return;
+      }
+
+      const catId = idInput?.value || ('cat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+      const grade = gradeSelect ? gradeSelect.value : '전체';
+      const sem = semSelect ? semSelect.value : 'all';
+      const rType = selectedRadio ? selectedRadio.value : 'min';
+
+      const minVal = parseInt(document.getElementById('scmInputMinCount')?.value || 1, 10);
+      const maxVal = parseInt(document.getElementById('scmInputMaxCount')?.value || 4, 10);
+      const exactVal = parseInt(document.getElementById('scmInputExactCount')?.value || 2, 10);
+
+      const sData = getStep3Data();
+      if (!Array.isArray(sData.categories)) sData.categories = [];
+
+      const newCat = {
+        id: catId,
+        name: name,
+        color: window._scmFormCurColor || 'blue',
+        targetGrade: grade,
+        targetSemester: sem,
+        ruleType: rType,
+        minCount: minVal,
+        maxCount: maxVal,
+        exactCount: exactVal
+      };
+
+      const existingIdx = sData.categories.findIndex(c => c.id === catId);
+      if (existingIdx >= 0) {
+        sData.categories[existingIdx] = newCat;
+      } else {
+        sData.categories.push(newCat);
+      }
+
+      window._scmActiveCategoryId = catId;
+      saveStep3Data(sData);
+      toggleScmCategoryForm(false);
+      renderScmModal();
+      runStep3Validation(false);
+    }
+    window.saveScmCategoryFromForm = saveScmCategoryFromForm;
+
     window.getStep3Data = getStep3Data;
     window.getAllCurriculumSubjectsForStep3 = getAllCurriculumSubjectsForStep3;
     window.runStep3Validation = runStep3Validation;
@@ -20221,6 +20951,12 @@ function renderYearGradeNav() {
       const tbody = document.getElementById('allGradesCurriculumTableBody');
       if (!tbody) return;
 
+      const sData = (typeof getStep3Data === 'function') ? getStep3Data() : { categories: [] };
+      const mainSummaryBadge = document.getElementById('allGradesCategorySummaryBadge');
+      if (mainSummaryBadge) {
+        mainSummaryBadge.textContent = \개 군;
+      }
+
       const curriculum = getAllGradesCurriculum();
       const filterGrade = document.getElementById('allGradesFilterGrade')?.value || 'all';
       const filterSem = document.getElementById('allGradesFilterSemester')?.value || 'all';
@@ -20261,7 +20997,7 @@ function renderYearGradeNav() {
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="10" class="p-8 text-center text-slate-400 italic bg-white">
+            <td colspan="11" class="p-8 text-center text-slate-400 italic bg-white">
               <p class="mb-3">
                 ${window._isUnassignedTeacherFilterActive 
                   ? '🎉 축하합니다! 담당 교사가 지정되지 않은 과목이 없습니다. 모든 개설 과목에 교사가 배정되었습니다.' 
@@ -20376,6 +21112,21 @@ function renderYearGradeNav() {
                      class="w-16 px-1.5 py-1 text-center text-xs font-black rounded-lg border border-slate-300 bg-white hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 outline-none text-indigo-700 transition" 
                      placeholder="시수" 
                      title="클릭하여 주당 총 시수 직접 수정" />
+            </td>
+            <td class="p-1.5 text-center border-r border-slate-200">
+              ${(() => {
+                const catId = (typeof getSubjectCategory === 'function') ? getSubjectCategory(c.subject, c.grade) : null;
+                const sData = (typeof getStep3Data === 'function') ? getStep3Data() : { categories: [] };
+                const cat = catId ? (sData.categories || []).find(x => x.id === catId) : null;
+                const col = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : null;
+                const bStyle = cat ? (col ? col.badge : 'bg-slate-100 text-slate-800') : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200';
+                return `<button type="button" 
+                                onclick="window.openSubjectCategoryManagerModal('${escapeHtml(c.subject)}')" 
+                                class="px-2 py-0.5 rounded-full text-[10px] font-extrabold border transition cursor-pointer select-none shadow-3xs ${bStyle}" 
+                                title="클릭하여 교과군 변경 또는 교과군 설정 열기">
+                          ${cat ? cat.name : '미지정'}
+                        </button>`;
+              })()}
             </td>
             <td class="p-2 text-center border-r border-slate-200">${statusBadge}</td>
             <td class="p-1.5 border-r border-slate-200">
