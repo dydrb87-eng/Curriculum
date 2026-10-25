@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.25_20:35)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.25_22:27)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.25_20:35)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.25_22:27)</p>
         </div>
       </div>
 
@@ -3550,7 +3550,7 @@
       s = s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
       s = s
         .replace(/[-_]\s*(\d+|[A-Z]|[0-9]+반|[A-Z]반|\d+분반)\s*$/i, '')
-        .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반|수정|추가)\s*\)\s*$/i, '')
+        .replace(/\s*\(\s*(\d+|[A-Z]|\d+반|\d+분반|수정|추가|신설)\s*\)\s*$/i, '')
         .replace(/[\(\[]\s*\d+(?:\.\d+)?\s*(?:학점|단위)?\s*[\)\]]$/, '')
         .trim();
       return s.replace(SUBJECT_SPECIAL_CHARS_REGEX, '').trim();
@@ -5755,11 +5755,16 @@
 
       // Calculate subject counts
       const counts = {};
-      subjects.forEach(s => counts[s] = 0);
+      const normMap = {};
+      subjects.forEach(s => {
+        counts[s] = 0;
+        normMap[normalizeSubject(s)] = s;
+      });
       AppState.students.forEach(st => {
-        const selected = sem === 1 ? st.sem1 : st.sem2;
+        const selected = sem === 1 ? (st.sem1 || []) : (st.sem2 || []);
         selected.forEach(s => {
-          if (counts[s] !== undefined) counts[s]++;
+          const canonical = normMap[normalizeSubject(s)] || s;
+          if (counts[canonical] !== undefined) counts[canonical]++;
         });
       });
 
@@ -5859,8 +5864,9 @@
         // Subject Column Click:
         // dir === 'asc': 선택자 우선 정렬 (Chosen first)
         // dir === 'desc': 미선택자 우선 정렬 (Unchosen first)
-        const aChosen = (sem === 1 ? (a.sem1 || []) : (a.sem2 || [])).includes(col);
-        const bChosen = (sem === 1 ? (b.sem1 || []) : (b.sem2 || [])).includes(col);
+        const normCol = normalizeSubject(col);
+        const aChosen = (sem === 1 ? (a.sem1 || []) : (a.sem2 || [])).some(s => normalizeSubject(s) === normCol);
+        const bChosen = (sem === 1 ? (b.sem1 || []) : (b.sem2 || [])).some(s => normalizeSubject(s) === normCol);
 
         if (aChosen !== bChosen) {
           return dir === 'asc' ? (aChosen ? -1 : 1) : (aChosen ? 1 : -1);
@@ -6371,6 +6377,8 @@
         const normSubj = normalizeSubject(subj);
         const isClosed = closedList.some(c => normalizeSubject(c) === normSubj);
         const isUnder = count <= threshold;
+        const memoStr = memoMap[subj] || '';
+        const isNewlyAdded = subj.includes('(신설)') || memoStr.includes('과목 신설') || memoStr.includes('신설');
 
         return {
           index: idx + 1,
@@ -6378,7 +6386,8 @@
           count: count,
           isUnder: isUnder,
           isClosed: isClosed,
-          memo: memoMap[subj] || '',
+          isNewlyAdded: isNewlyAdded,
+          memo: memoStr,
           isFromHistory: false
         };
       });
@@ -6414,7 +6423,7 @@
           let rowStyle = '';
           if (item.isClosed) {
             rowStyle = 'style="background-color: #fee2e2;"';
-          } else if (item.name.includes('(신설)')) {
+          } else if (item.isNewlyAdded) {
             rowStyle = 'style="background-color: #f0fdfa;"';
           } else if (item.isUnder) {
             rowStyle = 'style="background-color: #fef2f2;"';
@@ -6429,7 +6438,7 @@
           let statusBadge = '';
           if (item.isClosed) {
             statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-700 text-white shadow-xs">[폐강 확정]</span>`;
-          } else if (item.name.includes('(신설)')) {
+          } else if (item.isNewlyAdded) {
             statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-300 shadow-3xs">신설 개설</span>`;
           } else if (item.isUnder) {
             statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">[폐강 예정]</span>`;
@@ -6465,7 +6474,7 @@
             nameDisplay = `<span class="line-through text-slate-400 mr-1.5">${escapeHtml(item.name)}</span><span class="text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300" title="${escapeHtml(item.historyDate)} 폐강 과목">이전 폐강</span>`;
           } else if (item.isClosed) {
             nameDisplay = `<span class="line-through text-slate-400 mr-1.5">${escapeHtml(item.name)}</span><span class="text-[11px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300">폐강</span>`;
-          } else if (item.name.includes('(신설)')) {
+          } else if (item.isNewlyAdded) {
             const cleanSubj = item.name.replace(/\(신설\)/g, '').trim();
             nameDisplay = `<span class="text-slate-900 font-bold">${escapeHtml(cleanSubj)}</span> <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-black bg-teal-100 text-teal-800 border border-teal-300 shadow-3xs">신설</span>`;
           } else {
@@ -12221,7 +12230,7 @@
       }
 
       const sem = AppState.currentSemester || 1;
-      let baseSubj = cleanName.replace(/-[A-Z]$/, '').trim();
+      let baseSubj = cleanName.replace(/-[A-Z]$/, '').replace(/\(신설\)/g, '').trim();
 
       const curSemSubjs = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
       const normBase = normalizeSubject(baseSubj);
@@ -12229,12 +12238,12 @@
       const curClosed = AppState.closedSubjects?.[sem] || [];
       const isClosedInCurrent = curClosed.some(s => normalizeSubject(s) === normBase);
 
-      // 현재 학기에서 폐강된 과목이거나 미등록 과목인 경우 '(신설)' 표기 부착
-      let finalBaseName = baseSubj;
-      if (isClosedInCurrent || !isAlreadyInSem) {
-        if (!finalBaseName.includes('(신설)')) {
-          finalBaseName = `${finalBaseName}(신설)`;
-        }
+      // 과목명 뒤에 '(신설)'을 붙이지 않고 원본 과목명 그대로 유지 (기존 등록 과목이 있으면 표준 명칭 사용)
+      const existingSemSubj = curSemSubjs.find(s => normalizeSubject(s) === normBase);
+      let finalBaseName = existingSemSubj ? existingSemSubj.replace(/\(신설\)/g, '').trim() : baseSubj;
+      if (existingSemSubj && existingSemSubj !== finalBaseName) {
+        const idx = curSemSubjs.indexOf(existingSemSubj);
+        if (idx !== -1) curSemSubjs[idx] = finalBaseName;
       }
 
       const normNew = normalizeSubject(finalBaseName);
@@ -12270,7 +12279,7 @@
       if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
       AppState.currentPlans[sem] = plan;
 
-      // 2. 1단계 semSubjects에 없으면 추가 반영 (기존 폐강 데이터는 보존되고 finalBaseName이 별도로 등록됨)
+      // 2. 1단계 semSubjects에 없으면 추가 반영
       if (!curSemSubjs.some(s => normalizeSubject(s) === normNew)) {
         curSemSubjs.push(finalBaseName);
         curSemSubjs.sort((a, b) => a.localeCompare(b, 'ko'));
@@ -12279,15 +12288,19 @@
       }
 
       // 2-1. 폐강 보류 및 비고 메모에 신설 이력 자동 기록
-      if (!AppState.subjectMemos) AppState.subjectMemos = { 1: {}, 2: {} };
-      if (!AppState.subjectMemos[sem]) AppState.subjectMemos[sem] = {};
-      const activeDateStr = MultiState.activeYear || '';
-      const memoText = activeDateStr ? `[${activeDateStr} 2단계 과목 신설]` : '[2단계 과목 신설]';
-      if (!AppState.subjectMemos[sem][finalBaseName]) {
-        AppState.subjectMemos[sem][finalBaseName] = memoText;
+      if (isClosedInCurrent || !isAlreadyInSem) {
+        if (!AppState.subjectMemos) AppState.subjectMemos = { 1: {}, 2: {} };
+        if (!AppState.subjectMemos[sem]) AppState.subjectMemos[sem] = {};
+        const activeDateStr = MultiState.activeYear || '';
+        const memoText = activeDateStr ? `[${activeDateStr} 2단계 과목 신설]` : '[2단계 과목 신설]';
+        if (!AppState.subjectMemos[sem][finalBaseName]) {
+          AppState.subjectMemos[sem][finalBaseName] = memoText;
+        } else if (!AppState.subjectMemos[sem][finalBaseName].includes('신설')) {
+          AppState.subjectMemos[sem][finalBaseName] = `${AppState.subjectMemos[sem][finalBaseName]} ${memoText}`.trim();
+        }
       }
 
-      // 2-2. 신설 과목은 폐강이 아니므로 closedSubjects에서 제외 보장
+      // 2-2. 신설/재개설 과목은 폐강이 아니므로 현재 학기 closedSubjects에서 제외 보장
       if (AppState.closedSubjects?.[sem]) {
         AppState.closedSubjects[sem] = AppState.closedSubjects[sem].filter(s => normalizeSubject(s) !== normNew);
       }
@@ -12306,8 +12319,8 @@
 
       window.closeAddSubjectModal();
 
-      const noteMsg = isPrevClosed
-        ? `\n\n📌 안내: 이전 기준 날짜의 폐강 이력([${baseSubj}])을 1단계에 그대로 보존하기 위해, 본 과목은 [${finalBaseName}] 명칭으로 신설 등록되었으며 1단계 비고 메모에 신설 이력이 자동 기록되었습니다.`
+      const noteMsg = isClosedInCurrent
+        ? `\n\n📌 안내: 현재 학기에 폐강 확정 상태였던 [${finalBaseName}] 과목의 폐강 체크가 해제되고 신설 개설로 전환되었으며, 1단계 비고 메모에 신설 이력이 자동 기록되었습니다.`
         : '';
       alert(`✅ [${tokenToAdd}] 과목이 ${gIdx + 1}그룹에 성공적으로 추가되었습니다!\n\n- 2단계 그룹 카드 및 개인별 이동수업 시간표에 즉시 반영되었습니다.\n- 1단계 현황표(신설 뱃지 및 비고 이력) 및 전체 교육과정 편제표에도 함께 반영되었습니다.${noteMsg}\n- 이제 하단 시간표에서 학생 셀을 클릭하여 자유롭게 수강 선택·수정할 수 있습니다.`);
     };
