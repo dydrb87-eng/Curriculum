@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:30)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.25_20:35)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.23_17:30)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.25_20:35)</p>
         </div>
       </div>
 
@@ -5024,6 +5024,7 @@
       AppState.splitSubjects = { 1: {}, 2: {} };
       AppState.pinnedSubjects = { 1: {}, 2: {} };
       AppState.closedSubjects = { 1: [], 2: [] };
+      AppState._closedImportedFromPrev = false;
       AppState.subjectMemos = { 1: {}, 2: {} };
       AppState.studentPins = [];
       AppState.savedPlans = [];
@@ -5033,6 +5034,11 @@
       const currentActiveGrade = MultiState.activeGrade || '2학년';
       AppState.detectedGrade = currentActiveGrade;
       MultiState.activeGrade = currentActiveGrade;
+
+      // 이전 기준 날짜 1단계에서 폐강 확정된 과목이 있다면 현재 기준 날짜 1단계로 일회성 복사(불러오기만 하고 연결하지 않음)
+      if (typeof importPrevDateClosedSubjectsOnce === 'function') {
+        importPrevDateClosedSubjectsOnce(AppState, MultiState.activeYear, currentActiveGrade);
+      }
 
       // 모든 학생의 학년 속성을 현재 작업 탭 학년으로 일괄 확정
       AppState.students.forEach(st => {
@@ -6073,11 +6079,76 @@
       matrixTable.innerHTML = html;
     }
 
-    // Toggle Subject Closed (폐강 확정 / 해제 - 현재 탭 고유 상태 관리)
+    // 이전 기준 날짜 1단계의 폐강 확정 과목을 현재 기준 날짜 1단계로 1회성 복사 (불러오기만 하고 이전 날짜 데이터와 연결하지 않음)
+    function importPrevDateClosedSubjectsOnce(targetState, targetDate, targetGrade) {
+      if (!targetState || !targetDate || !targetGrade || targetGrade === '전체') return false;
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+      const curIdx = dateList.indexOf(targetDate);
+      if (curIdx <= 0) return false;
+
+      const curAcadData = getAcadData(currAY);
+      let prevGData = null;
+      for (let i = curIdx - 1; i >= 0; i--) {
+        const dStr = dateList[i];
+        const candidate = curAcadData[dStr]?.[targetGrade];
+        if (!candidate) continue;
+        const c1 = candidate.closedSubjects?.[1] || [];
+        const c2 = candidate.closedSubjects?.[2] || [];
+        const hasStudents = Array.isArray(candidate.students) && candidate.students.length > 0;
+        if (c1.length > 0 || c2.length > 0 || hasStudents) {
+          prevGData = candidate;
+          break;
+        }
+      }
+      if (!prevGData) return false;
+
+      const prevClosed1 = Array.isArray(prevGData.closedSubjects?.[1]) ? [...prevGData.closedSubjects[1]] : [];
+      const prevClosed2 = Array.isArray(prevGData.closedSubjects?.[2]) ? [...prevGData.closedSubjects[2]] : [];
+      if (prevClosed1.length === 0 && prevClosed2.length === 0) return false;
+
+      targetState.sem1Subjects = Array.isArray(targetState.sem1Subjects) ? [...targetState.sem1Subjects] : [];
+      targetState.sem2Subjects = Array.isArray(targetState.sem2Subjects) ? [...targetState.sem2Subjects] : [];
+      targetState.closedSubjects = {
+        1: Array.isArray(targetState.closedSubjects?.[1]) ? [...targetState.closedSubjects[1]] : [],
+        2: Array.isArray(targetState.closedSubjects?.[2]) ? [...targetState.closedSubjects[2]] : []
+      };
+
+      [
+        { sem: 1, prevList: prevClosed1, subjList: targetState.sem1Subjects },
+        { sem: 2, prevList: prevClosed2, subjList: targetState.sem2Subjects }
+      ].forEach(({ sem, prevList, subjList }) => {
+        let addedSubj = false;
+        prevList.forEach(rawName => {
+          const cleanName = String(rawName || '').trim();
+          if (!cleanName) return;
+          const norm = normalizeSubject(cleanName);
+          let canonical = subjList.find(s => normalizeSubject(s) === norm);
+          if (!canonical) {
+            subjList.push(cleanName);
+            canonical = cleanName;
+            addedSubj = true;
+          }
+          if (!targetState.closedSubjects[sem].some(c => normalizeSubject(c) === norm)) {
+            targetState.closedSubjects[sem].push(canonical);
+          }
+        });
+        if (addedSubj) {
+          subjList.sort((a, b) => a.localeCompare(b, 'ko'));
+        }
+      });
+
+      targetState._closedImportedFromPrev = true;
+      return true;
+    }
+    window.importPrevDateClosedSubjectsOnce = importPrevDateClosedSubjectsOnce;
+
+    // Toggle Subject Closed (폐강 확정 / 해제 - 현재 탭 고유 상태 관리, 이전 날짜와 완전히 독립)
     window.toggleSubjectClosed = function(subjectName) {
       const sem = AppState.currentSemester;
       if (!AppState.closedSubjects) AppState.closedSubjects = { 1: [], 2: [] };
       if (!AppState.closedSubjects[sem]) AppState.closedSubjects[sem] = [];
+      AppState._closedImportedFromPrev = true;
 
       const normTarget = normalizeSubject(subjectName);
       const idx = AppState.closedSubjects[sem].findIndex(s => normalizeSubject(s) === normTarget);
@@ -6247,71 +6318,11 @@
         titleEl.textContent = `${acadYearStr} ${AppState.detectedGrade} [${sem}학기] 과목별 수강 인원 및 개설·폐강 현황`;
       }
 
-      // 이전 기준 날짜의 폐강 이력 수집
-      const { historyByDate, allPrevClosedSet, prevClosedInfoMap } = getPreviousDatesClosedSubjectsHistory(sem);
-
-      // 상단 배너에 이전 기준 날짜 폐강 목록 간단 표시
+      // 이전 기준 날짜와 실시간 연결하지 않도록 참고 배너 비활성화 (가져온 폐강 과목은 현재 탭 자체 표에 독립 반영됨)
       const noticeContainer = document.getElementById('subjectSummaryHistoryClosedNotice');
       if (noticeContainer) {
-        const historyDates = Object.keys(historyByDate);
-        if (historyDates.length === 0) {
-          noticeContainer.classList.add('hidden');
-          noticeContainer.innerHTML = '';
-        } else {
-          noticeContainer.classList.remove('hidden');
-          let noticeHtml = `
-            <div class="mt-2.5 p-2.5 bg-rose-50/90 border border-rose-200 rounded-xl space-y-1.5 text-xs shadow-2xs">
-              <div class="flex items-center gap-1.5 font-bold text-rose-900">
-                <span>🚫 이전 기준 날짜 폐강 확정 이력 (참고용)</span>
-                <span class="text-[11px] text-rose-600 font-normal">(이전 조사 탭의 참고 기록이며, 현재 탭의 폐강 여부는 아래 표에서 자유롭게 변경 가능합니다)</span>
-              </div>
-              <div class="flex flex-col gap-1 text-slate-700">
-          `;
-          historyDates.forEach(dStr => {
-            const items = historyByDate[dStr] || [];
-            const itemsHtml = items.map(it => {
-              const studentText = (it.students && it.students.length > 0) ? it.students.join(', ') : '신청 학생 명단 없음';
-              const tooltipTitle = `[${it.subject}] ${it.count}명 (${it.date} 폐강 당시)\n대상자: ${studentText}`;
-              return `
-                <div class="relative group inline-block">
-                  <span class="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-rose-300 shadow-3xs cursor-help select-none hover:bg-rose-50 transition"
-                        title="${escapeHtml(tooltipTitle)}">
-                    <span class="font-extrabold text-rose-900">${escapeHtml(it.subject)}</span>
-                    <span class="font-bold text-rose-600 text-[11px]">(${it.count}명)</span>
-                  </span>
-                  <!-- 마우스 오버 시 표시되는 학생 명단 팝오버 툴팁 -->
-                  <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:flex flex-col z-50 w-64 max-w-xs p-2.5 bg-slate-900/95 backdrop-blur-md text-white text-xs rounded-xl shadow-2xl border border-slate-700/80 transition-all duration-150">
-                    <div class="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-slate-700/80 text-rose-300 font-bold">
-                      <span class="truncate text-xs">🚫 ${escapeHtml(it.subject)} (${it.count}명)</span>
-                      <span class="text-[10px] text-slate-400 font-normal shrink-0">${escapeHtml(it.date)}</span>
-                    </div>
-                    <div class="text-[11px] text-slate-300 font-medium mb-1 flex items-center justify-between">
-                      <span>신청 학생 명단:</span>
-                      <span class="text-[10px] text-rose-300 font-bold">${it.students ? it.students.length : 0}명</span>
-                    </div>
-                    <div class="text-[11px] text-slate-100 max-h-36 overflow-y-auto leading-relaxed break-words bg-slate-800/90 p-1.5 rounded-lg border border-slate-700">
-                      ${(it.students && it.students.length > 0)
-                        ? `<div class="flex flex-wrap gap-1">${it.students.map(s => `<span class="inline-block bg-slate-700/90 text-slate-100 px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-600">${escapeHtml(s)}</span>`).join('')}</div>`
-                        : '<span class="text-slate-400 italic">신청 학생 없음</span>'}
-                    </div>
-                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700"></div>
-                  </div>
-                </div>
-              `;
-            }).join(' ');
-            noticeHtml += `
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-rose-200 shadow-3xs shrink-0">${escapeHtml(dStr)}:</span>
-                <span class="flex items-center gap-1.5 flex-wrap">${itemsHtml}</span>
-              </div>
-            `;
-          });
-          noticeHtml += `
-              </div>
-            </div>
-          `;
-          noticeContainer.innerHTML = noticeHtml;
-        }
+        noticeContainer.classList.add('hidden');
+        noticeContainer.innerHTML = '';
       }
 
       // 현재 학기 closedSubjects 초기화 (현재 탭의 독립적인 폐강 설정 보존)
@@ -6427,9 +6438,10 @@
           }
 
           // Closed Checkbox
+          const safeItemName = String(item.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
           const closedCheckboxHtml = `
             <label class="inline-flex items-center justify-center cursor-pointer p-1 rounded-md transition-colors ${item.isClosed ? 'bg-rose-200/90 border border-rose-400 text-rose-950 font-extrabold shadow-2xs' : 'hover:bg-slate-100 border border-slate-200'}" title="${item.isClosed ? '폐강 확정 해제 (2단계 포함)' : '폐강 확정 (2단계 그룹핑 제외)'}">
-              <input type="checkbox" onchange="window.toggleSubjectClosed('${item.name}')" ${item.isClosed ? 'checked' : ''} class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
+              <input type="checkbox" onchange="window.toggleSubjectClosed('${safeItemName}')" ${item.isClosed ? 'checked' : ''} class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
               <span class="ml-1.5 text-xs ${item.isClosed ? 'font-black text-rose-900' : 'text-slate-600 font-medium'}">${item.isClosed ? '확정' : '체크'}</span>
             </label>
           `;
@@ -6440,8 +6452,8 @@
               <input type="text" 
                      value="${(item.memo || '').replace(/"/g, '&quot;')}" 
                      placeholder="${item.isUnder ? '폐강 보류 요청 사유 등 메모...' : '비고 / 메모 입력...'}" 
-                     onchange="window.updateSubjectMemo('${item.name}', this.value)" 
-                     onblur="window.updateSubjectMemo('${item.name}', this.value)" 
+                     onchange="window.updateSubjectMemo('${safeItemName}', this.value)" 
+                     onblur="window.updateSubjectMemo('${safeItemName}', this.value)" 
                      class="w-full text-xs px-2.5 py-1 rounded-md border ${item.memo ? 'border-amber-300 bg-amber-50/60 text-slate-800 font-medium' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'} focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                      title="폐강 보류 또는 과목 관련 메모를 입력하세요 (자동 저장)">
               ${item.memo ? '<span class="absolute right-2 text-amber-500 text-xs select-none pointer-events-none" title="메모 저장됨">📝</span>' : ''}
@@ -8763,18 +8775,15 @@
         window.toggleConflictTable(isConflictTableExpanded);
       }
 
-      // Render Closed Subjects from Previous Step (1단계 폐강 과목 및 신청인원 - 현재 탭 기준)
+      // Render Closed Subjects from Previous Step (1단계 폐강 과목 및 신청인원 - 현재 탭 독립 기준)
       const closedContainer = document.getElementById('conflictClosedSubjectsList');
       if (closedContainer) {
         const mergedClosedList = closedList || [];
-        const { prevClosedInfoMap } = (typeof getPreviousDatesClosedSubjectsHistory === 'function')
-          ? getPreviousDatesClosedSubjectsHistory(sem)
-          : { prevClosedInfoMap: {} };
 
         if (mergedClosedList.length === 0) {
           closedContainer.innerHTML = `<span class="text-xs text-slate-500 italic bg-white/80 px-2.5 py-0.5 rounded-md border border-dashed border-rose-200">폐강 확정 과목 없음 (모든 선택과목 개설 대상)</span>`;
         } else {
-          // 각 폐강 과목의 신청 인원 및 대상 학생 명단 집계
+          // 각 폐강 과목의 신청 인원 및 대상 학생 명단 집계 (현재 기준 날짜 고유 데이터만 사용)
           const closedItems = mergedClosedList.map(subj => {
             let studentsInCur = [];
             const normSubjTarget = normalizeSubject(subj);
@@ -8789,24 +8798,11 @@
               }
             });
 
-            let count = studentsInCur.length;
-            let studentList = studentsInCur;
-            let dateNotice = '현재 기준';
-
-            // 현재 탭에서 신청 학생이 0명이고, 이전 기준 날짜 폐강 이력이 있다면 그 당시 데이터 활용
-            if (count === 0 && prevClosedInfoMap && prevClosedInfoMap[subj]) {
-              count = prevClosedInfoMap[subj].count || 0;
-              studentList = prevClosedInfoMap[subj].students || [];
-              dateNotice = `${prevClosedInfoMap[subj].date} 폐강 당시`;
-            } else if (prevClosedInfoMap && prevClosedInfoMap[subj]) {
-              dateNotice = `${prevClosedInfoMap[subj].date} 폐강 이력`;
-            }
-
             return {
               subject: subj,
-              count,
-              students: studentList,
-              dateNotice
+              count: studentsInCur.length,
+              students: studentsInCur,
+              dateNotice: '현재 기준'
             };
           });
 
@@ -13154,6 +13150,7 @@ function createSangjiCourseSelectionForm() {
         togetherPairs: { 1: [], 2: [] },
         separatePairs: { 1: [], 2: [] },
         closedSubjects: { 1: [], 2: [] },
+        _closedImportedFromPrev: false,
         subjectMemos: { 1: {}, 2: {} },
         studentPins: [],
         currentPlan: {
@@ -13324,6 +13321,7 @@ function createSangjiCourseSelectionForm() {
         togetherPairs: JSON.parse(JSON.stringify(AppState.togetherPairs || { 1: [], 2: [] })),
         separatePairs: JSON.parse(JSON.stringify(AppState.separatePairs || { 1: [], 2: [] })),
         closedSubjects: JSON.parse(JSON.stringify(AppState.closedSubjects || { 1: [], 2: [] })),
+        _closedImportedFromPrev: Boolean(AppState._closedImportedFromPrev),
         subjectMemos: JSON.parse(JSON.stringify(AppState.subjectMemos || { 1: {}, 2: {} })),
         studentPins: JSON.parse(JSON.stringify(AppState.studentPins || [])),
         currentPlan: AppState.currentPlan ? JSON.parse(JSON.stringify(AppState.currentPlan)) : null,
@@ -13471,6 +13469,17 @@ function createSangjiCourseSelectionForm() {
             curAcadData[targetYear][targetGrade].fileName = mergedData.fileName;
             break;
           }
+        }
+      }
+
+      // 이전 기준 날짜 1단계에서 폐강된 과목을 현재 기준 날짜 1단계로 1회성 복사 (폐강 확정 체크된 상태, 이후 연결되지 않음)
+      if (!mergedData._closedImportedFromPrev && !curAcadData[targetYear][targetGrade]?._cleared) {
+        const importedClosed = importPrevDateClosedSubjectsOnce(mergedData, targetYear, targetGrade);
+        if (importedClosed) {
+          curAcadData[targetYear][targetGrade].sem1Subjects = [...mergedData.sem1Subjects];
+          curAcadData[targetYear][targetGrade].sem2Subjects = [...mergedData.sem2Subjects];
+          curAcadData[targetYear][targetGrade].closedSubjects = JSON.parse(JSON.stringify(mergedData.closedSubjects));
+          curAcadData[targetYear][targetGrade]._closedImportedFromPrev = true;
         }
       }
 
@@ -16704,9 +16713,11 @@ function renderYearGradeNav() {
             if (confirm(`💡 새 기준 날짜 [${y}] 생성 안내:\n\n이전 기준 날짜 [${prevYear}]의 수강신청 데이터(2학년 ${c2}명, 3학년 ${c3}명)를 새 탭으로 복사해 오시겠습니까?\n\n- [확인]: 이전 데이터(학생 명부 및 선택 과목)를 유지한 상태로 새 탭 시작\n- [취소]: 빈 상태로 시작 (새로운 엑셀 설문 파일 업로드 필요)`)) {
               if (c2 > 0 && prevG2) {
                 acadData[y]['2학년'] = JSON.parse(JSON.stringify(prevG2));
+                acadData[y]['2학년']._closedImportedFromPrev = true;
               }
               if (c3 > 0 && prevG3) {
                 acadData[y]['3학년'] = JSON.parse(JSON.stringify(prevG3));
+                acadData[y]['3학년']._closedImportedFromPrev = true;
               }
             }
           }
