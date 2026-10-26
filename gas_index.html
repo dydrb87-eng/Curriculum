@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_07:44)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_08:58)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_07:44)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_08:58)</span></p>
         </div>
       </div>
 
@@ -557,8 +557,9 @@
               🔄 기본 정렬
             </button>
             <div class="relative">
-              <input type="text" id="allGradesTeacherSearchInput" placeholder="교사명 검색" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-36 shadow-2xs">
+              <input type="text" id="allGradesTeacherSearchInput" placeholder="교사명 검색" class="px-3 py-1.5 pl-8 pr-7 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-40 shadow-2xs">
               <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <button type="button" onclick="window.clearSearchInput('allGradesTeacherSearchInput')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer" title="검색어 지우기">✕</button>
             </div>
           </div>
         </div>
@@ -635,8 +636,9 @@
             </select>
 
             <div class="relative">
-              <input type="text" id="allGradesCourseSearchInput" placeholder="과목명/교사 검색" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-40 shadow-2xs">
+              <input type="text" id="allGradesCourseSearchInput" placeholder="과목명/교사 검색" class="px-3 py-1.5 pl-8 pr-7 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-44 shadow-2xs">
               <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <button type="button" onclick="window.clearSearchInput('allGradesCourseSearchInput')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer" title="검색어 지우기">✕</button>
             </div>
 
             <div class="relative group inline-block">
@@ -890,10 +892,11 @@
             </div>
             
             <div class="relative">
-              <input type="text" id="studentSearchInput" placeholder="학생 검색 (이름/반/번호)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-40">
+              <input type="text" id="studentSearchInput" placeholder="학생 검색 (이름/반/번호)" class="px-3 py-1.5 pl-8 pr-7 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-44">
               <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
               </svg>
+              <button type="button" onclick="window.clearSearchInput('studentSearchInput')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer" title="검색어 지우기">✕</button>
             </div>
 
             <!-- Sort/Filter Status Badge and Reset Button -->
@@ -1409,10 +1412,11 @@
 
               <!-- Student Search Input -->
               <div class="relative">
-                <input type="text" id="step2StudentSearchInput" placeholder="학생 검색 (이름/반/번호/진로)" class="px-3 py-1.5 pl-8 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-48 shadow-2xs">
+                <input type="text" id="step2StudentSearchInput" placeholder="학생 검색 (이름/반/번호/진로)" class="px-3 py-1.5 pl-8 pr-7 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-52 shadow-2xs">
                 <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
+                <button type="button" onclick="window.clearSearchInput('step2StudentSearchInput')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer" title="검색어 지우기">✕</button>
               </div>
             </div>
           </div>
@@ -1648,8 +1652,9 @@
                 </select>
 
                 <div class="relative">
-                  <input type="text" id="step3FilterSearch" oninput="window.setStep3ResultFilter('search', this.value)" placeholder="이름 또는 학번 검색..." class="text-xs bg-slate-50 border border-slate-300 rounded-lg pl-7 pr-3 py-1.5 w-44 focus:w-56 transition-all font-medium focus:ring-2 focus:ring-indigo-400">
+                  <input type="text" id="step3FilterSearch" oninput="window.setStep3ResultFilter('search', this.value)" placeholder="이름 또는 학번 검색..." class="text-xs bg-slate-50 border border-slate-300 rounded-lg pl-7 pr-7 py-1.5 w-44 focus:w-56 transition-all font-medium focus:ring-2 focus:ring-indigo-400">
                   <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                  <button type="button" onclick="window.clearSearchInput('step3FilterSearch')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer" title="검색어 지우기">✕</button>
                 </div>
               </div>
             </div>
@@ -1768,8 +1773,9 @@
                 </select>
 
                 <div class="relative">
-                  <input type="text" id="step3MapFilterSearch" oninput="window.setStep3MappingFilter('search', this.value)" placeholder="과목명 또는 교사 검색..." class="text-xs bg-white border border-slate-300 rounded-lg pl-7 pr-3 py-1.5 w-40 focus:w-52 transition-all font-medium">
+                  <input type="text" id="step3MapFilterSearch" oninput="window.setStep3MappingFilter('search', this.value)" placeholder="과목명 또는 교사 검색..." class="text-xs bg-white border border-slate-300 rounded-lg pl-7 pr-7 py-1.5 w-40 focus:w-52 transition-all font-medium">
                   <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                  <button type="button" onclick="window.clearSearchInput('step3MapFilterSearch')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer" title="검색어 지우기">✕</button>
                 </div>
               </div>
 
@@ -13230,7 +13236,11 @@ function createSangjiCourseSelectionForm() {
       const acadYear = getActiveAcademicYearName();
       const ts = getFormattedTimestamp();
       const cleanExt = ext.replace(/^\./, "");
-      return `${acadYear} ${title}_${ts}.${cleanExt}`;
+      let cleanTitle = String(title || "").trim();
+      if (acadYear && cleanTitle.startsWith(acadYear)) {
+        cleanTitle = cleanTitle.slice(acadYear.length).replace(/^[\s_]+/, "");
+      }
+      return `${acadYear} ${cleanTitle}_${ts}.${cleanExt}`;
     }
     window.buildExportFileName = buildExportFileName;
 
@@ -14118,29 +14128,32 @@ function createSangjiCourseSelectionForm() {
             const minReq = parseInt(cat.minCount || 0, 10);
             if (count < minReq) {
               isViolated = true;
-              reason = `최소 ${minReq}과목 이상 필요 ➔ 현재 ${count}과목 선택 (${minReq - count}과목 미달)`;
+              reason = `${minReq - count}과목 미달`;
             }
           } else if (cat.ruleType === 'max') {
             const maxReq = parseInt(cat.maxCount || 0, 10);
             if (count > maxReq) {
               isViolated = true;
-              reason = `최대 ${maxReq}과목 이하 필요 ➔ 현재 ${count}과목 선택 (${count - maxReq}과목 초과)`;
+              reason = `${count - maxReq}과목 초과`;
             }
           } else if (cat.ruleType === 'range') {
             const minReq = parseInt(cat.minCount || 0, 10);
             const maxReq = parseInt(cat.maxCount || 0, 10);
             if (count < minReq) {
               isViolated = true;
-              reason = `${minReq}~${maxReq}과목 필요 ➔ 현재 ${count}과목 선택 (${minReq - count}과목 미달)`;
+              reason = `${minReq - count}과목 미달`;
             } else if (count > maxReq) {
               isViolated = true;
-              reason = `${minReq}~${maxReq}과목 필요 ➔ 현재 ${count}과목 선택 (${count - maxReq}과목 초과)`;
+              reason = `${count - maxReq}과목 초과`;
             }
           } else if (cat.ruleType === 'exact') {
             const exactReq = parseInt(cat.exactCount || 0, 10);
-            if (count !== exactReq) {
+            if (count < exactReq) {
               isViolated = true;
-              reason = `정확히 ${exactReq}과목 필요 ➔ 현재 ${count}과목 선택`;
+              reason = `${exactReq - count}과목 미달`;
+            } else if (count > exactReq) {
+              isViolated = true;
+              reason = `${count - exactReq}과목 초과`;
             }
           }
 
@@ -15270,6 +15283,14 @@ function createSangjiCourseSelectionForm() {
     }
     window.setStep3ResultFilter = setStep3ResultFilter;
 
+    function clearSearchInput(inputId) {
+      const el = document.getElementById(inputId);
+      if (!el) return;
+      el.value = '';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    window.clearSearchInput = clearSearchInput;
+
     function setStep3MappingFilter(key, value) {
       _step3MappingFilters[key] = value;
       renderStep3SubjectMappingTable();
@@ -15475,7 +15496,7 @@ function createSangjiCourseSelectionForm() {
                   <span class="text-[10px] font-bold text-slate-500">${v.ruleDesc}</span>
                 </div>
                 <div class="text-xs font-bold text-rose-800 flex items-center gap-1">
-                  <span>🚨 ${v.reason}</span>
+                  <span>🚨${v.reason}</span>
                 </div>
               </div>
             `;
@@ -15529,11 +15550,16 @@ function createSangjiCourseSelectionForm() {
         if (isPass) {
           statusBadgeHtml = '<span class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">정상</span>';
         } else if (hasViol && hasDup) {
-          statusBadgeHtml = `<span class="px-2 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">위반 ${item.violations.length} / 중복 ${item.dupList.length}</span>`;
+          statusBadgeHtml = `
+            <div class="inline-flex flex-col items-center gap-1">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">위반 ${item.violations.length}</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">중복 ${item.dupList.length}</span>
+            </div>
+          `;
         } else if (hasViol) {
-          statusBadgeHtml = `<span class="px-2 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">위반 ${item.violations.length}건</span>`;
+          statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">위반 ${item.violations.length}</span>`;
         } else {
-          statusBadgeHtml = `<span class="px-2 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">중복 ${item.dupList.length}건</span>`;
+          statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">중복 ${item.dupList.length}</span>`;
         }
 
         // 1단계의 '동일·기이수 과목 중복신청 의심 명단'과 동일한 표시 형식: 과목명 (n학기 / 중복 시기)
@@ -15563,14 +15589,18 @@ function createSangjiCourseSelectionForm() {
             <td class="py-3 px-4">${dupBadgesHtml}</td>
             <td class="py-3 px-4">${chosenInCatHtml}</td>
             <td class="py-3 px-4">
-              <div class="space-y-1">
-                <div class="flex items-center gap-1 flex-wrap">
-                  <span class="text-[10px] font-black text-blue-700 bg-blue-50 px-1 rounded">1학기:</span>
-                  ${sem1Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+              <div class="space-y-1.5">
+                <div class="flex items-start gap-1.5">
+                  <span class="text-[10px] font-black text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">1학기:</span>
+                  <div class="flex items-center gap-1 flex-wrap flex-1">
+                    ${sem1Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+                  </div>
                 </div>
-                <div class="flex items-center gap-1 flex-wrap">
-                  <span class="text-[10px] font-black text-indigo-700 bg-indigo-50 px-1 rounded">2학기:</span>
-                  ${sem2Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+                <div class="flex items-start gap-1.5">
+                  <span class="text-[10px] font-black text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">2학기:</span>
+                  <div class="flex items-center gap-1 flex-wrap flex-1">
+                    ${sem2Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+                  </div>
                 </div>
               </div>
             </td>
@@ -16419,21 +16449,44 @@ function createSangjiCourseSelectionForm() {
         ws['!merges'] = merges;
 
         // Column widths
-        ws['!cols'] = [
-          { wch: 6 },  // 연번
-          { wch: 8 },  // 학년
-          { wch: 7 },  // 반
-          { wch: 7 },  // 번호
-          { wch: 11 }, // 학생명
-          { wch: 15 }, // 종합 점검 결과
-          { wch: 38 }, // 교과군 선택 조건 위반 내역
-          { wch: 34 }, // 과목 중복 신청 내역
-          { wch: 36 }, // 1학기 선택과목
-          { wch: 36 }, // 2학기 선택과목
-          { wch: 14 }  // 담임교사 지도확인
+        const colWidths = [
+          { wch: 6 },  // 0: 연번
+          { wch: 8 },  // 1: 학년
+          { wch: 7 },  // 2: 반
+          { wch: 7 },  // 3: 번호
+          { wch: 11 }, // 4: 학생명
+          { wch: 15 }, // 5: 종합 점검 결과
+          { wch: 40 }, // 6: 교과군 선택 조건 위반 내역
+          { wch: 36 }, // 7: 과목 중복 신청 내역
+          { wch: 38 }, // 8: 1학기 선택과목
+          { wch: 38 }, // 9: 2학기 선택과목
+          { wch: 14 }  // 10: 담임교사 지도확인
         ];
+        ws['!cols'] = colWidths;
 
-        // Row heights
+        // 텍스트 분량(줄바꿈 및 자동 줄바꿈)에 따른 행 높이 동적 계산 헬퍼
+        function getVisualWidth(str) {
+          let w = 0;
+          const s = String(str || '');
+          for (let i = 0; i < s.length; i++) {
+            w += (s.charCodeAt(i) > 127) ? 1.95 : 1;
+          }
+          return w;
+        }
+
+        function calcWrappedLineCount(text, colWch) {
+          if (!text) return 1;
+          const usableWch = Math.max(colWch - 3, 10);
+          const lines = String(text).split('\n');
+          let count = 0;
+          lines.forEach(line => {
+            const vw = getVisualWidth(line.trim());
+            count += vw > 0 ? Math.ceil(vw / usableWch) : 1;
+          });
+          return Math.max(count, 1);
+        }
+
+        // Row heights (텍스트 분량에 맞춰 자동 조절)
         const rowHeights = [
           { hpt: 34 }, // Title
           { hpt: 20 }, // Subtitle
@@ -16442,9 +16495,16 @@ function createSangjiCourseSelectionForm() {
           { hpt: 28 }  // Table header
         ];
         for (let i = 0; i < studentList.length; i++) {
-          rowHeights.push({ hpt: 26 });
+          const dataRow = rows[5 + i] || [];
+          const linesViol = calcWrappedLineCount(dataRow[6], colWidths[6].wch);
+          const linesDup  = calcWrappedLineCount(dataRow[7], colWidths[7].wch);
+          const linesSem1 = calcWrappedLineCount(dataRow[8], colWidths[8].wch);
+          const linesSem2 = calcWrappedLineCount(dataRow[9], colWidths[9].wch);
+          const maxLines = Math.max(1, linesViol, linesDup, linesSem1, linesSem2);
+          const dynamicHpt = Math.max(26, maxLines * 15 + 10);
+          rowHeights.push({ hpt: dynamicHpt });
         }
-        rowHeights.push({ hpt: 24 }); // Footer
+        rowHeights.push({ hpt: 26 }); // Footer
         ws['!rows'] = rowHeights;
 
         // Page setup for printing: A4 Landscape, Fit to 1 page wide
@@ -16677,8 +16737,8 @@ function createSangjiCourseSelectionForm() {
       XLSX.utils.book_append_sheet(wb, wsRef, '교과군별_과목_지정기준');
 
       const fileName = (typeof buildExportFileName === 'function') 
-        ? buildExportFileName(`${acadYear}_${displayGradeTitle}_1,2학기_학생별_교육과정_점검결과`, 'xlsx')
-        : `${acadYear}_${displayGradeTitle}_1,2학기_학생별_교육과정_점검결과.xlsx`;
+        ? buildExportFileName(`${displayGradeTitle}_1,2학기_학생별_교육과정_점검결과`, 'xlsx')
+        : `${acadYear} ${displayGradeTitle}_1,2학기_학생별_교육과정_점검결과.xlsx`;
 
       if (typeof window.saveExcelFile === 'function') {
         window.saveExcelFile(wb, fileName);
