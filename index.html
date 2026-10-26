@@ -664,6 +664,9 @@
               <span>🏷️ 교과군 설정</span>
               <span id="allGradesCategorySummaryBadge" class="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-200 text-purple-900 font-black">0개 군</span>
             </button>
+            <button type="button" onclick="window.exportCurriculumByCategoryExcel()" class="px-3 py-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs flex items-center gap-1.5 cursor-pointer transition select-none ring-1 ring-emerald-300/60" title="학년별 1·2학기 선택과목을 교과군별 열로 묶어 현재 배치 다운로드(1,2학기 통합 배치표) 양식의 엑셀로 다운로드합니다">
+              <span>📥 교과군별 선택과목 다운로드</span>
+            </button>
             <button type="button" onclick="window.openAddCourseModal()" class="px-3 py-1.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer select-none ring-2 ring-indigo-400/40" title="편제표에 새 과목을 직접 추가합니다">
               <span>➕</span>
               <span>과목 추가</span>
@@ -2041,6 +2044,9 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <button type="button" onclick="window.exportCurriculumByCategoryExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs flex items-center gap-1.5" title="학년별 1·2학기 선택과목을 교과군별 열로 묶어 현재 배치 다운로드(1,2학기 통합 배치표) 양식의 엑셀로 다운로드합니다">
+            <span>📥 교과군별 선택과목 다운로드 (.xlsx)</span>
+          </button>
           <button type="button" onclick="window.switchStepView(3); window.closeSubjectCategoryManagerModal();" class="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs flex items-center gap-1.5">
             <span>3단계 선택조건 검증 바로가기 ➔</span>
           </button>
@@ -14673,6 +14679,326 @@ function createSangjiCourseSelectionForm() {
     window.getStep3Data = getStep3Data;
     window.getAllCurriculumSubjectsForStep3 = getAllCurriculumSubjectsForStep3;
     window.runStep3Validation = runStep3Validation;
+
+    // 학년별 1·2학기 선택과목을 교과군별 열로 묶어 '1,2학기 통합 배치표' 양식으로 엑셀 다운로드
+    function exportCurriculumByCategoryExcel() {
+      try {
+        const curriculum = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
+        // 구분 === '선택'인 과목만 포함 (개설/폐강 여부 상관없이 전부 포함)
+        const electives = curriculum.filter(c => c && c.subject && String(c.category || '').trim() === '선택');
+
+        if (electives.length === 0) {
+          alert('편제표에 등록된 선택과목 데이터가 없습니다. 먼저 기초데이터(편제표)를 업로드하거나 선택과목을 등록해주세요.');
+          return;
+        }
+
+        const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+        const sData = (typeof getStep3Data === 'function') ? getStep3Data() : { categories: [] };
+        const allCategories = Array.isArray(sData.categories) ? sData.categories : [];
+
+        const pastelGroupThemes = [
+          { headerBg: 'DBEAFE', headerText: '1E40AF', subBg: 'EFF6FF', subText: '1E40AF', border: '93C5FD' },
+          { headerBg: 'CCFBF1', headerText: '0F766E', subBg: 'F0FDFA', subText: '0F766E', border: '5EEAD4' },
+          { headerBg: 'EDE9FE', headerText: '5B21B6', subBg: 'F5F3FF', subText: '5B21B6', border: 'C4B5FD' },
+          { headerBg: 'FFEDD5', headerText: '9A3412', subBg: 'FFF7ED', subText: '9A3412', border: 'FDBA74' },
+          { headerBg: 'FEF3C7', headerText: '92400E', subBg: 'FFFBEB', subText: '92400E', border: 'FCD34D' },
+          { headerBg: 'FFE4E6', headerText: '9F1239', subBg: 'FFF1F2', subText: '9F1239', border: 'FDA4AF' },
+          { headerBg: 'E0E7FF', headerText: '3730A3', subBg: 'EEF2FF', subText: '3730A3', border: 'A5B4FC' },
+          { headerBg: 'D1FAE5', headerText: '065F46', subBg: 'ECFDF5', subText: '065F46', border: '6EE7B7' }
+        ];
+
+        const softBorder = {
+          top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        };
+
+        const wb = XLSX.utils.book_new();
+        const targetGrades = ['1학년', '2학년', '3학년'].filter(g => electives.some(c => c.grade === g));
+
+        targetGrades.forEach(gradeStr => {
+          const gradeElectives = electives.filter(c => c.grade === gradeStr);
+
+          // 이 학년의 과목들이 매핑된 교과군 ID 집합 확인
+          const usedCatIds = new Set();
+          let hasUnassigned = false;
+
+          gradeElectives.forEach(c => {
+            const catId = (typeof getSubjectCategory === 'function') ? getSubjectCategory(c.subject, gradeStr) : null;
+            if (catId && allCategories.some(cat => cat.id === catId)) {
+              usedCatIds.add(catId);
+            } else {
+              hasUnassigned = true;
+            }
+          });
+
+          // 해당 학년에 적용되는 교과군 목록 구성 (전체/해당 학년 대상 교과군 + 실제 배정된 교과군)
+          const colCategories = allCategories.filter(cat =>
+            !cat.targetGrade || cat.targetGrade === '전체' || cat.targetGrade === gradeStr || usedCatIds.has(cat.id)
+          ).map(cat => ({ id: cat.id, name: cat.name }));
+
+          if (hasUnassigned || colCategories.length === 0) {
+            colCategories.push({ id: '__unassigned__', name: '미지정' });
+          }
+
+          const totalCols = Math.max(colCategories.length, 1);
+
+          // 학기별·교과군별 순수 과목명 배열(중복 제거) 생성 함수
+          const buildSemesterGroups = (semNum) => {
+            const semItems = gradeElectives.filter(c => Number(c.semester) === semNum);
+            return colCategories.map(colCat => {
+              const subjList = [];
+              const seenNorm = new Set();
+
+              semItems.forEach(c => {
+                const mappedCatId = (typeof getSubjectCategory === 'function') ? getSubjectCategory(c.subject, gradeStr) : null;
+                const effectiveCatId = (mappedCatId && allCategories.some(cat => cat.id === mappedCatId))
+                  ? mappedCatId
+                  : '__unassigned__';
+
+                if (effectiveCatId !== colCat.id) return;
+
+                const cleanSubj = String(
+                  c.baseSubject ||
+                  (typeof getBaseSubjectName === 'function' ? getBaseSubjectName(c.subject) : c.subject) ||
+                  c.subject ||
+                  ''
+                ).trim();
+                if (!cleanSubj) return;
+
+                const normKey = (typeof normalizeSubject === 'function')
+                  ? normalizeSubject(cleanSubj)
+                  : cleanSubj.replace(/\s+/g, '');
+                if (!seenNorm.has(normKey)) {
+                  seenNorm.add(normKey);
+                  subjList.push(cleanSubj);
+                }
+              });
+
+              return subjList;
+            });
+          };
+
+          const groups1 = buildSemesterGroups(1);
+          const groups2 = buildSemesterGroups(2);
+          const totalSem1Count = groups1.reduce((acc, g) => acc + g.length, 0);
+          const totalSem2Count = groups2.reduce((acc, g) => acc + g.length, 0);
+
+          const rows = [];
+          const merges = [];
+          const rowHeights = [];
+
+          // Row 0: Sheet Title
+          const titleRow = [`${acadYearStr} ${gradeStr} 1·2학기 교과군별 선택과목 편제표`];
+          for (let c = 1; c < totalCols; c++) titleRow.push('');
+          rows.push(titleRow);
+          merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } });
+          rowHeights.push({ hpt: 34 });
+
+          // Row 1: Subtitle
+          const subTitleRow = [`출력일시: ${new Date().toLocaleString()}`];
+          for (let c = 1; c < totalCols; c++) subTitleRow.push('');
+          rows.push(subTitleRow);
+          merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } });
+          rowHeights.push({ hpt: 20 });
+
+          // Row 2: Spacer
+          rows.push([]);
+          rowHeights.push({ hpt: 10 });
+
+          // --- SECTION 1: 1학기 교과군별 선택과목 편제표 ---
+          const sem1BannerR = rows.length;
+          const sem1BannerText = `📘 [1학기] 교과군별 선택과목 편제표 (총 ${colCategories.length}개 교과군 / ${totalSem1Count}과목)`;
+          const sem1BannerRow = [sem1BannerText];
+          for (let c = 1; c < totalCols; c++) sem1BannerRow.push('');
+          rows.push(sem1BannerRow);
+          merges.push({ s: { r: sem1BannerR, c: 0 }, e: { r: sem1BannerR, c: totalCols - 1 } });
+          rowHeights.push({ hpt: 26 });
+
+          // 1학기 교과군 헤더행
+          const sem1HeaderR = rows.length;
+          const sem1HeaderRow = colCategories.map(cat => cat.name);
+          rows.push(sem1HeaderRow);
+          rowHeights.push({ hpt: 28 });
+
+          // 1학기 과목 데이터행들
+          const maxLen1 = groups1.length > 0 ? Math.max(...groups1.map(g => g.length), 0) : 0;
+          const sem1DataStartR = rows.length;
+          const len1 = Math.max(maxLen1, 1);
+          for (let r = 0; r < len1; r++) {
+            const row = [];
+            for (let gIdx = 0; gIdx < totalCols; gIdx++) {
+              if (totalSem1Count === 0) {
+                row.push(r === 0 && gIdx === 0 ? '(1학기 선택과목 데이터 없음)' : '');
+              } else {
+                row.push((groups1[gIdx] && groups1[gIdx][r]) ? groups1[gIdx][r] : '');
+              }
+            }
+            rows.push(row);
+            rowHeights.push({ hpt: 24 });
+          }
+
+          // Section Spacer between Sem 1 and Sem 2 (2행)
+          rows.push([]);
+          rowHeights.push({ hpt: 14 });
+          rows.push([]);
+          rowHeights.push({ hpt: 10 });
+
+          // --- SECTION 2: 2학기 교과군별 선택과목 편제표 ---
+          const sem2BannerR = rows.length;
+          const sem2BannerText = `📗 [2학기] 교과군별 선택과목 편제표 (총 ${colCategories.length}개 교과군 / ${totalSem2Count}과목)`;
+          const sem2BannerRow = [sem2BannerText];
+          for (let c = 1; c < totalCols; c++) sem2BannerRow.push('');
+          rows.push(sem2BannerRow);
+          merges.push({ s: { r: sem2BannerR, c: 0 }, e: { r: sem2BannerR, c: totalCols - 1 } });
+          rowHeights.push({ hpt: 26 });
+
+          // 2학기 교과군 헤더행
+          const sem2HeaderR = rows.length;
+          const sem2HeaderRow = colCategories.map(cat => cat.name);
+          rows.push(sem2HeaderRow);
+          rowHeights.push({ hpt: 28 });
+
+          // 2학기 과목 데이터행들
+          const maxLen2 = groups2.length > 0 ? Math.max(...groups2.map(g => g.length), 0) : 0;
+          const sem2DataStartR = rows.length;
+          const len2 = Math.max(maxLen2, 1);
+          for (let r = 0; r < len2; r++) {
+            const row = [];
+            for (let gIdx = 0; gIdx < totalCols; gIdx++) {
+              if (totalSem2Count === 0) {
+                row.push(r === 0 && gIdx === 0 ? '(2학기 선택과목 데이터 없음)' : '');
+              } else {
+                row.push((groups2[gIdx] && groups2[gIdx][r]) ? groups2[gIdx][r] : '');
+              }
+            }
+            rows.push(row);
+            rowHeights.push({ hpt: 24 });
+          }
+
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+          ws['!merges'] = merges;
+          ws['!rows'] = rowHeights;
+
+          // 열 너비 설정 (교과군 명칭이나 과목명 길이에 맞춰 최소 22 이상 자동 조절)
+          const getVisualWidth = (str) => {
+            if (!str) return 0;
+            let w = 0;
+            for (let i = 0; i < str.length; i++) {
+              w += str.charCodeAt(i) > 127 ? 2 : 1;
+            }
+            return w;
+          };
+          ws['!cols'] = colCategories.map((cat, gIdx) => {
+            let maxW = getVisualWidth(cat.name);
+            (groups1[gIdx] || []).forEach(s => { maxW = Math.max(maxW, getVisualWidth(s)); });
+            (groups2[gIdx] || []).forEach(s => { maxW = Math.max(maxW, getVisualWidth(s)); });
+            return { wch: Math.max(22, maxW + 6) };
+          });
+
+          // Styling Title & Subtitle
+          ExcelStyler.setRange(ws, 0, 0, 0, totalCols - 1, {
+            font: { name: ExcelStyler.fontFamily, sz: 14, bold: true, color: { rgb: '1E3A8A' } },
+            fill: { fgColor: { rgb: 'EEF2FF' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+          ExcelStyler.setRange(ws, 1, 0, 1, totalCols - 1, {
+            font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: '64748B' } },
+            fill: { fgColor: { rgb: 'F8FAFC' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+
+          // Styling Section 1 Banner
+          ExcelStyler.setRange(ws, sem1BannerR, 0, sem1BannerR, totalCols - 1, {
+            font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: '1E3A8A' } },
+            fill: { fgColor: { rgb: 'E0E7FF' } },
+            alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
+            border: softBorder
+          });
+
+          // Styling Section 1 Headers
+          for (let gIdx = 0; gIdx < totalCols; gIdx++) {
+            const gTheme = pastelGroupThemes[gIdx % pastelGroupThemes.length];
+            ExcelStyler.setCell(ws, sem1HeaderR, gIdx, {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: gTheme.headerText } },
+              fill: { fgColor: { rgb: gTheme.headerBg } },
+              alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+              border: {
+                top: { style: 'medium', color: { rgb: gTheme.border } },
+                bottom: { style: 'medium', color: { rgb: gTheme.border } },
+                left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+                right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+              }
+            });
+          }
+
+          // Styling Section 1 Data Cells
+          for (let r = 0; r < len1; r++) {
+            const isEven = r % 2 === 1;
+            for (let gIdx = 0; gIdx < totalCols; gIdx++) {
+              const val = (groups1[gIdx] && groups1[gIdx][r]) ? groups1[gIdx][r] : '';
+              ExcelStyler.setCell(ws, sem1DataStartR + r, gIdx, {
+                font: { name: ExcelStyler.fontFamily, sz: 10, bold: !!val, color: { rgb: val ? '0F172A' : '94A3B8' } },
+                fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: softBorder
+              });
+            }
+          }
+
+          // Styling Section 2 Banner
+          ExcelStyler.setRange(ws, sem2BannerR, 0, sem2BannerR, totalCols - 1, {
+            font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: '065F46' } },
+            fill: { fgColor: { rgb: 'DCFCE7' } },
+            alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
+            border: softBorder
+          });
+
+          // Styling Section 2 Headers
+          for (let gIdx = 0; gIdx < totalCols; gIdx++) {
+            const gTheme = pastelGroupThemes[gIdx % pastelGroupThemes.length];
+            ExcelStyler.setCell(ws, sem2HeaderR, gIdx, {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: gTheme.headerText } },
+              fill: { fgColor: { rgb: gTheme.headerBg } },
+              alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+              border: {
+                top: { style: 'medium', color: { rgb: gTheme.border } },
+                bottom: { style: 'medium', color: { rgb: gTheme.border } },
+                left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+                right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+              }
+            });
+          }
+
+          // Styling Section 2 Data Cells
+          for (let r = 0; r < len2; r++) {
+            const isEven = r % 2 === 1;
+            for (let gIdx = 0; gIdx < totalCols; gIdx++) {
+              const val = (groups2[gIdx] && groups2[gIdx][r]) ? groups2[gIdx][r] : '';
+              ExcelStyler.setCell(ws, sem2DataStartR + r, gIdx, {
+                font: { name: ExcelStyler.fontFamily, sz: 10, bold: !!val, color: { rgb: val ? '0F172A' : '94A3B8' } },
+                fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: softBorder
+              });
+            }
+          }
+
+          const sheetName = `${gradeStr}_1,2학기_교과군별편제표`.substring(0, 31);
+          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        });
+
+        const fileName = buildExportFileName('교과군별 선택과목 편제표', 'xlsx');
+        window.saveExcelFile(wb, fileName);
+      } catch (err) {
+        console.error('exportCurriculumByCategoryExcel error:', err);
+        alert('교과군별 선택과목 엑셀 다운로드 중 오류가 발생했습니다: ' + (err.message || err));
+      }
+    }
+    window.exportCurriculumByCategoryExcel = exportCurriculumByCategoryExcel;
 
     // Subtab switching
     function switchStep3SubTab(tabName) {
