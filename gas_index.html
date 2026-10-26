@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_08:58)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_09:09)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_08:58)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_09:09)</span></p>
         </div>
       </div>
 
@@ -16312,14 +16312,15 @@ function createSangjiCourseSelectionForm() {
     window.generateDefaultStep3Categories = generateDefaultStep3Categories;
 
     function exportStep3ValidationExcel() {
-      const lastResult = window._step3LastValidationResult || runStep3Validation(false);
+      const lastResult = runStep3Validation(false) || window._step3LastValidationResult;
       if (!lastResult || !lastResult.results || lastResult.results.length === 0) {
         alert('다운로드할 검증 데이터가 없습니다. 먼저 학생 수강신청 엑셀 파일을 업로드해주세요.');
         return;
       }
 
-      const acadYear = MultiState?.activeAcademicYear || '2027학년도';
-      const curDate = MultiState?.activeYear || '기준';
+      const acadYear = (typeof getActiveAcademicYearName === 'function')
+        ? getActiveAcademicYearName()
+        : (MultiState?.activeAcademicYear || '2027학년도');
       const targetGrade = (_step3ResultFilters.grade && _step3ResultFilters.grade !== 'all') ? _step3ResultFilters.grade : '3학년';
 
       const sData = getStep3Data();
@@ -16340,21 +16341,44 @@ function createSangjiCourseSelectionForm() {
         right: { style: 'thin', color: { rgb: 'CBD5E1' } }
       };
 
-      // Helper function to build a structured pastel-themed worksheet
+      // 텍스트 분량(줄바꿈 및 자동 줄바꿈)에 따른 행 높이 동적 계산 헬퍼 (모든 시트 공용)
+      function getVisualWidth(str) {
+        let w = 0;
+        const s = String(str || '');
+        for (let i = 0; i < s.length; i++) {
+          w += (s.charCodeAt(i) > 127) ? 1.95 : 1;
+        }
+        return w;
+      }
+
+      function calcWrappedLineCount(text, colWch) {
+        if (!text) return 1;
+        const usableWch = Math.max(colWch - 3, 8);
+        const lines = String(text).split('\n');
+        let count = 0;
+        lines.forEach(line => {
+          const vw = getVisualWidth(line.trim());
+          count += vw > 0 ? Math.ceil(vw / usableWch) : 1;
+        });
+        return Math.max(count, 1);
+      }
+
+      // Helper function to build a structured pastel-themed worksheet matching 📋 학생별 교과군 선택 조건 검증 결과 명단
       function buildStructuredValidationSheet(studentList, sheetGradeTitle, subNote = '') {
         const rows = [];
         const merges = [];
+        const LAST_COL = 7; // 8개 항목 (0 ~ 7)
 
         // Title row: exact required format 'nnnn학년도 n학년 1,2학기 학생별 교육과정 점검 결과'
         const mainTitle = `[상지대관령고등학교] ${acadYear} ${sheetGradeTitle} 1,2학기 학생별 교육과정 점검 결과`;
         rows.push([mainTitle]);
-        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } });
+        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: LAST_COL } });
 
         // Subtitle row: guidance for homeroom teachers
         const todayStr = new Date().toLocaleDateString('ko-KR');
         const subTitle = subNote || `※ 학급 담임 교사 학생 지도용 안내 자료 | 발행일: ${todayStr} | 상지대관령고등학교 교육과정위원회`;
         rows.push([subTitle]);
-        merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 10 } });
+        merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: LAST_COL } });
 
         // Stats summary row
         const totalCnt = studentList.length;
@@ -16362,69 +16386,82 @@ function createSangjiCourseSelectionForm() {
         const violCnt = studentList.filter(s => s.hasViol).length;
         const dupCnt = studentList.filter(s => s.hasDup).length;
         const needCnt = studentList.filter(s => !s.isPass).length;
-        rows.push([`■ 점검 현황: 총 ${totalCnt}명 (이수조건 충족: ${passCnt}명, 점검·지도 대상: ${needCnt}명 [교과군 미달 ${violCnt}명, 중복신청 ${dupCnt}명])`]);
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: 10 } });
+        rows.push([`■ 점검 현황: 총 ${totalCnt}명 (이수조건 충족: ${passCnt}명, 점검·지도 대상: ${needCnt}명 [교과군 위반 ${violCnt}명, 중복신청 ${dupCnt}명])`]);
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: LAST_COL } });
 
         // Notice row
-        rows.push([`※ 안내: 점검 상태가 '조건 위반' 또는 '중복 의심'인 학생은 해당 사유를 확인하여 담임 선생님 지도 및 수강 정정을 진행해주시기 바랍니다.`]);
-        merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: 10 } });
+        rows.push([`※ 안내: 검증 상태가 '위반' 또는 '중복'인 학생은 해당 사유 및 선택 과목을 확인하여 담임 선생님 지도 및 수강 정정을 진행해주시기 바랍니다.`]);
+        merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: LAST_COL } });
 
-        // Header row
+        // Header row: 화면의 '📋 학생별 교과군 선택 조건 검증 결과 명단'과 100% 동일한 항목 구성
         rows.push([
-          '연번',
           '학년',
-          '반',
-          '번호',
+          '반/번호',
           '학생명',
-          '종합 점검 결과',
-          '교과군 선택 조건 위반 내역',
-          '과목 중복 신청 내역',
-          '1학기 전체 선택과목',
-          '2학기 전체 선택과목',
-          '담임교사 지도확인'
+          '검증 상태',
+          '위반 교과군 및 불일치 사유',
+          '과목 중복 신청',
+          '해당 교과군 선택 과목 (구체적 과목명)',
+          '전체 선택 과목 (1학기 / 2학기)'
         ]);
 
         // Data rows
-        studentList.forEach((st, idx) => {
-          let statusText = '정상 (충족)';
+        studentList.forEach((st) => {
+          // 1) 검증 상태 (위반/중복 줄바꿈 표시)
+          let statusText = '정상';
           if (st.hasViol && st.hasDup) {
-            statusText = '위반 및 중복';
+            statusText = `위반 ${st.violations.length}\n중복 ${st.dupList.length}`;
           } else if (st.hasViol) {
-            statusText = '조건 위반';
+            statusText = `위반 ${st.violations.length}`;
           } else if (st.hasDup) {
-            statusText = '중복 의심';
+            statusText = `중복 ${st.dupList.length}`;
           }
 
-          let violText = '충족 (위반 없음)';
+          // 2) 위반 교과군 및 불일치 사유 (🚨1과목 미달 / 🚨n과목 초과 간결 표시)
+          let violText = '✅ 모든 교과군 이수 조건 충족';
           if (st.hasViol && st.violations && st.violations.length > 0) {
             violText = st.violations.map(v => {
               const catName = v.category ? v.category.name : '교과군';
-              return `[${catName}] ${v.reason}`;
-            }).join('\n');
+              const ruleDesc = v.ruleDesc || '';
+              const cleanReason = String(v.reason || '').replace(/^.*\(([^)]+)\)$/, '$1').replace(/^🚨\s*/, '');
+              return `${catName}\n${ruleDesc}\n🚨${cleanReason}`;
+            }).join('\n\n');
           }
 
-          let dupText = '없음';
+          // 3) 과목 중복 신청 (과목명 (n학기 / 중복 시기))
+          let dupText = '-';
           if (st.hasDup && st.dupList && st.dupList.length > 0) {
             dupText = st.dupList.map(d => {
-              return `${d.subject}(${d.semester}학기/ ${d.sourceLabel})`;
+              return `${d.subject} (${d.semester}학기 / ${d.sourceLabel})`;
             }).filter((v, i, a) => a.indexOf(v) === i).join('\n');
           }
 
-          const sem1Text = (st.sem1 && st.sem1.length > 0) ? st.sem1.join(', ') : '-';
-          const sem2Text = (st.sem2 && st.sem2.length > 0) ? st.sem2.join(', ') : '-';
+          // 4) 해당 교과군 선택 과목 (구체적 과목명)
+          let chosenInCatText = '-';
+          if (st.hasViol && st.violations && st.violations.length > 0) {
+            chosenInCatText = st.violations.map(v => {
+              const catName = v.category ? v.category.name : '교과군';
+              if (!v.subjects || v.subjects.length === 0) {
+                return `[${catName}] 해당 교과군 선택 과목 없음 (0개)`;
+              }
+              return `[${catName}] 선택 (${v.subjects.length}개): ${v.subjects.join(', ')}`;
+            }).join('\n');
+          }
+
+          // 5) 전체 선택 과목 (1학기 / 2학기)
+          const sem1Str = (st.sem1 && st.sem1.length > 0) ? st.sem1.join(', ') : '선택 없음';
+          const sem2Str = (st.sem2 && st.sem2.length > 0) ? st.sem2.join(', ') : '선택 없음';
+          const allCoursesText = `1학기: ${sem1Str}\n2학기: ${sem2Str}`;
 
           rows.push([
-            idx + 1,
             st.grade,
-            st.classNum + '반',
-            st.studentNum + '번',
+            `${st.classNum}반 ${st.studentNum}번`,
             st.name,
             statusText,
             violText,
             dupText,
-            sem1Text,
-            sem2Text,
-            '' // 담임교사 수기 서명란
+            chosenInCatText,
+            allCoursesText
           ]);
         });
 
@@ -16432,61 +16469,33 @@ function createSangjiCourseSelectionForm() {
         rows.push([
           '합계',
           '',
-          '',
-          '',
           `총 ${totalCnt}명`,
-          `충족 ${passCnt}명 / 점검 ${needCnt}명`,
-          `위반 ${violCnt}건`,
-          `중복 ${dupCnt}건`,
-          '',
+          `정상 ${passCnt}명 / 점검 ${needCnt}명`,
+          `위반 ${violCnt}명`,
+          `중복 ${dupCnt}명`,
           '',
           ''
         ]);
         const sumRowIdx = rows.length - 1;
-        merges.push({ s: { r: sumRowIdx, c: 0 }, e: { r: sumRowIdx, c: 3 } });
+        merges.push({ s: { r: sumRowIdx, c: 0 }, e: { r: sumRowIdx, c: 1 } });
 
         const ws = XLSX.utils.aoa_to_sheet(rows);
         ws['!merges'] = merges;
 
-        // Column widths
+        // Column widths (8개 항목)
         const colWidths = [
-          { wch: 6 },  // 0: 연번
-          { wch: 8 },  // 1: 학년
-          { wch: 7 },  // 2: 반
-          { wch: 7 },  // 3: 번호
-          { wch: 11 }, // 4: 학생명
-          { wch: 15 }, // 5: 종합 점검 결과
-          { wch: 40 }, // 6: 교과군 선택 조건 위반 내역
-          { wch: 36 }, // 7: 과목 중복 신청 내역
-          { wch: 38 }, // 8: 1학기 선택과목
-          { wch: 38 }, // 9: 2학기 선택과목
-          { wch: 14 }  // 10: 담임교사 지도확인
+          { wch: 9 },  // 0: 학년
+          { wch: 12 }, // 1: 반/번호
+          { wch: 12 }, // 2: 학생명
+          { wch: 13 }, // 3: 검증 상태
+          { wch: 38 }, // 4: 위반 교과군 및 불일치 사유
+          { wch: 34 }, // 5: 과목 중복 신청
+          { wch: 38 }, // 6: 해당 교과군 선택 과목 (구체적 과목명)
+          { wch: 46 }  // 7: 전체 선택 과목 (1학기 / 2학기)
         ];
         ws['!cols'] = colWidths;
 
-        // 텍스트 분량(줄바꿈 및 자동 줄바꿈)에 따른 행 높이 동적 계산 헬퍼
-        function getVisualWidth(str) {
-          let w = 0;
-          const s = String(str || '');
-          for (let i = 0; i < s.length; i++) {
-            w += (s.charCodeAt(i) > 127) ? 1.95 : 1;
-          }
-          return w;
-        }
-
-        function calcWrappedLineCount(text, colWch) {
-          if (!text) return 1;
-          const usableWch = Math.max(colWch - 3, 10);
-          const lines = String(text).split('\n');
-          let count = 0;
-          lines.forEach(line => {
-            const vw = getVisualWidth(line.trim());
-            count += vw > 0 ? Math.ceil(vw / usableWch) : 1;
-          });
-          return Math.max(count, 1);
-        }
-
-        // Row heights (텍스트 분량에 맞춰 자동 조절)
+        // Row heights (모든 시트의 각 행마다 텍스트 분량에 맞춰 자동 조절)
         const rowHeights = [
           { hpt: 34 }, // Title
           { hpt: 20 }, // Subtitle
@@ -16496,12 +16505,13 @@ function createSangjiCourseSelectionForm() {
         ];
         for (let i = 0; i < studentList.length; i++) {
           const dataRow = rows[5 + i] || [];
-          const linesViol = calcWrappedLineCount(dataRow[6], colWidths[6].wch);
-          const linesDup  = calcWrappedLineCount(dataRow[7], colWidths[7].wch);
-          const linesSem1 = calcWrappedLineCount(dataRow[8], colWidths[8].wch);
-          const linesSem2 = calcWrappedLineCount(dataRow[9], colWidths[9].wch);
-          const maxLines = Math.max(1, linesViol, linesDup, linesSem1, linesSem2);
-          const dynamicHpt = Math.max(26, maxLines * 15 + 10);
+          const linesStatus = calcWrappedLineCount(dataRow[3], colWidths[3].wch);
+          const linesViol   = calcWrappedLineCount(dataRow[4], colWidths[4].wch);
+          const linesDup    = calcWrappedLineCount(dataRow[5], colWidths[5].wch);
+          const linesChosen = calcWrappedLineCount(dataRow[6], colWidths[6].wch);
+          const linesAll    = calcWrappedLineCount(dataRow[7], colWidths[7].wch);
+          const maxLines = Math.max(1, linesStatus, linesViol, linesDup, linesChosen, linesAll);
+          const dynamicHpt = Math.max(28, maxLines * 16 + 12);
           rowHeights.push({ hpt: dynamicHpt });
         }
         rowHeights.push({ hpt: 26 }); // Footer
@@ -16519,7 +16529,7 @@ function createSangjiCourseSelectionForm() {
 
         // Apply Pastel Styles
         // Title (Row 0)
-        for (let c = 0; c <= 10; c++) {
+        for (let c = 0; c <= LAST_COL; c++) {
           const ref = XLSX.utils.encode_cell({ r: 0, c });
           if (!ws[ref]) ws[ref] = { t: 's', v: '' };
           ws[ref].s = {
@@ -16536,7 +16546,7 @@ function createSangjiCourseSelectionForm() {
         }
 
         // Subtitle (Row 1)
-        for (let c = 0; c <= 10; c++) {
+        for (let c = 0; c <= LAST_COL; c++) {
           const ref = XLSX.utils.encode_cell({ r: 1, c });
           if (!ws[ref]) ws[ref] = { t: 's', v: '' };
           ws[ref].s = {
@@ -16552,7 +16562,7 @@ function createSangjiCourseSelectionForm() {
         }
 
         // Stats (Row 2)
-        for (let c = 0; c <= 10; c++) {
+        for (let c = 0; c <= LAST_COL; c++) {
           const ref = XLSX.utils.encode_cell({ r: 2, c });
           if (!ws[ref]) ws[ref] = { t: 's', v: '' };
           ws[ref].s = {
@@ -16568,7 +16578,7 @@ function createSangjiCourseSelectionForm() {
         }
 
         // Notice (Row 3)
-        for (let c = 0; c <= 10; c++) {
+        for (let c = 0; c <= LAST_COL; c++) {
           const ref = XLSX.utils.encode_cell({ r: 3, c });
           if (!ws[ref]) ws[ref] = { t: 's', v: '' };
           ws[ref].s = {
@@ -16584,7 +16594,7 @@ function createSangjiCourseSelectionForm() {
         }
 
         // Header (Row 4)
-        for (let c = 0; c <= 10; c++) {
+        for (let c = 0; c <= LAST_COL; c++) {
           const ref = XLSX.utils.encode_cell({ r: 4, c });
           if (!ws[ref]) ws[ref] = { t: 's', v: '' };
           ws[ref].s = {
@@ -16618,23 +16628,25 @@ function createSangjiCourseSelectionForm() {
             statusBg = 'FEF3C7';
           }
 
-          for (let c = 0; c <= 10; c++) {
+          for (let c = 0; c <= LAST_COL; c++) {
             const ref = XLSX.utils.encode_cell({ r, c });
             if (!ws[ref]) ws[ref] = { t: 's', v: '' };
 
-            const isCenterCol = [0, 1, 2, 3, 4, 5, 10].includes(c);
+            const isCenterCol = [0, 1, 2, 3].includes(c);
             let cellFont = { name: fontKo, sz: 9.5, color: { rgb: '334155' } };
             let cellBg = rowBg;
 
-            if (c === 4) { // Student Name
+            if (c === 2) { // 학생명
               cellFont = { name: fontKo, sz: 10, bold: true, color: { rgb: '0F172A' } };
-            } else if (c === 5) { // Status
+            } else if (c === 3) { // 검증 상태
               cellFont = { name: fontKo, sz: 9.5, bold: true, color: { rgb: statusColor } };
               cellBg = statusBg;
-            } else if (c === 6 && st.hasViol) { // Violation details
+            } else if (c === 4 && st.hasViol) { // 위반 교과군 및 불일치 사유
               cellFont = { name: fontKo, sz: 9, bold: true, color: { rgb: '9F1239' } };
-            } else if (c === 7 && st.hasDup) { // Duplicate details
+            } else if (c === 5 && st.hasDup) { // 과목 중복 신청
               cellFont = { name: fontKo, sz: 9, bold: true, color: { rgb: 'B45309' } };
+            } else if (c === 6 && st.hasViol) { // 해당 교과군 선택 과목
+              cellFont = { name: fontKo, sz: 9, color: { rgb: '1E293B' } };
             }
 
             ws[ref].s = {
@@ -16643,7 +16655,7 @@ function createSangjiCourseSelectionForm() {
               alignment: {
                 horizontal: isCenterCol ? 'center' : 'left',
                 vertical: 'center',
-                wrapText: !isCenterCol
+                wrapText: !isCenterCol || c === 3
               },
               border: pastelBorder
             };
@@ -16651,7 +16663,7 @@ function createSangjiCourseSelectionForm() {
         });
 
         // Summary footer (sumRowIdx)
-        for (let c = 0; c <= 10; c++) {
+        for (let c = 0; c <= LAST_COL; c++) {
           const ref = XLSX.utils.encode_cell({ r: sumRowIdx, c });
           if (!ws[ref]) ws[ref] = { t: 's', v: '' };
           ws[ref].s = {
@@ -16702,11 +16714,10 @@ function createSangjiCourseSelectionForm() {
         XLSX.utils.book_append_sheet(wb, wsGuidance, '지도대상_학생명단(위반·중복)');
       }
 
-      // Sheet N+2: Category standards reference table
+      // Sheet N+2: Category standards reference table (교과군별_과목_지정기준 탭도 동일하게 행 높이 및 스타일 적용)
       const sRefData = [];
       sRefData.push([`[상지대관령고등학교] ${acadYear} 교육과정 과목별 교과군 지정 기준표`]);
       sRefData.push([`등록 교과군: ${categories.length}개 군 | 매핑 과목 수: ${Object.keys(sData.mappings || {}).length}개 | 출력일: ${new Date().toLocaleDateString('ko-KR')}`]);
-      sRefData.push([]);
       sRefData.push(['학년', '학기', '구분', '과목명', '배정 교과군', '교과군 조건', '단위(시수)', '담당교사', '개설상태']);
 
       const currSubjects = getAllCurriculumSubjectsForStep3();
@@ -16731,9 +16742,64 @@ function createSangjiCourseSelectionForm() {
         { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
         { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }
       ];
-      wsRef['!cols'] = [
-        { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 22 }, { wch: 24 }, { wch: 26 }, { wch: 10 }, { wch: 12 }, { wch: 10 }
+      const refColWidths = [
+        { wch: 9 }, { wch: 9 }, { wch: 10 }, { wch: 24 }, { wch: 28 }, { wch: 32 }, { wch: 11 }, { wch: 16 }, { wch: 11 }
       ];
+      wsRef['!cols'] = refColWidths;
+
+      const refRowHeights = [
+        { hpt: 32 }, // Title
+        { hpt: 20 }, // Subtitle
+        { hpt: 26 }  // Header
+      ];
+      for (let r = 3; r < sRefData.length; r++) {
+        const rowArr = sRefData[r] || [];
+        let maxL = 1;
+        for (let c = 0; c <= 8; c++) {
+          maxL = Math.max(maxL, calcWrappedLineCount(rowArr[c], refColWidths[c].wch));
+        }
+        refRowHeights.push({ hpt: Math.max(24, maxL * 15 + 8) });
+      }
+      wsRef['!rows'] = refRowHeights;
+
+      for (let r = 0; r < sRefData.length; r++) {
+        for (let c = 0; c <= 8; c++) {
+          const ref = XLSX.utils.encode_cell({ r, c });
+          if (!wsRef[ref]) wsRef[ref] = { t: 's', v: '' };
+          if (r === 0) {
+            wsRef[ref].s = {
+              font: { name: fontKo, sz: 13, bold: true, color: { rgb: '1E293B' } },
+              fill: { fgColor: { rgb: 'EEF2FF' } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: pastelBorderThick
+            };
+          } else if (r === 1) {
+            wsRef[ref].s = {
+              font: { name: fontKo, sz: 9, color: { rgb: '64748B' } },
+              fill: { fgColor: { rgb: 'F8FAFC' } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: pastelBorder
+            };
+          } else if (r === 2) {
+            wsRef[ref].s = {
+              font: { name: fontKo, sz: 10, bold: true, color: { rgb: '1E293B' } },
+              fill: { fgColor: { rgb: 'E0E7FF' } },
+              alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+              border: pastelBorderThick
+            };
+          } else {
+            const isEven = (r % 2 === 1);
+            const isCenter = [0, 1, 2, 6, 7, 8].includes(c);
+            wsRef[ref].s = {
+              font: { name: fontKo, sz: 9.5, color: { rgb: '334155' } },
+              fill: { fgColor: { rgb: isEven ? 'FFFFFF' : 'F8FAFC' } },
+              alignment: { horizontal: isCenter ? 'center' : 'left', vertical: 'center', wrapText: true },
+              border: pastelBorder
+            };
+          }
+        }
+      }
+
       XLSX.utils.book_append_sheet(wb, wsRef, '교과군별_과목_지정기준');
 
       const fileName = (typeof buildExportFileName === 'function') 
