@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_09:43)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_10:04)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_09:43)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_10:04)</span></p>
         </div>
       </div>
 
@@ -1643,14 +1643,11 @@
                 <select id="step3FilterGrade" onchange="window.setStep3ResultFilter('grade', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
                   <option value="all">전체 학년</option>
                   <option value="2학년">2학년</option>
-                  <option value="3학년" selected>3학년</option>
+                  <option value="3학년">3학년</option>
                 </select>
 
                 <select id="step3FilterClass" onchange="window.setStep3ResultFilter('classNum', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
                   <option value="all">전체 반</option>
-                  <option value="1">1반</option>
-                  <option value="2">2반</option>
-                  <option value="3">3반</option>
                 </select>
 
                 <select id="step3FilterCategory" onchange="window.setStep3ResultFilter('categoryId', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
@@ -5392,7 +5389,20 @@
         step3View?.classList.remove('hidden');
         step1View?.classList.add('hidden');
         step2View?.classList.add('hidden');
-        if (typeof renderStep3UI === 'function') {
+
+        // 3단계 진입 시 현재 작업 중인 학년으로 필터 자동 동기화
+        if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
+          if (MultiState.activeGrade === '2학년' || MultiState.activeGrade === '3학년') {
+            _step3ResultFilters.grade = MultiState.activeGrade;
+          } else {
+            _step3ResultFilters.grade = 'all';
+          }
+        }
+
+        // 3단계 진입 시 항상 최신 학생 데이터로 즉시 재검증 실행
+        if (typeof runStep3Validation === 'function') {
+          runStep3Validation(false);
+        } else if (typeof renderStep3UI === 'function') {
           renderStep3UI();
         }
       }
@@ -5682,6 +5692,13 @@
       if (currentModalStudentId === studentId) {
         renderStudentChoiceEditModalContent();
       }
+
+      // Step 3 검증 캐시 무효화 및 실시간 재검증
+      window._step3LastValidationResult = null;
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
+      renderYearGradeNav();
     };
 
     window.revertStudentChoices = function(studentId, semester) {
@@ -5710,6 +5727,13 @@
       if (currentModalStudentId === studentId) {
         renderStudentChoiceEditModalContent();
       }
+
+      // Step 3 검증 캐시 무효화 및 실시간 재검증
+      window._step3LastValidationResult = null;
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
+      renderYearGradeNav();
     };
 
     window.handleStudentEditModalRevert = function() {
@@ -5747,6 +5771,13 @@
       if (AppState.currentPlan) {
         renderStep2Results();
       }
+      // Step 3 검증 캐시 무효화 및 실시간 재검증
+      window._step3LastValidationResult = null;
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
+      renderYearGradeNav();
+
       alert(`✅ [${sem}학기] ${modifiedCount}명 학생의 선택 과목이 모두 원본으로 복원되었습니다.`);
     };
 
@@ -6069,12 +6100,25 @@
       AppState.students.push(newStudent);
       sortStudentsByClassAndNum();
 
+      // Step 3 검증 필터 학년을 새로 추가된 학생 학년으로 맞춤
+      if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
+        _step3ResultFilters.grade = curGrade;
+        _step3ResultFilters.classNum = 'all';
+      }
+
       runCrossCheckAnalysis();
       renderStep1();
       if (AppState.currentPlan) {
         renderStep2Results();
       }
       saveAllState();
+
+      // Step 3 검증 캐시 무효화 및 실시간 재검증
+      window._step3LastValidationResult = null;
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
+      renderYearGradeNav();
 
       window.closeAddStudentModal();
 
@@ -6137,12 +6181,27 @@
       });
 
       sortStudentsByClassAndNum();
+
+      // Step 3 검증 필터 학년을 새로 추가된 학생 학년으로 맞춤
+      if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
+        _step3ResultFilters.grade = curGrade;
+        _step3ResultFilters.classNum = 'all';
+      }
+
       runCrossCheckAnalysis();
       renderStep1();
       if (AppState.currentPlan) {
         renderStep2Results();
       }
       saveAllState();
+
+      // Step 3 검증 캐시 무효화 및 실시간 재검증
+      window._step3LastValidationResult = null;
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
+      renderYearGradeNav();
+
       window.closeAddStudentModal();
 
       if (addedCount > 0 && lastAddedId) {
@@ -6172,6 +6231,13 @@
         renderStep2Results();
       }
       saveAllState();
+
+      // Step 3 검증 캐시 무효화 및 실시간 재검증
+      window._step3LastValidationResult = null;
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
+      renderYearGradeNav();
     };
 
 
@@ -14167,7 +14233,20 @@ function createSangjiCourseSelectionForm() {
             if (step3View) step3View.classList.remove('hidden');
             if (step1View) step1View.classList.add('hidden');
             if (step2View) step2View.classList.add('hidden');
-            if (typeof renderStep3UI === 'function') renderStep3UI();
+
+            if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
+              if (MultiState.activeGrade === '2학년' || MultiState.activeGrade === '3학년') {
+                _step3ResultFilters.grade = MultiState.activeGrade;
+              } else {
+                _step3ResultFilters.grade = 'all';
+              }
+            }
+
+            if (typeof runStep3Validation === 'function') {
+              runStep3Validation(false);
+            } else if (typeof renderStep3UI === 'function') {
+              renderStep3UI();
+            }
           }
 
           if (AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, AppState.currentPlan.semester)) {
@@ -14214,7 +14293,7 @@ function createSangjiCourseSelectionForm() {
     let _step3ActiveSubTab = 'results'; // 'results' | 'categories' | 'mappings'
     let _step3ResultFilters = {
       status: 'violated', // 'violated' | 'pass' | 'all'
-      grade: '3학년',
+      grade: 'all', // 초기값: 전체 학년 (또는 현재 활성 학년 자동 동기화)
       classNum: 'all',
       categoryId: 'all',
       search: ''
@@ -14363,20 +14442,45 @@ function createSangjiCourseSelectionForm() {
       }
       const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
       const y = MultiState?.activeYear;
+      const currAY = MultiState?.activeAcademicYear || '2027학년도';
+      const dateList = (MultiState?.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState?.yearsList || [];
 
-      const g2List = (MultiState.activeGrade === '2학년' && AppState.students && AppState.students.length > 0)
-        ? AppState.students
-        : (acadData[y]?.['2학년']?.students || []);
+      // 2학년 학생 데이터 (현재 탭 우선, 다른 날짜 탭 상속)
+      let g2List = [];
+      if (MultiState.activeGrade === '2학년' && AppState.students && Array.isArray(AppState.students)) {
+        g2List = AppState.students;
+      } else if (acadData[y]?.['2학년']?.students && acadData[y]['2학년'].students.length > 0) {
+        g2List = acadData[y]['2학년'].students;
+      } else if (!acadData[y]?.['2학년']?._cleared) {
+        for (const otherDate of dateList) {
+          if (acadData[otherDate]?.['2학년']?.students?.length > 0) {
+            g2List = acadData[otherDate]['2학년'].students;
+            break;
+          }
+        }
+      }
 
-      const g3List = (MultiState.activeGrade === '3학년' && AppState.students && AppState.students.length > 0)
-        ? AppState.students
-        : (acadData[y]?.['3학년']?.students || []);
+      // 3학년 학생 데이터 (현재 탭 우선, 다른 날짜 탭 상속)
+      let g3List = [];
+      if (MultiState.activeGrade === '3학년' && AppState.students && Array.isArray(AppState.students)) {
+        g3List = AppState.students;
+      } else if (acadData[y]?.['3학년']?.students && acadData[y]['3학년'].students.length > 0) {
+        g3List = acadData[y]['3학년'].students;
+      } else if (!acadData[y]?.['3학년']?._cleared) {
+        for (const otherDate of dateList) {
+          if (acadData[otherDate]?.['3학년']?.students?.length > 0) {
+            g3List = acadData[otherDate]['3학년'].students;
+            break;
+          }
+        }
+      }
 
       const grade2Students = JSON.parse(JSON.stringify(g2List || []));
       const grade3Students = JSON.parse(JSON.stringify(g3List || []));
 
-      grade2Students.forEach(st => { if (!st.grade) st.grade = '2학년'; });
-      grade3Students.forEach(st => { if (!st.grade) st.grade = '3학년'; });
+      // 각 학년 레이블을 엄격하게 적용
+      grade2Students.forEach(st => { st.grade = '2학년'; });
+      grade3Students.forEach(st => { st.grade = '3학년'; });
 
       return { grade2Students, grade3Students };
     }
@@ -14602,9 +14706,12 @@ function createSangjiCourseSelectionForm() {
 
     function getStep3ValidationSummaryQuick() {
       if (window._step3LastValidationResult && window._step3LastValidationResult.totalCount > 0) {
+        const needCnt = window._step3LastValidationResult.needGuidanceCount !== undefined 
+          ? window._step3LastValidationResult.needGuidanceCount 
+          : window._step3LastValidationResult.violatedCount;
         return {
           total: window._step3LastValidationResult.totalCount,
-          violated: window._step3LastValidationResult.violatedCount,
+          violated: needCnt,
           passed: window._step3LastValidationResult.passedCount
         };
       }
@@ -14712,6 +14819,28 @@ function createSangjiCourseSelectionForm() {
           }
         });
 
+        // 필수 검증: 학기별 선택과목 미입력(0과목) 여부 자동 검출 (새로 추가된 미수행 학생 등 즉시 점검 필요에 반영)
+        if (studentSem1.length === 0 || studentSem2.length === 0) {
+          const missingSems = [];
+          if (studentSem1.length === 0) missingSems.push('1학기');
+          if (studentSem2.length === 0) missingSems.push('2학기');
+          const unselectEval = {
+            category: {
+              id: '__unselected__',
+              name: '과목 미신청',
+              color: 'rose'
+            },
+            ruleDesc: `[${st.grade} 필수] 학기별 선택과목 신청 완료`,
+            count: 0,
+            subjects: [],
+            isViolated: true,
+            reason: `${missingSems.join('·')} 선택과목 미입력 (0과목)`
+          };
+          violations.unshift(unselectEval);
+          catEvaluations.unshift(unselectEval);
+          catViolationCounts['__unselected__'] = (catViolationCounts['__unselected__'] || 0) + 1;
+        }
+
         const priorDataForSt = st.grade === '2학년' ? priorDataG2 : priorDataG3;
         const crossDupsForSt = st.grade === '2학년' ? crossDupsG2 : crossDupsG3;
         const dupList = detectStudentDuplicates(st, priorDataForSt, crossDupsForSt, st.grade.replace(/[^0-9]/g, ''));
@@ -14740,8 +14869,12 @@ function createSangjiCourseSelectionForm() {
       results.sort((a, b) => {
         if (a.isPass !== b.isPass) return a.isPass ? 1 : -1;
         if (a.grade !== b.grade) return a.grade.localeCompare(b.grade);
-        if (a.classNum !== b.classNum) return (a.classNum || 0) - (b.classNum || 0);
-        return (a.studentNum || 0) - (b.studentNum || 0);
+        const ca = parseInt(String(a.classNum || '').replace(/[^0-9]/g, ''), 10) || 0;
+        const cb = parseInt(String(b.classNum || '').replace(/[^0-9]/g, ''), 10) || 0;
+        if (ca !== cb) return ca - cb;
+        const sa = parseInt(String(a.studentNum || '').replace(/[^0-9]/g, ''), 10) || 0;
+        const sb = parseInt(String(b.studentNum || '').replace(/[^0-9]/g, ''), 10) || 0;
+        return sa - sb;
       });
 
       const passedCount = results.filter(r => r.isPass).length;
@@ -14766,15 +14899,19 @@ function createSangjiCourseSelectionForm() {
       renderStep3UI();
 
       if (showAlert) {
-        if (categories.length === 0) {
-          alert('ℹ️ 등록된 교과군이 없습니다. [1. 교과군 및 조건 등록/관리]에서 교과군을 먼저 추가해주세요.');
+        if (categories.length === 0 && allStudents.length > 0) {
+          alert(`✅ 교과군 선택 조건 검증 완료!
+- 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명)
+- 점검 필요 (위반·중복·미신청): ${needGuidanceCount}명
+- 조건 충족 (정상): ${passedCount}명
+※ 안내: 등록된 교과군이 아직 없습니다. [1. 교과군 및 조건 등록/관리]에서 교과군 조건을 추가하시면 세부 위반 여부까지 정밀하게 검증됩니다.`);
         } else if (allStudents.length === 0) {
           alert('⚠️ 검증할 2학년 및 3학년 학생 데이터가 없습니다. 학생 수강신청 엑셀 파일을 먼저 업로드해주세요.');
         } else {
           alert(`✅ 교과군 선택 조건 검증 완료!
 - 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명)
-- 조건 충족 (정상): ${passedCount}명
-- 조건 미달·위반: ${violatedCount}명${unmappedSubjSet.size > 0 ? `
+- 점검 필요 학생: ${needGuidanceCount}명 (교과군 위반·미신청 ${violatedCount}명, 과목 중복 ${duplicateCount}명)
+- 조건 충족 (정상): ${passedCount}명${unmappedSubjSet.size > 0 ? `
 - 교과군 미지정 과목: ${unmappedSubjSet.size}건` : ''}`);
         }
       }
@@ -15938,7 +16075,25 @@ function createSangjiCourseSelectionForm() {
 
       const filterGradeEl = document.getElementById('step3FilterGrade');
       if (filterGradeEl && filterGradeEl.value !== _step3ResultFilters.grade) {
-        filterGradeEl.value = _step3ResultFilters.grade;
+        filterGradeEl.value = _step3ResultFilters.grade || 'all';
+      }
+
+      // 반 필터 드롭다운을 현재 결과 데이터 기반으로 동적 구성
+      const classSelect = document.getElementById('step3FilterClass');
+      if (classSelect) {
+        const availableClasses = new Set();
+        val.results.forEach(stRes => {
+          if (_step3ResultFilters.grade === 'all' || stRes.grade === _step3ResultFilters.grade) {
+            const cleanC = String(stRes.classNum || '').replace(/[^0-9]/g, '');
+            if (cleanC) availableClasses.add(cleanC);
+          }
+        });
+        const sortedClasses = Array.from(availableClasses).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+        let classHtml = '<option value="all">전체 반</option>';
+        sortedClasses.forEach(c => {
+          classHtml += `<option value="${c}" ${_step3ResultFilters.classNum === c ? 'selected' : ''}>${c}반</option>`;
+        });
+        classSelect.innerHTML = classHtml;
       }
 
       const curStatus = _step3ResultFilters.status;
@@ -15973,7 +16128,11 @@ function createSangjiCourseSelectionForm() {
         if (_step3ResultFilters.status === 'violated' && stRes.isPass) return false;
         if (_step3ResultFilters.status === 'pass' && !stRes.isPass) return false;
         if (_step3ResultFilters.grade !== 'all' && stRes.grade !== _step3ResultFilters.grade) return false;
-        if (_step3ResultFilters.classNum !== 'all' && String(stRes.classNum) !== String(_step3ResultFilters.classNum)) return false;
+        if (_step3ResultFilters.classNum !== 'all') {
+          const stC = String(stRes.classNum || '').replace(/[^0-9]/g, '');
+          const fC = String(_step3ResultFilters.classNum || '').replace(/[^0-9]/g, '');
+          if (stC !== fC) return false;
+        }
 
         if (_step3ResultFilters.categoryId !== 'all') {
           const hasCatViol = stRes.violations.some(v => v.category && v.category.id === _step3ResultFilters.categoryId);
@@ -16119,7 +16278,12 @@ function createSangjiCourseSelectionForm() {
           <tr class="${rowBg} transition-colors">
             <td class="py-3 px-3 text-center font-black text-slate-700 whitespace-nowrap">${item.grade}</td>
             <td class="py-3 px-3 text-center font-bold text-slate-600 whitespace-nowrap">${item.classNum}반 ${item.studentNum}번</td>
-            <td class="py-3 px-4 text-center font-black text-slate-900 whitespace-nowrap">${item.name}</td>
+            <td class="py-3 px-4 text-center font-black text-slate-900 whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <span>${item.name}</span>
+                ${item.student && item.student.isNewlyAdded ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200" title="2단계에서 추가된 학생">추가</span>' : ''}
+              </div>
+            </td>
             <td class="py-3 px-3 text-center whitespace-nowrap">
               ${statusBadgeHtml}
             </td>
