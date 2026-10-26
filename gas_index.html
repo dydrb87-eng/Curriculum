@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_07:32)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_07:44)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_07:32)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_07:44)</span></p>
         </div>
       </div>
 
@@ -13833,6 +13833,199 @@ function createSangjiCourseSelectionForm() {
       return { grade2Students, grade3Students };
     }
 
+    function getPriorDataForGrade(grade) {
+      const y = MultiState?.activeYear;
+      const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+      if (MultiState.activeGrade === grade && AppState.priorData && Array.isArray(AppState.priorData.students) && AppState.priorData.students.length > 0) {
+        return AppState.priorData;
+      }
+      if (acadData[y]?.[grade]?.priorData?.students?.length > 0) {
+        return acadData[y][grade].priorData;
+      }
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+      for (const otherDate of dateList) {
+        if (acadData[otherDate]?.[grade]?.priorData?.students?.length > 0) {
+          return acadData[otherDate][grade].priorData;
+        }
+      }
+      return null;
+    }
+
+    function getCrossCheckDuplicatesForGrade(grade) {
+      const y = MultiState?.activeYear;
+      const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+      if (MultiState.activeGrade === grade && AppState.crossCheckResult && Array.isArray(AppState.crossCheckResult.duplicateEnrollments) && AppState.crossCheckResult.duplicateEnrollments.length > 0) {
+        return AppState.crossCheckResult.duplicateEnrollments;
+      }
+      if (acadData[y]?.[grade]?.crossCheckResult?.duplicateEnrollments?.length > 0) {
+        return acadData[y][grade].crossCheckResult.duplicateEnrollments;
+      }
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+      for (const otherDate of dateList) {
+        if (acadData[otherDate]?.[grade]?.crossCheckResult?.duplicateEnrollments?.length > 0) {
+          return acadData[otherDate][grade].crossCheckResult.duplicateEnrollments;
+        }
+      }
+      return null;
+    }
+
+    function detectStudentDuplicates(st, priorData, crossCheckDuplicates, targetGradeNum) {
+      if (!st) return [];
+      const cNum = String(st.classNum || '').replace(/[^0-9]/g, '');
+      const sNum = String(st.studentNum || '').replace(/[^0-9]/g, '');
+      const sName = (st.name || '').trim();
+
+      // 1단계 '동일·기이수 과목 중복신청 의심 명단'에 이미 계산된 결과가 있으면 우선 확인
+      if (Array.isArray(crossCheckDuplicates) && crossCheckDuplicates.length > 0) {
+        const matchedInStep1 = crossCheckDuplicates.find(d => {
+          const dcMatch = String(d.classNum || '').replace(/[^0-9]/g, '') === cNum;
+          const dnMatch = String(d.studentNum || '').replace(/[^0-9]/g, '') === sNum;
+          const dNameMatch = (d.name || '').trim() === sName;
+          return (dcMatch && dnMatch && dNameMatch) || (dcMatch && dNameMatch);
+        });
+        if (matchedInStep1 && Array.isArray(matchedInStep1.dupList) && matchedInStep1.dupList.length > 0) {
+          return matchedInStep1.dupList;
+        }
+      }
+
+      // 1단계와 100% 동일한 중복 탐지 로직 수행
+      const sGradeNum = (st.grade ? String(st.grade).replace(/[^0-9]/g, '') : '') || targetGradeNum || '3';
+      const dupList = [];
+      const seenNormsThisStudent = new Set();
+
+      const sem1Norms = (st.sem1 || []).map(s => ({ raw: s, norm: (typeof normalizeSubject === 'function') ? normalizeSubject(s) : String(s).trim() })).filter(x => x.norm);
+      const sem2Norms = (st.sem2 || []).map(s => ({ raw: s, norm: (typeof normalizeSubject === 'function') ? normalizeSubject(s) : String(s).trim() })).filter(x => x.norm);
+
+      // A-1. 1학기 내 동일 과목 2회 이상 중복 선택
+      const sem1CountMap = {};
+      sem1Norms.forEach(({ raw, norm }) => {
+        sem1CountMap[norm] = (sem1CountMap[norm] || 0) + 1;
+      });
+      Object.entries(sem1CountMap).forEach(([norm, count]) => {
+        if (count > 1) {
+          const matchedRaw = sem1Norms.find(x => x.norm === norm)?.raw || norm;
+          dupList.push({
+            subject: matchedRaw,
+            normalized: norm,
+            gradeNum: sGradeNum,
+            semester: 1,
+            sourceType: 'current_same_sem',
+            sourceLabel: `현재 학년 1학기 내 중복(${count}회)`
+          });
+        }
+      });
+
+      // A-2. 2학기 내 동일 과목 2회 이상 중복 선택
+      const sem2CountMap = {};
+      sem2Norms.forEach(({ raw, norm }) => {
+        sem2CountMap[norm] = (sem2CountMap[norm] || 0) + 1;
+      });
+      Object.entries(sem2CountMap).forEach(([norm, count]) => {
+        if (count > 1) {
+          const matchedRaw = sem2Norms.find(x => x.norm === norm)?.raw || norm;
+          dupList.push({
+            subject: matchedRaw,
+            normalized: norm,
+            gradeNum: sGradeNum,
+            semester: 2,
+            sourceType: 'current_same_sem',
+            sourceLabel: `현재 학년 2학기 내 중복(${count}회)`
+          });
+        }
+      });
+
+      // A-3. 1학기 ↔ 2학기 간 동일 과목 중복 신청 (현재 학년 1·2학기 중복)
+      sem1Norms.forEach(({ raw: raw1, norm: norm1 }) => {
+        const inSem2 = sem2Norms.find(x => x.norm === norm1);
+        if (inSem2) {
+          const dupKey = `cross_sem_${norm1}`;
+          if (!seenNormsThisStudent.has(dupKey)) {
+            seenNormsThisStudent.add(dupKey);
+            dupList.push({
+              subject: raw1,
+              normalized: norm1,
+              gradeNum: sGradeNum,
+              semester: 1,
+              sourceType: 'current_cross_sem',
+              sourceLabel: `현재 학년 1·2학기 중복`
+            });
+            dupList.push({
+              subject: inSem2.raw,
+              normalized: norm1,
+              gradeNum: sGradeNum,
+              semester: 2,
+              sourceType: 'current_cross_sem',
+              sourceLabel: `현재 학년 1·2학기 중복`
+            });
+          }
+        }
+      });
+
+      // B. 이전 학년 기이수 과목과 중복 대조 (사전 등록된 NEIS 명부)
+      if (priorData && Array.isArray(priorData.students) && priorData.students.length > 0) {
+        const priorSt = priorData.students.find(p => {
+          const pcMatch = String(p.classNum || '').replace(/[^0-9]/g, '') === cNum;
+          const pnMatch = String(p.studentNum || '').replace(/[^0-9]/g, '') === sNum;
+          const nameMatch = (p.name || '').trim() === sName;
+          return (pcMatch && pnMatch && nameMatch) || (pcMatch && nameMatch);
+        });
+
+        if (priorSt) {
+          const priorHas = (subj) => {
+            const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(subj) : String(subj).trim();
+            if (!norm) return false;
+            if (Array.isArray(priorSt.subjects)) {
+              return priorSt.subjects.some(ps => (typeof normalizeSubject === 'function' ? normalizeSubject(ps) : ps) === norm);
+            }
+            if (priorSt.subjects && typeof priorSt.subjects.has === 'function') {
+              return priorSt.subjects.has(norm);
+            }
+            return false;
+          };
+
+          (st.sem1 || []).forEach(subj => {
+            if (priorHas(subj)) {
+              const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(subj) : subj;
+              const dupKey = `prior_1_${norm}`;
+              if (!seenNormsThisStudent.has(dupKey)) {
+                seenNormsThisStudent.add(dupKey);
+                dupList.push({
+                  subject: subj,
+                  normalized: norm,
+                  gradeNum: sGradeNum,
+                  semester: 1,
+                  sourceType: 'prior_grade',
+                  sourceLabel: `이전 학년 기이수 중복`
+                });
+              }
+            }
+          });
+
+          (st.sem2 || []).forEach(subj => {
+            if (priorHas(subj)) {
+              const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(subj) : subj;
+              const dupKey = `prior_2_${norm}`;
+              if (!seenNormsThisStudent.has(dupKey)) {
+                seenNormsThisStudent.add(dupKey);
+                dupList.push({
+                  subject: subj,
+                  normalized: norm,
+                  gradeNum: sGradeNum,
+                  semester: 2,
+                  sourceType: 'prior_grade',
+                  sourceLabel: `이전 학년 기이수 중복`
+                });
+              }
+            }
+          });
+        }
+      }
+
+      return dupList;
+    }
+
     function getAllCurriculumSubjectsForStep3() {
       // 오직 '전학년 과목별 상세 배정 및 담당 교사 조정' 편제표에 등록된 실제 과목만 엄격하게 가져옵니다. (임의의 가상 3시수 또는 타 조사 데이터 자동 생성 배제)
       const curriculum = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
@@ -13875,6 +14068,11 @@ function createSangjiCourseSelectionForm() {
       const categories = sData.categories || [];
       const { grade2Students, grade3Students } = getStep3StudentsData();
       const allStudents = [...grade2Students, ...grade3Students];
+
+      const priorDataG2 = getPriorDataForGrade('2학년');
+      const priorDataG3 = getPriorDataForGrade('3학년');
+      const crossDupsG2 = getCrossCheckDuplicatesForGrade('2학년');
+      const crossDupsG3 = getCrossCheckDuplicatesForGrade('3학년');
 
       const results = [];
       const catViolationCounts = {};
@@ -13963,6 +14161,12 @@ function createSangjiCourseSelectionForm() {
           }
         });
 
+        const priorDataForSt = st.grade === '2학년' ? priorDataG2 : priorDataG3;
+        const crossDupsForSt = st.grade === '2학년' ? crossDupsG2 : crossDupsG3;
+        const dupList = detectStudentDuplicates(st, priorDataForSt, crossDupsForSt, st.grade.replace(/[^0-9]/g, ''));
+        const hasViol = violations.length > 0;
+        const hasDup = dupList.length > 0;
+
         results.push({
           student: st,
           grade: st.grade,
@@ -13972,8 +14176,12 @@ function createSangjiCourseSelectionForm() {
           sem1: studentSem1,
           sem2: studentSem2,
           allChoices: studentAllChoices,
-          isPass: violations.length === 0,
+          isPass: !hasViol && !hasDup,
+          isCategoryPass: !hasViol,
+          hasViol: hasViol,
+          hasDup: hasDup,
           violations: violations,
+          dupList: dupList,
           evaluations: catEvaluations
         });
       });
@@ -13986,7 +14194,9 @@ function createSangjiCourseSelectionForm() {
       });
 
       const passedCount = results.filter(r => r.isPass).length;
-      const violatedCount = results.filter(r => !r.isPass).length;
+      const violatedCount = results.filter(r => r.hasViol).length;
+      const duplicateCount = results.filter(r => r.hasDup).length;
+      const needGuidanceCount = results.filter(r => !r.isPass).length;
 
       window._step3LastValidationResult = {
         results: results,
@@ -13995,6 +14205,8 @@ function createSangjiCourseSelectionForm() {
         grade3Count: grade3Students.length,
         passedCount: passedCount,
         violatedCount: violatedCount,
+        duplicateCount: duplicateCount,
+        needGuidanceCount: needGuidanceCount,
         catViolationCounts: catViolationCounts,
         unmappedSubjects: Array.from(unmappedSubjSet),
         timestamp: new Date()
@@ -15092,13 +15304,14 @@ function createSangjiCourseSelectionForm() {
       if (totalEl) totalEl.textContent = val.totalCount;
       if (gradeDetailEl) gradeDetailEl.textContent = `(2학년 ${val.grade2Count}, 3학년 ${val.grade3Count})`;
 
+      const needCount = val.needGuidanceCount !== undefined ? val.needGuidanceCount : val.violatedCount;
       const pRate = val.totalCount > 0 ? ((val.passedCount / val.totalCount) * 100).toFixed(0) : 0;
-      const vRate = val.totalCount > 0 ? ((val.violatedCount / val.totalCount) * 100).toFixed(0) : 0;
+      const vRate = val.totalCount > 0 ? ((needCount / val.totalCount) * 100).toFixed(0) : 0;
 
       if (passEl) passEl.textContent = val.passedCount;
       if (passRateEl) passRateEl.textContent = `(${pRate}%)`;
-      if (violEl) violEl.textContent = val.violatedCount;
-      if (violRateEl) violRateEl.textContent = `(${vRate}%)`;
+      if (violEl) violEl.textContent = needCount;
+      if (violRateEl) violRateEl.textContent = `(${vRate}% - 위반 ${val.violatedCount || 0}, 중복 ${val.duplicateCount || 0})`;
 
       if (catCountEl) catCountEl.textContent = categories.length;
       if (unmappedNoticeEl) {
@@ -15112,8 +15325,9 @@ function createSangjiCourseSelectionForm() {
       const tabMapBadge = document.getElementById('step3TabMappingBadge');
 
       if (tabViolBadge) {
-        tabViolBadge.textContent = `${val.violatedCount}명 위반`;
-        tabViolBadge.className = val.violatedCount > 0 
+        const needCnt = val.needGuidanceCount !== undefined ? val.needGuidanceCount : val.violatedCount;
+        tabViolBadge.textContent = `${needCnt}명 점검 필요`;
+        tabViolBadge.className = needCnt > 0 
           ? 'px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-100 text-rose-800'
           : 'px-1.5 py-0.2 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800';
       }
@@ -15158,9 +15372,15 @@ function createSangjiCourseSelectionForm() {
       const cntP = document.getElementById('step3FilterCountPass');
       const cntA = document.getElementById('step3FilterCountAll');
 
-      if (cntV) cntV.textContent = `(${val.violatedCount})`;
+      const needCount = val.needGuidanceCount !== undefined ? val.needGuidanceCount : val.violatedCount;
+      if (cntV) cntV.textContent = `(${needCount})`;
       if (cntP) cntP.textContent = `(${val.passedCount})`;
       if (cntA) cntA.textContent = `(${val.totalCount})`;
+
+      const filterGradeEl = document.getElementById('step3FilterGrade');
+      if (filterGradeEl && filterGradeEl.value !== _step3ResultFilters.grade) {
+        filterGradeEl.value = _step3ResultFilters.grade;
+      }
 
       const curStatus = _step3ResultFilters.status;
       [btnV, btnP, btnA].forEach(b => {
@@ -15226,10 +15446,22 @@ function createSangjiCourseSelectionForm() {
 
       tbody.innerHTML = filtered.map((item, idx) => {
         const isPass = item.isPass;
-        const rowBg = isPass ? (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50') : 'bg-rose-50/40 hover:bg-rose-50/70';
+        const hasViol = !!item.hasViol;
+        const hasDup = !!item.hasDup;
+
+        let rowBg = '';
+        if (isPass) {
+          rowBg = (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50');
+        } else if (hasViol && hasDup) {
+          rowBg = 'bg-rose-50/60 hover:bg-rose-100/60';
+        } else if (hasViol) {
+          rowBg = 'bg-rose-50/40 hover:bg-rose-50/70';
+        } else {
+          rowBg = 'bg-amber-50/40 hover:bg-amber-50/70';
+        }
 
         let violHtml = '';
-        if (isPass) {
+        if (!hasViol) {
           violHtml = '<span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-lg">✅ 모든 교과군 이수 조건 충족</span>';
         } else {
           violHtml = '<div class="space-y-1.5">';
@@ -15252,7 +15484,7 @@ function createSangjiCourseSelectionForm() {
         }
 
         let chosenInCatHtml = '';
-        if (isPass) {
+        if (!hasViol) {
           chosenInCatHtml = '<span class="text-slate-400 text-xs">-</span>';
         } else {
           chosenInCatHtml = '<div class="space-y-1.5">';
@@ -15293,18 +15525,42 @@ function createSangjiCourseSelectionForm() {
         const sem1Tags = (item.sem1 || []).map(renderSubjTag).join('');
         const sem2Tags = (item.sem2 || []).map(renderSubjTag).join('');
 
+        let statusBadgeHtml = '';
+        if (isPass) {
+          statusBadgeHtml = '<span class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">정상</span>';
+        } else if (hasViol && hasDup) {
+          statusBadgeHtml = `<span class="px-2 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">위반 ${item.violations.length} / 중복 ${item.dupList.length}</span>`;
+        } else if (hasViol) {
+          statusBadgeHtml = `<span class="px-2 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">위반 ${item.violations.length}건</span>`;
+        } else {
+          statusBadgeHtml = `<span class="px-2 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">중복 ${item.dupList.length}건</span>`;
+        }
+
+        // 1단계의 '동일·기이수 과목 중복신청 의심 명단'과 동일한 표시 형식: 과목명 (n학기 / 중복 시기)
+        let dupBadgesHtml = '';
+        if (hasDup && Array.isArray(item.dupList) && item.dupList.length > 0) {
+          const badges = item.dupList.map(d => {
+            const isPrior = d.sourceType === 'prior_grade';
+            const badgeStyle = isPrior
+              ? 'bg-rose-100 text-rose-800 border-rose-300'
+              : 'bg-amber-100 text-amber-900 border-amber-300';
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${badgeStyle} mr-1 mb-0.5" title="${d.sourceLabel}">${d.subject} (${d.semester}학기 / ${d.sourceLabel})</span>`;
+          }).filter((v, i, a) => a.indexOf(v) === i).join('');
+          dupBadgesHtml = `<div class="flex flex-wrap items-center">${badges}</div>`;
+        } else {
+          dupBadgesHtml = '<span class="text-slate-400 text-xs">-</span>';
+        }
+
         return `
           <tr class="${rowBg} transition-colors">
             <td class="py-3 px-3 text-center font-black text-slate-700 whitespace-nowrap">${item.grade}</td>
             <td class="py-3 px-3 text-center font-bold text-slate-600 whitespace-nowrap">${item.classNum}반 ${item.studentNum}번</td>
             <td class="py-3 px-4 text-center font-black text-slate-900 whitespace-nowrap">${item.name}</td>
             <td class="py-3 px-3 text-center whitespace-nowrap">
-              ${isPass 
-                ? '<span class="px-2 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">정상</span>' 
-                : `<span class="px-2 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">위반 ${item.violations.length}건</span>`
-              }
+              ${statusBadgeHtml}
             </td>
             <td class="py-3 px-4">${violHtml}</td>
+            <td class="py-3 px-4">${dupBadgesHtml}</td>
             <td class="py-3 px-4">${chosenInCatHtml}</td>
             <td class="py-3 px-4">
               <div class="space-y-1">
