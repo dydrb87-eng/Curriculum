@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_10:04)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_10:26)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_10:04)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_10:26)</span></p>
         </div>
       </div>
 
@@ -1625,7 +1625,11 @@
           <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-                <button type="button" id="step3FilterStatusViolated" onclick="window.setStep3ResultFilter('status', 'violated')" class="px-3 py-1.5 rounded-lg text-xs font-black transition bg-rose-600 text-white shadow-xs">
+                <button type="button" id="step3FilterStatusAll" onclick="window.setStep3ResultFilter('status', 'all')" class="px-3 py-1.5 rounded-lg text-xs font-black transition bg-indigo-600 text-white shadow-xs">
+                  <span>👥 전체 학생</span>
+                  <span id="step3FilterCountAll" class="ml-1 text-[11px] opacity-90">(0)</span>
+                </button>
+                <button type="button" id="step3FilterStatusViolated" onclick="window.setStep3ResultFilter('status', 'violated')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
                   <span>🚨 점검 필요 (위반·중복)</span>
                   <span id="step3FilterCountViolated" class="ml-1 text-[11px] opacity-90">(0)</span>
                 </button>
@@ -1633,9 +1637,9 @@
                   <span>✅ 조건 충족 (정상)</span>
                   <span id="step3FilterCountPass" class="ml-1 text-[11px] opacity-90">(0)</span>
                 </button>
-                <button type="button" id="step3FilterStatusAll" onclick="window.setStep3ResultFilter('status', 'all')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
-                  <span>👥 전체 학생</span>
-                  <span id="step3FilterCountAll" class="ml-1 text-[11px] opacity-90">(0)</span>
+                <button type="button" id="step3FilterStatusAdded" onclick="window.setStep3ResultFilter('status', 'added')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition" title="2단계에서 새로 추가된 학생만 필터링">
+                  <span>★ 추가 학생</span>
+                  <span id="step3FilterCountAdded" class="ml-1 text-[11px] opacity-90">(0)</span>
                 </button>
               </div>
 
@@ -5397,6 +5401,9 @@
           } else {
             _step3ResultFilters.grade = 'all';
           }
+          if (!_step3ResultFilters.status) {
+            _step3ResultFilters.status = 'all';
+          }
         }
 
         // 3단계 진입 시 항상 최신 학생 데이터로 즉시 재검증 실행
@@ -6100,10 +6107,12 @@
       AppState.students.push(newStudent);
       sortStudentsByClassAndNum();
 
-      // Step 3 검증 필터 학년을 새로 추가된 학생 학년으로 맞춤
+      // Step 3 검증 필터를 전체 학생 및 추가된 학생 학년으로 맞춤
       if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
+        _step3ResultFilters.status = 'all';
         _step3ResultFilters.grade = curGrade;
         _step3ResultFilters.classNum = 'all';
+        _step3ResultFilters.search = '';
       }
 
       runCrossCheckAnalysis();
@@ -6182,10 +6191,12 @@
 
       sortStudentsByClassAndNum();
 
-      // Step 3 검증 필터 학년을 새로 추가된 학생 학년으로 맞춤
+      // Step 3 검증 필터를 전체 학생 및 추가된 학생 학년으로 맞춤
       if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
+        _step3ResultFilters.status = 'all';
         _step3ResultFilters.grade = curGrade;
         _step3ResultFilters.classNum = 'all';
+        _step3ResultFilters.search = '';
       }
 
       runCrossCheckAnalysis();
@@ -14292,8 +14303,8 @@ function createSangjiCourseSelectionForm() {
 
     let _step3ActiveSubTab = 'results'; // 'results' | 'categories' | 'mappings'
     let _step3ResultFilters = {
-      status: 'violated', // 'violated' | 'pass' | 'all'
-      grade: 'all', // 초기값: 전체 학년 (또는 현재 활성 학년 자동 동기화)
+      status: 'all', // 초기값: 전체 학생 (위반·중복 학생이 최상단에 우선 정렬됨)
+      grade: 'all',
       classNum: 'all',
       categoryId: 'all',
       search: ''
@@ -14898,10 +14909,12 @@ function createSangjiCourseSelectionForm() {
 
       renderStep3UI();
 
+      const addedCount = results.filter(r => r.student && r.student.isNewlyAdded).length;
+
       if (showAlert) {
         if (categories.length === 0 && allStudents.length > 0) {
           alert(`✅ 교과군 선택 조건 검증 완료!
-- 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명)
+- 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명${addedCount > 0 ? ` / 웹 추가학생 ${addedCount}명 포함` : ''})
 - 점검 필요 (위반·중복·미신청): ${needGuidanceCount}명
 - 조건 충족 (정상): ${passedCount}명
 ※ 안내: 등록된 교과군이 아직 없습니다. [1. 교과군 및 조건 등록/관리]에서 교과군 조건을 추가하시면 세부 위반 여부까지 정밀하게 검증됩니다.`);
@@ -14909,7 +14922,7 @@ function createSangjiCourseSelectionForm() {
           alert('⚠️ 검증할 2학년 및 3학년 학생 데이터가 없습니다. 학생 수강신청 엑셀 파일을 먼저 업로드해주세요.');
         } else {
           alert(`✅ 교과군 선택 조건 검증 완료!
-- 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명)
+- 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명${addedCount > 0 ? ` / 웹 추가학생 ${addedCount}명 포함` : ''})
 - 점검 필요 학생: ${needGuidanceCount}명 (교과군 위반·미신청 ${violatedCount}명, 과목 중복 ${duplicateCount}명)
 - 조건 충족 (정상): ${passedCount}명${unmappedSubjSet.size > 0 ? `
 - 교과군 미지정 과목: ${unmappedSubjSet.size}건` : ''}`);
@@ -16061,17 +16074,22 @@ function createSangjiCourseSelectionForm() {
       const sData = getStep3Data();
       const categories = sData.categories || [];
 
+      const btnA = document.getElementById('step3FilterStatusAll');
       const btnV = document.getElementById('step3FilterStatusViolated');
       const btnP = document.getElementById('step3FilterStatusPass');
-      const btnA = document.getElementById('step3FilterStatusAll');
+      const btnAdd = document.getElementById('step3FilterStatusAdded');
+      const cntA = document.getElementById('step3FilterCountAll');
       const cntV = document.getElementById('step3FilterCountViolated');
       const cntP = document.getElementById('step3FilterCountPass');
-      const cntA = document.getElementById('step3FilterCountAll');
+      const cntAdd = document.getElementById('step3FilterCountAdded');
 
       const needCount = val.needGuidanceCount !== undefined ? val.needGuidanceCount : val.violatedCount;
+      const addedCount = val.results.filter(r => r.student && r.student.isNewlyAdded).length;
+
+      if (cntA) cntA.textContent = `(${val.totalCount})`;
       if (cntV) cntV.textContent = `(${needCount})`;
       if (cntP) cntP.textContent = `(${val.passedCount})`;
-      if (cntA) cntA.textContent = `(${val.totalCount})`;
+      if (cntAdd) cntAdd.textContent = `(${addedCount})`;
 
       const filterGradeEl = document.getElementById('step3FilterGrade');
       if (filterGradeEl && filterGradeEl.value !== _step3ResultFilters.grade) {
@@ -16096,23 +16114,28 @@ function createSangjiCourseSelectionForm() {
         classSelect.innerHTML = classHtml;
       }
 
-      const curStatus = _step3ResultFilters.status;
-      [btnV, btnP, btnA].forEach(b => {
+      const curStatus = _step3ResultFilters.status || 'all';
+      [btnA, btnV, btnP, btnAdd].forEach(b => {
         if (b) b.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition';
       });
 
-      if (curStatus === 'violated' && btnV) {
+      if (curStatus === 'all' && btnA) {
+        btnA.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition bg-indigo-600 text-white shadow-xs';
+      } else if (curStatus === 'violated' && btnV) {
         btnV.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition bg-rose-600 text-white shadow-xs';
       } else if (curStatus === 'pass' && btnP) {
         btnP.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition bg-emerald-600 text-white shadow-xs';
-      } else if (curStatus === 'all' && btnA) {
-        btnA.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition bg-indigo-600 text-white shadow-xs';
+      } else if (curStatus === 'added' && btnAdd) {
+        btnAdd.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition bg-purple-600 text-white shadow-xs';
       }
 
       const catSelect = document.getElementById('step3FilterCategory');
       if (catSelect) {
         const curCatVal = _step3ResultFilters.categoryId;
         let optHtml = '<option value="all">모든 교과군</option>';
+        if (val.catViolationCounts['__unselected__'] > 0) {
+          optHtml += `<option value="__unselected__" ${curCatVal === '__unselected__' ? 'selected' : ''}>⚠️ 선택과목 미신청 (${val.catViolationCounts['__unselected__']}명)</option>`;
+        }
         categories.forEach(c => {
           const violCnt = val.catViolationCounts[c.id] || 0;
           optHtml += `<option value="${c.id}" ${curCatVal === c.id ? 'selected' : ''}>${c.name} (${violCnt}명 위반)</option>`;
@@ -16124,9 +16147,16 @@ function createSangjiCourseSelectionForm() {
       const emptyState = document.getElementById('step3ResultsEmptyState');
       const countBadge = document.getElementById('step3TableResultCount');
 
+      const hasSearch = !!(_step3ResultFilters.search && _step3ResultFilters.search.trim());
+
       let filtered = val.results.filter(stRes => {
-        if (_step3ResultFilters.status === 'violated' && stRes.isPass) return false;
-        if (_step3ResultFilters.status === 'pass' && !stRes.isPass) return false;
+        // 검색어가 입력된 경우 상태 탭(위반/정상/추가)과 무관하게 해당 학생을 직접 검색
+        if (!hasSearch) {
+          if (_step3ResultFilters.status === 'violated' && stRes.isPass) return false;
+          if (_step3ResultFilters.status === 'pass' && !stRes.isPass) return false;
+          if (_step3ResultFilters.status === 'added' && (!stRes.student || !stRes.student.isNewlyAdded)) return false;
+        }
+
         if (_step3ResultFilters.grade !== 'all' && stRes.grade !== _step3ResultFilters.grade) return false;
         if (_step3ResultFilters.classNum !== 'all') {
           const stC = String(stRes.classNum || '').replace(/[^0-9]/g, '');
@@ -16135,11 +16165,16 @@ function createSangjiCourseSelectionForm() {
         }
 
         if (_step3ResultFilters.categoryId !== 'all') {
-          const hasCatViol = stRes.violations.some(v => v.category && v.category.id === _step3ResultFilters.categoryId);
-          if (!hasCatViol) return false;
+          if (_step3ResultFilters.categoryId === '__unselected__') {
+            const hasUnselect = stRes.violations.some(v => v.category && v.category.id === '__unselected__');
+            if (!hasUnselect) return false;
+          } else {
+            const hasCatViol = stRes.violations.some(v => v.category && v.category.id === _step3ResultFilters.categoryId);
+            if (!hasCatViol) return false;
+          }
         }
 
-        if (_step3ResultFilters.search.trim()) {
+        if (hasSearch) {
           const q = _step3ResultFilters.search.trim().toLowerCase();
           const matchName = (stRes.name || '').toLowerCase().includes(q);
           const matchId = String(stRes.studentNum || '').includes(q);
@@ -17023,7 +17058,9 @@ function createSangjiCourseSelectionForm() {
       const acadYear = (typeof getActiveAcademicYearName === 'function')
         ? getActiveAcademicYearName()
         : (MultiState?.activeAcademicYear || '2027학년도');
-      const targetGrade = (_step3ResultFilters.grade && _step3ResultFilters.grade !== 'all') ? _step3ResultFilters.grade : '3학년';
+      const targetGrade = (_step3ResultFilters.grade && _step3ResultFilters.grade !== 'all') 
+        ? _step3ResultFilters.grade 
+        : ((MultiState && MultiState.activeGrade !== '전체') ? MultiState.activeGrade : '3학년');
 
       const sData = getStep3Data();
       const categories = sData.categories || [];
