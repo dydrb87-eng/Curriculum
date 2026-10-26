@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.26_11:52)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_07:32)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.26_11:52)</p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_07:32)</span></p>
         </div>
       </div>
 
@@ -1616,7 +1616,7 @@
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
                 <button type="button" id="step3FilterStatusViolated" onclick="window.setStep3ResultFilter('status', 'violated')" class="px-3 py-1.5 rounded-lg text-xs font-black transition bg-rose-600 text-white shadow-xs">
-                  <span>🚨 조건 위반 학생</span>
+                  <span>🚨 점검 필요 (위반·중복)</span>
                   <span id="step3FilterCountViolated" class="ml-1 text-[11px] opacity-90">(0)</span>
                 </button>
                 <button type="button" id="step3FilterStatusPass" onclick="window.setStep3ResultFilter('status', 'pass')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
@@ -1633,7 +1633,7 @@
                 <select id="step3FilterGrade" onchange="window.setStep3ResultFilter('grade', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
                   <option value="all">전체 학년</option>
                   <option value="2학년">2학년</option>
-                  <option value="3학년">3학년</option>
+                  <option value="3학년" selected>3학년</option>
                 </select>
 
                 <select id="step3FilterClass" onchange="window.setStep3ResultFilter('classNum', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
@@ -1671,8 +1671,9 @@
                     <th class="py-3 px-3 w-16 text-center">학년</th>
                     <th class="py-3 px-3 w-20 text-center">반/번호</th>
                     <th class="py-3 px-4 w-24 text-center">학생명</th>
-                    <th class="py-3 px-3 w-24 text-center">검증 상태</th>
-                    <th class="py-3 px-4 min-w-[280px]">위반 교과군 및 불일치 사유</th>
+                    <th class="py-3 px-3 w-28 text-center">검증 상태</th>
+                    <th class="py-3 px-4 min-w-[260px]">위반 교과군 및 불일치 사유</th>
+                    <th class="py-3 px-4 min-w-[240px]">과목 중복 신청</th>
                     <th class="py-3 px-4 min-w-[260px]">해당 교과군 선택 과목 (구체적 과목명)</th>
                     <th class="py-3 px-4 min-w-[260px]">전체 선택 과목 (1학기 / 2학기)</th>
                   </tr>
@@ -13665,7 +13666,7 @@ function createSangjiCourseSelectionForm() {
     let _step3ActiveSubTab = 'results'; // 'results' | 'categories' | 'mappings'
     let _step3ResultFilters = {
       status: 'violated', // 'violated' | 'pass' | 'all'
-      grade: 'all',
+      grade: '3학년',
       classNum: 'all',
       categoryId: 'all',
       search: ''
@@ -16031,98 +16032,372 @@ function createSangjiCourseSelectionForm() {
         return;
       }
 
-      const wb = XLSX.utils.book_new();
       const acadYear = MultiState?.activeAcademicYear || '2027학년도';
       const curDate = MultiState?.activeYear || '기준';
-
-      const s1Data = [];
-      s1Data.push([`[상지대관령고등학교] ${acadYear} (${curDate}) 교과군 선택 조건 위반 학생 명단`]);
-      s1Data.push([`총 검증 학생: ${lastResult.totalCount}명 | 충족: ${lastResult.passedCount}명 | 위반: ${lastResult.violatedCount}명 | 출력일시: ${new Date().toLocaleString()}`]);
-      s1Data.push([]);
-      s1Data.push(['학년', '반', '번호', '학생명', '위반 교과군', '설정 조건', '실제 선택 수', '판정 사유', '해당 교과군 선택 과목 목록', '1학기 전체 선택과목', '2학기 전체 선택과목']);
-
-      const violatedList = lastResult.results.filter(r => !r.isPass);
-      if (violatedList.length === 0) {
-        s1Data.push(['-', '-', '-', '-', '위반 사항 없음 (모든 학생이 조건을 충족함)', '-', '-', '-', '-', '-', '-']);
-      } else {
-        violatedList.forEach(item => {
-          item.violations.forEach((v) => {
-            s1Data.push([
-              item.grade,
-              item.classNum + '반',
-              item.studentNum,
-              item.name,
-              v.category ? v.category.name : '-',
-              v.ruleDesc,
-              v.count + '과목',
-              v.reason,
-              v.subjects.length > 0 ? v.subjects.join(', ') : '선택 과목 없음 (0개)',
-              (item.sem1 || []).join(', '),
-              (item.sem2 || []).join(', ')
-            ]);
-          });
-        });
-      }
-
-      const ws1 = XLSX.utils.aoa_to_sheet(s1Data);
-      XLSX.utils.book_append_sheet(wb, ws1, '조건 위반 학생 명단');
-
-      const s2Data = [];
-      s2Data.push([`[상지대관령고등학교] ${acadYear} (${curDate}) 학생별 교과군 선택 종합 집계표`]);
-      s2Data.push([`총 학생 수: ${lastResult.totalCount}명 | 검증 통과율: ${((lastResult.passedCount / (lastResult.totalCount || 1)) * 100).toFixed(1)}%`]);
-      s2Data.push([]);
+      const targetGrade = (_step3ResultFilters.grade && _step3ResultFilters.grade !== 'all') ? _step3ResultFilters.grade : '3학년';
 
       const sData = getStep3Data();
       const categories = sData.categories || [];
+      const wb = XLSX.utils.book_new();
 
-      const catHeaders = [];
-      categories.forEach(c => {
-        catHeaders.push(`[${c.name}] 선택수`);
-        catHeaders.push(`[${c.name}] 충족여부`);
-      });
+      const fontKo = '맑은 고딕';
+      const pastelBorder = {
+        top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
+      const pastelBorderThick = {
+        top: { style: 'medium', color: { rgb: '6366F1' } },
+        bottom: { style: 'medium', color: { rgb: '6366F1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
 
-      s2Data.push(['학년', '반', '번호', '학생명', '최종 판정', '위반 건수', ...catHeaders, '1학기 선택과목', '2학기 선택과목']);
+      // Helper function to build a structured pastel-themed worksheet
+      function buildStructuredValidationSheet(studentList, sheetGradeTitle, subNote = '') {
+        const rows = [];
+        const merges = [];
 
-      lastResult.results.forEach(stRes => {
-        const row = [
-          stRes.grade,
-          stRes.classNum + '반',
-          stRes.studentNum,
-          stRes.name,
-          stRes.isPass ? '정상 (충족)' : '위반',
-          stRes.violations.length
+        // Title row: exact required format 'nnnn학년도 n학년 1,2학기 학생별 교육과정 점검 결과'
+        const mainTitle = `[상지대관령고등학교] ${acadYear} ${sheetGradeTitle} 1,2학기 학생별 교육과정 점검 결과`;
+        rows.push([mainTitle]);
+        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } });
+
+        // Subtitle row: guidance for homeroom teachers
+        const todayStr = new Date().toLocaleDateString('ko-KR');
+        const subTitle = subNote || `※ 학급 담임 교사 학생 지도용 안내 자료 | 발행일: ${todayStr} | 상지대관령고등학교 교육과정위원회`;
+        rows.push([subTitle]);
+        merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 10 } });
+
+        // Stats summary row
+        const totalCnt = studentList.length;
+        const passCnt = studentList.filter(s => s.isPass).length;
+        const violCnt = studentList.filter(s => s.hasViol).length;
+        const dupCnt = studentList.filter(s => s.hasDup).length;
+        const needCnt = studentList.filter(s => !s.isPass).length;
+        rows.push([`■ 점검 현황: 총 ${totalCnt}명 (이수조건 충족: ${passCnt}명, 점검·지도 대상: ${needCnt}명 [교과군 미달 ${violCnt}명, 중복신청 ${dupCnt}명])`]);
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: 10 } });
+
+        // Notice row
+        rows.push([`※ 안내: 점검 상태가 '조건 위반' 또는 '중복 의심'인 학생은 해당 사유를 확인하여 담임 선생님 지도 및 수강 정정을 진행해주시기 바랍니다.`]);
+        merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: 10 } });
+
+        // Header row
+        rows.push([
+          '연번',
+          '학년',
+          '반',
+          '번호',
+          '학생명',
+          '종합 점검 결과',
+          '교과군 선택 조건 위반 내역',
+          '과목 중복 신청 내역',
+          '1학기 전체 선택과목',
+          '2학기 전체 선택과목',
+          '담임교사 지도확인'
+        ]);
+
+        // Data rows
+        studentList.forEach((st, idx) => {
+          let statusText = '정상 (충족)';
+          if (st.hasViol && st.hasDup) {
+            statusText = '위반 및 중복';
+          } else if (st.hasViol) {
+            statusText = '조건 위반';
+          } else if (st.hasDup) {
+            statusText = '중복 의심';
+          }
+
+          let violText = '충족 (위반 없음)';
+          if (st.hasViol && st.violations && st.violations.length > 0) {
+            violText = st.violations.map(v => {
+              const catName = v.category ? v.category.name : '교과군';
+              return `[${catName}] ${v.reason}`;
+            }).join('\n');
+          }
+
+          let dupText = '없음';
+          if (st.hasDup && st.dupList && st.dupList.length > 0) {
+            dupText = st.dupList.map(d => {
+              return `${d.subject}(${d.semester}학기/ ${d.sourceLabel})`;
+            }).filter((v, i, a) => a.indexOf(v) === i).join('\n');
+          }
+
+          const sem1Text = (st.sem1 && st.sem1.length > 0) ? st.sem1.join(', ') : '-';
+          const sem2Text = (st.sem2 && st.sem2.length > 0) ? st.sem2.join(', ') : '-';
+
+          rows.push([
+            idx + 1,
+            st.grade,
+            st.classNum + '반',
+            st.studentNum + '번',
+            st.name,
+            statusText,
+            violText,
+            dupText,
+            sem1Text,
+            sem2Text,
+            '' // 담임교사 수기 서명란
+          ]);
+        });
+
+        // Summary footer row
+        rows.push([
+          '합계',
+          '',
+          '',
+          '',
+          `총 ${totalCnt}명`,
+          `충족 ${passCnt}명 / 점검 ${needCnt}명`,
+          `위반 ${violCnt}건`,
+          `중복 ${dupCnt}건`,
+          '',
+          '',
+          ''
+        ]);
+        const sumRowIdx = rows.length - 1;
+        merges.push({ s: { r: sumRowIdx, c: 0 }, e: { r: sumRowIdx, c: 3 } });
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!merges'] = merges;
+
+        // Column widths
+        ws['!cols'] = [
+          { wch: 6 },  // 연번
+          { wch: 8 },  // 학년
+          { wch: 7 },  // 반
+          { wch: 7 },  // 번호
+          { wch: 11 }, // 학생명
+          { wch: 15 }, // 종합 점검 결과
+          { wch: 38 }, // 교과군 선택 조건 위반 내역
+          { wch: 34 }, // 과목 중복 신청 내역
+          { wch: 36 }, // 1학기 선택과목
+          { wch: 36 }, // 2학기 선택과목
+          { wch: 14 }  // 담임교사 지도확인
         ];
 
-        categories.forEach(c => {
-          const evalItem = stRes.evaluations.find(e => e.category && e.category.id === c.id);
-          if (evalItem) {
-            row.push(evalItem.count + '과목');
-            row.push(evalItem.isViolated ? '위반' : '충족');
-          } else {
-            row.push('-');
-            row.push('해당없음');
+        // Row heights
+        const rowHeights = [
+          { hpt: 34 }, // Title
+          { hpt: 20 }, // Subtitle
+          { hpt: 22 }, // Stats
+          { hpt: 20 }, // Notice
+          { hpt: 28 }  // Table header
+        ];
+        for (let i = 0; i < studentList.length; i++) {
+          rowHeights.push({ hpt: 26 });
+        }
+        rowHeights.push({ hpt: 24 }); // Footer
+        ws['!rows'] = rowHeights;
+
+        // Page setup for printing: A4 Landscape, Fit to 1 page wide
+        ws['!pageSetup'] = {
+          paperSize: 9,            // A4
+          orientation: 'landscape', // 가로 방향
+          fitToWidth: 1,
+          fitToPage: true
+        };
+        ws['!printOptions'] = { horizontalCentered: true };
+        ws['!margins'] = { left: 0.35, right: 0.35, top: 0.45, bottom: 0.45, header: 0.2, footer: 0.2 };
+
+        // Apply Pastel Styles
+        // Title (Row 0)
+        for (let c = 0; c <= 10; c++) {
+          const ref = XLSX.utils.encode_cell({ r: 0, c });
+          if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+          ws[ref].s = {
+            font: { name: fontKo, sz: 14, bold: true, color: { rgb: '1E293B' } },
+            fill: { fgColor: { rgb: 'EEF2FF' } }, // Pastel soft indigo
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: {
+              top: { style: 'medium', color: { rgb: '6366F1' } },
+              bottom: { style: 'thin', color: { rgb: 'C7D2FE' } },
+              left: { style: 'medium', color: { rgb: '6366F1' } },
+              right: { style: 'medium', color: { rgb: '6366F1' } }
+            }
+          };
+        }
+
+        // Subtitle (Row 1)
+        for (let c = 0; c <= 10; c++) {
+          const ref = XLSX.utils.encode_cell({ r: 1, c });
+          if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+          ws[ref].s = {
+            font: { name: fontKo, sz: 9, color: { rgb: '64748B' } },
+            fill: { fgColor: { rgb: 'F8FAFC' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: {
+              left: { style: 'medium', color: { rgb: '6366F1' } },
+              right: { style: 'medium', color: { rgb: '6366F1' } },
+              bottom: { style: 'thin', color: { rgb: 'E2E8F0' } }
+            }
+          };
+        }
+
+        // Stats (Row 2)
+        for (let c = 0; c <= 10; c++) {
+          const ref = XLSX.utils.encode_cell({ r: 2, c });
+          if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+          ws[ref].s = {
+            font: { name: fontKo, sz: 9.5, bold: true, color: { rgb: '334155' } },
+            fill: { fgColor: { rgb: 'F1F5F9' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: {
+              left: { style: 'medium', color: { rgb: '6366F1' } },
+              right: { style: 'medium', color: { rgb: '6366F1' } },
+              bottom: { style: 'thin', color: { rgb: 'E2E8F0' } }
+            }
+          };
+        }
+
+        // Notice (Row 3)
+        for (let c = 0; c <= 10; c++) {
+          const ref = XLSX.utils.encode_cell({ r: 3, c });
+          if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+          ws[ref].s = {
+            font: { name: fontKo, sz: 8.5, color: { rgb: '94A3B8' }, italic: true },
+            fill: { fgColor: { rgb: 'F8FAFC' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: {
+              left: { style: 'medium', color: { rgb: '6366F1' } },
+              right: { style: 'medium', color: { rgb: '6366F1' } },
+              bottom: { style: 'medium', color: { rgb: '94A3B8' } }
+            }
+          };
+        }
+
+        // Header (Row 4)
+        for (let c = 0; c <= 10; c++) {
+          const ref = XLSX.utils.encode_cell({ r: 4, c });
+          if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+          ws[ref].s = {
+            font: { name: fontKo, sz: 10, bold: true, color: { rgb: '1E293B' } },
+            fill: { fgColor: { rgb: 'E0E7FF' } }, // Pastel lavender/indigo header
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+            border: pastelBorderThick
+          };
+        }
+
+        // Data Rows (Row 5 to 5 + studentList.length - 1)
+        studentList.forEach((st, idx) => {
+          const r = 5 + idx;
+          const isEven = (idx % 2 === 0);
+
+          let rowBg = isEven ? 'FFFFFF' : 'F8FAFC';
+          let statusColor = '059669'; // Emerald
+          let statusBg = isEven ? 'F0FDF4' : 'DCFCE7';
+
+          if (st.hasViol && st.hasDup) {
+            rowBg = isEven ? 'FFF1F2' : 'FFE4E6'; // Pastel pink/rose
+            statusColor = '9F1239';
+            statusBg = 'FECDD3';
+          } else if (st.hasViol) {
+            rowBg = isEven ? 'FFF1F2' : 'FFE4E6'; // Pastel rose
+            statusColor = 'BE123C';
+            statusBg = 'FFE4E6';
+          } else if (st.hasDup) {
+            rowBg = isEven ? 'FFFBEB' : 'FEF3C7'; // Pastel amber
+            statusColor = 'B45309';
+            statusBg = 'FEF3C7';
+          }
+
+          for (let c = 0; c <= 10; c++) {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+
+            const isCenterCol = [0, 1, 2, 3, 4, 5, 10].includes(c);
+            let cellFont = { name: fontKo, sz: 9.5, color: { rgb: '334155' } };
+            let cellBg = rowBg;
+
+            if (c === 4) { // Student Name
+              cellFont = { name: fontKo, sz: 10, bold: true, color: { rgb: '0F172A' } };
+            } else if (c === 5) { // Status
+              cellFont = { name: fontKo, sz: 9.5, bold: true, color: { rgb: statusColor } };
+              cellBg = statusBg;
+            } else if (c === 6 && st.hasViol) { // Violation details
+              cellFont = { name: fontKo, sz: 9, bold: true, color: { rgb: '9F1239' } };
+            } else if (c === 7 && st.hasDup) { // Duplicate details
+              cellFont = { name: fontKo, sz: 9, bold: true, color: { rgb: 'B45309' } };
+            }
+
+            ws[ref].s = {
+              font: cellFont,
+              fill: { fgColor: { rgb: cellBg } },
+              alignment: {
+                horizontal: isCenterCol ? 'center' : 'left',
+                vertical: 'center',
+                wrapText: !isCenterCol
+              },
+              border: pastelBorder
+            };
           }
         });
 
-        row.push((stRes.sem1 || []).join(', '));
-        row.push((stRes.sem2 || []).join(', '));
-        s2Data.push(row);
+        // Summary footer (sumRowIdx)
+        for (let c = 0; c <= 10; c++) {
+          const ref = XLSX.utils.encode_cell({ r: sumRowIdx, c });
+          if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+          ws[ref].s = {
+            font: { name: fontKo, sz: 9.5, bold: true, color: { rgb: '1E293B' } },
+            fill: { fgColor: { rgb: 'E2E8F0' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: pastelBorderThick
+          };
+        }
+
+        return ws;
+      }
+
+      // Filter target students by selected grade (or all if 'all')
+      const targetGradeStudents = (targetGrade === 'all')
+        ? lastResult.results
+        : lastResult.results.filter(st => st.grade === targetGrade);
+
+      const displayGradeTitle = (targetGrade === 'all') ? '2·3학년' : targetGrade;
+
+      // Sheet 1: Total grade sheet
+      const wsMain = buildStructuredValidationSheet(targetGradeStudents, `${displayGradeTitle} 전체`);
+      XLSX.utils.book_append_sheet(wb, wsMain, `${displayGradeTitle}_전체_점검결과`.substring(0, 31));
+
+      // Sheets 2..N: Per-class sheets for homeroom teachers
+      const classMap = {};
+      targetGradeStudents.forEach(st => {
+        const cls = String(st.classNum || '1');
+        if (!classMap[cls]) classMap[cls] = [];
+        classMap[cls].push(st);
       });
 
-      const ws2 = XLSX.utils.aoa_to_sheet(s2Data);
-      XLSX.utils.book_append_sheet(wb, ws2, '전체 학생 검증 집계표');
+      const sortedClassKeys = Object.keys(classMap).sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0));
+      sortedClassKeys.forEach(cls => {
+        const classStudents = classMap[cls];
+        const classSheetTitle = `${displayGradeTitle} ${cls}반`;
+        const classSubNote = `※ ${displayGradeTitle} ${cls}반 담임 선생님 지도용 안내 자료 | 발행일: ${new Date().toLocaleDateString('ko-KR')} | 학생 확인 후 지도 바랍니다.`;
+        const wsClass = buildStructuredValidationSheet(classStudents, classSheetTitle, classSubNote);
+        XLSX.utils.book_append_sheet(wb, wsClass, `${displayGradeTitle}_${cls}반`.substring(0, 31));
+      });
 
-      const s3Data = [];
-      s3Data.push([`[상지대관령고등학교] ${acadYear} 교육과정 과목별 교과군 지정 기준표`]);
-      s3Data.push([`등록 교과군: ${categories.length}개 군 | 매핑 과목 수: ${Object.keys(sData.mappings || {}).length}개`]);
-      s3Data.push([]);
-      s3Data.push(['학년', '학기', '구분', '과목명', '배정 교과군', '교과군 조건', '단위(시수)', '담당교사', '개설상태']);
+      // Sheet N+1: Students needing guidance (violations or duplicates)
+      const needGuidanceList = targetGradeStudents.filter(st => !st.isPass);
+      if (needGuidanceList.length > 0) {
+        const guidanceTitle = `${displayGradeTitle} 지도대상자(위반·중복)`;
+        const guidanceNote = `※ 교과군 이수조건 위반 및 동일·기이수 중복 신청 학생 명단 (총 ${needGuidanceList.length}명 집중 점검 지도용)`;
+        const wsGuidance = buildStructuredValidationSheet(needGuidanceList, guidanceTitle, guidanceNote);
+        XLSX.utils.book_append_sheet(wb, wsGuidance, '지도대상_학생명단(위반·중복)');
+      }
+
+      // Sheet N+2: Category standards reference table
+      const sRefData = [];
+      sRefData.push([`[상지대관령고등학교] ${acadYear} 교육과정 과목별 교과군 지정 기준표`]);
+      sRefData.push([`등록 교과군: ${categories.length}개 군 | 매핑 과목 수: ${Object.keys(sData.mappings || {}).length}개 | 출력일: ${new Date().toLocaleDateString('ko-KR')}`]);
+      sRefData.push([]);
+      sRefData.push(['학년', '학기', '구분', '과목명', '배정 교과군', '교과군 조건', '단위(시수)', '담당교사', '개설상태']);
 
       const currSubjects = getAllCurriculumSubjectsForStep3();
       currSubjects.forEach(cs => {
         const catId = getSubjectCategory(cs.subject, cs.grade);
         const cat = catId ? categories.find(c => c.id === catId) : null;
-        s3Data.push([
+        sRefData.push([
           cs.grade,
           cs.semester + '학기',
           cs.category || '선택',
@@ -16135,12 +16410,19 @@ function createSangjiCourseSelectionForm() {
         ]);
       });
 
-      const ws3 = XLSX.utils.aoa_to_sheet(s3Data);
-      XLSX.utils.book_append_sheet(wb, ws3, '과목별 교과군 기준');
+      const wsRef = XLSX.utils.aoa_to_sheet(sRefData);
+      wsRef['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }
+      ];
+      wsRef['!cols'] = [
+        { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 22 }, { wch: 24 }, { wch: 26 }, { wch: 10 }, { wch: 12 }, { wch: 10 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsRef, '교과군별_과목_지정기준');
 
       const fileName = (typeof buildExportFileName === 'function') 
-        ? buildExportFileName(`${acadYear}_교과군_선택조건_검증결과`, 'xlsx')
-        : `${acadYear}_교과군_선택조건_검증결과.xlsx`;
+        ? buildExportFileName(`${acadYear}_${displayGradeTitle}_1,2학기_학생별_교육과정_점검결과`, 'xlsx')
+        : `${acadYear}_${displayGradeTitle}_1,2학기_학생별_교육과정_점검결과.xlsx`;
 
       if (typeof window.saveExcelFile === 'function') {
         window.saveExcelFile(wb, fileName);
@@ -22315,7 +22597,62 @@ function renderYearGradeNav() {
     }
 
     // Run Startup Initialization
+    
+    // GitHub 최신 커밋 일시(업데이트 날짜 및 시간)와 자동 동기화
+    async function syncGitHubLastCommitDate() {
+      try {
+        const repo = 'dydrb87-eng/Curriculum';
+        const cacheKey = 'gh_last_commit_date';
+        const cacheTimeKey = 'gh_last_commit_fetch_time';
+        const now = Date.now();
+
+        // 3분 캐시 확인 (불필요한 중복 호출 방지 및 API 레이트 리밋 대비)
+        const cachedDate = sessionStorage.getItem(cacheKey);
+        const lastFetch = parseInt(sessionStorage.getItem(cacheTimeKey) || '0', 10);
+        if (cachedDate && (now - lastFetch < 3 * 60 * 1000)) {
+          applyVersionDate(cachedDate);
+          return;
+        }
+
+        const res = await fetch('https://api.github.com/repos/' + repo + '/commits?per_page=1', {
+          headers: { 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0 && data[0].commit) {
+          const commitDateStr = data[0].commit.committer?.date || data[0].commit.author?.date;
+          if (commitDateStr) {
+            const d = new Date(commitDateStr);
+            // 한국 시간 (KST, UTC+9) 포맷: YYYY.MM.DD_HH:mm
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            const formatted = y + '.' + m + '.' + day + '_' + hh + ':' + mm;
+
+            sessionStorage.setItem(cacheKey, formatted);
+            sessionStorage.setItem(cacheTimeKey, String(now));
+            applyVersionDate(formatted);
+          }
+        }
+      } catch (err) {
+        console.warn('GitHub commit date sync skipped:', err.message);
+      }
+    }
+
+    function applyVersionDate(formatted) {
+      const versionEl = document.getElementById('appVersionDateText');
+      if (versionEl) {
+        versionEl.textContent = '(' + formatted + ')';
+      }
+      if (document.title) {
+        document.title = document.title.replace(/\(\d{4}\.\d{2}\.\d{2}_\d{2}:\d{2}\)/, '(' + formatted + ')');
+      }
+    }
+
     loadAllState();
+    syncGitHubLastCommitDate();
   </script>
 
 </body>
