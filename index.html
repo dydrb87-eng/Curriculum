@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_12:57)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_13:07)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_12:57)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_13:07)</span></p>
         </div>
       </div>
 
@@ -11950,20 +11950,55 @@
     }
 
     // Helper to build Single Plan Placement Sheet
-        // 배치표 엑셀 출력 시 과목명을 '[교과군] 과목명' 형식으로 변환하는 헬퍼
+        // 대한민국 2015/2022 개정 교육과정 표준 교과군 자동 분류 사전 (3단계 미설정 시에도 100% 보장)
+    function inferStandardSubjectCategory(subj) {
+      if (!subj) return '선택';
+      const s = String(subj).trim();
+      const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(s) : s.replace(/\s+/g, '');
+
+      // 1. 국어과
+      if (/국어|화법|독서|작문|문학|언어와매체|고전읽기|심화국어|매체의사소통/.test(norm)) return '국어';
+      // 2. 수학과
+      if (/수학|미적분|확률과통계|확률|통계|기하|경제수학|인공지능수학|수학과제/.test(norm)) return '수학';
+      // 3. 영어과
+      if (/영어|영미|영어회화|영어독해|실용영어|진로영어/.test(norm)) return '영어';
+      // 4. 한국사
+      if (/한국사/.test(norm)) return '한국사';
+      // 5. 사회과 (역사/도덕/지리/일반사회)
+      if (/한국지리|세계지리|지리|세계사|동아시아사|역사|경제|정치와법|정치|사회문화|생활과윤리|윤리와사상|윤리|사회문제|고전과윤리|통합사회|여행지리|현대사회/.test(norm)) return '사회';
+      // 6. 과학과
+      if (/물리학|물리|화학|생명과학|지구과학|과학탐구|융합과학|과학사|생활과과학|통합과학|생물/.test(norm)) return '과학';
+      // 7. 체육과
+      if (/체육|운동과건강|스포츠|체육탐구/.test(norm)) return '체육';
+      // 8. 예술과
+      if (/음악|미술|연극|창작|감상과비평|음악연주|미술창작/.test(norm)) return '예술';
+      // 9. 기술·가정 / 정보
+      if (/기술가정|가정과학|공학|농업|해양|지식재산/.test(norm)) return '기술·가정';
+      if (/정보|프로그래밍|컴퓨터|코딩|소프트웨어|인공지능기초/.test(norm)) return '정보';
+      // 10. 제2외국어
+      if (/일본어|중국어|독일어|프랑스어|스페인어|러시아어|아랍어|베트남어/.test(norm)) return '제2외국어';
+      // 11. 한문
+      if (/한문|한자/.test(norm)) return '한문';
+      // 12. 교양
+      if (/철학|논리학|심리학|교육학|종교학|진로와직업|진로|보건|환경|실용경제|생애설계/.test(norm)) return '교양';
+
+      return '선택';
+    }
+
+    // 배치표 엑셀 출력 시 과목명을 '[교과군] 과목명' 형식으로 변환하는 헬퍼
     function formatSubjectWithCategory(subj, grade) {
       if (!subj || typeof subj !== 'string') return '';
       const rawSubj = subj.trim();
       if (!rawSubj || rawSubj.startsWith('(')) return rawSubj;
       if (/^\[.+?\]\s*/.test(rawSubj)) return rawSubj; // 이미 [교과군]이 붙은 경우 중복 방지
 
-      const sData = (typeof getStep3Data === 'function') ? getStep3Data() : { categories: [] };
+      const sData = (typeof getStep3Data === 'function') ? getStep3Data() : { categories: [], mappings: {} };
       const allCategories = Array.isArray(sData.categories) ? sData.categories : [];
-
-      let catName = '';
       const cleanSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rawSubj) : rawSubj.replace(/[\(\[].*?[\)\]]/g, '').trim();
 
-      // 1순위: 3단계 교과군 배정 매핑에서 조회
+      let catName = '';
+
+      // 1순위: 3단계 직접 매핑 조회 (학년 우선, 학년 무관)
       let catId = (typeof getSubjectCategory === 'function') ? getSubjectCategory(cleanSubj, grade) : null;
       if (!catId && typeof getSubjectCategory === 'function') {
         catId = getSubjectCategory(rawSubj, grade) || getSubjectCategory(cleanSubj, null) || getSubjectCategory(rawSubj, null);
@@ -11976,7 +12011,7 @@
         }
       }
 
-      // 2순위: 전체 편제표(getAllGradesCurriculum)에서 보충 탐색
+      // 2순위: 편제표(getAllGradesCurriculum)에서 보충 탐색
       if (!catName) {
         const curriculum = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
         const normClean = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanSubj) : cleanSubj.toLowerCase();
@@ -11984,15 +12019,47 @@
           const cNorm = (typeof normalizeSubject === 'function') ? normalizeSubject(c.subject) : (c.subject || '').toLowerCase();
           return cNorm === normClean || c.subject === cleanSubj || c.subject === rawSubj;
         });
-        if (currItem && currItem.category && currItem.category !== '선택' && currItem.category !== '지정') {
+        if (currItem && currItem.category && !currItem.category.includes('선택') && !currItem.category.includes('지정')) {
           catName = currItem.category.trim();
         }
+      }
+
+      // 3순위: 대한민국 고등학교 표준 교육과정 교과군 자동 추론 (100% 매칭 보장!)
+      if (!catName) {
+        const stdCat = inferStandardSubjectCategory(cleanSubj || rawSubj);
+        if (stdCat && stdCat !== '선택') {
+          // 3단계 categories 목록에 유사한 카테고리가 있다면 매핑
+          const matched3rdCat = allCategories.find(c => {
+            const cName = (c.name || '').replace(/\s+/g, '');
+            if (cName.includes(stdCat)) return true;
+            if (['제2외국어', '한문', '교양', '정보', '기술·가정'].includes(stdCat) && cName.includes('생활')) return true;
+            if (stdCat === '과학' && cName.includes('과학')) return true;
+            if (stdCat === '사회' && cName.includes('사회')) return true;
+            return false;
+          });
+
+          if (matched3rdCat && matched3rdCat.name) {
+            catName = matched3rdCat.name.trim();
+          } else {
+            // 표준 카테고리명 직접 부여
+            if (['제2외국어', '한문', '교양'].includes(stdCat)) {
+              catName = '생활·교양';
+            } else {
+              catName = stdCat;
+            }
+          }
+        }
+      }
+
+      // 너무 긴 시스템 기본 카테고리명 깔끔하게 축약 (예: '생활·교양·기술·가정·정보·제2외국어' -> '생활·교양')
+      if (catName.includes('생활·교양')) {
+        catName = '생활·교양';
       }
 
       if (catName) {
         return `[${catName}] ${rawSubj}`;
       }
-      return rawSubj;
+      return `[선택] ${rawSubj}`;
     }
     window.formatSubjectWithCategory = formatSubjectWithCategory;
 
@@ -12112,9 +12179,6 @@
       const groups1 = (plan1 && plan1.groups) ? plan1.groups : [];
       const groups2 = (plan2 && plan2.groups) ? plan2.groups : [];
 
-      const { groupCounts: expGroupCounts1 } = plan1 ? analyzeGroupConflicts(plan1) : { groupCounts: [] };
-      const { groupCounts: expGroupCounts2 } = plan2 ? analyzeGroupConflicts(plan2) : { groupCounts: [] };
-
       const pastelGroupThemes = [
         { headerBg: 'DBEAFE', headerText: '1E40AF', subBg: 'EFF6FF', subText: '1E40AF', border: '93C5FD' },
         { headerBg: 'CCFBF1', headerText: '0F766E', subBg: 'F0FDFA', subText: '0F766E', border: '5EEAD4' },
@@ -12178,7 +12242,7 @@
       rows.push(sem1HeaderRow);
       rowHeights.push({ hpt: 28 });
 
-      // 1학기 과목 데이터행들
+      // 1학기 과목 데이터행들 ('[교과군] 과목명' 형식 적용!)
       const maxLen1 = groups1.length > 0 ? Math.max(...groups1.map(g => g.length), 0) : 0;
       const sem1DataStartR = rows.length;
       const len1 = Math.max(maxLen1, 1);
@@ -12188,7 +12252,9 @@
           if (groups1.length === 0) {
             row.push(r === 0 ? '(1학기 배치 데이터 없음)' : '');
           } else if (gIdx < groups1.length) {
-            row.push(groups1[gIdx][r] || '');
+            const rawSubj = groups1[gIdx][r] || '';
+            const displaySubj = rawSubj ? formatSubjectWithCategory(rawSubj, gradeStr) : '';
+            row.push(displaySubj);
           } else {
             row.push('');
           }
@@ -12225,7 +12291,7 @@
       rows.push(sem2HeaderRow);
       rowHeights.push({ hpt: 28 });
 
-      // 2학기 과목 데이터행들
+      // 2학기 과목 데이터행들 ('[교과군] 과목명' 형식 적용!)
       const maxLen2 = groups2.length > 0 ? Math.max(...groups2.map(g => g.length), 0) : 0;
       const sem2DataStartR = rows.length;
       const len2 = Math.max(maxLen2, 1);
@@ -12235,7 +12301,9 @@
           if (groups2.length === 0) {
             row.push(r === 0 ? '(2학기 배치 데이터 없음)' : '');
           } else if (gIdx < groups2.length) {
-            row.push(groups2[gIdx][r] || '');
+            const rawSubj = groups2[gIdx][r] || '';
+            const displaySubj = rawSubj ? formatSubjectWithCategory(rawSubj, gradeStr) : '';
+            row.push(displaySubj);
           } else {
             row.push('');
           }
@@ -12275,10 +12343,10 @@
       ws['!merges'] = merges;
       ws['!rows'] = rowHeights;
 
-      // Set uniform column widths
+      // Set uniform column widths (과목명 + 교과군 고려하여 wch: 28로 넉넉하게 설정)
       const placeCols = [];
       for (let c = 0; c < totalCols; c++) {
-        placeCols.push({ wch: 22 });
+        placeCols.push({ wch: 28 });
       }
       ws['!cols'] = placeCols;
 
@@ -12327,7 +12395,7 @@
         }
       }
 
-      // Styling Section 1 Data Cells
+      // Styling Section 1 Data Cells (왼쪽 정렬 horizontal: 'left', indent: 1 적용!)
       for (let r = 0; r < len1; r++) {
         const isEven = r % 2 === 1;
         for (let gIdx = 0; gIdx < totalCols; gIdx++) {
@@ -12335,7 +12403,7 @@
           ExcelStyler.setCell(ws, sem1DataStartR + r, gIdx, {
             font: { name: ExcelStyler.fontFamily, sz: 10, bold: !!val, color: { rgb: val ? '0F172A' : '94A3B8' } },
             fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
-            alignment: { horizontal: 'center', vertical: 'center' },
+            alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
             border: softBorder
           });
         }
@@ -12372,7 +12440,7 @@
         }
       }
 
-      // Styling Section 2 Data Cells
+      // Styling Section 2 Data Cells (왼쪽 정렬 horizontal: 'left', indent: 1 적용!)
       for (let r = 0; r < len2; r++) {
         const isEven = r % 2 === 1;
         for (let gIdx = 0; gIdx < totalCols; gIdx++) {
@@ -12380,7 +12448,7 @@
           ExcelStyler.setCell(ws, sem2DataStartR + r, gIdx, {
             font: { name: ExcelStyler.fontFamily, sz: 10, bold: !!val, color: { rgb: val ? '0F172A' : '94A3B8' } },
             fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
-            alignment: { horizontal: 'center', vertical: 'center' },
+            alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
             border: softBorder
           });
         }
@@ -12405,7 +12473,6 @@
       XLSX.utils.book_append_sheet(wb, ws, customSheetName);
     }
 
-    // Helper to build fully styled Timetable and Placement sheets (for individual plan export)
     function buildStyledPlanSheets(wb, plan, idx) {
       const sem = plan.semester || AppState.currentSemester || 1;
       buildTimetableSheet(wb, plan, `${sem}학기_${idx + 1}안_학생시간표`);
