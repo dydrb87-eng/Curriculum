@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_10:31)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_10:57)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_10:31)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_10:57)</span></p>
         </div>
       </div>
 
@@ -1688,6 +1688,7 @@
                     <th class="py-3 px-4 min-w-[240px]">과목 중복 신청</th>
                     <th class="py-3 px-4 min-w-[260px]">해당 교과군 선택 과목 (구체적 과목명)</th>
                     <th class="py-3 px-4 min-w-[260px]">전체 선택 과목 (1학기 / 2학기)</th>
+                    <th class="py-3 px-3 w-28 text-center">기이수 관리</th>
                   </tr>
                 </thead>
                 <tbody id="step3ResultsTableBody" class="divide-y divide-slate-200 bg-white">
@@ -3307,6 +3308,131 @@
     </div>
   </div>
 
+  <!-- Student Prior Subject Modal (학생별 기이수 과목 직접 관리/보정 모달) -->
+  <div id="studentPriorSubjectModal" onclick="if(event.target.id === 'studentPriorSubjectModal') window.closeStudentPriorSubjectModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl shadow-xs">
+            🎓
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-slate-900">학생별 기이수 과목 직접 관리 (수동 보정)</h3>
+              <span id="modalPriorStudentBadge" class="text-xs font-black px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-2xs"></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">사전 데이터 엑셀에 누락되었거나 추가로 인정해야 할 기이수 과목을 직접 등록·삭제합니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeStudentPriorSubjectModal();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer font-bold text-base">
+          ✕
+        </button>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="space-y-4 overflow-y-auto pr-1 flex-1 custom-scrollbar text-xs">
+        <!-- Guidance Box -->
+        <div class="p-3 bg-blue-50/80 rounded-2xl border border-blue-200 text-blue-900 text-xs space-y-1">
+          <div class="font-bold flex items-center gap-1.5">
+            <span>💡</span>
+            <span>선택조건 검증 자동 연동 안내:</span>
+          </div>
+          <p class="text-[11px] leading-relaxed text-blue-800">
+            과목을 추가하거나 삭제한 후 아래 <strong>[💾 저장 및 검증 즉시 적용]</strong> 버튼을 누르면, 교과군 이수 조건(예: 생활·교양 과목 인정 등)이 실시간으로 재계산되어 검증 결과에 즉각 반영됩니다.
+          </p>
+        </div>
+
+        <!-- Current Registered Prior Subjects List -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-800 flex items-center gap-1.5">
+              <span>📋</span> <span>등록된 기이수 과목 목록</span>
+              <span id="modalPriorSubjectsCount" class="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 ml-1">총 0과목</span>
+            </span>
+          </div>
+
+          <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <tr>
+                  <th class="py-2.5 px-3 text-center w-20">이수 학년</th>
+                  <th class="py-2.5 px-3 text-center w-20">학기</th>
+                  <th class="py-2.5 px-3">과목명</th>
+                  <th class="py-2.5 px-3 text-center w-20">학점/시수</th>
+                  <th class="py-2.5 px-3 text-center w-16">관리</th>
+                </tr>
+              </thead>
+              <tbody id="modalPriorSubjectsTbody" class="divide-y divide-slate-200 bg-white">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+            <div id="modalPriorSubjectsEmpty" class="hidden py-6 text-center text-slate-400 font-medium text-xs">
+              현재 등록된 기이수 과목이 없습니다. 아래에서 과목을 추가해주세요.
+            </div>
+          </div>
+        </div>
+
+        <!-- Add New Subject Form Box -->
+        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+          <div class="font-bold text-slate-800 flex items-center gap-1.5">
+            <span>➕</span> <span>새 기이수 과목 추가</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+            <!-- Grade -->
+            <div class="sm:col-span-3">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">이수 학년</label>
+              <select id="modalAddPriorGrade" class="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="2학년" selected>2학년</option>
+                <option value="1학년">1학년</option>
+                <option value="3학년">3학년</option>
+              </select>
+            </div>
+            <!-- Semester -->
+            <div class="sm:col-span-3">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">이수 학기</label>
+              <select id="modalAddPriorSemester" class="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="1">1학기</option>
+                <option value="2">2학기</option>
+              </select>
+            </div>
+            <!-- Credit -->
+            <div class="sm:col-span-2">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">학점/시수</label>
+              <input type="number" id="modalAddPriorCredit" value="3" min="1" max="10" class="w-full px-2 py-1.5 text-xs font-black text-center border border-slate-300 rounded-xl bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+            <!-- Subject Selection -->
+            <div class="sm:col-span-4">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">과목 선택 (편제표/사전)</label>
+              <select id="modalAddPriorSubjectSelect" onchange="window.handlePriorSubjectSelectChange(this)" class="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="">과목 선택...</option>
+              </select>
+            </div>
+          </div>
+          <!-- Custom Subject Input if needed -->
+          <div class="flex items-center gap-2 pt-1">
+            <div class="flex-1">
+              <input type="text" id="modalAddPriorSubjectCustom" placeholder="또는 과목명을 직접 입력 (목록에 없는 경우)" class="w-full px-3 py-1.5 text-xs font-bold border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+            <button type="button" onclick="window.handleAddPriorSubjectToModal();" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer shrink-0 flex items-center gap-1">
+              <span>➕ 과목 추가</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <button type="button" onclick="window.closeStudentPriorSubjectModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
+          닫기
+        </button>
+        <button id="btnSavePriorStudentSubjects" type="button" onclick="window.handleSaveStudentPriorSubjects();" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-md transition cursor-pointer flex items-center gap-1.5">
+          <span>💾 저장 및 검증 즉시 적용</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= APPLICATION JAVASCRIPT ================= -->
   <script>
     // ==========================================
@@ -3956,17 +4082,97 @@
       }
 
       const coursesList = Array.from(courseCatalogMap.values());
-      const priorDataObj = {
-        fileName: `${activeYear}학년도_${activeG}_${fileName}`,
-        students: studentList,
-        totalRecords: totalCourseRecords,
-        courses: coursesList,
-        subjects: Array.from(new Set(coursesList.map(c => c.subject)))
-      };
-
       const curAcadData = getAcadData();
       if (!curAcadData[activeYear]) curAcadData[activeYear] = {};
       if (!curAcadData[activeYear][activeG]) curAcadData[activeYear][activeG] = createEmptyGradeState(activeG);
+      const existingPrior = curAcadData[activeYear][activeG].priorData || AppState.priorData;
+
+      let doMerge = false;
+      if (existingPrior && Array.isArray(existingPrior.students) && existingPrior.students.length > 0) {
+        const existCount = existingPrior.students.length;
+        const existRecords = existingPrior.totalRecords || 0;
+        doMerge = confirm(
+          `현재 [${activeG}]에 이미 사전 데이터가 등록되어 있습니다.\n\n` +
+          `• 기존 등록 파일: ${existingPrior.fileName || '사전 데이터'}\n` +
+          `• 등록 학생: ${existCount}명 / 이수 기록: ${existRecords}건\n\n` +
+          `[확인]을 누르면 기존 데이터에 이번 파일의 데이터를 【누적 추가(Merge)】합니다.\n` +
+          `(예: 2학년 2학기 데이터에 2학년 1학기 데이터를 추가 병합)\n\n` +
+          `[취소]를 누르면 기존 데이터를 비우고 이번 파일로 【새로 덮어쓰기】합니다.`
+        );
+      }
+
+      let priorDataObj;
+      if (doMerge && existingPrior) {
+        const mergedStudentsMap = new Map();
+        (existingPrior.students || []).forEach(st => {
+          const copySt = JSON.parse(JSON.stringify(st));
+          const key = `${copySt.classNum}_${copySt.studentNum}_${copySt.name}`;
+          mergedStudentsMap.set(key, copySt);
+        });
+
+        studentList.forEach(newSt => {
+          const key = `${newSt.classNum}_${newSt.studentNum}_${newSt.name}`;
+          if (!mergedStudentsMap.has(key)) {
+            mergedStudentsMap.set(key, newSt);
+          } else {
+            const targetSt = mergedStudentsMap.get(key);
+            if (!Array.isArray(targetSt.courseDetails)) targetSt.courseDetails = [];
+            if (!Array.isArray(targetSt.subjects)) targetSt.subjects = [];
+            if (!Array.isArray(targetSt.rawSubjects)) targetSt.rawSubjects = [];
+
+            (newSt.courseDetails || []).forEach(newCd => {
+              const isDup = targetSt.courseDetails.some(oldCd => {
+                const sameGrade = String(oldCd.grade || '') === String(newCd.grade || '');
+                const sameSem = String(oldCd.semester || '') === String(newCd.semester || '');
+                const sameSubj = (oldCd.normSubject && oldCd.normSubject === newCd.normSubject) ||
+                                 (oldCd.subject && oldCd.subject === newCd.subject);
+                return sameGrade && sameSem && sameSubj;
+              });
+
+              if (!isDup) {
+                targetSt.courseDetails.push(newCd);
+                if (newCd.rawSubject) targetSt.rawSubjects.push(newCd.rawSubject);
+                if (newCd.normSubject && !targetSt.subjects.includes(newCd.normSubject)) {
+                  targetSt.subjects.push(newCd.normSubject);
+                }
+              }
+            });
+          }
+        });
+
+        const finalStudentList = Array.from(mergedStudentsMap.values());
+        const finalTotalRecords = finalStudentList.reduce((acc, st) => acc + (st.courseDetails ? st.courseDetails.length : (st.subjects ? st.subjects.length : 0)), 0);
+
+        const mergedCourseCatalogMap = new Map();
+        (existingPrior.courses || []).forEach(c => {
+          const cKey = c.key || `${c.grade}::${c.semester}학기::${c.subject}`;
+          mergedCourseCatalogMap.set(cKey, c);
+        });
+        coursesList.forEach(c => {
+          const cKey = c.key || `${c.grade}::${c.semester}학기::${c.subject}`;
+          if (!mergedCourseCatalogMap.has(cKey)) {
+            mergedCourseCatalogMap.set(cKey, c);
+          }
+        });
+        const finalCoursesList = Array.from(mergedCourseCatalogMap.values());
+
+        priorDataObj = {
+          fileName: `${existingPrior.fileName} + ${fileName}`,
+          students: finalStudentList,
+          totalRecords: finalTotalRecords,
+          courses: finalCoursesList,
+          subjects: Array.from(new Set(finalCoursesList.map(c => c.subject)))
+        };
+      } else {
+        priorDataObj = {
+          fileName: `${activeYear}학년도_${activeG}_${fileName}`,
+          students: studentList,
+          totalRecords: totalCourseRecords,
+          courses: coursesList,
+          subjects: Array.from(new Set(coursesList.map(c => c.subject)))
+        };
+      }
+
       curAcadData[activeYear][activeG].priorData = priorDataObj;
       AppState.priorData = priorDataObj;
 
@@ -3984,7 +4190,12 @@
         renderStep1TableOnly();
       }
       saveAllState();
-      alert(`✅ [${activeG}] 사전 데이터가 등록되었습니다!\n(등록 학생: ${studentList.length}명, 과목 이수 기록: ${totalCourseRecords}건)`);
+
+      if (doMerge) {
+        alert(`✅ [${activeG}] 사전 데이터가 성공적으로 누적(추가 병합)되었습니다!\n\n• 등록 파일: ${priorDataObj.fileName}\n• 총 등록 학생: ${priorDataObj.students.length}명\n• 누적 과목 이수 기록: ${priorDataObj.totalRecords}건`);
+      } else {
+        alert(`✅ [${activeG}] 사전 데이터가 새로 등록되었습니다!\n(등록 학생: ${studentList.length}명, 과목 이수 기록: ${totalCourseRecords}건)`);
+      }
     }
 
     function clearPriorData() {
@@ -16649,10 +16860,340 @@ function createSangjiCourseSelectionForm() {
                 </div>
               </div>
             </td>
+            <td class="py-3 px-3 text-center whitespace-nowrap">
+              <button type="button"
+                onclick="window.openStudentPriorSubjectModal('${item.grade}', '${item.classNum}', '${item.studentNum}', decodeURIComponent('${encodeURIComponent(item.name || '')}'))"
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-black bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shadow-2xs cursor-pointer"
+                title="${item.name} 학생의 사전 기이수 과목 직접 추가/관리">
+                <span>✏️ 과목 관리</span>
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
     }
+
+    // ==========================================
+    // 학생별 기이수 과목 직접 관리 (수동 보정) 모달 제어
+    // ==========================================
+    let _currentPriorEditingStudent = null;
+
+    function openStudentPriorSubjectModal(grade, classNum, studentNum, name) {
+      const cNum = String(classNum || '').replace(/[^0-9]/g, '');
+      const sNum = String(studentNum || '').replace(/[^0-9]/g, '');
+      const sName = (name || '').trim();
+      const stGrade = grade || MultiState.activeGrade || '3학년';
+
+      const priorDataG3 = getPriorDataForGrade('3학년');
+      const priorDataG2 = getPriorDataForGrade('2학년');
+      let matchedSt = null;
+
+      if (stGrade === '3학년') {
+        if (priorDataG3 && Array.isArray(priorDataG3.students)) {
+          matchedSt = findMatchingPriorStudent(priorDataG3.students, cNum, sNum, sName);
+        }
+        if (!matchedSt && priorDataG2 && Array.isArray(priorDataG2.students)) {
+          matchedSt = findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName);
+        }
+      } else {
+        if (priorDataG2 && Array.isArray(priorDataG2.students)) {
+          matchedSt = findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName);
+        }
+      }
+
+      let courseDetails = [];
+      if (matchedSt) {
+        if (Array.isArray(matchedSt.courseDetails) && matchedSt.courseDetails.length > 0) {
+          courseDetails = JSON.parse(JSON.stringify(matchedSt.courseDetails));
+        } else if (Array.isArray(matchedSt.rawSubjects) && matchedSt.rawSubjects.length > 0) {
+          courseDetails = matchedSt.rawSubjects.map(rs => {
+            let creditVal = 3;
+            const cm = rs.match(/[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:학점|단위)?[\)\]]/);
+            if (cm) creditVal = parseFloat(cm[1]);
+            const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rs) : rs.replace(/[\(\[].*?[\)\]]/g, '').trim();
+            return {
+              subject: cleanS || rs,
+              rawSubject: rs,
+              normSubject: (typeof normalizeSubject === 'function') ? normalizeSubject(rs) : rs,
+              credit: creditVal,
+              semester: 1,
+              grade: stGrade === '3학년' ? '2학년' : '1학년',
+              organization: '',
+              classroom: ''
+            };
+          });
+        }
+      }
+
+      _currentPriorEditingStudent = {
+        grade: stGrade,
+        classNum: cNum,
+        studentNum: sNum,
+        name: sName,
+        courseDetails: courseDetails
+      };
+
+      const badgeEl = document.getElementById('modalPriorStudentBadge');
+      if (badgeEl) {
+        badgeEl.textContent = `${stGrade} ${cNum}반 ${sNum}번 ${sName}`;
+      }
+
+      const selectEl = document.getElementById('modalAddPriorSubjectSelect');
+      if (selectEl) {
+        const allKnownSubjs = new Set();
+        const curriculumAll = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
+        curriculumAll.forEach(c => {
+          if (c && c.subject) {
+            const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(c.subject) : c.subject;
+            if (cleanS) allKnownSubjs.add(cleanS);
+          }
+        });
+        [priorDataG2, priorDataG3].forEach(pd => {
+          if (pd && Array.isArray(pd.courses)) {
+            pd.courses.forEach(c => {
+              if (c && c.subject) allKnownSubjs.add(c.subject);
+            });
+          }
+        });
+
+        const sortedSubjs = Array.from(allKnownSubjs).sort((a, b) => a.localeCompare(b, 'ko'));
+        let optHtml = '<option value="">과목 선택...</option>';
+        sortedSubjs.forEach(s => {
+          optHtml += `<option value="${s}">${s}</option>`;
+        });
+        selectEl.innerHTML = optHtml;
+      }
+
+      const customInput = document.getElementById('modalAddPriorSubjectCustom');
+      if (customInput) customInput.value = '';
+
+      const gradeSel = document.getElementById('modalAddPriorGrade');
+      if (gradeSel) {
+        gradeSel.value = stGrade === '3학년' ? '2학년' : '1학년';
+      }
+
+      const semSel = document.getElementById('modalAddPriorSemester');
+      if (semSel) semSel.value = '1';
+
+      const creditInp = document.getElementById('modalAddPriorCredit');
+      if (creditInp) creditInp.value = '3';
+
+      renderModalPriorSubjectsTable();
+
+      const modal = document.getElementById('studentPriorSubjectModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+    window.openStudentPriorSubjectModal = openStudentPriorSubjectModal;
+
+    function closeStudentPriorSubjectModal() {
+      const modal = document.getElementById('studentPriorSubjectModal');
+      if (modal) modal.classList.add('hidden');
+      _currentPriorEditingStudent = null;
+    }
+    window.closeStudentPriorSubjectModal = closeStudentPriorSubjectModal;
+
+    function handlePriorSubjectSelectChange(selectEl) {
+      const customInput = document.getElementById('modalAddPriorSubjectCustom');
+      if (customInput && selectEl && selectEl.value) {
+        customInput.value = '';
+      }
+    }
+    window.handlePriorSubjectSelectChange = handlePriorSubjectSelectChange;
+
+    function renderModalPriorSubjectsTable() {
+      if (!_currentPriorEditingStudent) return;
+      const list = _currentPriorEditingStudent.courseDetails || [];
+      const tbody = document.getElementById('modalPriorSubjectsTbody');
+      const emptyEl = document.getElementById('modalPriorSubjectsEmpty');
+      const countEl = document.getElementById('modalPriorSubjectsCount');
+
+      if (countEl) countEl.textContent = `총 ${list.length}과목`;
+
+      if (!tbody) return;
+
+      if (list.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+      }
+
+      if (emptyEl) emptyEl.classList.add('hidden');
+
+      tbody.innerHTML = list.map((cd, idx) => {
+        return `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="py-2.5 px-3 text-center font-bold text-slate-700 whitespace-nowrap">${cd.grade || '-'}</td>
+            <td class="py-2.5 px-3 text-center font-bold text-indigo-700 whitespace-nowrap">${cd.semester ? cd.semester + '학기' : '-'}</td>
+            <td class="py-2.5 px-3 font-black text-slate-900">
+              <div class="flex items-center gap-1.5">
+                <span>${cd.subject || cd.rawSubject}</span>
+                ${cd.organization ? `<span class="text-[10px] text-slate-400 font-normal">(${cd.organization})</span>` : ''}
+              </div>
+            </td>
+            <td class="py-2.5 px-3 text-center font-black text-slate-700 whitespace-nowrap">${cd.credit ? cd.credit + '학점' : '-'}</td>
+            <td class="py-2.5 px-3 text-center whitespace-nowrap">
+              <button type="button" onclick="window.handleRemovePriorSubjectFromModal(${idx})" class="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer" title="과목 삭제">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+    window.renderModalPriorSubjectsTable = renderModalPriorSubjectsTable;
+
+    function handleAddPriorSubjectToModal() {
+      if (!_currentPriorEditingStudent) return;
+
+      const selectEl = document.getElementById('modalAddPriorSubjectSelect');
+      const customInput = document.getElementById('modalAddPriorSubjectCustom');
+      const gradeSel = document.getElementById('modalAddPriorGrade');
+      const semSel = document.getElementById('modalAddPriorSemester');
+      const creditInput = document.getElementById('modalAddPriorCredit');
+
+      const customVal = customInput ? customInput.value.trim() : '';
+      const selectVal = selectEl ? selectEl.value.trim() : '';
+      const subjName = customVal || selectVal;
+
+      if (!subjName) {
+        alert('추가할 과목을 선택하거나 직접 입력해주세요.');
+        return;
+      }
+
+      const gradeVal = gradeSel ? gradeSel.value : '2학년';
+      const semVal = semSel ? parseInt(semSel.value, 10) : 1;
+      const creditVal = creditInput ? parseFloat(creditInput.value) || 3 : 3;
+
+      const cleanSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(subjName) : subjName;
+      const normSubj = (typeof normalizeSubject === 'function') ? normalizeSubject(subjName) : subjName;
+
+      const isDuplicate = (_currentPriorEditingStudent.courseDetails || []).some(cd => {
+        return (cd.grade === gradeVal) && (cd.semester === semVal) &&
+               ((cd.normSubject && cd.normSubject === normSubj) || (cd.subject === cleanSubj));
+      });
+
+      if (isDuplicate) {
+        alert(`이미 등록된 과목입니다: [${gradeVal} ${semVal}학기 ${cleanSubj}]`);
+        return;
+      }
+
+      _currentPriorEditingStudent.courseDetails.push({
+        subject: cleanSubj,
+        rawSubject: `${cleanSubj}(${creditVal})`,
+        normSubject: normSubj,
+        credit: creditVal,
+        semester: semVal,
+        grade: gradeVal,
+        organization: '수동등록',
+        classroom: ''
+      });
+
+      if (customInput) customInput.value = '';
+      if (selectEl) selectEl.value = '';
+
+      renderModalPriorSubjectsTable();
+    }
+    window.handleAddPriorSubjectToModal = handleAddPriorSubjectToModal;
+
+    function handleRemovePriorSubjectFromModal(idx) {
+      if (!_currentPriorEditingStudent || !_currentPriorEditingStudent.courseDetails) return;
+      _currentPriorEditingStudent.courseDetails.splice(idx, 1);
+      renderModalPriorSubjectsTable();
+    }
+    window.handleRemovePriorSubjectFromModal = handleRemovePriorSubjectFromModal;
+
+    function handleSaveStudentPriorSubjects() {
+      if (!_currentPriorEditingStudent) return;
+
+      const { grade, classNum, studentNum, name, courseDetails } = _currentPriorEditingStudent;
+      const activeG = MultiState.activeGrade || grade || '3학년';
+      const activeYear = MultiState.activeYear || '2027';
+      const currAY = MultiState.activeAcademicYear || '2027학년도';
+
+      const curAcadData = getAcadData();
+      if (!curAcadData[activeYear]) curAcadData[activeYear] = {};
+      if (!curAcadData[activeYear][activeG]) curAcadData[activeYear][activeG] = createEmptyGradeState(activeG);
+
+      if (!curAcadData[activeYear][activeG].priorData) {
+        curAcadData[activeYear][activeG].priorData = {
+          fileName: '수동 등록/보정 데이터',
+          students: [],
+          totalRecords: 0,
+          courses: [],
+          subjects: []
+        };
+      }
+      const priorObj = curAcadData[activeYear][activeG].priorData;
+      if (!Array.isArray(priorObj.students)) priorObj.students = [];
+      if (!Array.isArray(priorObj.courses)) priorObj.courses = [];
+      if (!Array.isArray(priorObj.subjects)) priorObj.subjects = [];
+
+      let stObj = findMatchingPriorStudent(priorObj.students, classNum, studentNum, name);
+      const key = `${classNum}_${studentNum}_${name}`;
+
+      if (!stObj) {
+        stObj = {
+          key,
+          grade: activeG,
+          classNum,
+          studentNum,
+          name,
+          subjects: [],
+          rawSubjects: [],
+          courseDetails: []
+        };
+        priorObj.students.push(stObj);
+      }
+
+      stObj.courseDetails = JSON.parse(JSON.stringify(courseDetails));
+      stObj.rawSubjects = courseDetails.map(cd => cd.rawSubject || `${cd.subject}(${cd.credit || 3})`);
+      stObj.subjects = Array.from(new Set(courseDetails.map(cd => cd.normSubject || normalizeSubject(cd.subject)).filter(Boolean)));
+
+      let totalRecords = 0;
+      const courseCatMap = new Map();
+      priorObj.students.forEach(st => {
+        (st.courseDetails || []).forEach(cd => {
+          totalRecords++;
+          const catKey = `${cd.grade || '2학년'}::${cd.semester || 1}학기::${cd.subject}`;
+          if (!courseCatMap.has(catKey)) {
+            courseCatMap.set(catKey, {
+              key: catKey,
+              subject: cd.subject,
+              rawSubject: cd.rawSubject || `${cd.subject}(${cd.credit || 3})`,
+              grade: cd.grade || '2학년',
+              semester: cd.semester || 1,
+              credit: cd.credit || 3,
+              organization: cd.organization || '수동등록',
+              source: '수동보정'
+            });
+          }
+        });
+      });
+
+      priorObj.totalRecords = totalRecords;
+      priorObj.courses = Array.from(courseCatMap.values());
+      priorObj.subjects = Array.from(new Set(priorObj.courses.map(c => c.subject)));
+
+      AppState.priorData = priorObj;
+
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+      dateList.forEach(d => {
+        if (!curAcadData[d]) curAcadData[d] = {};
+        if (!curAcadData[d][activeG]) curAcadData[d][activeG] = createEmptyGradeState(activeG);
+        curAcadData[d][activeG].priorData = JSON.parse(JSON.stringify(priorObj));
+      });
+
+      updatePriorDataUI();
+      saveAllState();
+
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
+
+      closeStudentPriorSubjectModal();
+      alert(`✅ [${name}] 학생의 기이수 과목이 성공적으로 저장되었습니다!\n선택조건 검증이 즉시 다시 판정되었습니다.`);
+    }
+    window.handleSaveStudentPriorSubjects = handleSaveStudentPriorSubjects;
 
     function renderStep3CategoryList() {
       const sData = getStep3Data();
