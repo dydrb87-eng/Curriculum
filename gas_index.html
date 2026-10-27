@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_11:48)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_12:37)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_11:48)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_12:37)</span></p>
         </div>
       </div>
 
@@ -3310,9 +3310,9 @@
     </div>
   </div>
 
-  <!-- Student Prior Subject Modal (학생별 기이수 과목 직접 관리/보정 모달) -->
-  <div id="studentPriorSubjectModal" onclick="if(event.target.id === 'studentPriorSubjectModal') window.closeStudentPriorSubjectModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] flex flex-col">
+  <!-- Student Prior Subject Modal (학생별 기이수 과목 직접 관리/보정 모달 - 대형 좌우 2분할 레이아웃) -->
+  <div id="studentPriorSubjectModal" onclick="if(event.target.id === 'studentPriorSubjectModal') window.closeStudentPriorSubjectModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-5xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 h-[88vh] min-h-[640px] max-h-[94vh] flex flex-col space-y-3.5">
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
         <div class="flex items-center space-x-2.5">
@@ -3332,118 +3332,128 @@
         </button>
       </div>
 
-      <!-- Scrollable Body (안내 박스 제거 및 높이 최적화로 검색창 영역 충분히 확보) -->
-      <div class="space-y-4 overflow-y-auto pr-1 flex-1 custom-scrollbar text-xs pb-10">
-        <!-- Current Registered Prior Subjects List (영역을 한정하여 아래 검색창이 스크롤 없이 시원하게 표시됨) -->
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-800 flex items-center gap-1.5">
-              <span>📋</span> <span>등록된 기이수 과목 목록</span>
-              <span id="modalPriorSubjectsCount" class="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 ml-1">총 0과목</span>
+      <!-- Modal Body (좌우 2분할 레이아웃: 좌측 과목 검색 & 우측 등록 목록) -->
+      <div class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-4 text-xs">
+        
+        <!-- 좌측 패널 (md:col-span-5 flex flex-col): 과목 검색 및 즉시 추가 -->
+        <div class="md:col-span-5 flex flex-col min-h-0 bg-slate-50/90 rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+          <div class="font-bold text-slate-800 flex items-center justify-between shrink-0">
+            <span class="flex items-center gap-1.5 text-xs font-black text-slate-800">
+              <span>➕</span> <span>새 기이수 과목 검색 및 추가</span>
             </span>
-            <span class="text-[11px] text-slate-400">※ 학기는 전체 시수종합 편제표 기준으로 표시됩니다.</span>
           </div>
 
-          <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50 shadow-2xs">
-            <div class="max-h-40 overflow-y-auto custom-scrollbar">
+          <!-- Grade, Semester, Credit Controls -->
+          <div class="grid grid-cols-3 gap-2 shrink-0">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">이수 학년</label>
+              <select id="modalAddPriorGrade" class="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
+                <option value="2학년" selected>2학년</option>
+                <option value="1학년">1학년</option>
+                <option value="3학년">3학년</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">이수 학기 <span class="text-slate-400 font-normal">(편제표우선)</span></label>
+              <select id="modalAddPriorSemester" class="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
+                <option value="1" selected>1학기</option>
+                <option value="2">2학기</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">학점/시수</label>
+              <input type="number" id="modalAddPriorCredit" value="4" min="1" max="10" class="w-full px-2 py-1.5 text-xs font-black text-center border border-slate-300 rounded-xl bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
+            </div>
+          </div>
+
+          <!-- Search Input & Add Button -->
+          <div class="space-y-1.5 shrink-0">
+            <label class="block text-[11px] font-bold text-slate-700">
+              과목 검색 <span class="text-rose-500 font-bold">*</span>
+            </label>
+            <div class="flex items-center gap-1.5">
+              <div class="relative flex-1">
+                <input type="text" id="modalPriorSubjectSearchInput" 
+                  placeholder="과목명 입력 (예: 일본어, 정보, 한문...)" 
+                  autocomplete="off"
+                  oninput="window.filterPriorSubjectSearch(this.value)"
+                  onfocus="window.filterPriorSubjectSearch(this.value)"
+                  onkeydown="window.handlePriorSubjectSearchKeydown(event)"
+                  class="w-full pl-8 pr-7 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
+                <span class="absolute left-2.5 top-2.5 text-slate-400 text-xs">🔍</span>
+                <button type="button" onclick="window.clearPriorSubjectSearch()" class="absolute right-2 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold p-0.5 cursor-pointer" title="검색어 지우기">✕</button>
+              </div>
+              <button type="button" onclick="window.handleAddPriorSubjectToModal();" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer shrink-0 flex items-center gap-1">
+                <span>➕ 추가</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Keyboard Navigation Guide -->
+          <div class="text-[11px] text-slate-500 shrink-0 flex items-center gap-1 bg-white/70 p-2 rounded-xl border border-slate-200">
+            <span>💡</span>
+            <span>방향키 <kbd class="px-1 py-0.5 bg-slate-100 border border-slate-300 rounded font-mono text-indigo-600 font-bold">↓</kbd><kbd class="px-1 py-0.5 bg-slate-100 border border-slate-300 rounded font-mono text-indigo-600 font-bold">↑</kbd> 이동 후 <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded font-mono text-indigo-600 font-bold">Enter</kbd> 누르면 즉시 추가</span>
+          </div>
+
+          <!-- Search Results Dedicated List (창 밖으로 잘리지 않고 8~10개 이상 시원하게 상시 표시됨!) -->
+          <div class="flex-1 min-h-[220px] flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+            <div class="px-3 py-2 bg-slate-100/90 border-b border-slate-200 text-[11px] font-bold text-slate-600 flex items-center justify-between shrink-0">
+              <span class="flex items-center gap-1">
+                <span>📑</span> <span>선택 가능한 과목 목록</span>
+              </span>
+              <span id="modalPriorSearchMatchCount" class="text-indigo-600 font-black">0개 과목</span>
+            </div>
+            <div id="modalPriorSubjectDropdownList" class="flex-1 overflow-y-auto divide-y divide-slate-100 custom-scrollbar">
+              <!-- Filtered subjects list rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Current Selection Feedback Badge -->
+          <div id="modalPriorSubjectSelectedNotice" class="hidden shrink-0 pt-0.5 text-[11px] font-bold text-indigo-700 flex items-center gap-1">
+            <span>✅ 선택된 과목:</span>
+            <span id="modalPriorSubjectSelectedName" class="underline font-black"></span>
+          </div>
+          <input type="hidden" id="modalSelectedPriorSubject" value="">
+        </div>
+
+        <!-- 우측 패널 (md:col-span-7 flex flex-col): 등록된 기이수 과목 목록 (과목명이 8~10개 이상 한눈에 보임) -->
+        <div class="md:col-span-7 flex flex-col min-h-0 bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+          <div class="flex items-center justify-between shrink-0 pb-1">
+            <span class="font-bold text-slate-800 flex items-center gap-1.5 text-xs font-black">
+              <span>📋</span> <span>등록된 기이수 과목 목록</span>
+              <span id="modalPriorSubjectsCount" class="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200 ml-1">총 0과목</span>
+            </span>
+            <span class="text-[11px] text-slate-400">※ 학기는 전체 시수종합 편제표 기준</span>
+          </div>
+
+          <div class="flex-1 min-h-[280px] border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50 shadow-2xs flex flex-col">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
               <table class="w-full text-left text-xs border-collapse">
                 <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
                   <tr>
-                    <th class="py-2 px-3 text-center w-20 bg-slate-100">이수 학년</th>
-                    <th class="py-2 px-3 text-center w-24 bg-slate-100 text-indigo-700">학기 (편제표 기준)</th>
-                    <th class="py-2 px-3 bg-slate-100">과목명</th>
-                    <th class="py-2 px-3 text-center w-20 bg-slate-100">학점/시수</th>
-                    <th class="py-2 px-3 text-center w-16 bg-slate-100">관리</th>
+                    <th class="py-2.5 px-3 text-center w-20 bg-slate-100">이수 학년</th>
+                    <th class="py-2.5 px-3 text-center w-24 bg-slate-100 text-indigo-700">학기 (편제표 기준)</th>
+                    <th class="py-2.5 px-3 bg-slate-100">과목명</th>
+                    <th class="py-2.5 px-3 text-center w-20 bg-slate-100">학점/시수</th>
+                    <th class="py-2.5 px-3 text-center w-14 bg-slate-100">관리</th>
                   </tr>
                 </thead>
                 <tbody id="modalPriorSubjectsTbody" class="divide-y divide-slate-200 bg-white">
                   <!-- Dynamically populated -->
                 </tbody>
               </table>
-            </div>
-            <div id="modalPriorSubjectsEmpty" class="hidden py-5 text-center text-slate-400 font-medium text-xs">
-              현재 등록된 기이수 과목이 없습니다. 아래에서 과목을 검색하여 추가해주세요.
-            </div>
-          </div>
-        </div>
-
-        <!-- Add New Subject Form Box (과목 검색창 및 키보드 자동완성) -->
-        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 shadow-2xs">
-          <div class="font-bold text-slate-800 flex items-center justify-between">
-            <span class="flex items-center gap-1.5">
-              <span>➕</span> <span>새 기이수 과목 추가</span>
-            </span>
-            <span class="text-[11px] text-slate-500 font-normal">💡 과목 검색 후 <kbd class="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-indigo-600 font-bold">Enter</kbd>를 누르면 즉시 추가되며, <kbd class="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-indigo-600 font-bold">↓</kbd><kbd class="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-indigo-600 font-bold">↑</kbd> 방향키로 이동할 수 있습니다.</span>
-          </div>
-
-          <!-- Grade, Semester, Credit Controls -->
-          <div class="grid grid-cols-2 sm:grid-cols-12 gap-2.5 items-end">
-            <!-- Grade -->
-            <div class="col-span-1 sm:col-span-4">
-              <label class="block text-[11px] font-bold text-slate-700 mb-1">이수 학년</label>
-              <select id="modalAddPriorGrade" class="w-full px-2.5 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
-                <option value="2학년" selected>2학년</option>
-                <option value="1학년">1학년</option>
-                <option value="3학년">3학년</option>
-              </select>
-            </div>
-            <!-- Semester -->
-            <div class="col-span-1 sm:col-span-4">
-              <label class="block text-[11px] font-bold text-slate-700 mb-1">이수 학기 <span class="text-slate-400 font-normal">(편제표 우선)</span></label>
-              <select id="modalAddPriorSemester" class="w-full px-2.5 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
-                <option value="1" selected>1학기</option>
-                <option value="2">2학기</option>
-              </select>
-            </div>
-            <!-- Credit -->
-            <div class="col-span-2 sm:col-span-4">
-              <label class="block text-[11px] font-bold text-slate-700 mb-1">학점/시수 <span class="text-indigo-600 font-normal">(기본 4)</span></label>
-              <input type="number" id="modalAddPriorCredit" value="4" min="1" max="10" class="w-full px-2.5 py-2 text-xs font-black text-center border border-slate-300 rounded-xl bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
-            </div>
-          </div>
-
-          <!-- Subject Search Box (실시간 자동완성 검색 & 키보드 방향키/엔터 내비게이션) -->
-          <div class="space-y-1.5 relative">
-            <label class="block text-[11px] font-bold text-slate-700">
-              과목 검색 <span class="text-rose-500 font-bold">* (편제표 및 사전데이터 목록 내에서만 선택 가능)</span>
-            </label>
-            <div class="flex items-center gap-2">
-              <div class="relative flex-1">
-                <input type="text" id="modalPriorSubjectSearchInput" 
-                  placeholder="과목명을 입력하세요 (예: 일본어, 정보, 한문...)" 
-                  autocomplete="off"
-                  oninput="window.filterPriorSubjectSearch(this.value)"
-                  onfocus="window.filterPriorSubjectSearch(this.value)"
-                  onkeydown="window.handlePriorSubjectSearchKeydown(event)"
-                  class="w-full pl-8 pr-8 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs">
-                <span class="absolute left-2.5 top-2.5 text-slate-400 text-xs">🔍</span>
-                <button type="button" onclick="window.clearPriorSubjectSearch()" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold p-0.5 cursor-pointer" title="검색어 지우기">✕</button>
+              <div id="modalPriorSubjectsEmpty" class="hidden py-24 text-center text-slate-400 font-medium text-xs">
+                현재 등록된 기이수 과목이 없습니다.<br>왼쪽 패널에서 과목을 검색하여 추가해주세요.
               </div>
-              <button type="button" onclick="window.handleAddPriorSubjectToModal();" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer shrink-0 flex items-center gap-1">
-                <span>➕ 과목 추가</span>
-              </button>
-            </div>
-
-            <!-- Hidden input for validated subject name -->
-            <input type="hidden" id="modalSelectedPriorSubject" value="">
-
-            <!-- Autocomplete Floating Dropdown List (키보드 방향키 이동 및 엔터 즉시 입력 지원) -->
-            <div id="modalPriorSubjectDropdownList" class="hidden absolute left-0 right-28 top-full mt-1 bg-white border border-slate-300 rounded-2xl shadow-2xl max-h-60 overflow-y-auto z-50 custom-scrollbar divide-y divide-slate-100">
-              <!-- Filtered subjects list rendered dynamically -->
-            </div>
-
-            <!-- Current Selection Feedback Badge -->
-            <div id="modalPriorSubjectSelectedNotice" class="hidden pt-1 text-[11px] font-bold text-indigo-700 flex items-center gap-1">
-              <span>✅ 선택된 과목:</span>
-              <span id="modalPriorSubjectSelectedName" class="underline font-black"></span>
             </div>
           </div>
         </div>
+
       </div>
 
       <!-- Modal Footer (저장/완료 및 닫기) -->
       <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
-        <button type="button" onclick="window.closeStudentPriorSubjectModal();" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1">
+        <button type="button" onclick="window.closeStudentPriorSubjectModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1">
           <span>✕ 닫기</span>
         </button>
         <button id="btnSavePriorStudentSubjects" type="button" onclick="window.handleSaveStudentPriorSubjects();" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition cursor-pointer flex items-center gap-1.5">
@@ -17045,6 +17055,7 @@ function createSangjiCourseSelectionForm() {
       if (creditInp) creditInp.value = String(_lastPriorSubjectCredit || 4);
 
       renderModalPriorSubjectsTable();
+      filterPriorSubjectSearch(''); // 모달 열릴 때 초기 과목 목록 로드
 
       const modal = document.getElementById('studentPriorSubjectModal');
       if (modal) modal.classList.remove('hidden');
@@ -17109,16 +17120,16 @@ function createSangjiCourseSelectionForm() {
       items.forEach((el, idx) => {
         const badge = el.querySelector('.prior-subj-item-badge');
         if (idx === _highlightedDropdownIndex) {
-          el.className = 'prior-subj-dropdown-item px-3 py-2 bg-indigo-600 text-white cursor-pointer flex items-center justify-between text-xs transition-colors font-bold shadow-xs';
+          el.className = 'prior-subj-dropdown-item px-3 py-2.5 bg-indigo-600 text-white cursor-pointer flex items-center justify-between text-xs transition-colors font-bold shadow-xs';
           if (badge) {
-            badge.className = 'prior-subj-item-badge text-[10px] text-indigo-700 font-extrabold bg-white px-1.5 py-0.5 rounded shadow-2xs';
+            badge.className = 'prior-subj-item-badge text-[10px] text-indigo-700 font-extrabold bg-white px-2 py-0.5 rounded shadow-2xs';
             badge.textContent = '선택 (Enter)';
           }
           if (typeof el.scrollIntoView === 'function') {
             el.scrollIntoView({ block: 'nearest' });
           }
         } else {
-          el.className = 'prior-subj-dropdown-item px-3 py-2 hover:bg-indigo-50/90 text-slate-800 cursor-pointer flex items-center justify-between text-xs transition-colors';
+          el.className = 'prior-subj-dropdown-item px-3 py-2.5 hover:bg-indigo-50/90 text-slate-800 cursor-pointer flex items-center justify-between text-xs transition-colors';
           if (badge) {
             badge.className = 'prior-subj-item-badge text-[10px] text-indigo-600 font-extrabold bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded';
             badge.textContent = '선택';
@@ -17127,9 +17138,10 @@ function createSangjiCourseSelectionForm() {
       });
     }
 
-    // 실시간 과목 검색 및 자동완성 드롭다운 제어
+    // 실시간 과목 검색 및 목록 제어 (대형 인라인 전용 패널)
     function filterPriorSubjectSearch(keyword = '') {
       const ddList = document.getElementById('modalPriorSubjectDropdownList');
+      const countEl = document.getElementById('modalPriorSearchMatchCount');
       if (!ddList) return;
 
       const q = String(keyword || '').trim().toLowerCase();
@@ -17139,17 +17151,20 @@ function createSangjiCourseSelectionForm() {
 
       let matched = [];
       if (!q) {
-        matched = catalog.slice(0, 35);
+        matched = catalog.slice(0, 50); // 기본 50개 과목 넉넉하게 표시
       } else {
         matched = catalog.filter(s => s.toLowerCase().includes(q));
       }
 
       _currentFilteredPriorSubjects = matched;
-      _highlightedDropdownIndex = 0; // 검색 시 항상 첫 번째 항목이 기본 선택되도록 0 초기화
+      _highlightedDropdownIndex = 0; // 항상 첫 번째 항목이 기본 선택되도록 0 초기화
+
+      if (countEl) {
+        countEl.textContent = q ? `${matched.length}개 검색됨` : `총 ${catalog.length}개 중 ${matched.length}개 표시`;
+      }
 
       if (matched.length === 0) {
-        ddList.innerHTML = '<div class="p-3 text-center text-slate-400 text-xs font-medium">검색 결과가 없습니다 (편제표 및 사전데이터 내 과목만 선택 가능).</div>';
-        ddList.classList.remove('hidden');
+        ddList.innerHTML = '<div class="p-6 text-center text-slate-400 text-xs font-medium">검색 결과가 없습니다.<br><span class="text-[11px] text-slate-400">(편제표 및 사전데이터 내 과목만 선택 가능)</span></div>';
         return;
       }
 
@@ -17163,23 +17178,21 @@ function createSangjiCourseSelectionForm() {
         }
         const isSelected = (idx === 0);
         const itemClass = isSelected
-          ? 'prior-subj-dropdown-item px-3 py-2 bg-indigo-600 text-white cursor-pointer flex items-center justify-between text-xs transition-colors font-bold shadow-xs'
-          : 'prior-subj-dropdown-item px-3 py-2 hover:bg-indigo-50/90 text-slate-800 cursor-pointer flex items-center justify-between text-xs transition-colors';
+          ? 'prior-subj-dropdown-item px-3 py-2.5 bg-indigo-600 text-white cursor-pointer flex items-center justify-between text-xs transition-colors font-bold shadow-xs'
+          : 'prior-subj-dropdown-item px-3 py-2.5 hover:bg-indigo-50/90 text-slate-800 cursor-pointer flex items-center justify-between text-xs transition-colors';
         const badgeClass = isSelected
-          ? 'prior-subj-item-badge text-[10px] text-indigo-700 font-extrabold bg-white px-1.5 py-0.5 rounded shadow-2xs'
+          ? 'prior-subj-item-badge text-[10px] text-indigo-700 font-extrabold bg-white px-2 py-0.5 rounded shadow-2xs'
           : 'prior-subj-item-badge text-[10px] text-indigo-600 font-extrabold bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded';
         const badgeText = isSelected ? '선택 (Enter)' : '선택';
 
         return `
           <div data-index="${idx}" onclick="window.selectPriorSubjectFromList('${s.replace(/'/g, "\\'")}', true)" 
             class="${itemClass}">
-            <span class="font-bold">${displayHtml}</span>
+            <span class="font-bold text-xs">${displayHtml}</span>
             <span class="${badgeClass}">${badgeText}</span>
           </div>
         `;
       }).join('');
-
-      ddList.classList.remove('hidden');
 
       // 첫 번째 항목을 기본 선택 값으로 hidden input에 동기화
       const hiddenInput = document.getElementById('modalSelectedPriorSubject');
@@ -17191,12 +17204,10 @@ function createSangjiCourseSelectionForm() {
 
     // 키보드 방향키(ArrowDown, ArrowUp) 및 엔터(Enter) 내비게이션 핸들러
     function handlePriorSubjectSearchKeydown(e) {
-      const ddList = document.getElementById('modalPriorSubjectDropdownList');
-      const isDropdownOpen = ddList && !ddList.classList.contains('hidden');
       const list = _currentFilteredPriorSubjects || [];
 
       if (e.key === 'ArrowDown') {
-        if (!isDropdownOpen || list.length === 0) return;
+        if (list.length === 0) return;
         e.preventDefault();
         _highlightedDropdownIndex = (_highlightedDropdownIndex + 1) % list.length;
         updatePriorDropdownHighlight();
@@ -17205,7 +17216,7 @@ function createSangjiCourseSelectionForm() {
           hiddenInput.value = list[_highlightedDropdownIndex];
         }
       } else if (e.key === 'ArrowUp') {
-        if (!isDropdownOpen || list.length === 0) return;
+        if (list.length === 0) return;
         e.preventDefault();
         _highlightedDropdownIndex = (_highlightedDropdownIndex - 1 + list.length) % list.length;
         updatePriorDropdownHighlight();
@@ -17215,7 +17226,7 @@ function createSangjiCourseSelectionForm() {
         }
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (isDropdownOpen && list.length > 0) {
+        if (list.length > 0) {
           const selectedSubj = list[_highlightedDropdownIndex] || list[0];
           selectPriorSubjectFromList(selectedSubj, false);
           // 엔터 입력 시 바로 과목 추가 실행!
@@ -17224,7 +17235,7 @@ function createSangjiCourseSelectionForm() {
           handleAddPriorSubjectToModal();
         }
       } else if (e.key === 'Escape') {
-        if (ddList) ddList.classList.add('hidden');
+        clearPriorSubjectSearch();
       }
     }
     window.handlePriorSubjectSearchKeydown = handlePriorSubjectSearchKeydown;
@@ -17232,11 +17243,9 @@ function createSangjiCourseSelectionForm() {
     function selectPriorSubjectFromList(subj, autoAdd = false) {
       const searchInput = document.getElementById('modalPriorSubjectSearchInput');
       const hiddenInput = document.getElementById('modalSelectedPriorSubject');
-      const ddList = document.getElementById('modalPriorSubjectDropdownList');
 
       if (searchInput) searchInput.value = subj;
       if (hiddenInput) hiddenInput.value = subj;
-      if (ddList) ddList.classList.add('hidden');
 
       showSelectedNotice(subj);
 
@@ -17258,28 +17267,15 @@ function createSangjiCourseSelectionForm() {
     function clearPriorSubjectSearch() {
       const searchInput = document.getElementById('modalPriorSubjectSearchInput');
       const hiddenInput = document.getElementById('modalSelectedPriorSubject');
-      const ddList = document.getElementById('modalPriorSubjectDropdownList');
       const noticeBox = document.getElementById('modalPriorSubjectSelectedNotice');
 
       if (searchInput) searchInput.value = '';
       if (hiddenInput) hiddenInput.value = '';
-      if (ddList) ddList.classList.add('hidden');
       if (noticeBox) noticeBox.classList.add('hidden');
-      _currentFilteredPriorSubjects = [];
       _highlightedDropdownIndex = 0;
+      filterPriorSubjectSearch(''); // 검색어 초기화 시 기본 목록 다시 표시
     }
     window.clearPriorSubjectSearch = clearPriorSubjectSearch;
-
-    // 모달 외부 클릭 시 검색 드롭다운 닫기
-    document.addEventListener('click', function(e) {
-      const ddList = document.getElementById('modalPriorSubjectDropdownList');
-      const searchInput = document.getElementById('modalPriorSubjectSearchInput');
-      if (ddList && !ddList.classList.contains('hidden')) {
-        if (!ddList.contains(e.target) && e.target !== searchInput) {
-          ddList.classList.add('hidden');
-        }
-      }
-    });
 
     function renderModalPriorSubjectsTable() {
       if (!_currentPriorEditingStudent) return;
@@ -17288,7 +17284,7 @@ function createSangjiCourseSelectionForm() {
       const emptyEl = document.getElementById('modalPriorSubjectsEmpty');
       const countEl = document.getElementById('modalPriorSubjectsCount');
 
-      if (countEl) countEl.textContent = `선택 ${list.length}과목`;
+      if (countEl) countEl.textContent = `총 ${list.length}과목`;
 
       if (!tbody) return;
 
@@ -17306,9 +17302,9 @@ function createSangjiCourseSelectionForm() {
         const displaySem = (currSem && currSem !== '-') ? currSem : (cd.semester ? cd.semester + '학기' : '-');
 
         return `
-          <tr class="hover:bg-slate-50 transition-colors">
+          <tr class="hover:bg-indigo-50/40 transition-colors">
             <td class="py-2.5 px-3 text-center font-bold text-slate-700 whitespace-nowrap">${cd.grade || '-'}</td>
-            <td class="py-2.5 px-3 text-center font-black text-indigo-700 whitespace-nowrap bg-indigo-50/40">${displaySem}</td>
+            <td class="py-2.5 px-3 text-center font-black text-indigo-700 whitespace-nowrap bg-indigo-50/50">${displaySem}</td>
             <td class="py-2.5 px-3 font-black text-slate-900">
               <div class="flex items-center gap-1.5">
                 <span>${cd.subject || cd.rawSubject}</span>
@@ -17356,7 +17352,7 @@ function createSangjiCourseSelectionForm() {
 
       if (!targetSubj) {
         if (!silent) {
-          alert('⚠️ 과목은 목록 내에 존재하는 과목 중에서만 선택해야 합니다.\n\n검색창에 입력 후 나타나는 드롭다운 목록에서 원하는 과목을 선택하거나 Enter 키를 눌러주세요.');
+          alert('⚠️ 과목은 목록 내에 존재하는 과목 중에서만 선택해야 합니다.\n\n검색창에 입력 후 나타나는 목록에서 원하는 과목을 선택하거나 Enter 키를 눌러주세요.');
         }
         return false;
       }
