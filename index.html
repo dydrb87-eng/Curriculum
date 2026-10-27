@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_12:37)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_12:44)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_12:37)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_12:44)</span></p>
         </div>
       </div>
 
@@ -3403,7 +3403,7 @@
               </span>
               <span id="modalPriorSearchMatchCount" class="text-indigo-600 font-black">0개 과목</span>
             </div>
-            <div id="modalPriorSubjectDropdownList" class="flex-1 overflow-y-auto divide-y divide-slate-100 custom-scrollbar">
+            <div id="modalPriorSubjectDropdownList" class="h-64 sm:h-72 overflow-y-auto divide-y divide-slate-100 custom-scrollbar bg-white">
               <!-- Filtered subjects list rendered dynamically -->
             </div>
           </div>
@@ -3427,7 +3427,7 @@
           </div>
 
           <div class="flex-1 min-h-[280px] border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50 shadow-2xs flex flex-col">
-            <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="h-[380px] sm:h-[440px] overflow-y-auto custom-scrollbar bg-white">
               <table class="w-full text-left text-xs border-collapse">
                 <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
                   <tr>
@@ -17143,6 +17143,7 @@ function createSangjiCourseSelectionForm() {
       const ddList = document.getElementById('modalPriorSubjectDropdownList');
       const countEl = document.getElementById('modalPriorSearchMatchCount');
       if (!ddList) return;
+      ddList.classList.remove('hidden');
 
       const q = String(keyword || '').trim().toLowerCase();
       const catalog = _validPriorSubjectCatalog && _validPriorSubjectCatalog.length > 0 
