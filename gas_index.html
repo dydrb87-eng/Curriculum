@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_10:57)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_11:12)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_10:57)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_11:12)</span></p>
         </div>
       </div>
 
@@ -3399,7 +3399,7 @@
             <!-- Credit -->
             <div class="sm:col-span-2">
               <label class="block text-[11px] font-bold text-slate-600 mb-1">학점/시수</label>
-              <input type="number" id="modalAddPriorCredit" value="3" min="1" max="10" class="w-full px-2 py-1.5 text-xs font-black text-center border border-slate-300 rounded-xl bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+              <input type="number" id="modalAddPriorCredit" value="4" min="1" max="10" class="w-full px-2 py-1.5 text-xs font-black text-center border border-slate-300 rounded-xl bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
             <!-- Subject Selection -->
             <div class="sm:col-span-4">
@@ -15223,7 +15223,11 @@ function createSangjiCourseSelectionForm() {
           // 1단계: 사전 데이터(기이수 과목) 중 '선택' 과목만 해당 교과군 과목 탐색 ('지정' 제외)
           studentPriorSubjs.forEach(pSubj => {
             if (isDesignatedSubject(pSubj)) return; // 지정 과목 제외
-            const cId = getSubjectCategory(pSubj, cat.targetGrade);
+            // 기이수 과목은 교과군 대상 학년뿐만 아니라 전체/2학년/1학년 매핑에서도 교과군 인식
+            let cId = getSubjectCategory(pSubj, cat.targetGrade);
+            if (!cId) cId = getSubjectCategory(pSubj, null);
+            if (!cId) cId = getSubjectCategory(pSubj, '2학년');
+            if (!cId) cId = getSubjectCategory(pSubj, '1학년');
             if (cId === cat.id && !priorSubjectsInCat.includes(pSubj)) {
               priorSubjectsInCat.push(pSubj);
             }
@@ -16877,6 +16881,14 @@ function createSangjiCourseSelectionForm() {
     // 학생별 기이수 과목 직접 관리 (수동 보정) 모달 제어
     // ==========================================
     let _currentPriorEditingStudent = null;
+    let _lastPriorSubjectCredit = 4;
+    try {
+      const savedCr = localStorage.getItem('LAST_PRIOR_SUBJECT_CREDIT');
+      if (savedCr) {
+        const p = parseFloat(savedCr);
+        if (!isNaN(p) && p > 0) _lastPriorSubjectCredit = p;
+      }
+    } catch (e) {}
 
     function openStudentPriorSubjectModal(grade, classNum, studentNum, name) {
       const cNum = String(classNum || '').replace(/[^0-9]/g, '');
@@ -16901,13 +16913,13 @@ function createSangjiCourseSelectionForm() {
         }
       }
 
-      let courseDetails = [];
+      let allDetails = [];
       if (matchedSt) {
         if (Array.isArray(matchedSt.courseDetails) && matchedSt.courseDetails.length > 0) {
-          courseDetails = JSON.parse(JSON.stringify(matchedSt.courseDetails));
+          allDetails = JSON.parse(JSON.stringify(matchedSt.courseDetails));
         } else if (Array.isArray(matchedSt.rawSubjects) && matchedSt.rawSubjects.length > 0) {
-          courseDetails = matchedSt.rawSubjects.map(rs => {
-            let creditVal = 3;
+          allDetails = matchedSt.rawSubjects.map(rs => {
+            let creditVal = _lastPriorSubjectCredit || 4;
             const cm = rs.match(/[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:학점|단위)?[\)\]]/);
             if (cm) creditVal = parseFloat(cm[1]);
             const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rs) : rs.replace(/[\(\[].*?[\)\]]/g, '').trim();
@@ -16925,12 +16937,33 @@ function createSangjiCourseSelectionForm() {
         }
       }
 
+      // 편제표상 '지정' 과목 Set 구축 ('지정' 과목은 기이수 과목 관리 목록에 표시하지 않음!)
+      const curriculumAll = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
+      const designatedSubjNormSet = new Set();
+      curriculumAll.forEach(c => {
+        if (c.category === '지정' || c.category === '학교지정') {
+          const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(c.subject) : c.subject;
+          if (norm) designatedSubjNormSet.add(norm);
+        }
+      });
+      const isDesignated = (s, org) => {
+        if (!s) return false;
+        if (org && (org.includes('지정') || org.includes('학교지정'))) return true;
+        const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(s) : s;
+        return designatedSubjNormSet.has(norm);
+      };
+
+      // 기이수 과목 중 '지정' 과목은 화면에 표시하지 않고 백그라운드에 보존, '선택' 과목만 편집 목록에 노출
+      const visibleElectiveDetails = allDetails.filter(cd => !isDesignated(cd.subject || cd.rawSubject, cd.organization));
+      const preservedDesignatedDetails = allDetails.filter(cd => isDesignated(cd.subject || cd.rawSubject, cd.organization));
+
       _currentPriorEditingStudent = {
         grade: stGrade,
         classNum: cNum,
         studentNum: sNum,
         name: sName,
-        courseDetails: courseDetails
+        courseDetails: visibleElectiveDetails,
+        preservedDesignatedDetails: preservedDesignatedDetails
       };
 
       const badgeEl = document.getElementById('modalPriorStudentBadge');
@@ -16941,9 +16974,8 @@ function createSangjiCourseSelectionForm() {
       const selectEl = document.getElementById('modalAddPriorSubjectSelect');
       if (selectEl) {
         const allKnownSubjs = new Set();
-        const curriculumAll = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
         curriculumAll.forEach(c => {
-          if (c && c.subject) {
+          if (c && c.subject && c.category !== '지정' && c.category !== '학교지정') {
             const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(c.subject) : c.subject;
             if (cleanS) allKnownSubjs.add(cleanS);
           }
@@ -16951,7 +16983,9 @@ function createSangjiCourseSelectionForm() {
         [priorDataG2, priorDataG3].forEach(pd => {
           if (pd && Array.isArray(pd.courses)) {
             pd.courses.forEach(c => {
-              if (c && c.subject) allKnownSubjs.add(c.subject);
+              if (c && c.subject && !isDesignated(c.subject, c.organization)) {
+                allKnownSubjs.add(c.subject);
+              }
             });
           }
         });
@@ -16975,8 +17009,9 @@ function createSangjiCourseSelectionForm() {
       const semSel = document.getElementById('modalAddPriorSemester');
       if (semSel) semSel.value = '1';
 
+      // 학점/시수: 최근에 설정한 기본값(기본 4)으로 세팅
       const creditInp = document.getElementById('modalAddPriorCredit');
-      if (creditInp) creditInp.value = '3';
+      if (creditInp) creditInp.value = String(_lastPriorSubjectCredit || 4);
 
       renderModalPriorSubjectsTable();
 
@@ -17007,7 +17042,7 @@ function createSangjiCourseSelectionForm() {
       const emptyEl = document.getElementById('modalPriorSubjectsEmpty');
       const countEl = document.getElementById('modalPriorSubjectsCount');
 
-      if (countEl) countEl.textContent = `총 ${list.length}과목`;
+      if (countEl) countEl.textContent = `선택 ${list.length}과목`;
 
       if (!tbody) return;
 
@@ -17042,8 +17077,8 @@ function createSangjiCourseSelectionForm() {
     }
     window.renderModalPriorSubjectsTable = renderModalPriorSubjectsTable;
 
-    function handleAddPriorSubjectToModal() {
-      if (!_currentPriorEditingStudent) return;
+    function handleAddPriorSubjectToModal(silent = false) {
+      if (!_currentPriorEditingStudent) return false;
 
       const selectEl = document.getElementById('modalAddPriorSubjectSelect');
       const customInput = document.getElementById('modalAddPriorSubjectCustom');
@@ -17056,13 +17091,19 @@ function createSangjiCourseSelectionForm() {
       const subjName = customVal || selectVal;
 
       if (!subjName) {
-        alert('추가할 과목을 선택하거나 직접 입력해주세요.');
-        return;
+        if (!silent) alert('추가할 과목을 선택하거나 직접 입력해주세요.');
+        return false;
       }
 
       const gradeVal = gradeSel ? gradeSel.value : '2학년';
       const semVal = semSel ? parseInt(semSel.value, 10) : 1;
-      const creditVal = creditInput ? parseFloat(creditInput.value) || 3 : 3;
+      const creditVal = creditInput ? parseFloat(creditInput.value) || 4 : 4;
+
+      // 최근 설정된 학점 기억 (localStorage 및 메모리)
+      _lastPriorSubjectCredit = creditVal;
+      try {
+        localStorage.setItem('LAST_PRIOR_SUBJECT_CREDIT', String(creditVal));
+      } catch (e) {}
 
       const cleanSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(subjName) : subjName;
       const normSubj = (typeof normalizeSubject === 'function') ? normalizeSubject(subjName) : subjName;
@@ -17073,8 +17114,8 @@ function createSangjiCourseSelectionForm() {
       });
 
       if (isDuplicate) {
-        alert(`이미 등록된 과목입니다: [${gradeVal} ${semVal}학기 ${cleanSubj}]`);
-        return;
+        if (!silent) alert(`이미 등록된 과목입니다: [${gradeVal} ${semVal}학기 ${cleanSubj}]`);
+        return false;
       }
 
       _currentPriorEditingStudent.courseDetails.push({
@@ -17092,6 +17133,7 @@ function createSangjiCourseSelectionForm() {
       if (selectEl) selectEl.value = '';
 
       renderModalPriorSubjectsTable();
+      return true;
     }
     window.handleAddPriorSubjectToModal = handleAddPriorSubjectToModal;
 
@@ -17105,93 +17147,112 @@ function createSangjiCourseSelectionForm() {
     function handleSaveStudentPriorSubjects() {
       if (!_currentPriorEditingStudent) return;
 
-      const { grade, classNum, studentNum, name, courseDetails } = _currentPriorEditingStudent;
+      // [자동 추가 방어 로직]: 과목 선택 또는 직접입력 창에 내용이 남아있다면, 저장 전에 자동으로 먼저 추가!
+      const selectEl = document.getElementById('modalAddPriorSubjectSelect');
+      const customInput = document.getElementById('modalAddPriorSubjectCustom');
+      const customVal = customInput ? customInput.value.trim() : '';
+      const selectVal = selectEl ? selectEl.value.trim() : '';
+      if (customVal || selectVal) {
+        handleAddPriorSubjectToModal(true);
+      }
+
+      const { grade, classNum, studentNum, name, courseDetails, preservedDesignatedDetails } = _currentPriorEditingStudent;
       const activeG = MultiState.activeGrade || grade || '3학년';
-      const activeYear = MultiState.activeYear || '2027';
+      const activeYear = MultiState.activeYear || '2027.10.11.';
       const currAY = MultiState.activeAcademicYear || '2027학년도';
 
+      // 최종 전체 과목 목록 = 보존된 지정과목 + 사용자가 편집한 선택과목
+      const finalAllDetails = [
+        ...(Array.isArray(preservedDesignatedDetails) ? preservedDesignatedDetails : []),
+        ...(Array.isArray(courseDetails) ? courseDetails : [])
+      ];
+
       const curAcadData = getAcadData();
-      if (!curAcadData[activeYear]) curAcadData[activeYear] = {};
-      if (!curAcadData[activeYear][activeG]) curAcadData[activeYear][activeG] = createEmptyGradeState(activeG);
+      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [activeYear];
 
-      if (!curAcadData[activeYear][activeG].priorData) {
-        curAcadData[activeYear][activeG].priorData = {
-          fileName: '수동 등록/보정 데이터',
-          students: [],
-          totalRecords: 0,
-          courses: [],
-          subjects: []
-        };
-      }
-      const priorObj = curAcadData[activeYear][activeG].priorData;
-      if (!Array.isArray(priorObj.students)) priorObj.students = [];
-      if (!Array.isArray(priorObj.courses)) priorObj.courses = [];
-      if (!Array.isArray(priorObj.subjects)) priorObj.subjects = [];
+      // 3학년 탭 및 2학년 탭 양쪽 모두에 이 학생의 사전 이수 레코드를 100% 완전 동기화!
+      const targetGrades = Array.from(new Set([activeG, grade, '3학년', '2학년']));
 
-      let stObj = findMatchingPriorStudent(priorObj.students, classNum, studentNum, name);
-      const key = `${classNum}_${studentNum}_${name}`;
-
-      if (!stObj) {
-        stObj = {
-          key,
-          grade: activeG,
-          classNum,
-          studentNum,
-          name,
-          subjects: [],
-          rawSubjects: [],
-          courseDetails: []
-        };
-        priorObj.students.push(stObj);
-      }
-
-      stObj.courseDetails = JSON.parse(JSON.stringify(courseDetails));
-      stObj.rawSubjects = courseDetails.map(cd => cd.rawSubject || `${cd.subject}(${cd.credit || 3})`);
-      stObj.subjects = Array.from(new Set(courseDetails.map(cd => cd.normSubject || normalizeSubject(cd.subject)).filter(Boolean)));
-
-      let totalRecords = 0;
-      const courseCatMap = new Map();
-      priorObj.students.forEach(st => {
-        (st.courseDetails || []).forEach(cd => {
-          totalRecords++;
-          const catKey = `${cd.grade || '2학년'}::${cd.semester || 1}학기::${cd.subject}`;
-          if (!courseCatMap.has(catKey)) {
-            courseCatMap.set(catKey, {
-              key: catKey,
-              subject: cd.subject,
-              rawSubject: cd.rawSubject || `${cd.subject}(${cd.credit || 3})`,
-              grade: cd.grade || '2학년',
-              semester: cd.semester || 1,
-              credit: cd.credit || 3,
-              organization: cd.organization || '수동등록',
-              source: '수동보정'
-            });
+      targetGrades.forEach(tGrade => {
+        dateList.forEach(d => {
+          if (!curAcadData[d]) curAcadData[d] = {};
+          if (!curAcadData[d][tGrade]) curAcadData[d][tGrade] = createEmptyGradeState(tGrade);
+          if (!curAcadData[d][tGrade].priorData) {
+            curAcadData[d][tGrade].priorData = {
+              fileName: '사전 데이터 (보정 반영)',
+              students: [],
+              totalRecords: 0,
+              courses: [],
+              subjects: []
+            };
           }
+          const pObj = curAcadData[d][tGrade].priorData;
+          if (!Array.isArray(pObj.students)) pObj.students = [];
+
+          let st = findMatchingPriorStudent(pObj.students, classNum, studentNum, name);
+          if (!st) {
+            st = {
+              key: `${classNum}_${studentNum}_${name}`,
+              grade: tGrade,
+              classNum,
+              studentNum,
+              name,
+              subjects: [],
+              rawSubjects: [],
+              courseDetails: []
+            };
+            pObj.students.push(st);
+          }
+
+          st.courseDetails = JSON.parse(JSON.stringify(finalAllDetails));
+          st.rawSubjects = finalAllDetails.map(cd => cd.rawSubject || `${cd.subject}(${cd.credit || 4})`);
+          st.subjects = Array.from(new Set(finalAllDetails.map(cd => cd.normSubject || (typeof normalizeSubject === 'function' ? normalizeSubject(cd.subject) : cd.subject)).filter(Boolean)));
+
+          // 카탈로그 갱신
+          let totalRecords = 0;
+          const courseCatMap = new Map();
+          pObj.students.forEach(s => {
+            (s.courseDetails || []).forEach(cd => {
+              totalRecords++;
+              const catKey = `${cd.grade || '2학년'}::${cd.semester || 1}학기::${cd.subject}`;
+              if (!courseCatMap.has(catKey)) {
+                courseCatMap.set(catKey, {
+                  key: catKey,
+                  subject: cd.subject,
+                  rawSubject: cd.rawSubject || `${cd.subject}(${cd.credit || 4})`,
+                  grade: cd.grade || '2학년',
+                  semester: cd.semester || 1,
+                  credit: cd.credit || 4,
+                  organization: cd.organization || '수동등록',
+                  source: '수동보정'
+                });
+              }
+            });
+          });
+          pObj.totalRecords = totalRecords;
+          pObj.courses = Array.from(courseCatMap.values());
+          pObj.subjects = Array.from(new Set(pObj.courses.map(c => c.subject)));
         });
       });
 
-      priorObj.totalRecords = totalRecords;
-      priorObj.courses = Array.from(courseCatMap.values());
-      priorObj.subjects = Array.from(new Set(priorObj.courses.map(c => c.subject)));
-
-      AppState.priorData = priorObj;
-
-      const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
-      dateList.forEach(d => {
-        if (!curAcadData[d]) curAcadData[d] = {};
-        if (!curAcadData[d][activeG]) curAcadData[d][activeG] = createEmptyGradeState(activeG);
-        curAcadData[d][activeG].priorData = JSON.parse(JSON.stringify(priorObj));
-      });
+      // AppState.priorData 즉시 동기화
+      if (curAcadData[activeYear]?.[activeG]?.priorData) {
+        AppState.priorData = curAcadData[activeYear][activeG].priorData;
+      }
 
       updatePriorDataUI();
       saveAllState();
 
+      // 3단계 선택조건 검증 즉시 재실행 및 화면 결과 테이블 강제 재렌더링
       if (typeof runStep3Validation === 'function') {
         runStep3Validation(false);
       }
+      if (typeof renderStep3ValidationResults === 'function') {
+        renderStep3ValidationResults();
+      }
 
       closeStudentPriorSubjectModal();
-      alert(`✅ [${name}] 학생의 기이수 과목이 성공적으로 저장되었습니다!\n선택조건 검증이 즉시 다시 판정되었습니다.`);
+      alert(`✅ [${name}] 학생의 기이수 과목이 성공적으로 저장되었습니다!\n선택조건 검증 결과가 즉시 갱신되었습니다.`);
     }
     window.handleSaveStudentPriorSubjects = handleSaveStudentPriorSubjects;
 
