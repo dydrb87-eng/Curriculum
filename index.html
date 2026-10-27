@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_12:44)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_12:57)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_12:44)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_12:57)</span></p>
         </div>
       </div>
 
@@ -11950,6 +11950,52 @@
     }
 
     // Helper to build Single Plan Placement Sheet
+        // 배치표 엑셀 출력 시 과목명을 '[교과군] 과목명' 형식으로 변환하는 헬퍼
+    function formatSubjectWithCategory(subj, grade) {
+      if (!subj || typeof subj !== 'string') return '';
+      const rawSubj = subj.trim();
+      if (!rawSubj || rawSubj.startsWith('(')) return rawSubj;
+      if (/^\[.+?\]\s*/.test(rawSubj)) return rawSubj; // 이미 [교과군]이 붙은 경우 중복 방지
+
+      const sData = (typeof getStep3Data === 'function') ? getStep3Data() : { categories: [] };
+      const allCategories = Array.isArray(sData.categories) ? sData.categories : [];
+
+      let catName = '';
+      const cleanSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rawSubj) : rawSubj.replace(/[\(\[].*?[\)\]]/g, '').trim();
+
+      // 1순위: 3단계 교과군 배정 매핑에서 조회
+      let catId = (typeof getSubjectCategory === 'function') ? getSubjectCategory(cleanSubj, grade) : null;
+      if (!catId && typeof getSubjectCategory === 'function') {
+        catId = getSubjectCategory(rawSubj, grade) || getSubjectCategory(cleanSubj, null) || getSubjectCategory(rawSubj, null);
+      }
+
+      if (catId) {
+        const found = allCategories.find(c => c.id === catId);
+        if (found && found.name) {
+          catName = found.name.trim();
+        }
+      }
+
+      // 2순위: 전체 편제표(getAllGradesCurriculum)에서 보충 탐색
+      if (!catName) {
+        const curriculum = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
+        const normClean = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanSubj) : cleanSubj.toLowerCase();
+        const currItem = curriculum.find(c => {
+          const cNorm = (typeof normalizeSubject === 'function') ? normalizeSubject(c.subject) : (c.subject || '').toLowerCase();
+          return cNorm === normClean || c.subject === cleanSubj || c.subject === rawSubj;
+        });
+        if (currItem && currItem.category && currItem.category !== '선택' && currItem.category !== '지정') {
+          catName = currItem.category.trim();
+        }
+      }
+
+      if (catName) {
+        return `[${catName}] ${rawSubj}`;
+      }
+      return rawSubj;
+    }
+    window.formatSubjectWithCategory = formatSubjectWithCategory;
+
     function buildPlacementSheet(wb, plan, customSheetName) {
       const { groupCounts: expGroupCounts } = analyzeGroupConflicts(plan);
       const sem = plan.semester || AppState.currentSemester || 1;
