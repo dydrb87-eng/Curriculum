@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_10:24)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_10:31)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_10:24)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_10:31)</span></p>
         </div>
       </div>
 
@@ -14797,7 +14797,7 @@ function createSangjiCourseSelectionForm() {
     }
 
     function getAllCurriculumSubjectsForStep3() {
-      // 1) 편제표에 등록된 실제 과목 수집
+      // 1) 편제표에 등록된 실제 과목 수집 ('지정' 과목은 제외, '선택' 과목만 교과군 배정 및 필터링에 포함)
       const curriculum = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
       const map = new Map();
 
@@ -14805,6 +14805,10 @@ function createSangjiCourseSelectionForm() {
         if (!item || !item.subject) return;
         // 과거 생성되었던 가상 보완 과목(step3_supp_) 또는 3시수 중복 배제
         if (item.id && String(item.id).startsWith('step3_supp_')) return;
+
+        // [핵심] '지정' 과목은 교과군 배정 설정 및 필터링에서 배제 ('선택' 과목만 포함)
+        const isDesignated = (item.category === '지정' || item.category === '학교지정');
+        if (isDesignated) return;
 
         const grade = item.grade || '2학년';
         const sem = item.semester || 1;
@@ -14815,7 +14819,7 @@ function createSangjiCourseSelectionForm() {
         }
       });
 
-      // 2) '사전 데이터 등록'에 업로드된 개설 과목들도 3단계 교과군 매핑 및 검증에 통합 포함!
+      // 2) '사전 데이터 등록'에 업로드된 개설 과목 중 '선택' 과목들만 3단계 교과군 매핑 풀에 포함!
       const priorDataG2 = (typeof getPriorDataForGrade === 'function') ? getPriorDataForGrade('2학년') : null;
       const priorDataG3 = (typeof getPriorDataForGrade === 'function') ? getPriorDataForGrade('3학년') : null;
       const priorCoursesCollected = [];
@@ -14859,11 +14863,19 @@ function createSangjiCourseSelectionForm() {
         const subj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(pItem.subject) : pItem.subject.trim();
         if (!subj) return;
 
+        // 편제표에 이미 '지정'으로 등록되어 있거나, 편제명이 '지정'/'학교지정'인 과목은 제외!
+        const isCurricDesignated = curriculum.some(c => 
+          (c.category === '지정' || c.category === '학교지정') &&
+          ((typeof getBaseSubjectName === 'function' ? getBaseSubjectName(c.subject) : c.subject) === subj)
+        );
+        const isOrgDesignated = pItem.organization && (pItem.organization.includes('지정') || pItem.organization.includes('학교지정'));
+        if (isCurricDesignated || isOrgDesignated) return;
+
         const pGrade = pItem.grade || '기이수';
         const pSem = pItem.semester || 1;
         const key = `${pGrade}::${pSem}학기::${subj}`;
 
-        // 편제표에 동일 과목이 이미 등록되어 있지 않거나, 사전 데이터에만 존재하는 과목을 명시적으로 매핑 테이블에 등록
+        // 편제표에 동일 과목이 이미 등록되어 있지 않거나, 사전 데이터에만 존재하는 '선택' 과목을 매핑 테이블에 등록
         const existingCurricSameSubj = Array.from(map.values()).some(item => (typeof getBaseSubjectName === 'function' ? getBaseSubjectName(item.subject) : item.subject.trim()) === subj);
         if (!map.has(key) && !existingCurricSameSubj) {
           map.set(key, {
@@ -14871,7 +14883,7 @@ function createSangjiCourseSelectionForm() {
             grade: pGrade,
             semester: pSem,
             subject: subj,
-            category: pItem.organization || '사전등록(기이수)',
+            category: pItem.organization || '선택(사전)',
             hours: pItem.credit || 0,
             teacher: '기이수',
             status: '사전데이터',
@@ -14912,6 +14924,22 @@ function createSangjiCourseSelectionForm() {
       const priorDataG3 = getPriorDataForGrade('3학년');
       const crossDupsG2 = getCrossCheckDuplicatesForGrade('2학년');
       const crossDupsG3 = getCrossCheckDuplicatesForGrade('3학년');
+
+      // 편제표상 '지정' 과목 Set 구축 ('지정' 과목은 교과군 배정 및 선택조건 검토에서 제외!)
+      const curriculumAll = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
+      const designatedSubjNormSet = new Set();
+      curriculumAll.forEach(c => {
+        if (c.category === '지정' || c.category === '학교지정') {
+          const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(c.subject) : c.subject;
+          if (norm) designatedSubjNormSet.add(norm);
+        }
+      });
+
+      const isDesignatedSubject = (s) => {
+        if (!s) return false;
+        const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(s) : s;
+        return designatedSubjNormSet.has(norm);
+      };
 
       const results = [];
       const catViolationCounts = {};
@@ -14958,12 +14986,14 @@ function createSangjiCourseSelectionForm() {
           }
         }
 
-        // 선택과목 및 사전 기이수 과목의 교과군 매핑 확인
+        // [오직 '선택' 과목만 검토 대상]: 지정 과목은 교과군 미지정 경고 및 검토에서 제외!
         studentAllChoices.forEach(s => {
+          if (isDesignatedSubject(s)) return; // 지정 과목 제외
           const cId = getSubjectCategory(s, st.grade);
           if (!cId) unmappedSubjSet.add(s);
         });
         studentPriorSubjs.forEach(s => {
+          if (isDesignatedSubject(s)) return; // 지정 과목 제외
           const cId = getSubjectCategory(s, null);
           if (!cId) unmappedSubjSet.add(s);
         });
@@ -14973,27 +15003,29 @@ function createSangjiCourseSelectionForm() {
 
         categories.forEach(cat => {
           // [사용자 중심 탭 기준 직관적 검증 메커니즘]:
-          // 탭(학년)별로 등록된 교과군 조건은 불필요한 학년 필터링으로 스킵하지 않고,
-          // 학생의 [사전 데이터(기이수 과목)]와 [수강신청 조사(선택 과목)]에 순서대로 적용하여 완벽 검증합니다!
+          // 탭(학년)별로 등록된 교과군 조건에 대해 학생의 [사전 데이터]와 [수강신청 조사] 중
+          // 오직 '선택' 과목만을 대상으로 교과군 선택조건을 엄격히 검토합니다!
 
           const chosenSubjectsInCat = [];
           const priorSubjectsInCat = [];
 
-          // 1단계: 사전 데이터(기이수 과목)에서 해당 교과군 과목 탐색
+          // 1단계: 사전 데이터(기이수 과목) 중 '선택' 과목만 해당 교과군 과목 탐색 ('지정' 제외)
           studentPriorSubjs.forEach(pSubj => {
+            if (isDesignatedSubject(pSubj)) return; // 지정 과목 제외
             const cId = getSubjectCategory(pSubj, cat.targetGrade);
             if (cId === cat.id && !priorSubjectsInCat.includes(pSubj)) {
               priorSubjectsInCat.push(pSubj);
             }
           });
 
-          // 2단계: 수강신청 조사 파일에서 해당 교과군 과목 탐색
+          // 2단계: 수강신청 조사 파일 중 '선택' 과목만 해당 교과군 과목 탐색 ('지정' 제외)
           let surveyPool = [];
           if (cat.targetSemester === '1') surveyPool = studentSem1;
           else if (cat.targetSemester === '2') surveyPool = studentSem2;
           else surveyPool = studentAllChoices;
 
           surveyPool.forEach(subj => {
+            if (isDesignatedSubject(subj)) return; // 지정 과목 제외
             const cId = getSubjectCategory(subj, st.grade);
             if (cId === cat.id && !chosenSubjectsInCat.includes(subj)) {
               chosenSubjectsInCat.push(subj);
