@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.27_10:26)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_10:24)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.27_10:26)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_10:24)</span></p>
         </div>
       </div>
 
@@ -3837,16 +3837,18 @@
       const headers = rawRows[headerRowIndex].map(h => (h !== undefined && h !== null ? String(h).trim() : ''));
       const dataRows = rawRows.slice(headerRowIndex + 1);
 
-      let colYear = -1, colSem = -1, colGrade = -1, colSubject = -1, colClass = -1, colNum = -1, colName = -1, colGradeDept = -1;
+      let colYear = -1, colSem = -1, colGrade = -1, colOrg = -1, colSubject = -1, colClassroom = -1, colGradeDept = -1, colClass = -1, colNum = -1, colName = -1;
       headers.forEach((h, idx) => {
         if (/학년도|연도/.test(h)) colYear = idx;
         else if (/^학기$/.test(h)) colSem = idx;
         else if (/^학년$|학년\s*\(/.test(h)) colGrade = idx;
+        else if (/편제명|편제/.test(h)) colOrg = idx;
         else if (/개설\s*과목|과목명|^과목$/.test(h)) colSubject = idx;
+        else if (/개설\s*강의실|강의실/.test(h)) colClassroom = idx;
+        else if (/계열.*학년.*학과|계열|학과/.test(h)) colGradeDept = idx;
         else if (/^반$|반\s*\(/.test(h)) colClass = idx;
         else if (/^번호$|번호\s*\(/.test(h)) colNum = idx;
         else if (/성명|이름/.test(h)) colName = idx;
-        else if (/계열.*학년.*학과/.test(h)) colGradeDept = idx;
       });
 
       if (colName === -1 || colSubject === -1) {
@@ -3858,6 +3860,7 @@
       const activeYear = MultiState.activeYear || '2027';
 
       const studentsMap = new Map();
+      const courseCatalogMap = new Map();
       let totalCourseRecords = 0;
 
       dataRows.forEach((row) => {
@@ -3875,6 +3878,20 @@
         }
 
         const subjectVal = colSubject !== -1 ? String(row[colSubject] || '').trim() : '';
+        const yearVal = colYear !== -1 ? String(row[colYear] || '').trim() : '';
+        const semVal = colSem !== -1 ? String(row[colSem] || '').replace(/[^0-9]/g, '') : '';
+        const gradeVal = colGrade !== -1 ? String(row[colGrade] || '').replace(/[^0-9]/g, '') : '';
+        const orgVal = colOrg !== -1 ? String(row[colOrg] || '').trim() : '';
+        const roomVal = colClassroom !== -1 ? String(row[colClassroom] || '').trim() : '';
+
+        // 개설과목(학점)에서 학점/시수 및 순수 기본 과목명 추출
+        let creditVal = 0;
+        const creditMatch = subjectVal.match(/[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:학점|단위)?[\)\]]/);
+        if (creditMatch) {
+          creditVal = parseFloat(creditMatch[1]);
+        }
+        const cleanSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(subjectVal) : subjectVal.replace(/[\(\[].*?[\)\]]/g, '').trim();
+
         const key = `${classVal}_${numVal}_${nameVal}`;
 
         if (!studentsMap.has(key)) {
@@ -3885,7 +3902,8 @@
             studentNum: numVal,
             name: nameVal,
             subjects: [], // JSON 직렬화에 안전한 Array
-            rawSubjects: []
+            rawSubjects: [],
+            courseDetails: [] // 과목별 상세 정보 (학년, 학기, 학점, 편제명 등)
           });
         }
 
@@ -3897,6 +3915,37 @@
             stObj.subjects.push(normSubj);
           }
           stObj.rawSubjects.push(subjectVal);
+
+          stObj.courseDetails.push({
+            subject: cleanSubj || subjectVal,
+            rawSubject: subjectVal,
+            normSubject: normSubj,
+            credit: creditVal,
+            semester: semVal ? parseInt(semVal, 10) : 1,
+            grade: gradeVal ? (gradeVal.includes('학년') ? gradeVal : gradeVal + '학년') : '',
+            organization: orgVal,
+            classroom: roomVal,
+            year: yearVal
+          });
+
+          // 전체 사전 데이터 고유 개설 과목 카탈로그에 등록
+          const catalogGrade = gradeVal ? (gradeVal.includes('학년') ? gradeVal : gradeVal + '학년') : (activeG === '3학년' ? '1·2학년' : '1학년');
+          const catalogSem = semVal ? parseInt(semVal, 10) : 1;
+          const catalogKey = `${catalogGrade}::${catalogSem}학기::${cleanSubj || subjectVal}`;
+          if (!courseCatalogMap.has(catalogKey)) {
+            courseCatalogMap.set(catalogKey, {
+              key: catalogKey,
+              subject: cleanSubj || subjectVal,
+              rawSubject: subjectVal,
+              grade: catalogGrade,
+              semester: catalogSem,
+              credit: creditVal,
+              organization: orgVal,
+              classroom: roomVal,
+              year: yearVal,
+              source: '사전데이터'
+            });
+          }
         }
       });
 
@@ -3906,10 +3955,13 @@
         return;
       }
 
+      const coursesList = Array.from(courseCatalogMap.values());
       const priorDataObj = {
         fileName: `${activeYear}학년도_${activeG}_${fileName}`,
         students: studentList,
-        totalRecords: totalCourseRecords
+        totalRecords: totalCourseRecords,
+        courses: coursesList,
+        subjects: Array.from(new Set(coursesList.map(c => c.subject)))
       };
 
       const curAcadData = getAcadData();
@@ -14423,24 +14475,82 @@ function createSangjiCourseSelectionForm() {
       return `[${gStr} ${semStr}] ${ruleStr}`;
     }
 
+    // 사전 데이터 학생 매칭 유연화 헬퍼 (반/번호가 변경되어도 성명으로 정확히 매칭 및 동명이인 감지)
+    function findMatchingPriorStudent(priorStudents, cNum, sNum, sName) {
+      if (!Array.isArray(priorStudents) || priorStudents.length === 0 || !sName) return null;
+      const cleanSName = sName.trim();
+
+      // 사전 데이터 내 동일 성명 학생 수 확인 (동명이인 판별)
+      const nameMatches = priorStudents.filter(p => (p.name || '').trim() === cleanSName);
+      const isDuplicateName = nameMatches.length > 1;
+
+      // 1순위: 반 + 번호 + 성명 모두 일치
+      let match = priorStudents.find(p => {
+        const pcMatch = String(p.classNum || '').replace(/[^0-9]/g, '') === cNum;
+        const pnMatch = String(p.studentNum || '').replace(/[^0-9]/g, '') === sNum;
+        return pcMatch && pnMatch && (p.name || '').trim() === cleanSName;
+      });
+      if (match) {
+        return { ...match, isDuplicateName: isDuplicateName && nameMatches.length > 1 && !match };
+      }
+
+      // 2순위: 반 + 성명 일치 (번호 오기재 대비)
+      match = priorStudents.find(p => {
+        const pcMatch = String(p.classNum || '').replace(/[^0-9]/g, '') === cNum;
+        return pcMatch && (p.name || '').trim() === cleanSName;
+      });
+      if (match) {
+        return { ...match, isDuplicateName: false };
+      }
+
+      // 3순위: 성명 일치
+      if (nameMatches.length === 1) {
+        // 전교(해당 학년)에 해당 이름이 오직 1명뿐인 경우: 반/번호가 바뀌어도 100% 안전하게 자동 매칭!
+        return { ...nameMatches[0], isDuplicateName: false };
+      } else if (nameMatches.length > 1) {
+        // ⚠️ 동명이인이 2명 이상인 경우: 번호 일치자 우선 대조하되 동명이인 안내 플래그 부여
+        const numMatch = nameMatches.find(p => String(p.studentNum || '').replace(/[^0-9]/g, '') === sNum);
+        const selected = numMatch || nameMatches[0];
+        return { ...selected, isDuplicateName: true, duplicateCandidates: nameMatches };
+      }
+
+      return null;
+    }
+    window.findMatchingPriorStudent = findMatchingPriorStudent;
+
     function getSubjectCategory(subject, grade) {
       if (!subject) return null;
       const sData = getStep3Data();
       const mappings = sData.mappings || {};
-      const cleanSubj = String(subject).trim();
+      const rawSubjStr = String(subject).trim();
+      const cleanSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rawSubjStr) : rawSubjStr.replace(/[\(\[].*?[\)\]]/g, '').trim();
 
-      if (grade && mappings[`${grade}::${cleanSubj}`]) {
-        return mappings[`${grade}::${cleanSubj}`];
-      }
-      if (mappings[cleanSubj]) {
-        return mappings[cleanSubj];
+      // 1. 요청된 학년 접두어 포함 정확 일치 (예: '2학년::문학', '3학년::문학', '1·2학년::국어')
+      if (grade) {
+        if (mappings[`${grade}::${cleanSubj}`]) return mappings[`${grade}::${cleanSubj}`];
+        if (mappings[`${grade}::${rawSubjStr}`]) return mappings[`${grade}::${rawSubjStr}`];
       }
 
-      const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanSubj) : cleanSubj.replace(/\s+/g, '');
+      // 2. 다른 학년 접두어에 매핑되어 있는 경우라도 동일 과목명이면 교과군 인식 ('2학년::생애설계와자립' -> 3학년 검토 시에도 교과군 인식)
       for (const k in mappings) {
-        const rawSubj = k.includes('::') ? k.split('::')[1] : k;
-        const normK = (typeof normalizeSubject === 'function') ? normalizeSubject(rawSubj) : rawSubj.replace(/\s+/g, '');
-        if (normK === norm) {
+        if (k.includes('::')) {
+          const parts = k.split('::');
+          if (parts[1] === cleanSubj || parts[1] === rawSubjStr) {
+            return mappings[k];
+          }
+        }
+      }
+
+      // 3. 기본 과목명 직접 일치 (예: '문학', '국어', '한국사')
+      if (mappings[cleanSubj]) return mappings[cleanSubj];
+      if (mappings[rawSubjStr]) return mappings[rawSubjStr];
+
+      // 4. 정규화 키 비교 (띄어쓰기, 로마숫자, 특수문자 무시)
+      const normClean = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanSubj) : cleanSubj.replace(/\s+/g, '');
+      for (const k in mappings) {
+        const targetSubj = k.includes('::') ? k.split('::')[1] : k;
+        const targetNorm = (typeof normalizeSubject === 'function') ? normalizeSubject(targetSubj) : targetSubj.replace(/\s+/g, '');
+        if (targetNorm === normClean) {
           return mappings[k];
         }
       }
@@ -14626,14 +14736,11 @@ function createSangjiCourseSelectionForm() {
         }
       });
 
-      // B. 이전 학년 기이수 과목과 중복 대조 (사전 등록된 NEIS 명부)
+      // B. 이전 학년 기이수 과목과 중복 대조 (사전 등록된 NEIS 명부 - 성명 기반 유연 매칭 지원)
       if (priorData && Array.isArray(priorData.students) && priorData.students.length > 0) {
-        const priorSt = priorData.students.find(p => {
-          const pcMatch = String(p.classNum || '').replace(/[^0-9]/g, '') === cNum;
-          const pnMatch = String(p.studentNum || '').replace(/[^0-9]/g, '') === sNum;
-          const nameMatch = (p.name || '').trim() === sName;
-          return (pcMatch && pnMatch && nameMatch) || (pcMatch && nameMatch);
-        });
+        const priorSt = (typeof findMatchingPriorStudent === 'function')
+          ? findMatchingPriorStudent(priorData.students, cNum, sNum, sName)
+          : priorData.students.find(p => (p.name || '').trim() === sName);
 
         if (priorSt) {
           const priorHas = (subj) => {
@@ -14690,7 +14797,7 @@ function createSangjiCourseSelectionForm() {
     }
 
     function getAllCurriculumSubjectsForStep3() {
-      // 오직 '전학년 과목별 상세 배정 및 담당 교사 조정' 편제표에 등록된 실제 과목만 엄격하게 가져옵니다. (임의의 가상 3시수 또는 타 조사 데이터 자동 생성 배제)
+      // 1) 편제표에 등록된 실제 과목 수집
       const curriculum = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
       const map = new Map();
 
@@ -14704,11 +14811,77 @@ function createSangjiCourseSelectionForm() {
         const subj = item.subject.trim();
         const key = `${grade}::${sem}학기::${subj}`;
         if (!map.has(key)) {
-          map.set(key, { ...item, subject: subj });
+          map.set(key, { ...item, subject: subj, source: 'curriculum' });
+        }
+      });
+
+      // 2) '사전 데이터 등록'에 업로드된 개설 과목들도 3단계 교과군 매핑 및 검증에 통합 포함!
+      const priorDataG2 = (typeof getPriorDataForGrade === 'function') ? getPriorDataForGrade('2학년') : null;
+      const priorDataG3 = (typeof getPriorDataForGrade === 'function') ? getPriorDataForGrade('3학년') : null;
+      const priorCoursesCollected = [];
+
+      [priorDataG2, priorDataG3].forEach(pd => {
+        if (!pd) return;
+        if (Array.isArray(pd.courses) && pd.courses.length > 0) {
+          pd.courses.forEach(c => priorCoursesCollected.push(c));
+        } else if (Array.isArray(pd.students)) {
+          pd.students.forEach(st => {
+            if (Array.isArray(st.courseDetails) && st.courseDetails.length > 0) {
+              st.courseDetails.forEach(cd => priorCoursesCollected.push({
+                subject: cd.subject,
+                grade: cd.grade || (st.grade === '3학년' ? '1·2학년' : '1학년'),
+                semester: cd.semester || 1,
+                credit: cd.credit || 0,
+                organization: cd.organization || '사전데이터',
+                source: '사전데이터'
+              }));
+            } else if (Array.isArray(st.rawSubjects)) {
+              st.rawSubjects.forEach(rs => {
+                const cSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rs) : rs.trim();
+                if (cSubj) {
+                  priorCoursesCollected.push({
+                    subject: cSubj,
+                    grade: st.grade === '3학년' ? '1·2학년' : '1학년',
+                    semester: 1,
+                    credit: 0,
+                    organization: '사전데이터',
+                    source: '사전데이터'
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+
+      priorCoursesCollected.forEach(pItem => {
+        if (!pItem || !pItem.subject) return;
+        const subj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(pItem.subject) : pItem.subject.trim();
+        if (!subj) return;
+
+        const pGrade = pItem.grade || '기이수';
+        const pSem = pItem.semester || 1;
+        const key = `${pGrade}::${pSem}학기::${subj}`;
+
+        // 편제표에 동일 과목이 이미 등록되어 있지 않거나, 사전 데이터에만 존재하는 과목을 명시적으로 매핑 테이블에 등록
+        const existingCurricSameSubj = Array.from(map.values()).some(item => (typeof getBaseSubjectName === 'function' ? getBaseSubjectName(item.subject) : item.subject.trim()) === subj);
+        if (!map.has(key) && !existingCurricSameSubj) {
+          map.set(key, {
+            id: `prior_${pGrade}_${pSem}_${subj}`,
+            grade: pGrade,
+            semester: pSem,
+            subject: subj,
+            category: pItem.organization || '사전등록(기이수)',
+            hours: pItem.credit || 0,
+            teacher: '기이수',
+            status: '사전데이터',
+            source: '사전데이터'
+          });
         }
       });
 
       return Array.from(map.values()).sort((a, b) => {
+        if (a.source !== b.source) return a.source === 'curriculum' ? -1 : 1;
         if (a.grade !== b.grade) return a.grade.localeCompare(b.grade);
         if (a.semester !== b.semester) return a.semester - b.semester;
         return (a.subject || '').localeCompare(b.subject || '', 'ko');
@@ -14750,8 +14923,48 @@ function createSangjiCourseSelectionForm() {
         const studentSem2 = Array.isArray(st.sem2) ? st.sem2 : [];
         const studentAllChoices = [...studentSem1, ...studentSem2];
 
+        // 사전 데이터에서 해당 학생의 기이수 과목 찾기 (3학년 탭 및 2학년 탭 사전데이터를 모두 대조하여 2학년 이수 과목 누락 방지)
+        const priorDataForSt = st.grade === '3학년' ? (priorDataG3 || priorDataG2) : priorDataG2;
+        const cNum = String(st.classNum || '').replace(/[^0-9]/g, '');
+        const sNum = String(st.studentNum || '').replace(/[^0-9]/g, '');
+        const sName = (st.name || '').trim();
+
+        let matchedPriorSt = null;
+        if (st.grade === '3학년') {
+          // 3학년 학생: 3학년 탭에 등록된 사전데이터 우선 확인, 없으면 2학년 탭 사전데이터에서 2학년 이수 과목 조회
+          if (priorDataG3 && Array.isArray(priorDataG3.students)) {
+            matchedPriorSt = findMatchingPriorStudent(priorDataG3.students, cNum, sNum, sName);
+          }
+          if (!matchedPriorSt && priorDataG2 && Array.isArray(priorDataG2.students)) {
+            matchedPriorSt = findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName);
+          }
+        } else {
+          // 2학년 학생: 2학년 탭 사전데이터(1학년 이수내역) 조회
+          if (priorDataG2 && Array.isArray(priorDataG2.students)) {
+            matchedPriorSt = findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName);
+          }
+        }
+
+        let studentPriorSubjs = [];
+        let studentPriorCourseDetails = [];
+        if (matchedPriorSt) {
+          if (Array.isArray(matchedPriorSt.courseDetails) && matchedPriorSt.courseDetails.length > 0) {
+            studentPriorCourseDetails = matchedPriorSt.courseDetails;
+            studentPriorSubjs = matchedPriorSt.courseDetails.map(cd => cd.subject).filter(Boolean);
+          } else if (Array.isArray(matchedPriorSt.rawSubjects) && matchedPriorSt.rawSubjects.length > 0) {
+            studentPriorSubjs = matchedPriorSt.rawSubjects.map(rs => (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rs) : rs).filter(Boolean);
+          } else if (Array.isArray(matchedPriorSt.subjects)) {
+            studentPriorSubjs = matchedPriorSt.subjects;
+          }
+        }
+
+        // 선택과목 및 사전 기이수 과목의 교과군 매핑 확인
         studentAllChoices.forEach(s => {
           const cId = getSubjectCategory(s, st.grade);
+          if (!cId) unmappedSubjSet.add(s);
+        });
+        studentPriorSubjs.forEach(s => {
+          const cId = getSubjectCategory(s, null);
           if (!cId) unmappedSubjSet.add(s);
         });
 
@@ -14759,24 +14972,58 @@ function createSangjiCourseSelectionForm() {
         const catEvaluations = [];
 
         categories.forEach(cat => {
-          if (cat.targetGrade !== '전체' && cat.targetGrade !== st.grade) {
-            return;
-          }
-
-          let pool = [];
-          if (cat.targetSemester === '1') pool = studentSem1;
-          else if (cat.targetSemester === '2') pool = studentSem2;
-          else pool = studentAllChoices;
+          // [사용자 중심 탭 기준 직관적 검증 메커니즘]:
+          // 탭(학년)별로 등록된 교과군 조건은 불필요한 학년 필터링으로 스킵하지 않고,
+          // 학생의 [사전 데이터(기이수 과목)]와 [수강신청 조사(선택 과목)]에 순서대로 적용하여 완벽 검증합니다!
 
           const chosenSubjectsInCat = [];
-          pool.forEach(subj => {
+          const priorSubjectsInCat = [];
+
+          // 1단계: 사전 데이터(기이수 과목)에서 해당 교과군 과목 탐색
+          studentPriorSubjs.forEach(pSubj => {
+            const cId = getSubjectCategory(pSubj, cat.targetGrade);
+            if (cId === cat.id && !priorSubjectsInCat.includes(pSubj)) {
+              priorSubjectsInCat.push(pSubj);
+            }
+          });
+
+          // 2단계: 수강신청 조사 파일에서 해당 교과군 과목 탐색
+          let surveyPool = [];
+          if (cat.targetSemester === '1') surveyPool = studentSem1;
+          else if (cat.targetSemester === '2') surveyPool = studentSem2;
+          else surveyPool = studentAllChoices;
+
+          surveyPool.forEach(subj => {
             const cId = getSubjectCategory(subj, st.grade);
-            if (cId === cat.id) {
+            if (cId === cat.id && !chosenSubjectsInCat.includes(subj)) {
               chosenSubjectsInCat.push(subj);
             }
           });
 
-          const count = chosenSubjectsInCat.length;
+          // 3단계: 학기 지정 조건인지, 아니면 연간/누적 조건인지에 따라 최종 인정 과목 구성
+          let allSubjectsInCat = [];
+          let poolType = 'cumulative';
+
+          if (cat.targetSemester === '1' || cat.targetSemester === '2') {
+            // 특정 학기(1학기 또는 2학기) 지정 조건: 당해 학년 수강신청 조사의 해당 학기 과목 기준
+            allSubjectsInCat = [...chosenSubjectsInCat];
+            poolType = 'current';
+          } else {
+            // 연간/전체 조건: 사전 데이터(기이수) + 수강신청 조사(선택) 모두 합산 인정!
+            // (동일 과목 중복 카운트 방지)
+            const combinedSet = new Set(chosenSubjectsInCat);
+            priorSubjectsInCat.forEach(pSubj => {
+              const normP = (typeof normalizeSubject === 'function') ? normalizeSubject(pSubj) : pSubj;
+              const alreadyHas = Array.from(combinedSet).some(cs => ((typeof normalizeSubject === 'function') ? normalizeSubject(cs) : cs) === normP);
+              if (!alreadyHas) {
+                combinedSet.add(pSubj);
+              }
+            });
+            allSubjectsInCat = Array.from(combinedSet);
+            poolType = 'cumulative';
+          }
+
+          const count = allSubjectsInCat.length;
           let isViolated = false;
           let reason = '';
 
@@ -14813,11 +15060,17 @@ function createSangjiCourseSelectionForm() {
             }
           }
 
+          const dynamicRuleDesc = formatStep3RuleDesc(cat);
           const evalItem = {
             category: cat,
-            ruleDesc: formatStep3RuleDesc(cat),
+            poolType: poolType,
+            ruleDesc: dynamicRuleDesc,
             count: count,
+            chosenCount: chosenSubjectsInCat.length,
+            priorCount: priorSubjectsInCat.length,
             subjects: chosenSubjectsInCat,
+            priorSubjects: priorSubjectsInCat,
+            allSubjects: allSubjectsInCat,
             isViolated: isViolated,
             reason: reason
           };
@@ -14852,7 +15105,6 @@ function createSangjiCourseSelectionForm() {
           catViolationCounts['__unselected__'] = (catViolationCounts['__unselected__'] || 0) + 1;
         }
 
-        const priorDataForSt = st.grade === '2학년' ? priorDataG2 : priorDataG3;
         const crossDupsForSt = st.grade === '2학년' ? crossDupsG2 : crossDupsG3;
         const dupList = detectStudentDuplicates(st, priorDataForSt, crossDupsForSt, st.grade.replace(/[^0-9]/g, ''));
         const hasViol = violations.length > 0;
@@ -14864,6 +15116,7 @@ function createSangjiCourseSelectionForm() {
           classNum: st.classNum,
           studentNum: st.studentNum,
           name: st.name,
+          isDuplicateName: matchedPriorSt ? !!matchedPriorSt.isDuplicateName : false,
           sem1: studentSem1,
           sem2: studentSem2,
           allChoices: studentAllChoices,
@@ -16046,11 +16299,23 @@ function createSangjiCourseSelectionForm() {
       const warnBanner = document.getElementById('step3ResultsWarningBanner');
       const warnText = document.getElementById('step3ResultsWarningText');
       if (warnBanner && warnText) {
+        const priorG2 = (typeof getPriorDataForGrade === 'function') ? getPriorDataForGrade('2학년') : null;
+        const priorG3 = (typeof getPriorDataForGrade === 'function') ? getPriorDataForGrade('3학년') : null;
+        const hasPriorData = !!((priorG2 && priorG2.students && priorG2.students.length > 0) || (priorG3 && priorG3.students && priorG3.students.length > 0));
+
         if (categories.length === 0) {
           warnText.textContent = '등록된 교과군이 없습니다. [1. 교과군 및 조건 등록/관리]에서 교과군과 제한 조건을 먼저 등록해주세요.';
+          warnBanner.className = 'p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center justify-between gap-2 shadow-2xs';
           warnBanner.classList.remove('hidden');
         } else if (val.unmappedSubjects.length > 0) {
-          warnText.textContent = `교과군이 지정되지 않은 과목이 ${val.unmappedSubjects.length}개 있습니다 (${val.unmappedSubjects.slice(0, 3).join(', ')}...). [2. 과목별 교과군 지정 매핑]에서 교과군을 배정해주세요.`;
+          warnText.textContent = `교과군이 지정되지 않은 과목이 ${val.unmappedSubjects.length}개 있습니다 (${val.unmappedSubjects.slice(0, 4).join(', ')}...). [2. 과목별 교과군 지정 매핑]에서 교과군을 배정해주세요.`;
+          warnBanner.className = 'p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center justify-between gap-2 shadow-2xs';
+          warnBanner.classList.remove('hidden');
+        } else if (hasPriorData) {
+          const g3PriorCount = (priorG3 && priorG3.students) ? priorG3.students.length : 0;
+          const g2PriorCount = (priorG2 && priorG2.students) ? priorG2.students.length : 0;
+          warnText.innerHTML = `<span class="flex items-center gap-1.5"><span class="text-sm">📌</span><span><b>사전 데이터 연동 완료:</b> 3학년(${g3PriorCount}명)·2학년(${g2PriorCount}명)의 사전 등록 기이수 과목이 [전학년 누적] 교과군 선택 조건 검증에 정상 반영되고 있습니다.</span></span>`;
+          warnBanner.className = 'p-3 rounded-xl bg-indigo-50/80 border border-indigo-200 text-indigo-950 text-xs font-bold flex items-center justify-between gap-2 shadow-2xs';
           warnBanner.classList.remove('hidden');
         } else {
           warnBanner.classList.add('hidden');
@@ -16244,20 +16509,30 @@ function createSangjiCourseSelectionForm() {
           item.violations.forEach(v => {
             const cat = v.category;
             const cColor = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : STEP3_COLOR_SCHEMES.blue;
-            if (v.subjects.length === 0) {
+            const totalInCat = (v.allSubjects && v.allSubjects.length > 0) ? v.allSubjects.length : v.subjects.length;
+            if (totalInCat === 0) {
               chosenInCatHtml += `
                 <div class="py-1 px-2 rounded-lg bg-slate-100/80 border border-slate-200 text-slate-400 text-xs italic">
-                  [${cat ? cat.name : ''}] 해당 교과군 선택 과목 없음 (0개)
+                  [${cat ? cat.name : ''}] 해당 교과군 이수/선택 과목 없음 (0개)
                 </div>
               `;
             } else {
+              const chosenPills = (v.subjects || []).map(s => `
+                <span class="text-[11px] font-extrabold px-1.5 py-0.5 rounded ${cColor.badge} border shadow-2xs" title="이번 학년 수강신청 선택과목">${s}</span>
+              `).join('');
+              const priorPills = (v.priorSubjects || []).map(s => `
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs" title="사전 데이터 등록 기이수 과목 (인정)">[기이수] ${s}</span>
+              `).join('');
+
               chosenInCatHtml += `
                 <div class="py-1 px-2 rounded-lg bg-white border border-slate-200 shadow-2xs space-y-1">
-                  <span class="text-[10px] font-black text-slate-500">[${cat ? cat.name : ''}] 선택 (${v.subjects.length}개):</span>
-                  <div class="flex flex-wrap gap-1">
-                    ${v.subjects.map(s => `
-                      <span class="text-[11px] font-extrabold px-1.5 py-0.5 rounded ${cColor.badge} border shadow-2xs" title="${cat ? cat.name : ''}">${s}</span>
-                    `).join('')}
+                  <div class="flex items-center justify-between text-[10px] font-black text-slate-600">
+                    <span>[${cat ? cat.name : ''}] 총 인정 ${totalInCat}과목</span>
+                    ${v.priorCount > 0 ? `<span class="text-indigo-600 font-bold">(선택 ${v.chosenCount} + 기이수 ${v.priorCount})</span>` : ''}
+                  </div>
+                  <div class="flex flex-wrap gap-1 items-center">
+                    ${chosenPills}
+                    ${priorPills}
                   </div>
                 </div>
               `;
@@ -16316,6 +16591,7 @@ function createSangjiCourseSelectionForm() {
             <td class="py-3 px-4 text-center font-black text-slate-900 whitespace-nowrap">
               <div class="inline-flex items-center gap-1.5">
                 <span>${item.name}</span>
+                ${item.isDuplicateName ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300" title="사전 데이터에 동일 성명이 2명 이상 존재합니다. 반·번호를 확인해주세요.">⚠️동명이인</span>' : ''}
                 ${item.student && item.student.isNewlyAdded ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200" title="2단계에서 추가된 학생">추가</span>' : ''}
               </div>
             </td>
@@ -16496,9 +16772,14 @@ function createSangjiCourseSelectionForm() {
           selectOptions += `<option value="${c.id}" ${assignedCatId === c.id ? 'selected' : ''}>${c.name}</option>`;
         });
 
-        const statusBadge = cs.status === '폐강' 
-          ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-800">폐강</span>'
-          : '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">개설</span>';
+        let statusBadge = '';
+        if (cs.source === '사전데이터' || cs.status === '사전데이터') {
+          statusBadge = '<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200" title="사전 데이터에 업로드된 기이수 개설 과목">사전데이터</span>';
+        } else if (cs.status === '폐강') {
+          statusBadge = '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-800">폐강</span>';
+        } else {
+          statusBadge = '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">개설</span>';
+        }
 
         const catSelectorBg = assignedCat ? (color ? color.badge : 'bg-slate-100') : 'bg-slate-100 text-slate-500';
 
@@ -17175,15 +17456,23 @@ function createSangjiCourseSelectionForm() {
             }).filter((v, i, a) => a.indexOf(v) === i).join('\n');
           }
 
-          // 4) 해당 교과군 선택 과목 (구체적 과목명)
+          // 4) 해당 교과군 선택 과목 (구체적 과목명 및 사전 기이수 과목)
           let chosenInCatText = '-';
           if (st.hasViol && st.violations && st.violations.length > 0) {
             chosenInCatText = st.violations.map(v => {
               const catName = v.category ? v.category.name : '교과군';
-              if (!v.subjects || v.subjects.length === 0) {
-                return `[${catName}] 해당 교과군 선택 과목 없음 (0개)`;
+              const totalCnt = (v.allSubjects && v.allSubjects.length > 0) ? v.allSubjects.length : (v.subjects || []).length;
+              if (totalCnt === 0) {
+                return `[${catName}] 해당 교과군 이수/선택 과목 없음 (0개)`;
               }
-              return `[${catName}] 선택 (${v.subjects.length}개): ${v.subjects.join(', ')}`;
+              const parts = [];
+              if (v.subjects && v.subjects.length > 0) {
+                parts.push(`선택 (${v.subjects.length}개): ${v.subjects.join(', ')}`);
+              }
+              if (v.priorSubjects && v.priorSubjects.length > 0) {
+                parts.push(`[기이수] (${v.priorSubjects.length}개): ${v.priorSubjects.join(', ')}`);
+              }
+              return `[${catName}] 총 인정 ${totalCnt}개 (${parts.join(' / ')})`;
             }).join('\n');
           }
 
