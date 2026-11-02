@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_05:53)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_06:20)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_05:53)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_06:20)</span></p>
         </div>
       </div>
 
@@ -263,7 +263,7 @@
                       </div>
                     </div>
                   </h3>
-                  <p id="priorCardDesc" class="text-[11px] text-slate-500 mt-0.5">1학년 NEIS 파일 등록(수강생편성-학생편성현황.xlsx)</p>
+                  <p id="priorCardDesc" class="text-[11px] text-slate-500 mt-0.5">NEIS-편제및과목개설관리-수강생편성-학생편성현황-엑셀출력</p>
                 </div>
               </div>
               <div id="priorStatusBadge" class="hidden">
@@ -1977,9 +1977,7 @@
                 </p>
               </div>
               <div class="flex flex-wrap items-center gap-2 shrink-0">
-                <button type="button" onclick="window.runCreditAuditFromCurrentSystem()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 transition cursor-pointer shadow-md">
-                  <span>🔄 현재 학생 데이터로 즉시 분석</span>
-                </button>
+                
               </div>
             </div>
           </div>
@@ -2102,6 +2100,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-base">📁</span>
                 <h3 class="text-sm font-black text-slate-900">교과학습발달상황(전입생/재학생) 엑셀 파일 업로드</h3>
+                <p class="text-xs text-slate-500 font-medium">NEIS-학교생활기록부-학생부 항목별 조회-교과학습발달상황-저장-XLS data</p>
                 <!-- Tooltip Trigger -->
                 <div class="relative group inline-block">
                   <span class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-700 font-black text-xs flex items-center justify-center cursor-help transition">?</span>
@@ -6310,6 +6309,12 @@
     navTab2?.addEventListener('click', () => switchStepView(2));
 
     function switchStepView(step) {
+      const uploadSection = document.getElementById('uploadSection');
+      if (step === 3) {
+        if (uploadSection) uploadSection.classList.add('hidden');
+      } else {
+        if (uploadSection && MultiState.activeGrade !== '전체') uploadSection.classList.remove('hidden');
+      }
       if (MultiState.activeGrade === '전체') {
         MultiState.activeGrade = '2학년';
         const allGradesSection = document.getElementById('allGradesSection');
@@ -19927,7 +19932,163 @@ function createSangjiCourseSelectionForm() {
     }
     window.processCreditAuditRows = processCreditAuditRows;
 
-    // 2. 별도 교과학습발달상황 엑셀 파일 직접 업로드 처리
+    // 2. 별도 교과학습발달상황 엑셀 파일 직접 업로드 처리 (NEIS 실제 양식 완벽 파서)
+    function parseSmartCreditAudit2D(sheetRows, headerConfig = {}) {
+      const norm = s => String(s || '').trim().replace(/\s+/g, '').toLowerCase();
+
+      const cfg = {
+        name: (headerConfig.name || '성명, 이름, 학생명').split(',').map(norm).filter(Boolean),
+        grade: (headerConfig.grade || '학년').split(',').map(norm).filter(Boolean),
+        semester: (headerConfig.semester || '학기').split(',').map(norm).filter(Boolean),
+        credit: (headerConfig.credit || '학점, 단위수, 단위, 시수, 이수학점, 이수단위').split(',').map(norm).filter(Boolean),
+        class: (headerConfig.class || '반, 학급').split(',').map(norm).filter(Boolean),
+        number: (headerConfig.number || '번호').split(',').map(norm).filter(Boolean),
+        subject: (headerConfig.subject || '과목명, 과목, 교과목').split(',').map(norm).filter(Boolean)
+      };
+
+      const matchesAny = (cellVal, targetList) => {
+        const c = norm(cellVal);
+        if (!c) return 0;
+        if (targetList.includes(c)) return 2;
+        if (targetList.some(t => c.includes(t) || t.includes(c))) return 1;
+        return 0;
+      };
+
+      let colMap = null;
+      let currentClass = '1';
+      let currentGradeContext = '1';
+      let currentStudent = null;
+      let currentGrade = '1';
+      let currentSemester = '1';
+
+      const students = [];
+
+      for (let r = 0; r < sheetRows.length; r++) {
+        const row = sheetRows[r];
+        if (!row || !Array.isArray(row)) continue;
+        const rowJoined = row.join(' ');
+        const cleanRowStr = norm(rowJoined);
+
+        // 1) 반/학년 헤더 감지 (예: '1학년 1반', '제 1 학년 2 반', '1-2반')
+        const classMatch = rowJoined.match(/(\d+)\s*학년\s*(\d+)\s*반/i) || rowJoined.match(/(\d+)\s*-\s*(\d+)\s*반?/);
+        if (classMatch) {
+          currentGradeContext = classMatch[1];
+          currentClass = classMatch[2];
+        }
+
+        // 2) 헤더 행인지 판별
+        let headerHits = 0;
+        const tempMap = {};
+        const bestScores = {};
+
+        row.forEach((cell, cIdx) => {
+          const c = norm(cell);
+          if (!c) return;
+
+          const testCol = (key, list) => {
+            const score = matchesAny(c, list);
+            if (score > 0 && (!bestScores[key] || score > bestScores[key])) {
+              if (key === 'subject' && (c === '교과' || c.startsWith('교과('))) return;
+              bestScores[key] = score;
+              tempMap[key] = cIdx;
+            }
+          };
+
+          testCol('number', cfg.number);
+          testCol('name', cfg.name);
+          testCol('grade', cfg.grade);
+          testCol('semester', cfg.semester);
+          testCol('subject', cfg.subject);
+          testCol('credit', cfg.credit);
+          testCol('class', cfg.class);
+        });
+
+        if (tempMap.credit !== undefined && tempMap.subject !== undefined) {
+          colMap = tempMap;
+          continue;
+        }
+
+        if (!colMap) continue;
+
+        // 3) 합계 행, 페이지 구분선 스킵
+        if (cleanRowStr.includes('합계') || cleanRowStr.includes('총점')) continue;
+        const filledCells = row.filter(c => String(c).trim() !== '');
+        if (filledCells.length <= 3 && /^\d+\s*\/\s*\d+$/.test(cleanRowStr.replace(/[^0-9\/]/g, ''))) continue;
+
+        const getCell = (colIdx) => (colIdx !== undefined && row[colIdx] !== undefined) ? String(row[colIdx]).trim() : '';
+
+        const cellNum = getCell(colMap.number);
+        const cellName = getCell(colMap.name);
+        const cellGrade = getCell(colMap.grade);
+        const cellSem = getCell(colMap.semester);
+        const cellSubj = getCell(colMap.subject);
+        const cellCredit = getCell(colMap.credit);
+        const cellClass = getCell(colMap.class);
+
+        if (cellClass) {
+          const clParsed = cellClass.replace(/[^0-9]/g, '');
+          if (clParsed) currentClass = clParsed;
+        }
+
+        // 4) 학생 감지: 번호 열에 숫자가 있거나, 성명 열에 유효 텍스트가 있는 경우
+        const parsedNum = cellNum.replace(/[^0-9]/g, '');
+        const hasNum = parsedNum !== '' && !isNaN(parseInt(parsedNum, 10));
+        const hasName = cellName !== '' && !cellName.includes('성명') && !cellName.includes('이름');
+
+        if (hasNum || hasName) {
+          const stdNum = hasNum ? parsedNum : (currentStudent ? String(parseInt(currentStudent.studentNum, 10) + 1) : '1');
+          const stdName = hasName ? cellName : `${currentClass}반 ${stdNum}번`;
+          const key = `${currentClass}_${stdNum}_${stdName}`;
+
+          currentStudent = students.find(s => s.key === key);
+          if (!currentStudent) {
+            currentStudent = {
+              id: 'ca_std_' + (students.length + 1),
+              key: key,
+              classNum: currentClass,
+              studentNum: stdNum,
+              studentIdStr: `${currentClass}-${stdNum.padStart(2, '0')}`,
+              name: stdName,
+              credits: { '1-1': 0, '1-2': 0, '2-1': 0, '2-2': 0, '3-1': 0, '3-2': 0 },
+              subjects: []
+            };
+            students.push(currentStudent);
+          }
+        }
+
+        // 학년/학기 fill-down
+        if (cellGrade) {
+          const gParsed = cellGrade.replace(/[^1-3]/g, '');
+          if (gParsed) currentGrade = gParsed;
+        } else if (!currentGrade) {
+          currentGrade = currentGradeContext;
+        }
+
+        if (cellSem) {
+          const sParsed = cellSem.replace(/[^1-2]/g, '');
+          if (sParsed) currentSemester = sParsed;
+        }
+
+        // 5) 과목 및 학점 처리
+        const creditVal = parseFloat(cellCredit);
+        const isValidSubject = cellSubj && !cellSubj.includes('합계') && !cellSubj.includes('과목');
+
+        if (currentStudent && isValidSubject && !isNaN(creditVal) && creditVal > 0) {
+          const semKey = `${currentGrade}-${currentSemester}`;
+          if (currentStudent.credits[semKey] !== undefined) {
+            currentStudent.credits[semKey] += creditVal;
+          }
+          currentStudent.subjects.push({
+            sem: semKey,
+            subject: cellSubj,
+            credit: creditVal
+          });
+        }
+      }
+
+      return students;
+    }
+
     function handleCreditAuditFileUpload(file) {
       if (!file) return;
       const reader = new FileReader();
@@ -19936,24 +20097,47 @@ function createSangjiCourseSelectionForm() {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rawRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
-
-          if (!rawRows || rawRows.length === 0) {
+          
+          // 2차원 배열로 완벽하게 추출하여 NEIS 복합 양식 파싱 지원
+          const raw2D = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+          if (!raw2D || raw2D.length === 0) {
             alert('엑셀 파일에 유효한 데이터가 없습니다.');
             return;
           }
 
-          processCreditAuditRows(rawRows);
+          window._lastCreditAuditRaw2D = raw2D;
+          const cfg = (typeof getCreditAuditHeaderConfigObject === 'function') 
+            ? getCreditAuditHeaderConfigObject() 
+            : {
+                name: document.getElementById('caColName')?.value,
+                grade: document.getElementById('caColGrade')?.value,
+                semester: document.getElementById('caColSemester')?.value,
+                credit: document.getElementById('caColCredit')?.value,
+                class: document.getElementById('caColClass')?.value,
+                number: document.getElementById('caColNumber')?.value,
+                subject: document.getElementById('caColSubject')?.value
+              };
+
+          const parsedStudents = parseSmartCreditAudit2D(raw2D, cfg);
+          if (parsedStudents.length === 0) {
+            // 폴백: 일반 단순 표 형식 시도
+            const flatRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+            if (flatRows && flatRows.length > 0 && typeof processCreditAuditRows === 'function') {
+              processCreditAuditRows(flatRows);
+            }
+          } else {
+            window._creditAuditStudents = parsedStudents;
+            renderCreditAuditTable();
+          }
 
           const fileInfo = document.getElementById('creditAuditFileInfo');
           const fileName = document.getElementById('creditAuditFileName');
           if (fileInfo && fileName) {
-            fileName.textContent = `📄 로드된 파일: ${file.name} (총 ${window._creditAuditStudents.length}명 추출)`;
+            fileName.textContent = `📄 로드된 파일: ${file.name} (총 ${(window._creditAuditStudents || []).length}명 추출)`;
             fileInfo.classList.remove('hidden');
           }
 
-          renderCreditAuditTable();
-          alert(`🎉 [${file.name}] 파일에서 총 ${window._creditAuditStudents.length}명의 학기별 이수 학점을 분석했습니다!`);
+          alert(`🎉 [${file.name}] 파일에서 총 ${(window._creditAuditStudents || []).length}명의 학기별 이수 학점을 분석했습니다!`);
         } catch (err) {
           console.error(err);
           alert('엑셀 분석 중 오류가 발생했습니다: ' + err.message);
