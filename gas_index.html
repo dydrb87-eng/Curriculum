@@ -375,13 +375,20 @@
                     <span id="surveyCardTitle">[2학년] 수강신청 조사 엑셀 파일</span>
                     <span id="surveyCardGradeBadge" class="text-[10px] font-extrabold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">2학년 설문 결과</span>
                   </h3>
-                  <p class="text-[11px] text-slate-500 mt-0.5">학생들이 응답한 선택과목 신청 결과 엑셀 파일</p>
+                  <p class="text-[11px] text-slate-500 mt-0.5">학생들이 응답한 선택과목 신청 결과 엑셀 파일 (새 파일 업로드 시 교체)</p>
                 </div>
               </div>
-              <button type="button" onclick="window.downloadSurveyExcelTemplate()" class="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 font-bold text-xs rounded-xl shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer" title="수강신청 조사 엑셀 양식 및 작성 가이드 다운로드">
-                <span class="text-sm">📄</span>
-                <span>수강신청 양식 다운로드</span>
-              </button>
+              <div class="flex items-center gap-2 shrink-0">
+                <div id="surveyStatusBadge" class="hidden">
+                  <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-[11px] font-bold border border-emerald-200 flex items-center gap-1 shadow-xs">
+                    <span>✅ 등록 완료</span>
+                  </span>
+                </div>
+                <button type="button" onclick="window.downloadSurveyExcelTemplate()" class="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 font-bold text-xs rounded-xl shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer" title="수강신청 조사 엑셀 양식 및 작성 가이드 다운로드">
+                  <span class="text-sm">📄</span>
+                  <span>수강신청 양식 다운로드</span>
+                </button>
+              </div>
             </div>
 
             <!-- Survey Drop Zone -->
@@ -391,7 +398,7 @@
                 id="fileInput" 
                 accept=".xlsx, .xls, .csv, .json" 
                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
-                title="수강신청 엑셀(.xlsx) 또는 작업 백업 파일(.json)을 클릭하거나 드래그하세요"
+                title="수강신청 엑셀(.xlsx) 또는 작업 백업 파일(.json)을 클릭하거나 드래그하세요 (새 파일 업로드 시 교체)"
               />
               <div class="pointer-events-none flex flex-col items-center justify-center space-y-2">
                 <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform">
@@ -402,13 +409,24 @@
                     수강신청 엑셀 또는 백업 파일(.json)을 클릭하거나 드래그하세요
                   </p>
                   <p class="text-[11px] text-slate-400 mt-0.5">
-                    엑셀 파일(.xlsx) 및 다른 컴퓨터에서 백업한 파일(.json) 모두 지원
+                    새로운 엑셀 파일 업로드 시 기존 수강신청 데이터는 <strong class="text-blue-700">새 파일로 교체(덮어쓰기)</strong>됩니다
                   </p>
                 </div>
                 <span class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-md text-[11px] font-bold shadow-xs">
                   📁 파일 선택 (.xlsx / .json)
                 </span>
               </div>
+            </div>
+
+            <!-- Survey File Loaded Info Banner (Shown after loaded) -->
+            <div id="surveyLoadedInfo" class="hidden mt-3 p-2.5 bg-blue-50/90 rounded-xl border border-blue-200 flex items-center justify-between gap-2 text-xs">
+              <div class="min-w-0 space-y-0.5">
+                <p id="surveyLoadedSummary" class="font-bold text-blue-950 text-xs truncate">📊 수강신청 응답 학생: 0명 | 1학기 0과목 · 2학기 0과목</p>
+                <p id="surveyLoadedFileName" class="text-[11px] text-blue-700 font-medium truncate max-w-md" title="">파일명.xlsx</p>
+              </div>
+              <button id="btnClearSurvey" type="button" class="shrink-0 px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-md text-[11px] font-bold transition-colors cursor-pointer">
+                삭제
+              </button>
             </div>
           </div>
 
@@ -423,7 +441,7 @@
               </button>
             </div>
             <span class="text-[11px] text-slate-500 font-medium">
-              💡 저장된 JSON 백업 파일 또는 엑셀 파일을 불러오면 바로 작업이 시작됩니다.
+              💡 새 파일 업로드 시 기존 설문 데이터와 교체됩니다 (사전 데이터는 유지).
             </span>
           </div>
         </div>
@@ -4093,8 +4111,72 @@
         const crossCheckAlertPanel = document.getElementById('crossCheckAlertPanel');
         if (crossCheckAlertPanel) crossCheckAlertPanel.classList.add('hidden');
       }
+
+      updateSurveyDataUI();
     }
     window.updatePriorDataUI = updatePriorDataUI;
+
+    function updateSurveyDataUI() {
+      const surveyStatusBadge = document.getElementById('surveyStatusBadge');
+      const surveyLoadedInfo = document.getElementById('surveyLoadedInfo');
+      const surveyLoadedSummary = document.getElementById('surveyLoadedSummary');
+      const surveyLoadedFileName = document.getElementById('surveyLoadedFileName');
+      const activeG = MultiState.activeGrade || '2학년';
+
+      if (AppState.students && AppState.students.length > 0) {
+        if (surveyStatusBadge) surveyStatusBadge.classList.remove('hidden');
+        if (surveyLoadedInfo) surveyLoadedInfo.classList.remove('hidden');
+        const stCount = AppState.students.length;
+        const s1Count = Array.isArray(AppState.sem1Subjects) ? AppState.sem1Subjects.length : 0;
+        const s2Count = Array.isArray(AppState.sem2Subjects) ? AppState.sem2Subjects.length : 0;
+        if (surveyLoadedSummary) {
+          surveyLoadedSummary.textContent = `📊 [${activeG}] 응답 학생: ${stCount}명 | 1학기 ${s1Count}과목 · 2학기 ${s2Count}과목`;
+        }
+        const fName = AppState.fileName || `${activeG}_수강신청_조사파일.xlsx`;
+        if (surveyLoadedFileName) {
+          surveyLoadedFileName.textContent = `📁 등록 파일: ${fName} (새 파일 업로드 시 교체)`;
+          surveyLoadedFileName.title = fName;
+        }
+      } else {
+        if (surveyStatusBadge) surveyStatusBadge.classList.add('hidden');
+        if (surveyLoadedInfo) surveyLoadedInfo.classList.add('hidden');
+        if (fileInput) fileInput.value = '';
+      }
+    }
+    window.updateSurveyDataUI = updateSurveyDataUI;
+
+    function clearSurveyData() {
+      AppState.fileName = '';
+      AppState.students = [];
+      AppState.sem1Subjects = [];
+      AppState.sem2Subjects = [];
+      AppState.splitSubjects = { 1: {}, 2: {} };
+      AppState.pinnedSubjects = { 1: {}, 2: {} };
+      AppState.closedSubjects = { 1: [], 2: [] };
+      AppState._closedImportedFromPrev = false;
+      AppState._surveyCleared = true;
+      AppState.subjectMemos = { 1: {}, 2: {} };
+      AppState.studentPins = [];
+      AppState.savedPlans = [];
+      AppState.currentPlan = null;
+      AppState.currentPlans = { 1: null, 2: null };
+
+      if (fileInput) fileInput.value = '';
+      if (restoredBadge) restoredBadge.classList.add('hidden');
+      if (appBody) appBody.classList.add('hidden');
+
+      const hasPrior = !!(AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0);
+      if (btnResetAll) {
+        if (hasPrior) btnResetAll.classList.remove('hidden');
+        else btnResetAll.classList.add('hidden');
+      }
+
+      updatePriorDataUI();
+      saveAllState();
+      if (typeof renderYearGradeNav === 'function') renderYearGradeNav();
+      if (typeof updateModalStats === 'function') updateModalStats();
+    }
+    window.clearSurveyData = clearSurveyData;
 
     function rebuildPriorDataFromStudents(studentsArray, meta = {}) {
       const courseCatalogMap = new Map();
@@ -5399,9 +5481,17 @@
     });
 
     fileInput.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       dropZone.classList.remove('border-blue-600', 'bg-blue-100/60', 'ring-4', 'ring-blue-100');
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         processUploadedFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    document.getElementById('btnClearSurvey')?.addEventListener('click', () => {
+      if (confirm(`현재 [${MultiState.activeGrade}]의 수강신청 조사 데이터를 삭제하시겠습니까?\n(등록된 사전 데이터는 그대로 유지됩니다.)`)) {
+        clearSurveyData();
       }
     });
 
@@ -5470,11 +5560,15 @@
           if (stateJsonStr) {
             const restoredState = JSON.parse(stateJsonStr);
             Object.assign(AppState, restoredState);
+            AppState._surveyCleared = false;
+            AppState._cleared = false;
             restoredBadge.classList.remove('hidden');
             gradeBadge.textContent = `🎯 ${AppState.detectedGrade} 감지됨`;
             gradeBadge.classList.remove('hidden');
             btnResetAll.classList.remove('hidden');
             appBody.classList.remove('hidden');
+            updatePriorDataUI();
+            updateSurveyDataUI();
             alert(`🎉 이전에 작업한 [${AppState.detectedGrade}] 그룹핑 파일이 성공적으로 복원되었습니다!\n(저장된 후보안: ${AppState.savedPlans.length}개)`);
             renderStep1();
             renderStep2UI();
@@ -5703,6 +5797,8 @@
       AppState.pinnedSubjects = { 1: {}, 2: {} };
       AppState.closedSubjects = { 1: [], 2: [] };
       AppState._closedImportedFromPrev = false;
+      AppState._surveyCleared = false;
+      AppState._cleared = false;
       AppState.subjectMemos = { 1: {}, 2: {} };
       AppState.studentPins = [];
       AppState.savedPlans = [];
@@ -5734,6 +5830,7 @@
         runCrossCheckAnalysis();
       }
 
+      updateSurveyDataUI();
       renderStep1();
       initStep2Controls();
       runOptimization(); // Run initial grouping
@@ -14767,7 +14864,7 @@ function createSangjiCourseSelectionForm() {
       }
 
       // 만약 해당 기준 날짜 탭에 아직 수강신청 조사 데이터가 없다면, 동일 학년(targetGrade)의 다른 날짜 탭에서 수강신청 조사 원본을 공유/상속
-      if ((!mergedData.students || mergedData.students.length === 0) && !curAcadData[targetYear][targetGrade]?._cleared) {
+      if ((!mergedData.students || mergedData.students.length === 0) && !curAcadData[targetYear][targetGrade]?._cleared && !curAcadData[targetYear][targetGrade]?._surveyCleared) {
         for (const otherDate of dateList) {
           if (otherDate !== targetYear && curAcadData[otherDate]?.[targetGrade]?.students?.length > 0) {
             const src = curAcadData[otherDate][targetGrade];
