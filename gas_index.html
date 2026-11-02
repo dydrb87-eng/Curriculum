@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.10.28_13:07)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_05:17)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.10.28_13:07)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_05:17)</span></p>
         </div>
       </div>
 
@@ -188,10 +188,13 @@
         <!-- Separator -->
         <div class="text-slate-300 font-bold text-sm shrink-0 select-none h-[66px] flex items-center justify-center">➔</div>
 
-        <!-- 5. 전체 시수종합 탭 (1,2단계 완료 후 다음 순서) -->
-        <div id="academicAllGradesNavWrapper" class="flex items-start shrink-0 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs transition-all min-h-[66px]">
-          <div id="academicAllGradesContainer" class="flex items-start shrink-0 h-full">
-            <!-- 전체 시수종합 버튼 동적 렌더링 -->
+        <!-- 5. 3단계(교과군 선택조건 검증) & 전체 시수종합 공통 바깥 테두리 영역 (위: 3단계 / 아래: 전체 시수종합) -->
+        <div id="academicCommonNavWrapper" class="flex items-start shrink-0 p-1 bg-indigo-50/40 rounded-xl border-2 border-indigo-200 hover:border-indigo-300 shadow-2xs transition-all min-h-[66px]" title="교육과정 편제표 기반 종합 관리 및 검증 공통 영역">
+          <div id="academicCommonTabs" class="flex flex-col gap-1 shrink-0">
+            <!-- 
+              위(행 1): 3단계 교과군 선택조건 검증 (현 2학년)
+              아래(행 2): 📊 전체 시수종합
+            -->
           </div>
         </div>
 
@@ -1603,11 +1606,11 @@
           <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <div class="flex items-center gap-2 mb-1.5">
-                <span class="px-2.5 py-0.5 bg-purple-500/40 text-purple-200 border border-purple-400/40 rounded-full text-xs font-black tracking-wide">3단계 검증 엔진</span>
+                <span class="px-2.5 py-0.5 bg-purple-500/40 text-purple-200 border border-purple-400/40 rounded-full text-xs font-black tracking-wide">교과군 선택조건 검증 (현 2학년)</span>
                 <span id="step3ActiveYearBadge" class="px-2.5 py-0.5 bg-white/20 text-white rounded-full text-xs font-bold">2027학년도</span>
               </div>
               <h2 class="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
-                <span>📋 교과군 선택 조건 종합 검증</span>
+                <span>📋 교과군 선택조건 검증 (현 2학년)</span>
               </h2>
               <p class="text-purple-200 text-xs sm:text-sm mt-1 max-w-3xl leading-relaxed">
                 전체 시수 종합의 전학년(1·2·3학년) 과목 목록을 바탕으로 교과군 및 선택 개수 제한 조건을 등록하고, 
@@ -19642,7 +19645,7 @@ function renderYearGradeNav() {
         }).join('');
       }
 
-      // 4. Render Step Tabs (1단계 / 2단계 2행)
+      // 4. Render Step Tabs (1단계 / 2단계 2행 - 학년별 수강신청/시간표)
       if (stepNavWrapper) {
         if (isAllGrades) {
           stepNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
@@ -19656,8 +19659,7 @@ function renderYearGradeNav() {
       if (stepContainer) {
         stepContainer.innerHTML = [
           { step: 1, label: '1단계', desc: '선택 매트릭스' },
-          { step: 2, label: '2단계', desc: '그룹핑 & 시간표' },
-          { step: 3, label: '3단계', desc: '선택조건 검증' }
+          { step: 2, label: '2단계', desc: '그룹핑 & 시간표' }
         ].map(item => {
           const isActive = !isAllGrades && curStep === item.step;
           
@@ -19681,19 +19683,6 @@ function renderYearGradeNav() {
                     : (isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800')
                 }">${conflicts === 0 ? '충돌 0명' : `충돌 ${conflicts}명`}</span>`;
               }
-            } else if (item.step === 3) {
-              const vSummary = (typeof getStep3ValidationSummaryQuick === 'function') ? getStep3ValidationSummaryQuick() : null;
-              if (vSummary && vSummary.total > 0) {
-                if (vSummary.violated > 0) {
-                  badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-                    isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800'
-                  }">위반 ${vSummary.violated}명</span>`;
-                } else {
-                  badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-                    isActive ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
-                  }">정상</span>`;
-                }
-              }
             }
           }
 
@@ -19701,9 +19690,9 @@ function renderYearGradeNav() {
             <button type="button" 
                     onclick="window.switchStepView(${item.step})"
                     ${isAllGrades ? 'disabled' : ''}
-                    class="px-2.5 py-0.5 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
+                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
                       isActive
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400'
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs ring-2 ring-blue-400'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
                     }"
                     title="${item.label}: ${item.desc} 화면으로 전환">
@@ -19717,30 +19706,66 @@ function renderYearGradeNav() {
         }).join('');
       }
 
-      // 5. Render All Grades (전체 시수종합 - 1,2단계 완료 후 다음 순서)
-      const allGradesContainer = document.getElementById('academicAllGradesContainer');
-      if (allGradesContainer) {
-        const isAllActive = MultiState.activeGrade === '전체';
+      // 5. Render Common Nav Area (공통 바깥 테두리: 위=3단계 교과군 선택조건 검증 (현 2학년) / 아래=전체 시수종합)
+      const commonTabsContainer = document.getElementById('academicCommonTabs');
+      if (commonTabsContainer) {
+        const isStep3Active = !isAllGrades && curStep === 3;
+        const isAllActive = isAllGrades;
+
+        // 3단계 위반 요약 뱃지
+        let step3BadgeHtml = '';
+        const vSummary = (typeof getStep3ValidationSummaryQuick === 'function') ? getStep3ValidationSummaryQuick() : null;
+        if (vSummary && vSummary.total > 0) {
+          if (vSummary.violated > 0) {
+            step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+              isStep3Active ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800'
+            }">위반 ${vSummary.violated}명</span>`;
+          } else {
+            step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+              isStep3Active ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
+            }">정상</span>`;
+          }
+        }
+
+        // 전체 시수종합 요약 뱃지
         const yData = getAcadData()[MultiState.activeYear] || {};
         const allData = yData['전체'] || {};
         const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
         const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
 
-        allGradesContainer.innerHTML = `
+        commonTabsContainer.innerHTML = `
+          <!-- 위: 3단계 교과군 선택조건 검증 (현 2학년) -->
+          <button type="button" 
+                  onclick="window.switchStepView(3)"
+                  class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                    isStep3Active 
+                      ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400' 
+                      : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
+                  }"
+                  title="3단계: 교과군 선택조건 검증 (현 2학년) 화면으로 전환">
+            <div class="flex items-center gap-1.5 whitespace-nowrap">
+              <span>📋</span>
+              <span>교과군 선택조건 검증 (현 2학년)</span>
+            </div>
+            ${step3BadgeHtml}
+          </button>
+
+          <!-- 아래: 전체 시수종합 -->
           <button type="button" 
                   onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
-                  class="h-[56px] px-3 py-1 rounded-lg text-xs font-black flex flex-col items-center justify-center gap-0.5 transition cursor-pointer select-none ${
+                  class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
                     isAllActive 
                       ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                      : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
                   }"
                   title="${MultiState.activeYear} 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
-            <div class="flex items-center gap-1 whitespace-nowrap">
-              <span>📊 전체 시수종합</span>
+            <div class="flex items-center gap-1.5 whitespace-nowrap">
+              <span>📊</span>
+              <span>전체 시수종합</span>
             </div>
             <div class="flex items-center gap-1 text-[10px] whitespace-nowrap">
               <span class="px-1.5 py-0.2 rounded-full font-bold ${
-                isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-200 text-slate-600'
+                isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-100 text-slate-600'
               }">
                 ${curCount > 0 ? `교사 ${teacherSet.size}명` : '교원수급'}
               </span>
