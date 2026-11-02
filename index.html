@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_06:35)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_07:44)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_06:35)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_07:44)</span></p>
         </div>
       </div>
 
@@ -1632,7 +1632,7 @@
           <div class="flex items-center gap-2">
             <button type="button" id="step3MainTabBtnCategory" onclick="window.switchStep3MainTab('category')"
                     class="px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition cursor-pointer flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-md ring-2 ring-purple-300">
-              <span>📋 교과군 선택조건 검증</span>
+              <span>📋 이수과목 검증</span>
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white font-bold">대입·졸업 필수조건</span>
             </button>
             <button type="button" id="step3MainTabBtnCreditAudit" onclick="window.switchStep3MainTab('creditAudit')"
@@ -1659,7 +1659,7 @@
                 <span id="step3ActiveYearBadge" class="px-2.5 py-0.5 bg-white/20 text-white rounded-full text-xs font-bold">2027학년도</span>
               </div>
               <h2 class="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
-                <span>📋 교과군 선택조건 검증</span>
+                <span>📋 이수과목 검증</span>
               </h2>
               <p class="text-purple-200 text-xs sm:text-sm mt-1 max-w-3xl leading-relaxed">
                 전체 시수 종합의 전학년(1·2·3학년) 과목 목록을 바탕으로 교과군 및 선택 개수 제한 조건을 등록하고, 
@@ -1982,78 +1982,104 @@
             </div>
           </div>
 
-          <!-- 1. 학기별 필수 이수 학점 기준 설정 -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div class="flex items-center gap-2">
+          <!-- 1. 학기별 필수 이수 학점 기준 설정 & 필수 열 제목 사용자 지정 (접기/펼치기 가능, 기본값: 접기) -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <!-- 섹션 1 헤더: 학기별 필수 이수 학점 기준 설정 -->
+            <div class="p-4 bg-slate-50/80 hover:bg-slate-100 transition cursor-pointer flex items-center justify-between select-none" onclick="window.toggleCreditAuditSection('creditSettings')">
+              <div class="flex items-center gap-2.5">
                 <span class="text-base">⚙️</span>
-                <h3 class="text-sm font-black text-slate-900">학기별 필수 이수 학점 기준 설정</h3>
-                <span class="text-xs text-slate-400">(기준값 변경 시 실시간 재계산)</span>
+                <div>
+                  <h3 class="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <span>학기별 필수 이수 학점 기준 설정</span>
+                    <span id="caCreditSummaryBadge" class="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700">기본 29학점 기준</span>
+                  </h3>
+                  <p class="text-[11px] text-slate-500 mt-0.5">1-1부터 3-2까지 학기별 최소 충족 학점 기준 변경 및 실시간 재계산</p>
+                </div>
               </div>
-              <button type="button" onclick="window.resetCreditAuditDefaults()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer border border-slate-200 shadow-2xs">
-                🔄 기본값(29학점) 복원
+              <button type="button" id="btnToggleCreditSettings" class="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition">
+                <span id="txtToggleCreditSettings">설정 펼치기 ▾</span>
               </button>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <label class="block text-[11px] font-bold text-slate-600">1학년 1학기</label>
-                <div class="flex items-center gap-1">
-                  <input type="number" id="caCredit-1-1" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
-                  <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
-                </div>
+            <!-- 섹션 1 바디: 6개 학기 입력 그리드 (기본값: hidden) -->
+            <div id="caCreditSettingsBody" class="hidden p-5 bg-white space-y-3 border-t border-slate-200/80">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-1">
+                <span class="text-xs text-slate-500 font-medium">학기별 기준 학점을 수정하면 분석 결과표와 미충족 판정이 실시간으로 즉시 갱신됩니다.</span>
+                <button type="button" onclick="event.stopPropagation(); window.resetCreditAuditDefaults();" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition border border-slate-200 shadow-2xs cursor-pointer">
+                  🔄 기본값(29학점) 복원
+                </button>
               </div>
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <label class="block text-[11px] font-bold text-slate-600">1학년 2학기</label>
-                <div class="flex items-center gap-1">
-                  <input type="number" id="caCredit-1-2" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
-                  <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block text-[11px] font-bold text-slate-600">1학년 1학기</label>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="caCredit-1-1" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                  </div>
                 </div>
-              </div>
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <label class="block text-[11px] font-bold text-slate-600">2학년 1학기</label>
-                <div class="flex items-center gap-1">
-                  <input type="number" id="caCredit-2-1" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
-                  <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block text-[11px] font-bold text-slate-600">1학년 2학기</label>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="caCredit-1-2" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                  </div>
                 </div>
-              </div>
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <label class="block text-[11px] font-bold text-slate-600">2학년 2학기</label>
-                <div class="flex items-center gap-1">
-                  <input type="number" id="caCredit-2-2" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
-                  <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block text-[11px] font-bold text-slate-600">2학년 1학기</label>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="caCredit-2-1" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                  </div>
                 </div>
-              </div>
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <label class="block text-[11px] font-bold text-slate-600">3학년 1학기</label>
-                <div class="flex items-center gap-1">
-                  <input type="number" id="caCredit-3-1" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
-                  <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block text-[11px] font-bold text-slate-600">2학년 2학기</label>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="caCredit-2-2" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                  </div>
                 </div>
-              </div>
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <label class="block text-[11px] font-bold text-slate-600">3학년 2학기</label>
-                <div class="flex items-center gap-1">
-                  <input type="number" id="caCredit-3-2" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
-                  <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block text-[11px] font-bold text-slate-600">3학년 1학기</label>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="caCredit-3-1" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                  </div>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block text-[11px] font-bold text-slate-600">3학년 2학기</label>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="caCredit-3-2" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- 필수 열 제목(엑셀 헤더) 사용자 설정 영역 -->
-            <div class="pt-4 border-t border-slate-100 space-y-2.5">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <span>📋 엑셀 필수 열 제목(헤더) 사용자 지정</span>
-                    <span class="text-[11px] font-normal text-slate-500">(띄어쓰기 무시 자동 적용, 쉼표[,]로 여러 별칭 지정 가능)</span>
-                  </span>
+            <!-- 섹션 2 헤더: 📋 엑셀 필수 열 제목(헤더) 사용자 지정 -->
+            <div class="p-4 bg-slate-50/80 hover:bg-slate-100 transition cursor-pointer flex items-center justify-between border-t border-slate-200/80 select-none" onclick="window.toggleCreditAuditSection('headerSettings')">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">📋</span>
+                <div>
+                  <h3 class="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <span>엑셀 필수 열 제목(헤더) 사용자 지정</span>
+                    <span class="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-slate-200 text-slate-700">띄어쓰기 무시 자동 적용</span>
+                  </h3>
+                  <p class="text-[11px] text-slate-500 mt-0.5">사용자 보유 엑셀의 열 이름에 맞춰 쉼표(,)로 별칭 복수 등록 가능</p>
                 </div>
-                <button type="button" onclick="window.resetCreditAuditHeaderDefaults()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 shadow-2xs transition cursor-pointer" title="열 제목을 기본값으로 복원합니다">
+              </div>
+              <button type="button" id="btnToggleHeaderSettings" class="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition">
+                <span id="txtToggleHeaderSettings">설정 펼치기 ▾</span>
+              </button>
+            </div>
+
+            <!-- 섹션 2 바디: 열 제목 입력 그리드 (기본값: hidden) -->
+            <div id="caHeaderSettingsBody" class="hidden p-5 bg-white space-y-3 border-t border-slate-200/80">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-1">
+                <span class="text-xs text-slate-500 font-medium">열 제목을 설정해두면 다음 접속 시에도 브라우저에 자동 유지됩니다.</span>
+                <button type="button" onclick="event.stopPropagation(); window.resetCreditAuditHeaderDefaults();" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 shadow-2xs transition cursor-pointer">
                   🔄 열 제목 기본값 복원
                 </button>
               </div>
-
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
                 <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1">
                   <label class="block font-bold text-slate-700">학생명 열</label>
@@ -2127,10 +2153,10 @@
             </div>
 
             <div id="creditAuditDropZone" class="relative group border-2 border-dashed border-indigo-300 hover:border-indigo-600 rounded-2xl p-6 bg-indigo-50/20 hover:bg-indigo-50/60 transition-all text-center cursor-pointer">
-              <input type="file" id="creditAuditFileInput" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.handleCreditAuditFileUpload(this.files[0])">
+              <input type="file" id="creditAuditFileInput" accept=".xlsx, .xls, .csv" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.handleCreditAuditMultipleFiles(this.files)">
               <div class="space-y-1 pointer-events-none">
                 <div class="text-2xl">📥</div>
-                <div class="text-xs font-black text-slate-800">교과학습발달상황 엑셀 파일을 클릭하거나 드래그하여 업로드하세요</div>
+                <div class="text-xs font-black text-slate-800">교과학습발달상황 엑셀 파일을 클릭하거나 드래그하여 업로드하세요 (여러 파일 동시 업로드 가능)</div>
                 <div class="text-[11px] text-slate-500">학생명, 학년, 학기, 과목명, 단위수(학점) 열이 포함된 엑셀 파일을 즉시 분석합니다.</div>
               </div>
             </div>
@@ -19934,7 +19960,129 @@ function createSangjiCourseSelectionForm() {
     }
     window.processCreditAuditRows = processCreditAuditRows;
 
-    // 2-0. 학기별 이수학점 점검 드래그 앤 드롭 영역 이벤트 초기화
+    // 1-1. 접기/펼치기 토글 함수
+    function toggleCreditAuditSection(section) {
+      if (section === 'creditSettings') {
+        const body = document.getElementById('caCreditSettingsBody');
+        const txt = document.getElementById('txtToggleCreditSettings');
+        if (!body) return;
+        const isHidden = body.classList.contains('hidden');
+        if (isHidden) {
+          body.classList.remove('hidden');
+          if (txt) txt.textContent = '설정 접기 ▲';
+        } else {
+          body.classList.add('hidden');
+          if (txt) txt.textContent = '설정 펼치기 ▾';
+        }
+      } else if (section === 'headerSettings') {
+        const body = document.getElementById('caHeaderSettingsBody');
+        const txt = document.getElementById('txtToggleHeaderSettings');
+        if (!body) return;
+        const isHidden = body.classList.contains('hidden');
+        if (isHidden) {
+          body.classList.remove('hidden');
+          if (txt) txt.textContent = '설정 접기 ▲';
+        } else {
+          body.classList.add('hidden');
+          if (txt) txt.textContent = '설정 펼치기 ▾';
+        }
+      }
+    }
+    window.toggleCreditAuditSection = toggleCreditAuditSection;
+
+    // 학생 데이터 리스트 병합 (반/번호/이름 기준 과목 및 학점 누적 합산)
+    function mergeCreditAuditStudentLists(existingList, newList) {
+      const map = new Map();
+
+      existingList.forEach(st => {
+        map.set(st.key, JSON.parse(JSON.stringify(st)));
+      });
+
+      newList.forEach(st => {
+        if (map.has(st.key)) {
+          const cur = map.get(st.key);
+          ['1-1', '1-2', '2-1', '2-2', '3-1', '3-2'].forEach(sem => {
+            cur.credits[sem] = (cur.credits[sem] || 0) + (st.credits[sem] || 0);
+          });
+          cur.subjects = (cur.subjects || []).concat(st.subjects || []);
+        } else {
+          map.set(st.key, JSON.parse(JSON.stringify(st)));
+        }
+      });
+
+      const merged = Array.from(map.values());
+      merged.sort((a, b) => {
+        const cA = parseInt(String(a.classNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const cB = parseInt(String(b.classNum).replace(/[^0-9]/g, ''), 10) || 0;
+        if (cA !== cB) return cA - cB;
+        const nA = parseInt(String(a.studentNum).replace(/[^0-9]/g, ''), 10) || 0;
+        const nB = parseInt(String(b.studentNum).replace(/[^0-9]/g, ''), 10) || 0;
+        return nA - nB;
+      });
+
+      return merged;
+    }
+
+    // 복수 엑셀 파일 비동기 읽기 및 일괄 병합 처리
+    async function handleCreditAuditMultipleFiles(files) {
+      if (!files || files.length === 0) return;
+      const fileArr = Array.from(files);
+
+      const cfg = (typeof getCreditAuditHeaderConfigObject === 'function')
+        ? getCreditAuditHeaderConfigObject()
+        : {
+            name: document.getElementById('caColName')?.value,
+            grade: document.getElementById('caColGrade')?.value,
+            semester: document.getElementById('caColSemester')?.value,
+            credit: document.getElementById('caColCredit')?.value,
+            class: document.getElementById('caColClass')?.value,
+            number: document.getElementById('caColNumber')?.value,
+            subject: document.getElementById('caColSubject')?.value
+          };
+
+      let combinedStudents = [];
+      const fileNames = [];
+
+      for (let i = 0; i < fileArr.length; i++) {
+        const file = fileArr[i];
+        fileNames.push(file.name);
+        try {
+          const buffer = await file.arrayBuffer();
+          const data = new Uint8Array(buffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const raw2D = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+
+          if (raw2D && raw2D.length > 0) {
+            const parsed = parseSmartCreditAudit2D(raw2D, cfg);
+            combinedStudents = mergeCreditAuditStudentLists(combinedStudents, parsed);
+          }
+        } catch (err) {
+          console.warn('File read error:', file.name, err);
+        }
+      }
+
+      window._creditAuditStudents = combinedStudents;
+      renderCreditAuditTable();
+
+      const fileInfo = document.getElementById('creditAuditFileInfo');
+      const fileNameSpan = document.getElementById('creditAuditFileName');
+      if (fileInfo && fileNameSpan) {
+        const namesSummary = fileNames.length === 1 
+          ? fileNames[0] 
+          : `총 ${fileNames.length}개 파일 (${fileNames[0]} 외 ${fileNames.length - 1}개)`;
+        fileNameSpan.textContent = `📄 로드된 파일: ${namesSummary} (총 ${combinedStudents.length}명 추출)`;
+        fileInfo.classList.remove('hidden');
+      }
+
+      alert(`🎉 총 ${fileNames.length}개 엑셀 파일에서 총 ${combinedStudents.length}명의 학기별 이수 학점을 성공적으로 병합·분석했습니다!`);
+    }
+    window.handleCreditAuditMultipleFiles = handleCreditAuditMultipleFiles;
+    window.handleCreditAuditFileUpload = function(file) {
+      if (file) handleCreditAuditMultipleFiles([file]);
+    };
+
+        // 2-0. 학기별 이수학점 점검 드래그 앤 드롭 영역 이벤트 초기화
     function initCreditAuditDropZone() {
       const zone = document.getElementById('creditAuditDropZone');
       const input = document.getElementById('creditAuditFileInput');
@@ -19961,7 +20109,7 @@ function createSangjiCourseSelectionForm() {
         e.preventDefault();
         e.stopPropagation();
         if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-          window.handleCreditAuditFileUpload(e.dataTransfer.files[0]);
+          window.handleCreditAuditMultipleFiles(e.dataTransfer.files);
         }
       });
 
@@ -20897,10 +21045,10 @@ function renderYearGradeNav() {
                       ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400' 
                       : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
                   }"
-                  title="3단계: 교과군 선택조건 검증 화면으로 전환">
+                  title="3단계: 이수과목 검증 화면으로 전환">
             <div class="flex items-center gap-1.5 whitespace-nowrap">
               <span>📋</span>
-              <span>교과군 선택조건 검증</span>
+              <span>이수과목 검증</span>
             </div>
             ${step3BadgeHtml}
           </button>
