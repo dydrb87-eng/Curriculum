@@ -13773,14 +13773,14 @@
       currentGoogleFormData.description = document.getElementById('gfDescInput').value.trim() || currentGoogleFormData.description;
 
       if (!isGasEnv) {
-        // 로컬 환경 안내 및 자동 복사 제안
+        // 로컬 환경 안내 및 자동 복사 + Apps Script 사이트 이동
         const confirmCopy = confirm(
           '현재 파일은 일반 웹 브라우저(로컬)에서 열려 있어 구글 드라이브에 직접 생성할 수 없습니다.\n\n' +
-          '[확인]을 누르시면 구글 스프레드시트의 [Apps Script]에서 1초 만에 실행할 수 있는 완성형 스크립트를 클립보드에 바로 복사해 드립니다.\n' +
-          '복사하시겠습니까?'
+          '[확인]을 누르시면 완성형 Apps Script 코드를 클립보드에 바로 복사하고 Google Apps Script(https://script.google.com/home)로 이동합니다.\n' +
+          '복사 후 이동하시겠습니까?'
         );
         if (confirmCopy) {
-          window.copyGoogleFormAppsScript();
+          window.copyGoogleFormAppsScript(true);
         }
         return;
       }
@@ -13827,7 +13827,7 @@
       });
     };
 
-    window.copyGoogleFormAppsScript = function() {
+    window.copyGoogleFormAppsScript = function(openScriptHome = false) {
       if (!currentGoogleFormData) return;
       const title = document.getElementById('gfTitleInput')?.value.trim() || currentGoogleFormData.title;
       const desc = document.getElementById('gfDescInput')?.value.trim() || currentGoogleFormData.description;
@@ -13837,7 +13837,7 @@
 
       const scriptContent = `/**
  * 상지대관령고등학교 선택과목 수강신청 구글 폼 자동 생성 매크로
- * [실행 방법]: 구글 스프레드시트 -> 확장 프로그램 -> Apps Script -> 붙여넣기 후 [실행] 클릭!
+ * [실행 방법]: Google Apps Script (새 프로젝트) 또는 구글 스프레드시트 -> 확장 프로그램 -> Apps Script -> 붙여넣기 후 [실행] 클릭!
  */
 function createSangjiCourseSelectionForm() {
   var title = ${JSON.stringify(title)};
@@ -13903,10 +13903,18 @@ function createSangjiCourseSelectionForm() {
 }
 `;
 
+      const openAppsScriptSite = () => {
+        if (openScriptHome) {
+          window.open('https://script.google.com/home', '_blank', 'noopener,noreferrer');
+        }
+      };
+
       navigator.clipboard.writeText(scriptContent).then(() => {
-        alert('📋 구글 폼 자동 생성용 Apps Script 코드가 클립보드에 복사되었습니다!\n\n[사용 방법]\n1. 구글 스프레드시트 상단 [확장 프로그램] -> [Apps Script] 클릭\n2. 편집기에 붙여넣고 [저장(Ctrl+S)] 후 [실행] 클릭!');
+        alert('📋 구글 폼 자동 생성용 Apps Script 코드가 클립보드에 복사되었습니다!\n\n[사용 방법]\n1. Google Apps Script 화면에서 [+ 새 프로젝트] 클릭\n2. 기존 코드를 지우고 붙여넣기(Ctrl+V) 후 [저장(Ctrl+S)] -> [실행] 클릭!');
+        openAppsScriptSite();
       }).catch(() => {
         prompt('Ctrl+C를 눌러 아래 코드를 복사하세요:', scriptContent);
+        openAppsScriptSite();
       });
     };
 
