@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_05:35)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_05:53)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_05:35)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_05:53)</span></p>
         </div>
       </div>
 
@@ -251,6 +251,17 @@
                   <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <span id="priorCardTitle">[2학년] 사전 데이터 등록</span>
                     <span id="priorCardGradeBadge" class="hidden"></span>
+                    <div class="relative group inline-block">
+                      <span class="w-4.5 h-4.5 rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-700 font-black text-xs flex items-center justify-center cursor-help transition">?</span>
+                      <div class="hidden group-hover:block absolute left-full top-0 ml-2 w-80 p-3 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl z-30 pointer-events-none">
+                        <div class="font-bold text-amber-300 mb-1">📋 사전 데이터(명부/기이수) 엑셀 항목</div>
+                        <ul class="list-disc list-inside space-y-0.5 text-slate-200">
+                          <li><strong>필수 열</strong>: 학년, 학기, 반, 번호, 성명, 과목명, 단위수</li>
+                          <li><strong>자동 인식</strong>: NEIS '수강생편성-학생편성현황' 엑셀 원본 그대로 인식</li>
+                          <li><strong>정규화</strong>: 띄어쓰기 무관, 기이수 과목 자동 취합 대조</li>
+                        </ul>
+                      </div>
+                    </div>
                   </h3>
                   <p id="priorCardDesc" class="text-[11px] text-slate-500 mt-0.5">1학년 NEIS 파일 등록(수강생편성-학생편성현황.xlsx)</p>
                 </div>
@@ -377,6 +388,18 @@
                   <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <span id="surveyCardTitle">[2학년] 수강신청 조사 엑셀 파일</span>
                     <span id="surveyCardGradeBadge" class="hidden"></span>
+                    <div class="relative group inline-block">
+                      <span class="w-4.5 h-4.5 rounded-full bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-700 font-black text-xs flex items-center justify-center cursor-help transition">?</span>
+                      <div class="hidden group-hover:block absolute left-full top-0 ml-2 w-80 p-3 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl z-30 pointer-events-none">
+                        <div class="font-bold text-amber-300 mb-1">📋 수강신청 엑셀 틀(항목) 및 인식 규칙</div>
+                        <ul class="list-disc list-inside space-y-0.5 text-slate-200">
+                          <li><strong>필수 열 항목</strong>: 반, 번호, 이름(또는 성명), 1학기 과목열들, 2학기 과목열들</li>
+                          <li><strong>선택과목 열 인식</strong>: 열 제목에 '1학기', '2학기' 또는 '택1', '택2' 등이 적혀 있으면 자동 인식</li>
+                          <li><strong>자동 정규화</strong>: 띄어쓰기, 로마숫자(I, Ⅰ), 특수문자 무관하게 자동 매칭</li>
+                          <li><strong>결시 제외</strong>: 없음, 무, -, X 등은 수강생 집계에서 자동 제외</li>
+                        </ul>
+                      </div>
+                    </div>
                   </h3>
                   <p class="text-[11px] text-slate-500 mt-0.5">학생들이 응답한 선택과목 신청 결과 엑셀 파일 (새 파일 업로드 시 교체)</p>
                 </div>
@@ -421,16 +444,7 @@
               </div>
             </div>
 
-            <!-- Survey File Format Guide -->
-            <div class="mt-2.5 p-2.5 bg-blue-50/60 rounded-xl border border-blue-200/80 text-xs text-blue-950 space-y-1">
-              <div class="font-bold flex items-center gap-1 text-[11px] text-blue-900">
-                <span>💡</span> <span>수강신청 엑셀 틀(항목) 및 인식 규칙 안내:</span>
-              </div>
-              <p class="text-[11px] leading-relaxed text-blue-900">
-                • <strong>필수 열 항목</strong>: <code>반</code>, <code>번호</code>, <code>이름</code>(또는 성명), <code>1학기 과목열들</code>, <code>2학기 과목열들</code><br>
-                • <strong>인식 규칙</strong>: 열 제목에 '1학기', '2학기' 또는 '택1', '택2' 등이 적혀 있으면 자동으로 학기별 선택과목으로 인식합니다. 띄어쓰기, 로마숫자(I, Ⅰ), 특수문자는 자동 정규화 처리되며, 결시/미선택(<code>없음</code>, <code>무</code>, <code>-</code>, <code>X</code>)은 자동 제외됩니다.
-              </p>
-            </div>
+
 
             <!-- Survey File Loaded Info Banner (Shown after loaded) -->
             <div id="surveyLoadedInfo" class="hidden mt-3 p-2.5 bg-blue-50/90 rounded-xl border border-blue-200 flex items-center justify-between gap-2 text-xs">
@@ -2024,6 +2038,59 @@
                 <div class="flex items-center gap-1">
                   <input type="number" id="caCredit-3-2" min="0" max="50" value="29" onchange="window.recalculateCreditAudit()" class="w-full px-2.5 py-1.5 text-xs font-black text-center border border-slate-300 rounded-lg bg-white text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none">
                   <span class="text-xs font-bold text-slate-500 shrink-0">학점</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 필수 열 제목(엑셀 헤더) 사용자 설정 영역 -->
+            <div class="pt-4 border-t border-slate-100 space-y-2.5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span>📋 엑셀 필수 열 제목(헤더) 사용자 지정</span>
+                    <span class="text-[11px] font-normal text-slate-500">(띄어쓰기 무시 자동 적용, 쉼표[,]로 여러 별칭 지정 가능)</span>
+                  </span>
+                </div>
+                <button type="button" onclick="window.resetCreditAuditHeaderDefaults()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 shadow-2xs transition cursor-pointer" title="열 제목을 기본값으로 복원합니다">
+                  🔄 열 제목 기본값 복원
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block font-bold text-slate-700">학생명 열</label>
+                  <input type="text" id="caColName" value="성명, 이름, 학생명" onchange="window.saveCreditAuditHeaderConfig()" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                  <p class="text-[10px] text-slate-400">기본값: 성명, 이름, 학생명</p>
+                </div>
+                <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block font-bold text-slate-700">학년 열</label>
+                  <input type="text" id="caColGrade" value="학년" onchange="window.saveCreditAuditHeaderConfig()" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                  <p class="text-[10px] text-slate-400">기본값: 학년</p>
+                </div>
+                <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block font-bold text-slate-700">학기 열</label>
+                  <input type="text" id="caColSemester" value="학기" onchange="window.saveCreditAuditHeaderConfig()" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                  <p class="text-[10px] text-slate-400">기본값: 학기</p>
+                </div>
+                <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block font-bold text-slate-700">단위수(학점) 열</label>
+                  <input type="text" id="caColCredit" value="단위수, 단위, 학점, 시수, 이수학점, 이수단위" onchange="window.saveCreditAuditHeaderConfig()" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                  <p class="text-[10px] text-slate-400">기본값: 단위수, 단위, 학점, 시수, 이수학점</p>
+                </div>
+                <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block font-bold text-slate-700">반 열 (선택)</label>
+                  <input type="text" id="caColClass" value="반, 학급" onchange="window.saveCreditAuditHeaderConfig()" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                  <p class="text-[10px] text-slate-400">기본값: 반, 학급</p>
+                </div>
+                <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1">
+                  <label class="block font-bold text-slate-700">번호 열 (선택)</label>
+                  <input type="text" id="caColNumber" value="번호" onchange="window.saveCreditAuditHeaderConfig()" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                  <p class="text-[10px] text-slate-400">기본값: 번호</p>
+                </div>
+                <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 col-span-1 sm:col-span-2 space-y-1">
+                  <label class="block font-bold text-slate-700">과목명 열 (선택)</label>
+                  <input type="text" id="caColSubject" value="과목명, 교과목, 과목" onchange="window.saveCreditAuditHeaderConfig()" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                  <p class="text-[10px] text-slate-400">기본값: 과목명, 교과목, 과목</p>
                 </div>
               </div>
             </div>
@@ -19555,6 +19622,9 @@ function createSangjiCourseSelectionForm() {
     window._step3ActiveMainTab = 'category';
 
     function switchStep3MainTab(tab) {
+      if (tab === 'creditAudit' && typeof window.loadCreditAuditHeaderConfig === 'function') {
+        window.loadCreditAuditHeaderConfig();
+      }
       window._step3ActiveMainTab = tab;
       const btnCat = document.getElementById('step3MainTabBtnCategory');
       const btnAudit = document.getElementById('step3MainTabBtnCreditAudit');
@@ -19709,6 +19779,154 @@ function createSangjiCourseSelectionForm() {
     }
     window.runCreditAuditFromCurrentSystem = runCreditAuditFromCurrentSystem;
 
+    // 1-2. 엑셀 필수 열 제목 사용자 설정 및 유연한 매칭 로직
+    const DEFAULT_CA_HEADER_CONFIG = {
+      name: '성명, 이름, 학생명',
+      grade: '학년',
+      semester: '학기',
+      credit: '단위수, 단위, 학점, 시수, 이수학점, 이수단위',
+      class: '반, 학급',
+      number: '번호',
+      subject: '과목명, 교과목, 과목'
+    };
+
+    function loadCreditAuditHeaderConfig() {
+      try {
+        const saved = localStorage.getItem('ca_custom_header_config');
+        const cfg = saved ? JSON.parse(saved) : DEFAULT_CA_HEADER_CONFIG;
+        const setVal = (id, val) => {
+          const el = document.getElementById(id);
+          if (el && val !== undefined) el.value = val;
+        };
+        setVal('caColName', cfg.name || DEFAULT_CA_HEADER_CONFIG.name);
+        setVal('caColGrade', cfg.grade || DEFAULT_CA_HEADER_CONFIG.grade);
+        setVal('caColSemester', cfg.semester || DEFAULT_CA_HEADER_CONFIG.semester);
+        setVal('caColCredit', cfg.credit || DEFAULT_CA_HEADER_CONFIG.credit);
+        setVal('caColClass', cfg.class || DEFAULT_CA_HEADER_CONFIG.class);
+        setVal('caColNumber', cfg.number || DEFAULT_CA_HEADER_CONFIG.number);
+        setVal('caColSubject', cfg.subject || DEFAULT_CA_HEADER_CONFIG.subject);
+      } catch (e) {
+        console.warn('loadCreditAuditHeaderConfig error:', e);
+      }
+    }
+    window.loadCreditAuditHeaderConfig = loadCreditAuditHeaderConfig;
+
+    function saveCreditAuditHeaderConfig() {
+      try {
+        const getVal = (id, def) => (document.getElementById(id)?.value || def).trim();
+        const cfg = {
+          name: getVal('caColName', DEFAULT_CA_HEADER_CONFIG.name),
+          grade: getVal('caColGrade', DEFAULT_CA_HEADER_CONFIG.grade),
+          semester: getVal('caColSemester', DEFAULT_CA_HEADER_CONFIG.semester),
+          credit: getVal('caColCredit', DEFAULT_CA_HEADER_CONFIG.credit),
+          class: getVal('caColClass', DEFAULT_CA_HEADER_CONFIG.class),
+          number: getVal('caColNumber', DEFAULT_CA_HEADER_CONFIG.number),
+          subject: getVal('caColSubject', DEFAULT_CA_HEADER_CONFIG.subject)
+        };
+        localStorage.setItem('ca_custom_header_config', JSON.stringify(cfg));
+        
+        // 현재 업로드된 파일이 있다면 새 열 제목 설정으로 즉시 재분석!
+        if (window._lastCreditAuditRawRows && window._lastCreditAuditRawRows.length > 0) {
+          processCreditAuditRows(window._lastCreditAuditRawRows);
+        }
+      } catch (e) {
+        console.warn('saveCreditAuditHeaderConfig error:', e);
+      }
+    }
+    window.saveCreditAuditHeaderConfig = saveCreditAuditHeaderConfig;
+
+    function resetCreditAuditHeaderDefaults() {
+      localStorage.removeItem('ca_custom_header_config');
+      loadCreditAuditHeaderConfig();
+      if (window._lastCreditAuditRawRows && window._lastCreditAuditRawRows.length > 0) {
+        processCreditAuditRows(window._lastCreditAuditRawRows);
+      }
+    }
+    window.resetCreditAuditHeaderDefaults = resetCreditAuditHeaderDefaults;
+
+    // 엑셀 열 매칭: 띄어쓰기 무시, 대소문자 무시, 정규화
+    function findColumnKey(availableKeys, patternString) {
+      if (!patternString || !availableKeys || availableKeys.length === 0) return null;
+      const targets = patternString.split(',')
+        .map(s => s.trim().replace(/\s+/g, '').toLowerCase())
+        .filter(Boolean);
+
+      const cleanKeys = availableKeys.map(k => ({
+        original: k,
+        clean: String(k || '').trim().replace(/\s+/g, '').toLowerCase()
+      }));
+
+      // 1) 완전 일치
+      for (const t of targets) {
+        const hit = cleanKeys.find(k => k.clean === t);
+        if (hit) return hit.original;
+      }
+      // 2) 포함 관계
+      for (const t of targets) {
+        const hit = cleanKeys.find(k => k.clean.includes(t) || t.includes(k.clean));
+        if (hit) return hit.original;
+      }
+      return null;
+    }
+
+    // 파싱된 행 데이터를 집계 처리하는 공통 함수
+    function processCreditAuditRows(rawRows) {
+      if (!rawRows || rawRows.length === 0) return;
+      window._lastCreditAuditRawRows = rawRows;
+
+      const getVal = (id, def) => (document.getElementById(id)?.value || def).trim();
+      const colNamePattern = getVal('caColName', DEFAULT_CA_HEADER_CONFIG.name);
+      const colGradePattern = getVal('caColGrade', DEFAULT_CA_HEADER_CONFIG.grade);
+      const colSemPattern = getVal('caColSemester', DEFAULT_CA_HEADER_CONFIG.semester);
+      const colCreditPattern = getVal('caColCredit', DEFAULT_CA_HEADER_CONFIG.credit);
+      const colClassPattern = getVal('caColClass', DEFAULT_CA_HEADER_CONFIG.class);
+      const colNumPattern = getVal('caColNumber', DEFAULT_CA_HEADER_CONFIG.number);
+
+      const keys = Object.keys(rawRows[0] || {});
+      const nameKey = findColumnKey(keys, colNamePattern) || keys.find(k => /이름|성명|학생명/i.test(k));
+      const gradeKey = findColumnKey(keys, colGradePattern) || keys.find(k => /학년/i.test(k));
+      const semKey = findColumnKey(keys, colSemPattern) || keys.find(k => /학기/i.test(k));
+      const creditKey = findColumnKey(keys, colCreditPattern) || keys.find(k => /단위|학점|시수/i.test(k));
+      const classKey = findColumnKey(keys, colClassPattern) || keys.find(k => /반|학급/i.test(k));
+      const numKey = findColumnKey(keys, colNumPattern) || keys.find(k => /번호/i.test(k));
+
+      const studentMap = new Map();
+
+      rawRows.forEach((row, idx) => {
+        const name = String((nameKey ? row[nameKey] : '') || row['이름'] || row['성명'] || '').trim();
+        if (!name) return;
+
+        const classNum = String((classKey ? row[classKey] : '') || '1').replace(/[^0-9]/g, '') || '1';
+        const studentNum = String((numKey ? row[numKey] : '') || (idx + 1)).replace(/[^0-9]/g, '') || String(idx + 1);
+        const key = `${name}_${classNum}_${studentNum}`;
+
+        if (!studentMap.has(key)) {
+          studentMap.set(key, {
+            id: 'ca_std_' + idx,
+            classNum: classNum,
+            studentNum: studentNum,
+            studentIdStr: `${classNum}-${studentNum}`,
+            name: name,
+            credits: { '1-1': 0, '1-2': 0, '2-1': 0, '2-2': 0, '3-1': 0, '3-2': 0 }
+          });
+        }
+
+        const st = studentMap.get(key);
+        let g = String((gradeKey ? row[gradeKey] : '') || '1').replace(/[^1-3]/g, '') || '1';
+        let s = String((semKey ? row[semKey] : '') || '1').replace(/[^1-2]/g, '') || '1';
+        let cr = parseFloat((creditKey ? row[creditKey] : '') || 4) || 4;
+
+        const semKeyStr = `${g}-${s}`;
+        if (st.credits[semKeyStr] !== undefined) {
+          st.credits[semKeyStr] += cr;
+        }
+      });
+
+      window._creditAuditStudents = Array.from(studentMap.values());
+      renderCreditAuditTable();
+    }
+    window.processCreditAuditRows = processCreditAuditRows;
+
     // 2. 별도 교과학습발달상황 엑셀 파일 직접 업로드 처리
     function handleCreditAuditFileUpload(file) {
       if (!file) return;
@@ -19725,47 +19943,7 @@ function createSangjiCourseSelectionForm() {
             return;
           }
 
-          const studentMap = new Map();
-
-          rawRows.forEach((row, idx) => {
-            const keys = Object.keys(row);
-            const nameKey = keys.find(k => /이름|성명|학생명/i.test(k));
-            const classKey = keys.find(k => /반|학급/i.test(k));
-            const numKey = keys.find(k => /번호/i.test(k));
-            const gradeKey = keys.find(k => /학년/i.test(k));
-            const semKey = keys.find(k => /학기/i.test(k));
-            const creditKey = keys.find(k => /단위|학점|시수/i.test(k));
-
-            const name = String((nameKey ? row[nameKey] : '') || row['이름'] || row['성명'] || '').trim();
-            if (!name) return;
-
-            const classNum = String((classKey ? row[classKey] : '') || '1').replace(/[^0-9]/g, '') || '1';
-            const studentNum = String((numKey ? row[numKey] : '') || (idx + 1)).replace(/[^0-9]/g, '') || String(idx + 1);
-            const key = `${name}_${classNum}_${studentNum}`;
-
-            if (!studentMap.has(key)) {
-              studentMap.set(key, {
-                id: 'ca_std_' + idx,
-                classNum: classNum,
-                studentNum: studentNum,
-                studentIdStr: `${classNum}-${studentNum}`,
-                name: name,
-                credits: { '1-1': 0, '1-2': 0, '2-1': 0, '2-2': 0, '3-1': 0, '3-2': 0 }
-              });
-            }
-
-            const st = studentMap.get(key);
-            let g = String((gradeKey ? row[gradeKey] : '') || '1').replace(/[^1-3]/g, '') || '1';
-            let s = String((semKey ? row[semKey] : '') || '1').replace(/[^1-2]/g, '') || '1';
-            let cr = parseFloat((creditKey ? row[creditKey] : '') || 4) || 4;
-
-            const semKeyStr = `${g}-${s}`;
-            if (st.credits[semKeyStr] !== undefined) {
-              st.credits[semKeyStr] += cr;
-            }
-          });
-
-          window._creditAuditStudents = Array.from(studentMap.values());
+          processCreditAuditRows(rawRows);
 
           const fileInfo = document.getElementById('creditAuditFileInfo');
           const fileName = document.getElementById('creditAuditFileName');
