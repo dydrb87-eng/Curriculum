@@ -15364,20 +15364,7 @@ function createSangjiCourseSelectionForm() {
       const sNum = String(st.studentNum || '').replace(/[^0-9]/g, '');
       const sName = (st.name || '').trim();
 
-      // 1단계 '동일·기이수 과목 중복신청 의심 명단'에 이미 계산된 결과가 있으면 우선 확인
-      if (Array.isArray(crossCheckDuplicates) && crossCheckDuplicates.length > 0) {
-        const matchedInStep1 = crossCheckDuplicates.find(d => {
-          const dcMatch = String(d.classNum || '').replace(/[^0-9]/g, '') === cNum;
-          const dnMatch = String(d.studentNum || '').replace(/[^0-9]/g, '') === sNum;
-          const dNameMatch = (d.name || '').trim() === sName;
-          return (dcMatch && dnMatch && dNameMatch) || (dcMatch && dNameMatch);
-        });
-        if (matchedInStep1 && Array.isArray(matchedInStep1.dupList) && matchedInStep1.dupList.length > 0) {
-          return matchedInStep1.dupList;
-        }
-      }
-
-      // 1단계와 100% 동일한 중복 탐지 로직 수행
+      // 1단계와 100% 동일한 실시간 중복 탐지 로직 수행 (과목 관리 수정사항 즉시 반영 보장)
       const sGradeNum = (st.grade ? String(st.grade).replace(/[^0-9]/g, '') : '') || targetGradeNum || '3';
       const dupList = [];
       const seenNormsThisStudent = new Set();
@@ -17501,6 +17488,7 @@ function createSangjiCourseSelectionForm() {
         classNum: cNum,
         studentNum: sNum,
         name: sName,
+        matchedKey: matchedSt ? (matchedSt.key || null) : null,
         courseDetails: visibleElectiveDetails,
         preservedDesignatedDetails: preservedDesignatedDetails
       };
@@ -17905,8 +17893,9 @@ function createSangjiCourseSelectionForm() {
           handleAddPriorSubjectToModal(true);
         }
 
-        const { grade, classNum, studentNum, name, courseDetails, preservedDesignatedDetails } = _currentPriorEditingStudent;
+        const { grade, classNum, studentNum, name, matchedKey, courseDetails, preservedDesignatedDetails } = _currentPriorEditingStudent;
         const activeG = MultiState.activeGrade || grade || '3학년';
+        const studentGrade = (grade === '2학년' || grade === '3학년') ? grade : (activeG === '2학년' ? '2학년' : '3학년');
         const activeYear = MultiState.activeYear || '2027.10.11.';
         const currAY = MultiState.activeAcademicYear || '2027학년도';
 
@@ -17917,15 +17906,25 @@ function createSangjiCourseSelectionForm() {
         ];
 
         const curAcadData = getAcadData();
-        const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [activeYear];
+        const dateList = Array.from(new Set([
+          ...((MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || []),
+          ...(MultiState.yearsList || []),
+          activeYear
+        ].filter(Boolean)));
 
-        // 3학년 탭 및 2학년 탭 양쪽 모두에 이 학생의 사전 이수 레코드를 100% 완전 동기화!
-        const targetGrades = Array.from(new Set([activeG, grade, '3학년', '2학년']));
+        // 해당 학생의 소속 학년(studentGrade)에는 반드시 반영하고, 반대 학년은 이미 해당 학생이 사전데이터에 존재하는 경우에만 동기화 (타 학년 오염 원천 차단)
+        const targetGrades = Array.from(new Set([studentGrade, '3학년', '2학년']));
 
         targetGrades.forEach(tGrade => {
           dateList.forEach(d => {
             if (!curAcadData[d]) curAcadData[d] = {};
             if (!curAcadData[d][tGrade]) curAcadData[d][tGrade] = createEmptyGradeState(tGrade);
+
+            // 타 학년(tGrade !== studentGrade)인데 사전데이터가 비어있다면 빈 사전데이터를 새로 만들지 않고 건너뜀
+            if (tGrade !== studentGrade && (!curAcadData[d][tGrade].priorData || !Array.isArray(curAcadData[d][tGrade].priorData.students) || curAcadData[d][tGrade].priorData.students.length === 0)) {
+              return;
+            }
+
             if (!curAcadData[d][tGrade].priorData) {
               curAcadData[d][tGrade].priorData = {
                 fileName: '사전 데이터 (보정 반영)',
@@ -17938,14 +17937,20 @@ function createSangjiCourseSelectionForm() {
             const pObj = curAcadData[d][tGrade].priorData;
             if (!Array.isArray(pObj.students)) pObj.students = [];
 
-            // [핵심 버그 완벽 수정]: findMatchingPriorStudent 사본 대신, pObj.students 원본 배열 안의 진짜 객체를 직접 찾아 갱신!
+            // pObj.students 원본 배열 안의 진짜 객체를 직접 찾아 갱신 (findMatchingPriorStudent와 동일한 우선순위 보장)
             const cleanName = (name || '').trim();
-            let originalSt = pObj.students.find(p => {
-              if (!p) return false;
-              const pc = String(p.classNum || '').replace(/[^0-9]/g, '') === classNum;
-              const pn = String(p.studentNum || '').replace(/[^0-9]/g, '') === studentNum;
-              return pc && pn && (p.name || '').trim() === cleanName;
-            });
+            let originalSt = null;
+            if (matchedKey) {
+              originalSt = pObj.students.find(p => p && p.key === matchedKey);
+            }
+            if (!originalSt) {
+              originalSt = pObj.students.find(p => {
+                if (!p) return false;
+                const pc = String(p.classNum || '').replace(/[^0-9]/g, '') === classNum;
+                const pn = String(p.studentNum || '').replace(/[^0-9]/g, '') === studentNum;
+                return pc && pn && (p.name || '').trim() === cleanName;
+              });
+            }
             if (!originalSt) {
               originalSt = pObj.students.find(p => {
                 if (!p) return false;
@@ -17955,13 +17960,19 @@ function createSangjiCourseSelectionForm() {
             }
             if (!originalSt) {
               const nameMatches = pObj.students.filter(p => p && (p.name || '').trim() === cleanName);
-              if (nameMatches.length === 1) originalSt = nameMatches[0];
+              if (nameMatches.length === 1) {
+                originalSt = nameMatches[0];
+              } else if (nameMatches.length > 1) {
+                originalSt = nameMatches.find(p => String(p.studentNum || '').replace(/[^0-9]/g, '') === studentNum) || nameMatches[0];
+              }
             }
 
+            // 타 학년(tGrade !== studentGrade)에 해당 학생이 원래 없었다면 타 학년에 학생을 새로 추가하지 않음
             if (!originalSt) {
+              if (tGrade !== studentGrade) return;
               originalSt = {
                 key: `${classNum}_${studentNum}_${name}`,
-                grade: tGrade,
+                grade: studentGrade,
                 classNum,
                 studentNum,
                 name,
@@ -17977,7 +17988,7 @@ function createSangjiCourseSelectionForm() {
             originalSt.rawSubjects = finalAllDetails.map(cd => cd.rawSubject || `${cd.subject}(${cd.credit || 4})`);
             originalSt.subjects = Array.from(new Set(finalAllDetails.map(cd => cd.normSubject || (typeof normalizeSubject === 'function' ? normalizeSubject(cd.subject) : cd.subject)).filter(Boolean)));
 
-            // 카탈로그 갱신
+            // 카탈로그 및 학기별 통계 갱신
             let totalRecords = 0;
             const courseCatMap = new Map();
             pObj.students.forEach(s => {
@@ -18003,6 +18014,15 @@ function createSangjiCourseSelectionForm() {
             pObj.totalRecords = totalRecords;
             pObj.courses = Array.from(courseCatMap.values());
             pObj.subjects = Array.from(new Set(pObj.courses.map(c => c.subject)));
+            if (typeof computePriorSemesterStats === 'function') {
+              const semStats = computePriorSemesterStats(pObj);
+              pObj.sem1StudentCount = semStats.sem1StCount;
+              pObj.sem1RecordCount = semStats.sem1RecCount;
+              pObj.sem2StudentCount = semStats.sem2StCount;
+              pObj.sem2RecordCount = semStats.sem2RecCount;
+            }
+            // 이전 교차검증 캐시 무효화 (최신 기이수 과목 기준으로 재계산되도록 보장)
+            curAcadData[d][tGrade].crossCheckResult = null;
           });
         });
 
@@ -20041,8 +20061,12 @@ function renderYearGradeNav() {
       if (typeof updatePublisherButtonUI === 'function') updatePublisherButtonUI();
       if (typeof updateGradeClassCountBadge === 'function') updateGradeClassCountBadge();
 
-      // 7. 화면 및 UI 갱신
+      // 7. 화면 및 UI 갱신 (3단계 검증 캐시 초기화 및 재검증 포함)
+      window._step3LastValidationResult = null;
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
       saveAllState();
       renderYearGradeNav();
       updateModalStats();
