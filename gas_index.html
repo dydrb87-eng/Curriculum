@@ -259,41 +259,99 @@
               </div>
             </div>
 
-            <!-- Prior File Upload Area -->
-            <div id="priorUploadZone" class="mt-4 relative group border-2 border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl p-5 bg-indigo-50/30 hover:bg-indigo-50/70 transition-all text-center overflow-hidden">
-              <input 
-                type="file" 
-                id="priorFileInput" 
-                accept=".xlsx, .xls, .csv" 
-                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
-                title="사전 데이터(학생 명부 및 기이수 과목) 파일을 클릭하거나 드래그하세요"
-              />
-              <div class="pointer-events-none flex flex-col items-center justify-center space-y-2">
-                <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform">
-                  📋
+            <!-- Prior File Upload Area (Left: 1학기 / Right: 2학기) -->
+            <div id="priorUploadZone" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Left: 1학기 사전 파일 -->
+              <div class="flex flex-col justify-between space-y-2">
+                <div id="priorSem1UploadZone" class="relative group border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl p-4 bg-indigo-50/30 hover:bg-indigo-50/70 transition-all text-center overflow-hidden">
+                  <input 
+                    type="file" 
+                    id="priorSem1FileInput" 
+                    accept=".xlsx, .xls, .csv" 
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
+                    title="1학기 사전 데이터(학생 명부 및 기이수 과목) 파일을 클릭하거나 드래그하세요 (새 파일 업로드 시 교체)"
+                  />
+                  <div class="pointer-events-none flex flex-col items-center justify-center space-y-1.5">
+                    <span class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-extrabold text-[11px] border border-indigo-200 shadow-2xs">📘 1학기 사전 파일</span>
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg shadow-inner group-hover:scale-105 transition-transform">
+                      📋
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-slate-800">
+                        1학기 파일 클릭 또는 드래그
+                      </p>
+                      <p class="text-[10px] text-slate-400 mt-0.5">
+                        업로드 시 1학기 데이터로 등록·교체
+                      </p>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-1 bg-indigo-600 text-white rounded-md text-[11px] font-bold shadow-xs">
+                      📁 1학기 파일 선택
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <p class="text-xs font-bold text-slate-800">
-                    사전 엑셀 파일을 클릭하거나 드래그하세요
-                  </p>
-                  <p class="text-[11px] text-slate-400 mt-0.5">
-                    항목: 학년도, 학기, 학년, 편제명, 개설과목(학점), 반, 번호, 성명
-                  </p>
+
+                <!-- 1학기 Loaded Info -->
+                <div id="priorSem1LoadedInfo" class="hidden p-2.5 bg-indigo-50/90 rounded-xl border border-indigo-200 flex items-center justify-between gap-2 text-xs">
+                  <div class="min-w-0 space-y-0.5">
+                    <p id="priorSem1LoadedSummary" class="font-bold text-indigo-950 text-[11px] truncate">📘 1학기: 0명 | 0건</p>
+                    <p id="priorSem1LoadedFileName" class="text-[10px] text-indigo-600 font-medium truncate" title="">파일명.xlsx</p>
+                  </div>
+                  <button id="btnClearPriorSem1" type="button" class="shrink-0 px-2 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-md text-[10px] font-bold transition-colors cursor-pointer">
+                    삭제
+                  </button>
                 </div>
-                <span class="inline-flex items-center px-3 py-1 bg-indigo-600 text-white rounded-md text-[11px] font-bold shadow-xs">
-                  📁 파일 선택 (.xlsx)
-                </span>
+              </div>
+
+              <!-- Right: 2학기 사전 파일 -->
+              <div class="flex flex-col justify-between space-y-2">
+                <div id="priorSem2UploadZone" class="relative group border-2 border-dashed border-emerald-200 hover:border-emerald-500 rounded-xl p-4 bg-emerald-50/30 hover:bg-emerald-50/70 transition-all text-center overflow-hidden">
+                  <input 
+                    type="file" 
+                    id="priorSem2FileInput" 
+                    accept=".xlsx, .xls, .csv" 
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
+                    title="2학기 사전 데이터(학생 명부 및 기이수 과목) 파일을 클릭하거나 드래그하세요 (새 파일 업로드 시 교체)"
+                  />
+                  <div class="pointer-events-none flex flex-col items-center justify-center space-y-1.5">
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[11px] border border-emerald-200 shadow-2xs">📗 2학기 사전 파일</span>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shadow-inner group-hover:scale-105 transition-transform">
+                      📋
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-slate-800">
+                        2학기 파일 클릭 또는 드래그
+                      </p>
+                      <p class="text-[10px] text-slate-400 mt-0.5">
+                        업로드 시 2학기 데이터로 등록·교체
+                      </p>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-1 bg-emerald-600 text-white rounded-md text-[11px] font-bold shadow-xs">
+                      📁 2학기 파일 선택
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 2학기 Loaded Info -->
+                <div id="priorSem2LoadedInfo" class="hidden p-2.5 bg-emerald-50/90 rounded-xl border border-emerald-200 flex items-center justify-between gap-2 text-xs">
+                  <div class="min-w-0 space-y-0.5">
+                    <p id="priorSem2LoadedSummary" class="font-bold text-emerald-950 text-[11px] truncate">📗 2학기: 0명 | 0건</p>
+                    <p id="priorSem2LoadedFileName" class="text-[10px] text-emerald-700 font-medium truncate" title="">파일명.xlsx</p>
+                  </div>
+                  <button id="btnClearPriorSem2" type="button" class="shrink-0 px-2 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-md text-[10px] font-bold transition-colors cursor-pointer">
+                    삭제
+                  </button>
+                </div>
               </div>
             </div>
 
-            <!-- Prior File Loaded Info Banner (Shown after loaded) -->
-            <div id="priorLoadedInfo" class="hidden mt-3 p-3 bg-indigo-50/90 rounded-xl border border-indigo-200 flex items-center justify-between text-xs">
-              <div class="space-y-0.5">
-                <p id="priorLoadedSummary" class="font-bold text-indigo-950 text-xs">사전 등록 학생: 0명 | 이수 과목: 0건</p>
-                <p id="priorLoadedFileName" class="text-[11px] text-indigo-600 font-medium truncate max-w-xs">파일명.xlsx</p>
+            <!-- Prior File Combined Loaded Info Banner (Shown after loaded) -->
+            <div id="priorLoadedInfo" class="hidden mt-3 p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+              <div class="min-w-0 space-y-0.5">
+                <p id="priorLoadedSummary" class="font-bold text-slate-800 text-xs">사전 등록 학생: 0명 | 이수 과목: 0건</p>
+                <p id="priorLoadedFileName" class="text-[11px] text-slate-500 font-medium truncate max-w-md">파일명.xlsx</p>
               </div>
-              <button id="btnClearPrior" type="button" class="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-md text-[11px] font-bold transition-colors">
-                삭제
+              <button id="btnClearPrior" type="button" class="shrink-0 px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-md text-[11px] font-bold transition-colors cursor-pointer">
+                전체 삭제
               </button>
             </div>
           </div>
@@ -3797,13 +3855,18 @@
     const separatePairsList = document.getElementById('separatePairsList');
 
     // Prior Data & Cross-Check Elements
-    const priorFileInput = document.getElementById('priorFileInput');
+    const priorSem1FileInput = document.getElementById('priorSem1FileInput');
+    const priorSem1UploadZone = document.getElementById('priorSem1UploadZone');
+    const priorSem2FileInput = document.getElementById('priorSem2FileInput');
+    const priorSem2UploadZone = document.getElementById('priorSem2UploadZone');
     const priorUploadZone = document.getElementById('priorUploadZone');
     const priorStatusBadge = document.getElementById('priorStatusBadge');
     const priorLoadedInfo = document.getElementById('priorLoadedInfo');
     const priorLoadedSummary = document.getElementById('priorLoadedSummary');
     const priorLoadedFileName = document.getElementById('priorLoadedFileName');
     const btnClearPrior = document.getElementById('btnClearPrior');
+    const btnClearPriorSem1 = document.getElementById('btnClearPriorSem1');
+    const btnClearPriorSem2 = document.getElementById('btnClearPriorSem2');
     const btnSamplePrior = document.getElementById('btnSamplePrior');
     const crossCheckAlertPanel = document.getElementById('crossCheckAlertPanel');
     const missingCountDisplay = document.getElementById('missingCountDisplay');
@@ -3863,36 +3926,85 @@
       return normalizeSubject(subj);
     }
 
-    function processPriorDataFile(file) {
+    function processPriorDataFile(file, targetSemester = 1) {
       if (!file) return;
       if (typeof XLSX === 'undefined') {
         alert('엑셀 처리 라이브러리를 준비 중입니다. 잠시 후 다시 시도해주세요.');
         return;
       }
 
-      showLoading(`[${file.name}] 사전 데이터 분석 중...`);
+      const semNum = (targetSemester === 2 || String(targetSemester) === '2') ? 2 : 1;
+      showLoading(`[${file.name}] ${semNum}학기 사전 데이터 분석 중...`);
       const reader = new FileReader();
       reader.onload = (e) => {
         setTimeout(() => {
           try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            parsePriorWorkbook(workbook, file.name);
+            parsePriorWorkbook(workbook, file.name, semNum);
           } catch (err) {
             console.error(err);
             alert('사전 데이터 엑셀 파일을 읽는 도중 오류가 발생했습니다: ' + err.message);
           } finally {
             hideLoading();
-            if (priorFileInput) priorFileInput.value = '';
+            if (priorSem1FileInput) priorSem1FileInput.value = '';
+            if (priorSem2FileInput) priorSem2FileInput.value = '';
           }
         }, 60);
       };
       reader.onerror = () => {
         hideLoading();
         alert('사전 데이터 파일을 읽는 데 실패했습니다.');
-        if (priorFileInput) priorFileInput.value = '';
+        if (priorSem1FileInput) priorSem1FileInput.value = '';
+        if (priorSem2FileInput) priorSem2FileInput.value = '';
       };
       reader.readAsArrayBuffer(file);
+    }
+
+    function computePriorSemesterStats(pd) {
+      if (!pd || !Array.isArray(pd.students)) {
+        return {
+          sem1FileName: '', sem1StCount: 0, sem1RecCount: 0,
+          sem2FileName: '', sem2StCount: 0, sem2RecCount: 0
+        };
+      }
+      const sem1StSet = new Set();
+      const sem2StSet = new Set();
+      let sem1Rec = 0;
+      let sem2Rec = 0;
+
+      pd.students.forEach(st => {
+        if (!st) return;
+        const stKey = st.key || `${st.classNum}_${st.studentNum}_${st.name}`;
+        if (Array.isArray(st.courseDetails) && st.courseDetails.length > 0) {
+          st.courseDetails.forEach(cd => {
+            if (!cd) return;
+            const sNum = Number(cd.uploadSem || cd.semester || 1);
+            if (sNum === 2) {
+              sem2Rec++;
+              sem2StSet.add(stKey);
+            } else {
+              sem1Rec++;
+              sem1StSet.add(stKey);
+            }
+          });
+        } else if (Array.isArray(st.rawSubjects) && st.rawSubjects.length > 0) {
+          sem1Rec += st.rawSubjects.length;
+          sem1StSet.add(stKey);
+        }
+      });
+
+      const sem1FileName = pd.sem1FileName || (sem1Rec > 0 && !pd.sem2FileName ? (pd.fileName || '1학기 사전데이터.xlsx') : (sem1Rec > 0 ? '1학기 사전데이터' : ''));
+      const sem2FileName = pd.sem2FileName || (sem2Rec > 0 && !pd.sem1FileName ? (pd.fileName || '2학기 사전데이터.xlsx') : (sem2Rec > 0 ? '2학기 사전데이터' : ''));
+
+      return {
+        sem1FileName,
+        sem1StCount: pd.sem1StudentCount || sem1StSet.size,
+        sem1RecCount: pd.sem1RecordCount || sem1Rec,
+        sem2FileName,
+        sem2StCount: pd.sem2StudentCount || sem2StSet.size,
+        sem2RecCount: pd.sem2RecordCount || sem2Rec
+      };
     }
 
     function updatePriorDataUI() {
@@ -3901,31 +4013,66 @@
       const priorLoadedInfo = document.getElementById('priorLoadedInfo');
       const priorLoadedSummary = document.getElementById('priorLoadedSummary');
       const priorLoadedFileName = document.getElementById('priorLoadedFileName');
+      const priorSem1LoadedInfo = document.getElementById('priorSem1LoadedInfo');
+      const priorSem1LoadedSummary = document.getElementById('priorSem1LoadedSummary');
+      const priorSem1LoadedFileName = document.getElementById('priorSem1LoadedFileName');
+      const priorSem2LoadedInfo = document.getElementById('priorSem2LoadedInfo');
+      const priorSem2LoadedSummary = document.getElementById('priorSem2LoadedSummary');
+      const priorSem2LoadedFileName = document.getElementById('priorSem2LoadedFileName');
       const priorCardTitle = document.getElementById('priorCardTitle');
       const priorCardGradeBadge = document.getElementById('priorCardGradeBadge');
       const priorCardDesc = document.getElementById('priorCardDesc');
       const surveyCardTitle = document.getElementById('surveyCardTitle');
       const surveyCardGradeBadge = document.getElementById('surveyCardGradeBadge');
-      const priorFileInput = document.getElementById('priorFileInput');
+      const priorSem1FileInput = document.getElementById('priorSem1FileInput');
+      const priorSem2FileInput = document.getElementById('priorSem2FileInput');
 
       const activeG = MultiState.activeGrade || '2학년';
       const priorTargetGradeName = (activeG === '3학년') ? '2학년' : '1학년';
 
       if (priorCardTitle) priorCardTitle.textContent = `[${activeG}] 사전 데이터 등록`;
       if (priorCardGradeBadge) priorCardGradeBadge.textContent = `${activeG} 명부 & 기이수 과목`;
-      if (priorCardDesc) priorCardDesc.textContent = `${priorTargetGradeName} NEIS 파일 등록(수강생편성-학생편성현황.xlsx)`;
+      if (priorCardDesc) priorCardDesc.textContent = `${priorTargetGradeName} NEIS 파일 1·2학기 개별 등록 (수강생편성-학생편성현황.xlsx)`;
       if (surveyCardTitle) surveyCardTitle.textContent = `[${activeG}] 수강신청 조사 엑셀 파일`;
       if (surveyCardGradeBadge) surveyCardGradeBadge.textContent = `${activeG} 설문 결과`;
 
       if (AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0) {
         if (priorStatusBadge) priorStatusBadge.classList.remove('hidden');
-        // 드래그 공간 항상 유지 (Card 2와 동일하게 언제든 재드래그 가능)
         if (priorUploadZone) priorUploadZone.classList.remove('hidden');
         if (priorLoadedInfo) priorLoadedInfo.classList.remove('hidden');
+
+        const semStats = computePriorSemesterStats(AppState.priorData);
+
+        if (semStats.sem1RecCount > 0 || semStats.sem1FileName) {
+          priorSem1LoadedInfo?.classList.remove('hidden');
+          if (priorSem1LoadedSummary) {
+            priorSem1LoadedSummary.textContent = `📘 1학기: 학생 ${semStats.sem1StCount}명 | 이수 ${semStats.sem1RecCount}건`;
+          }
+          if (priorSem1LoadedFileName) {
+            priorSem1LoadedFileName.textContent = semStats.sem1FileName;
+            priorSem1LoadedFileName.title = semStats.sem1FileName;
+          }
+        } else {
+          priorSem1LoadedInfo?.classList.add('hidden');
+        }
+
+        if (semStats.sem2RecCount > 0 || semStats.sem2FileName) {
+          priorSem2LoadedInfo?.classList.remove('hidden');
+          if (priorSem2LoadedSummary) {
+            priorSem2LoadedSummary.textContent = `📗 2학기: 학생 ${semStats.sem2StCount}명 | 이수 ${semStats.sem2RecCount}건`;
+          }
+          if (priorSem2LoadedFileName) {
+            priorSem2LoadedFileName.textContent = semStats.sem2FileName;
+            priorSem2LoadedFileName.title = semStats.sem2FileName;
+          }
+        } else {
+          priorSem2LoadedInfo?.classList.add('hidden');
+        }
+
         if (priorLoadedSummary) {
           const stCount = AppState.priorData.students.length;
           const recCount = AppState.priorData.totalRecords || (AppState.priorData.enrollments ? AppState.priorData.enrollments.length : 0);
-          priorLoadedSummary.textContent = `[${activeG}] 등록 학생: ${stCount}명 | 과목 이수 기록: ${recCount}건`;
+          priorLoadedSummary.textContent = `[${activeG}] 통합 등록 학생: ${stCount}명 | 총 과목 이수 기록: ${recCount}건`;
         }
         if (priorLoadedFileName) {
           priorLoadedFileName.textContent = AppState.priorData.fileName || `${activeG}_사전데이터.xlsx`;
@@ -3934,7 +4081,10 @@
         if (priorStatusBadge) priorStatusBadge.classList.add('hidden');
         if (priorUploadZone) priorUploadZone.classList.remove('hidden');
         if (priorLoadedInfo) priorLoadedInfo.classList.add('hidden');
-        if (priorFileInput) priorFileInput.value = '';
+        priorSem1LoadedInfo?.classList.add('hidden');
+        priorSem2LoadedInfo?.classList.add('hidden');
+        if (priorSem1FileInput) priorSem1FileInput.value = '';
+        if (priorSem2FileInput) priorSem2FileInput.value = '';
       }
 
       if (AppState.students && AppState.students.length > 0 && AppState.priorData) {
@@ -3946,7 +4096,75 @@
     }
     window.updatePriorDataUI = updatePriorDataUI;
 
-    function parsePriorWorkbook(workbook, fileName) {
+    function rebuildPriorDataFromStudents(studentsArray, meta = {}) {
+      const courseCatalogMap = new Map();
+      let totalRecords = 0;
+
+      const cleanedStudents = [];
+      (studentsArray || []).forEach(st => {
+        if (!st) return;
+        const details = Array.isArray(st.courseDetails) ? st.courseDetails : [];
+        const normSet = new Set();
+        const rawList = [];
+
+        details.forEach(cd => {
+          if (!cd || !cd.subject) return;
+          totalRecords++;
+          const normS = cd.normSubject || normalizeSubject(cd.subject);
+          if (normS) normSet.add(normS);
+          rawList.push(cd.rawSubject || cd.subject);
+
+          const catalogGrade = cd.grade || '1학년';
+          const catalogSem = Number(cd.uploadSem || cd.semester || 1);
+          const catalogKey = `${catalogGrade}::${catalogSem}학기::${cd.subject}`;
+          if (!courseCatalogMap.has(catalogKey)) {
+            courseCatalogMap.set(catalogKey, {
+              key: catalogKey,
+              subject: cd.subject,
+              rawSubject: cd.rawSubject || cd.subject,
+              grade: catalogGrade,
+              semester: catalogSem,
+              credit: cd.credit || 0,
+              organization: cd.organization || '',
+              classroom: cd.classroom || '',
+              year: cd.year || '',
+              source: cd.source || '사전데이터'
+            });
+          }
+        });
+
+        if (details.length > 0) {
+          cleanedStudents.push({
+            ...st,
+            subjects: Array.from(normSet),
+            rawSubjects: rawList,
+            courseDetails: details
+          });
+        }
+      });
+
+      const coursesList = Array.from(courseCatalogMap.values());
+      const fileParts = [];
+      if (meta.sem1FileName) fileParts.push(`[1학기] ${meta.sem1FileName}`);
+      if (meta.sem2FileName) fileParts.push(`[2학기] ${meta.sem2FileName}`);
+
+      return {
+        fileName: fileParts.join(' + ') || meta.fallbackFileName || '사전데이터.xlsx',
+        sem1FileName: meta.sem1FileName || '',
+        sem1StudentCount: meta.sem1StudentCount || 0,
+        sem1RecordCount: meta.sem1RecordCount || 0,
+        sem2FileName: meta.sem2FileName || '',
+        sem2StudentCount: meta.sem2StudentCount || 0,
+        sem2RecordCount: meta.sem2RecordCount || 0,
+        students: cleanedStudents,
+        totalRecords,
+        courses: coursesList,
+        subjects: Array.from(new Set(coursesList.map(c => c.subject)))
+      };
+    }
+
+    function parsePriorWorkbook(workbook, fileName, targetSemester = 1) {
+      const fixedSem = (targetSemester === 2 || String(targetSemester) === '2') ? 2 : 1;
       let targetSheet = null;
       let rawRows = null;
       let headerRowIndex = -1;
@@ -3993,10 +4211,9 @@
       const headers = rawRows[headerRowIndex].map(h => (h !== undefined && h !== null ? String(h).trim() : ''));
       const dataRows = rawRows.slice(headerRowIndex + 1);
 
-      let colYear = -1, colSem = -1, colGrade = -1, colOrg = -1, colSubject = -1, colClassroom = -1, colGradeDept = -1, colClass = -1, colNum = -1, colName = -1;
+      let colYear = -1, colGrade = -1, colOrg = -1, colSubject = -1, colClassroom = -1, colGradeDept = -1, colClass = -1, colNum = -1, colName = -1;
       headers.forEach((h, idx) => {
         if (/학년도|연도/.test(h)) colYear = idx;
-        else if (/^학기$/.test(h)) colSem = idx;
         else if (/^학년$|학년\s*\(/.test(h)) colGrade = idx;
         else if (/편제명|편제/.test(h)) colOrg = idx;
         else if (/개설\s*과목|과목명|^과목$/.test(h)) colSubject = idx;
@@ -4016,7 +4233,6 @@
       const activeYear = MultiState.activeYear || '2027';
 
       const studentsMap = new Map();
-      const courseCatalogMap = new Map();
       let totalCourseRecords = 0;
 
       dataRows.forEach((row) => {
@@ -4028,19 +4244,16 @@
         const numVal = colNum !== -1 ? String(row[colNum] || '').replace(/[^0-9]/g, '') : '';
         if (!classVal && !numVal) return;
 
-        // If classVal is 3 digits like 201 or 302
         if (classVal.length === 3) {
           classVal = String(parseInt(classVal.slice(1), 10));
         }
 
         const subjectVal = colSubject !== -1 ? String(row[colSubject] || '').trim() : '';
         const yearVal = colYear !== -1 ? String(row[colYear] || '').trim() : '';
-        const semVal = colSem !== -1 ? String(row[colSem] || '').replace(/[^0-9]/g, '') : '';
         const gradeVal = colGrade !== -1 ? String(row[colGrade] || '').replace(/[^0-9]/g, '') : '';
         const orgVal = colOrg !== -1 ? String(row[colOrg] || '').trim() : '';
         const roomVal = colClassroom !== -1 ? String(row[colClassroom] || '').trim() : '';
 
-        // 개설과목(학점)에서 학점/시수 및 순수 기본 과목명 추출
         let creditVal = 0;
         const creditMatch = subjectVal.match(/[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:학점|단위)?[\)\]]/);
         if (creditMatch) {
@@ -4053,13 +4266,13 @@
         if (!studentsMap.has(key)) {
           studentsMap.set(key, {
             key,
-            grade: activeG, // 사용자가 작업 중인 현재 탭 학년에 직접 할당
+            grade: activeG,
             classNum: classVal,
             studentNum: numVal,
             name: nameVal,
-            subjects: [], // JSON 직렬화에 안전한 Array
+            subjects: [],
             rawSubjects: [],
-            courseDetails: [] // 과목별 상세 정보 (학년, 학기, 학점, 편제명 등)
+            courseDetails: []
           });
         }
 
@@ -4072,36 +4285,19 @@
           }
           stObj.rawSubjects.push(subjectVal);
 
+          // 업로드한 슬롯(1학기/2학기)에 따라 학기 고정 할당
           stObj.courseDetails.push({
             subject: cleanSubj || subjectVal,
             rawSubject: subjectVal,
             normSubject: normSubj,
             credit: creditVal,
-            semester: semVal ? parseInt(semVal, 10) : 1,
+            semester: fixedSem,
+            uploadSem: fixedSem,
             grade: gradeVal ? (gradeVal.includes('학년') ? gradeVal : gradeVal + '학년') : '',
             organization: orgVal,
             classroom: roomVal,
             year: yearVal
           });
-
-          // 전체 사전 데이터 고유 개설 과목 카탈로그에 등록
-          const catalogGrade = gradeVal ? (gradeVal.includes('학년') ? gradeVal : gradeVal + '학년') : (activeG === '3학년' ? '1·2학년' : '1학년');
-          const catalogSem = semVal ? parseInt(semVal, 10) : 1;
-          const catalogKey = `${catalogGrade}::${catalogSem}학기::${cleanSubj || subjectVal}`;
-          if (!courseCatalogMap.has(catalogKey)) {
-            courseCatalogMap.set(catalogKey, {
-              key: catalogKey,
-              subject: cleanSubj || subjectVal,
-              rawSubject: subjectVal,
-              grade: catalogGrade,
-              semester: catalogSem,
-              credit: creditVal,
-              organization: orgVal,
-              classroom: roomVal,
-              year: yearVal,
-              source: '사전데이터'
-            });
-          }
         }
       });
 
@@ -4111,97 +4307,57 @@
         return;
       }
 
-      const coursesList = Array.from(courseCatalogMap.values());
       const curAcadData = getAcadData();
       if (!curAcadData[activeYear]) curAcadData[activeYear] = {};
       if (!curAcadData[activeYear][activeG]) curAcadData[activeYear][activeG] = createEmptyGradeState(activeG);
       const existingPrior = curAcadData[activeYear][activeG].priorData || AppState.priorData;
 
-      let doMerge = false;
-      if (existingPrior && Array.isArray(existingPrior.students) && existingPrior.students.length > 0) {
-        const existCount = existingPrior.students.length;
-        const existRecords = existingPrior.totalRecords || 0;
-        doMerge = confirm(
-          `현재 [${activeG}]에 이미 사전 데이터가 등록되어 있습니다.\n\n` +
-          `• 기존 등록 파일: ${existingPrior.fileName || '사전 데이터'}\n` +
-          `• 등록 학생: ${existCount}명 / 이수 기록: ${existRecords}건\n\n` +
-          `[확인]을 누르면 기존 데이터에 이번 파일의 데이터를 【누적 추가(Merge)】합니다.\n` +
-          `(예: 2학년 2학기 데이터에 2학년 1학기 데이터를 추가 병합)\n\n` +
-          `[취소]를 누르면 기존 데이터를 비우고 이번 파일로 【새로 덮어쓰기】합니다.`
-        );
-      }
+      // 기존 데이터에서 반대편 학기(otherSem) 데이터만 보존하고, 현재 업로드한 학기(fixedSem) 데이터는 새 파일로 완전 교체!
+      const mergedStudentsMap = new Map();
+      const prevStats = computePriorSemesterStats(existingPrior);
+      const wasReplaced = fixedSem === 1 ? !!(prevStats.sem1RecCount > 0 || prevStats.sem1FileName) : !!(prevStats.sem2RecCount > 0 || prevStats.sem2FileName);
 
-      let priorDataObj;
-      if (doMerge && existingPrior) {
-        const mergedStudentsMap = new Map();
-        (existingPrior.students || []).forEach(st => {
-          const copySt = JSON.parse(JSON.stringify(st));
-          const key = `${copySt.classNum}_${copySt.studentNum}_${copySt.name}`;
-          mergedStudentsMap.set(key, copySt);
-        });
-
-        studentList.forEach(newSt => {
-          const key = `${newSt.classNum}_${newSt.studentNum}_${newSt.name}`;
-          if (!mergedStudentsMap.has(key)) {
-            mergedStudentsMap.set(key, newSt);
-          } else {
-            const targetSt = mergedStudentsMap.get(key);
-            if (!Array.isArray(targetSt.courseDetails)) targetSt.courseDetails = [];
-            if (!Array.isArray(targetSt.subjects)) targetSt.subjects = [];
-            if (!Array.isArray(targetSt.rawSubjects)) targetSt.rawSubjects = [];
-
-            (newSt.courseDetails || []).forEach(newCd => {
-              const isDup = targetSt.courseDetails.some(oldCd => {
-                const sameGrade = String(oldCd.grade || '') === String(newCd.grade || '');
-                const sameSem = String(oldCd.semester || '') === String(newCd.semester || '');
-                const sameSubj = (oldCd.normSubject && oldCd.normSubject === newCd.normSubject) ||
-                                 (oldCd.subject && oldCd.subject === newCd.subject);
-                return sameGrade && sameSem && sameSubj;
-              });
-
-              if (!isDup) {
-                targetSt.courseDetails.push(newCd);
-                if (newCd.rawSubject) targetSt.rawSubjects.push(newCd.rawSubject);
-                if (newCd.normSubject && !targetSt.subjects.includes(newCd.normSubject)) {
-                  targetSt.subjects.push(newCd.normSubject);
-                }
-              }
+      if (existingPrior && Array.isArray(existingPrior.students)) {
+        existingPrior.students.forEach(oldSt => {
+          if (!oldSt) return;
+          const keptDetails = (oldSt.courseDetails || []).filter(cd => {
+            const cdSem = Number(cd.uploadSem || cd.semester || 1);
+            return cdSem !== fixedSem;
+          });
+          if (keptDetails.length > 0) {
+            const key = `${oldSt.classNum}_${oldSt.studentNum}_${oldSt.name}`;
+            mergedStudentsMap.set(key, {
+              ...JSON.parse(JSON.stringify(oldSt)),
+              courseDetails: JSON.parse(JSON.stringify(keptDetails))
             });
           }
         });
-
-        const finalStudentList = Array.from(mergedStudentsMap.values());
-        const finalTotalRecords = finalStudentList.reduce((acc, st) => acc + (st.courseDetails ? st.courseDetails.length : (st.subjects ? st.subjects.length : 0)), 0);
-
-        const mergedCourseCatalogMap = new Map();
-        (existingPrior.courses || []).forEach(c => {
-          const cKey = c.key || `${c.grade}::${c.semester}학기::${c.subject}`;
-          mergedCourseCatalogMap.set(cKey, c);
-        });
-        coursesList.forEach(c => {
-          const cKey = c.key || `${c.grade}::${c.semester}학기::${c.subject}`;
-          if (!mergedCourseCatalogMap.has(cKey)) {
-            mergedCourseCatalogMap.set(cKey, c);
-          }
-        });
-        const finalCoursesList = Array.from(mergedCourseCatalogMap.values());
-
-        priorDataObj = {
-          fileName: `${existingPrior.fileName} + ${fileName}`,
-          students: finalStudentList,
-          totalRecords: finalTotalRecords,
-          courses: finalCoursesList,
-          subjects: Array.from(new Set(finalCoursesList.map(c => c.subject)))
-        };
-      } else {
-        priorDataObj = {
-          fileName: `${activeYear}학년도_${activeG}_${fileName}`,
-          students: studentList,
-          totalRecords: totalCourseRecords,
-          courses: coursesList,
-          subjects: Array.from(new Set(coursesList.map(c => c.subject)))
-        };
       }
+
+      studentList.forEach(newSt => {
+        const key = `${newSt.classNum}_${newSt.studentNum}_${newSt.name}`;
+        if (!mergedStudentsMap.has(key)) {
+          mergedStudentsMap.set(key, newSt);
+        } else {
+          const targetSt = mergedStudentsMap.get(key);
+          if (!Array.isArray(targetSt.courseDetails)) targetSt.courseDetails = [];
+          (newSt.courseDetails || []).forEach(newCd => {
+            targetSt.courseDetails.push(newCd);
+          });
+        }
+      });
+
+      const meta = {
+        sem1FileName: fixedSem === 1 ? fileName : prevStats.sem1FileName,
+        sem1StudentCount: fixedSem === 1 ? studentList.length : prevStats.sem1StCount,
+        sem1RecordCount: fixedSem === 1 ? totalCourseRecords : prevStats.sem1RecCount,
+        sem2FileName: fixedSem === 2 ? fileName : prevStats.sem2FileName,
+        sem2StudentCount: fixedSem === 2 ? studentList.length : prevStats.sem2StCount,
+        sem2RecordCount: fixedSem === 2 ? totalCourseRecords : prevStats.sem2RecCount,
+        fallbackFileName: `${activeYear}학년도_${activeG}_${fileName}`
+      };
+
+      const priorDataObj = rebuildPriorDataFromStudents(Array.from(mergedStudentsMap.values()), meta);
 
       curAcadData[activeYear][activeG].priorData = priorDataObj;
       AppState.priorData = priorDataObj;
@@ -4221,20 +4377,75 @@
       }
       saveAllState();
 
-      if (doMerge) {
-        alert(`✅ [${activeG}] 사전 데이터가 성공적으로 누적(추가 병합)되었습니다!\n\n• 등록 파일: ${priorDataObj.fileName}\n• 총 등록 학생: ${priorDataObj.students.length}명\n• 누적 과목 이수 기록: ${priorDataObj.totalRecords}건`);
-      } else {
-        alert(`✅ [${activeG}] 사전 데이터가 새로 등록되었습니다!\n(등록 학생: ${studentList.length}명, 과목 이수 기록: ${totalCourseRecords}건)`);
-      }
+      alert(
+        `✅ [${activeG}] ${fixedSem}학기 사전 데이터가 ${wasReplaced ? '교체' : '등록'}되었습니다!\n\n` +
+        `• ${fixedSem}학기 파일: ${fileName} (학생 ${studentList.length}명 / ${totalCourseRecords}건)\n` +
+        `• 통합 등록 학생: 총 ${priorDataObj.students.length}명 / 누적 이수 기록: ${priorDataObj.totalRecords}건`
+      );
     }
 
-    function clearPriorData() {
+    function clearPriorData(targetSemester = null) {
       const activeG = MultiState.activeGrade || '2학년';
       const activeY = MultiState.activeYear || '2027';
       const currAY = MultiState.activeAcademicYear || '2027학년도';
-
       const curAcadData = getAcadData();
       const dateList = (MultiState.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState.yearsList || [];
+
+      if (targetSemester === 1 || targetSemester === 2) {
+        const existingPrior = curAcadData[activeY]?.[activeG]?.priorData || AppState.priorData;
+        if (!existingPrior || !Array.isArray(existingPrior.students)) return;
+
+        const prevStats = computePriorSemesterStats(existingPrior);
+        const remainingStudents = [];
+
+        existingPrior.students.forEach(st => {
+          if (!st) return;
+          const keptDetails = (st.courseDetails || []).filter(cd => {
+            const cdSem = Number(cd.uploadSem || cd.semester || 1);
+            return cdSem !== targetSemester;
+          });
+          if (keptDetails.length > 0) {
+            remainingStudents.push({
+              ...JSON.parse(JSON.stringify(st)),
+              courseDetails: JSON.parse(JSON.stringify(keptDetails))
+            });
+          }
+        });
+
+        const meta = {
+          sem1FileName: targetSemester === 1 ? '' : prevStats.sem1FileName,
+          sem1StudentCount: targetSemester === 1 ? 0 : prevStats.sem1StCount,
+          sem1RecordCount: targetSemester === 1 ? 0 : prevStats.sem1RecCount,
+          sem2FileName: targetSemester === 2 ? '' : prevStats.sem2FileName,
+          sem2StudentCount: targetSemester === 2 ? 0 : prevStats.sem2StCount,
+          sem2RecordCount: targetSemester === 2 ? 0 : prevStats.sem2RecCount
+        };
+
+        const newPriorObj = remainingStudents.length > 0 ? rebuildPriorDataFromStudents(remainingStudents, meta) : null;
+
+        dateList.forEach(d => {
+          if (curAcadData[d] && curAcadData[d][activeG]) {
+            curAcadData[d][activeG].priorData = newPriorObj ? JSON.parse(JSON.stringify(newPriorObj)) : null;
+            if (!newPriorObj) {
+              curAcadData[d][activeG].crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
+            }
+          }
+        });
+
+        AppState.priorData = newPriorObj;
+        if (!newPriorObj) {
+          AppState.crossCheckResult = { missingStudents: [], duplicateEnrollments: [] };
+        }
+
+        updatePriorDataUI();
+        if (AppState.students && AppState.students.length > 0) {
+          renderStep1TableOnly();
+        }
+        saveAllState();
+        alert(`🗑️ [${activeG}]의 ${targetSemester}학기 사전 데이터가 삭제되었습니다.`);
+        return;
+      }
+
       dateList.forEach(d => {
         if (curAcadData[d] && curAcadData[d][activeG]) {
           curAcadData[d][activeG].priorData = null;
@@ -4251,34 +4462,56 @@
         renderStep1TableOnly();
       }
       saveAllState();
-      alert(`🗑️ [${activeG}]의 사전 데이터가 삭제되었습니다.`);
+      alert(`🗑️ [${activeG}]의 전체 사전 데이터가 삭제되었습니다.`);
     }
 
     function loadSamplePriorData(showAlert = true) {
       const activeG = MultiState.activeGrade || '2학년';
       const activeY = MultiState.activeYear || '2027';
       const sampleList = [
-        { c: '1', n: '1', name: '학생01', s: ['공통국어1(3)', '공통수학1(3)', '물리학(3)'] },
-        { c: '1', n: '2', name: '학생02', s: ['공통영어1(3)', '미디어 영어(3)'] },
-        { c: '1', n: '3', name: '학생03', s: ['공통국어1(3)', '한국사1(3)'] },
-        { c: '2', n: '1', name: '학생04', s: ['공통국어1(3)', '공통수학1(3)'] },
-        { c: '2', n: '2', name: '학생05', s: ['공통국어1(3)', '통합사회1(3)'] },
-        { c: '2', n: '3', name: '학생06', s: ['공통국어1(3)', '통합과학1(3)'] },
-        { c: '2', n: '4', name: '학생07', s: ['공통국어1(3)', '공통영어1(3)'] },
-        { c: '1', n: '4', name: '학생08', s: ['공통국어1(3)', '한국사1(3)'] },
-        { c: '1', n: '5', name: '학생09', s: ['공통수학1(3)', '기술가정(2)'] },
-        { c: '1', n: '6', name: '학생10', s: ['공통영어1(3)', '정보(2)'] },
-        { c: '1', n: '7', name: '학생11', s: ['공통국어1(3)', '공통수학1(3)'] },
-        { c: '2', n: '5', name: '학생12', s: ['공통국어1(3)', '공통영어1(3)'] }
+        { c: '1', n: '1', name: '학생01', s1: ['공통국어1(3)', '공통수학1(3)'], s2: ['물리학(3)'] },
+        { c: '1', n: '2', name: '학생02', s1: ['공통영어1(3)'], s2: ['미디어 영어(3)'] },
+        { c: '1', n: '3', name: '학생03', s1: ['공통국어1(3)'], s2: ['한국사1(3)'] },
+        { c: '2', n: '1', name: '학생04', s1: ['공통국어1(3)'], s2: ['공통수학1(3)'] },
+        { c: '2', n: '2', name: '학생05', s1: ['공통국어1(3)'], s2: ['통합사회1(3)'] },
+        { c: '2', n: '3', name: '학생06', s1: ['공통국어1(3)'], s2: ['통합과학1(3)'] },
+        { c: '2', n: '4', name: '학생07', s1: ['공통국어1(3)'], s2: ['공통영어1(3)'] },
+        { c: '1', n: '4', name: '학생08', s1: ['공통국어1(3)'], s2: ['한국사1(3)'] },
+        { c: '1', n: '5', name: '학생09', s1: ['공통수학1(3)'], s2: ['기술가정(2)'] },
+        { c: '1', n: '6', name: '학생10', s1: ['공통영어1(3)'], s2: ['정보(2)'] },
+        { c: '1', n: '7', name: '학생11', s1: ['공통국어1(3)'], s2: ['공통수학1(3)'] },
+        { c: '2', n: '5', name: '학생12', s1: ['공통국어1(3)'], s2: ['공통영어1(3)'] }
       ];
 
-      let totalRecords = 0;
+      let sem1Records = 0;
+      let sem2Records = 0;
       const studentList = sampleList.map(st => {
-        const normSubjects = [];
-        st.s.forEach(subj => {
-          totalRecords++;
-          const norm = normalizeSubject(subj);
-          if (norm && !normSubjects.includes(norm)) normSubjects.push(norm);
+        const courseDetails = [];
+        (st.s1 || []).forEach(subj => {
+          sem1Records++;
+          const cleanSubj = getBaseSubjectName(subj);
+          courseDetails.push({
+            subject: cleanSubj || subj,
+            rawSubject: subj,
+            normSubject: normalizeSubject(subj),
+            credit: 3,
+            semester: 1,
+            uploadSem: 1,
+            grade: activeG === '3학년' ? '2학년' : '1학년'
+          });
+        });
+        (st.s2 || []).forEach(subj => {
+          sem2Records++;
+          const cleanSubj = getBaseSubjectName(subj);
+          courseDetails.push({
+            subject: cleanSubj || subj,
+            rawSubject: subj,
+            normSubject: normalizeSubject(subj),
+            credit: 3,
+            semester: 2,
+            uploadSem: 2,
+            grade: activeG === '3학년' ? '2학년' : '1학년'
+          });
         });
         return {
           key: `${st.c}_${st.n}_${st.name}`,
@@ -4286,16 +4519,18 @@
           classNum: st.c,
           studentNum: st.n,
           name: st.name,
-          subjects: normSubjects,
-          rawSubjects: st.s
+          courseDetails
         };
       });
 
-      AppState.priorData = {
-        fileName: `${activeY}학년도_${activeG}_교육과정_편성학생_사전데이터.xlsx`,
-        students: studentList,
-        totalRecords
-      };
+      AppState.priorData = rebuildPriorDataFromStudents(studentList, {
+        sem1FileName: `${activeG}_1학기_사전데이터(샘플).xlsx`,
+        sem1StudentCount: studentList.length,
+        sem1RecordCount: sem1Records,
+        sem2FileName: `${activeG}_2학기_사전데이터(샘플).xlsx`,
+        sem2StudentCount: studentList.length,
+        sem2RecordCount: sem2Records
+      });
 
       const curAcadData = getAcadData();
       if (!curAcadData[activeY]) curAcadData[activeY] = {};
@@ -4312,7 +4547,7 @@
       saveAllState();
 
       if (showAlert) {
-        alert(`💡 [${activeG}] 샘플 사전 데이터(12명, 과목 기록 24건)가 등록되었습니다!\n미신청 학생 2명과 기이수 중복신청 학생 2명이 자동 감지됩니다.`);
+        alert(`💡 [${activeG}] 1·2학기 샘플 사전 데이터(12명, 과목 기록 ${sem1Records + sem2Records}건)가 등록되었습니다!\n미신청 학생 2명과 기이수 중복신청 학생 2명이 자동 감지됩니다.`);
       }
     }
 
@@ -5059,41 +5294,61 @@
       window.saveExcelFile(wb, filename);
     };
 
-    // Prior Data Event Listeners
-    priorFileInput?.addEventListener('click', () => {
-      priorFileInput.value = '';
-    });
-    priorFileInput?.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files.length > 0) {
-        processPriorDataFile(e.target.files[0]);
-      }
-    });
-    priorFileInput?.addEventListener('dragenter', (e) => {
-      e.preventDefault();
-      priorUploadZone?.classList.add('border-indigo-600', 'bg-indigo-100/60');
-    });
-    priorFileInput?.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      priorUploadZone?.classList.add('border-indigo-600', 'bg-indigo-100/60');
-    });
-    priorFileInput?.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      priorUploadZone?.classList.remove('border-indigo-600', 'bg-indigo-100/60');
-    });
-    priorFileInput?.addEventListener('drop', (e) => {
-      priorUploadZone?.classList.remove('border-indigo-600', 'bg-indigo-100/60');
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        processPriorDataFile(e.dataTransfer.files[0]);
-      }
+    // Prior Data Event Listeners (1학기 / 2학기 분할 업로드 및 교체)
+    [
+      { input: priorSem1FileInput, zone: priorSem1UploadZone, sem: 1, hoverClasses: ['border-blue-600', 'bg-blue-100/60', 'ring-4', 'ring-blue-100'] },
+      { input: priorSem2FileInput, zone: priorSem2UploadZone, sem: 2, hoverClasses: ['border-emerald-600', 'bg-emerald-100/60', 'ring-4', 'ring-emerald-100'] }
+    ].forEach(({ input, zone, sem, hoverClasses }) => {
+      if (!input) return;
+      input.addEventListener('click', () => {
+        input.value = '';
+      });
+      input.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          processPriorDataFile(e.target.files[0], sem);
+        }
+      });
+      input.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        zone?.classList.add(...hoverClasses);
+      });
+      input.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone?.classList.add(...hoverClasses);
+      });
+      input.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        zone?.classList.remove(...hoverClasses);
+      });
+      input.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone?.classList.remove(...hoverClasses);
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          processPriorDataFile(e.dataTransfer.files[0], sem);
+        }
+      });
     });
 
     btnSamplePrior?.addEventListener('click', () => {
       loadSamplePriorData(true);
     });
 
+    btnClearPriorSem1?.addEventListener('click', () => {
+      if (confirm(`현재 [${MultiState.activeGrade}]의 1학기 사전 데이터를 삭제하시겠습니까?`)) {
+        clearPriorData(1);
+      }
+    });
+
+    btnClearPriorSem2?.addEventListener('click', () => {
+      if (confirm(`현재 [${MultiState.activeGrade}]의 2학기 사전 데이터를 삭제하시겠습니까?`)) {
+        clearPriorData(2);
+      }
+    });
+
     btnClearPrior?.addEventListener('click', () => {
-      if (confirm(`현재 [${MultiState.activeGrade}]의 사전 데이터를 삭제하시겠습니까?`)) {
-        clearPriorData();
+      if (confirm(`현재 [${MultiState.activeGrade}]의 1·2학기 사전 데이터를 모두 삭제하시겠습니까?`)) {
+        clearPriorData(null);
       }
     });
 
