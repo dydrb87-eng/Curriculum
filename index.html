@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_06:20)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_06:35)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_06:20)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_06:35)</span></p>
         </div>
       </div>
 
@@ -19627,7 +19627,9 @@ function createSangjiCourseSelectionForm() {
     window._step3ActiveMainTab = 'category';
 
     function switchStep3MainTab(tab) {
-      if (tab === 'creditAudit' && typeof window.loadCreditAuditHeaderConfig === 'function') {
+      if (tab === 'creditAudit') {
+        if (typeof window.loadCreditAuditHeaderConfig === 'function') window.loadCreditAuditHeaderConfig();
+        if (typeof window.initCreditAuditDropZone === 'function') window.initCreditAuditDropZone();
         window.loadCreditAuditHeaderConfig();
       }
       window._step3ActiveMainTab = tab;
@@ -19931,6 +19933,49 @@ function createSangjiCourseSelectionForm() {
       renderCreditAuditTable();
     }
     window.processCreditAuditRows = processCreditAuditRows;
+
+    // 2-0. 학기별 이수학점 점검 드래그 앤 드롭 영역 이벤트 초기화
+    function initCreditAuditDropZone() {
+      const zone = document.getElementById('creditAuditDropZone');
+      const input = document.getElementById('creditAuditFileInput');
+      if (!zone || zone._dndBound) return;
+      zone._dndBound = true;
+
+      ['dragenter', 'dragover'].forEach(name => {
+        zone.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          zone.classList.add('border-indigo-600', 'bg-indigo-100/70', 'ring-4', 'ring-indigo-200');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(name => {
+        zone.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          zone.classList.remove('border-indigo-600', 'bg-indigo-100/70', 'ring-4', 'ring-indigo-200');
+        });
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          window.handleCreditAuditFileUpload(e.dataTransfer.files[0]);
+        }
+      });
+
+      if (input && !input._changeBound) {
+        input._changeBound = true;
+        input.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            window.handleCreditAuditFileUpload(e.target.files[0]);
+            e.target.value = '';
+          }
+        });
+      }
+    }
+    window.initCreditAuditDropZone = initCreditAuditDropZone;
 
     // 2. 별도 교과학습발달상황 엑셀 파일 직접 업로드 처리 (NEIS 실제 양식 완벽 파서)
     function parseSmartCreditAudit2D(sheetRows, headerConfig = {}) {
