@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_05:25)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_05:35)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_05:25)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_05:35)</span></p>
         </div>
       </div>
 
@@ -250,7 +250,7 @@
                 <div>
                   <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <span id="priorCardTitle">[2학년] 사전 데이터 등록</span>
-                    <span id="priorCardGradeBadge" class="text-[10px] font-extrabold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">2학년 명부 & 기이수 과목</span>
+                    <span id="priorCardGradeBadge" class="hidden"></span>
                   </h3>
                   <p id="priorCardDesc" class="text-[11px] text-slate-500 mt-0.5">1학년 NEIS 파일 등록(수강생편성-학생편성현황.xlsx)</p>
                 </div>
@@ -376,7 +376,7 @@
                 <div>
                   <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <span id="surveyCardTitle">[2학년] 수강신청 조사 엑셀 파일</span>
-                    <span id="surveyCardGradeBadge" class="text-[10px] font-extrabold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">2학년 설문 결과</span>
+                    <span id="surveyCardGradeBadge" class="hidden"></span>
                   </h3>
                   <p class="text-[11px] text-slate-500 mt-0.5">학생들이 응답한 선택과목 신청 결과 엑셀 파일 (새 파일 업로드 시 교체)</p>
                 </div>
@@ -478,7 +478,7 @@
             <div>
               <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span>전학년 교육과정 배정 및 교사별 수업 시수 종합 관리</span>
-                <span id="allGradesAcademicYearBadge" class="text-xs font-extrabold px-2.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">2027학년도 전체</span>
+                <span id="allGradesAcademicYearBadge" class="hidden"></span>
               </h3>
               <p class="text-xs text-slate-500 mt-0.5">
                 기초데이터(1·2·3학년 편제표)와 2단계 선택과목 개설 결과를 대조하여, 교사별 담당 과목과 주당 수업 시수를 종합 분석·조정합니다.
@@ -492,27 +492,27 @@
           
           <button id="btnUploadAllGradesExcel" type="button" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="기초데이터 엑셀(학기, 학년, 구분, 과목명, 시수, 담당교사)을 업로드합니다">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            <span>📂 기초데이터 엑셀 업로드</span>
+            <span>기초데이터 엑셀 업로드</span>
           </button>
 
           <button id="btnExportCurrentCurriculum" type="button" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="현재 수정 반영된 최신 기초데이터를 다시 업로드할 수 있는 표준 엑셀 파일로 다운로드합니다 (다른 기준 날짜 탭에서 재업로드 가능)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span>📥 최신 데이터 다운로드(재업로드용)</span>
+            <span>최신 데이터 다운로드(재업로드용)</span>
           </button>
 
           <button id="btnDownloadCurriculumTemplate" type="button" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="표준 기초데이터 엑셀 양식을 다운로드합니다">
             <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span>📥 양식 다운로드</span>
+            <span>양식 다운로드</span>
           </button>
 
           <button id="btnExportAllGradesExcel" type="button" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="교사별 시수 종합표 및 전학년 배정 상세표를 엑셀로 다운로드합니다">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span>📊 종합 엑셀 다운로드</span>
+            <span>종합 엑셀 다운로드</span>
           </button>
 
           <button id="btnExportSubjectBasedExcel" type="button" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="과목 기준으로 학기, 학년, 과목명, 출판사, 담당교사, 수강인원, 수강자 명단을 정리한 엑셀 파일을 다운로드합니다">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span>📋 과목 기준 데이터 정리</span>
+            <span>과목 기준 데이터 정리</span>
           </button>
 
           <div id="publisherButtonGroup" class="inline-flex items-center rounded-xl shadow-xs border-2 border-dashed border-purple-400 hover:border-purple-600 bg-purple-50 text-purple-900 transition overflow-hidden">
@@ -690,10 +690,18 @@
             <p class="text-xs text-slate-500 mt-0.5">
               담당교사명을 직접 수정할 수 있으며, 엑셀 원본과 다르게 수정한 내용은 <span class="px-1.5 py-0.2 bg-blue-50 text-blue-800 border border-blue-200 rounded font-bold">파란색 음영(수정됨)</span>으로 표시됩니다.
             </p>
+          
           </div>
+          <!-- Search Box (교사별 학기 수업 시수 및 담당 과목 요약과 동일하게 우측 배치) -->
+          <div class="relative">
+            <input type="text" id="allGradesCourseSearchInput" placeholder="과목명/교사 검색" class="px-3 py-1.5 pl-8 pr-7 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-52 shadow-2xs">
+            <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <button type="button" onclick="window.clearSearchInput('allGradesCourseSearchInput')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer" title="검색어 지우기">✕</button>
+          </div>
+        </div>
 
-          <!-- Filter Controls -->
-          <div class="flex flex-wrap items-center gap-2">
+        <!-- Filter Controls Row -->
+        <div class="flex flex-wrap items-center gap-2 pt-0.5">
             <select id="allGradesFilterGrade" class="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 shadow-2xs">
               <option value="all">전체 학년</option>
               <option value="1학년">1학년</option>
@@ -755,16 +763,9 @@
             <button type="button" onclick="window.exportCurriculumByCategoryExcel()" class="px-3 py-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs flex items-center gap-1.5 cursor-pointer transition select-none ring-1 ring-emerald-300/60" title="학년별 1·2학기 선택과목을 교과군별 열로 묶어 현재 배치 다운로드(1,2학기 통합 배치표) 양식의 엑셀로 다운로드합니다">
               <span>📥 교과군별 선택과목 다운로드</span>
             </button>
-            <button type="button" onclick="window.openAddCourseModal()" class="px-3 py-1.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer select-none ring-2 ring-indigo-400/40" title="편제표에 새 과목을 직접 추가합니다">
-              <span>➕</span>
-              <span>과목 추가</span>
-            </button>
+            <button type="button" onclick="window.openAddCourseModal()" class="px-3 py-1.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer select-none ring-2 ring-indigo-400/40" title="편제표에 새 과목을 직접 추가합니다"><span>➕ 과목 추가</span></button>
 
-            <div class="relative">
-              <input type="text" id="allGradesCourseSearchInput" placeholder="과목명/교사 검색" class="px-3 py-1.5 pl-8 pr-7 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-44 shadow-2xs">
-              <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              <button type="button" onclick="window.clearSearchInput('allGradesCourseSearchInput')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer" title="검색어 지우기">✕</button>
-            </div>
+            
           </div>
         </div>
 
@@ -824,7 +825,7 @@
             </div>
             <div class="flex items-center space-x-2">
               <button id="btnExportCrossCheckExcel" type="button" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center space-x-1.5">
-                <span>📥 검증 결과 엑셀 다운로드 (.xlsx)</span>
+                <span>검증 결과 엑셀 다운로드 (.xlsx)</span>
               </button>
               <button id="btnToggleCrossCheckDetails" type="button" class="px-3 py-1.5 bg-white text-amber-900 border border-amber-300 hover:bg-amber-100 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center space-x-1">
                 <span id="crossCheckToggleText">명단 상세 접기 ▲</span>
@@ -903,7 +904,7 @@
                 </div>
                 <button id="btnExportDuplicateCorrectionExcel" type="button" onclick="window.exportDuplicateCorrectionExcel()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer select-none" title="동일·기이수 중복신청 과목 변경 확인 및 신청서(학생 배부용) 엑셀을 다운로드합니다">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  <span>📥 변경신청서 엑셀 다운로드</span>
+                  <span>변경신청서 엑셀 다운로드</span>
                 </button>
               </div>
               <div class="max-h-72 overflow-y-auto custom-scrollbar flex-1">
@@ -1085,7 +1086,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                <span>📥 과목별 개설·폐강 현황표 엑셀 다운로드</span>
+                <span>과목별 개설·폐강 현황표 엑셀 다운로드</span>
               </button>
             </div>
           </div>
@@ -1119,11 +1120,11 @@
           <!-- Advanced Constraints Controls: 4-column Layout -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
             
-            <!-- 영역 1: 분반 가능 과목 체크 (인원 분할) -->
+            <!-- 영역 1: 분반 가능 과목 (인원 분할) -->
             <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex flex-col">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-bold text-slate-800 flex items-center space-x-1">
-                  <span>✂️ 분반 가능 과목 체크</span>
+                  <span>✂️ 분반 가능 과목</span>
                 </span>
                 <span class="text-[11px] text-slate-500">A/B반 분할</span>
               </div>
@@ -1240,15 +1241,15 @@
           <!-- Total Enrolled Groups -->
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-start space-y-2">
             <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-              <p class="text-xs text-slate-600 font-bold">편성된 그룹(블록) 수</p>
+              <p class="text-xs text-slate-600 font-bold">편성된 그룹 수</p>
               <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">📊</div>
             </div>
             <div class="space-y-2 flex-1">
               <div class="flex items-baseline space-x-2">
                 <h4 id="statGroupCountDisplay" class="text-2xl font-black text-slate-900">5그룹</h4>
-                <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">편성 블록</span>
+                
               </div>
-              <p class="pt-2 border-t border-slate-100 text-[11px] text-slate-400">설정된 그룹 수에 맞춰 과목이 동시간대 블록으로 배치됩니다.</p>
+              <p class="pt-2 border-t border-slate-100 text-[11px] text-slate-400">설정된 그룹 수에 맞춰 과목이 동시간대로 배치됩니다.</p>
             </div>
           </div>
         </div>
@@ -1291,39 +1292,39 @@
                   </div>
                   <button id="btnRegroup" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="설정한 조건 및 충돌 목표에 맞춰 새로운 조합을 탐색합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    <span>🔄 새로고침</span>
+                    <span>새로고침</span>
                   </button>
                   <button id="btnOpenAddSubjectModal" type="button" onclick="window.openAddSubjectModal()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 학기 2단계 그룹에 새로운 과목을 직접 추가합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>➕ 과목 추가</span>
+                    <span>과목 추가</span>
                   </button>
                   <button id="btnOpenImportGroupModal" type="button" onclick="window.openImportGroupModal()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="다른 '기준 날짜'에서 동일 학년의 N그룹별 과목 배치를 불러옵니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
-                    <span>📥 그룹 불러오기</span>
+                    <span>그룹 불러오기</span>
                   </button>
                   <button id="btnSavePlan" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="현재 배치 안을 저장합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                    <span>⭐ 현재 배치 저장</span>
+                    <span>현재 배치 저장</span>
                   </button>
                   <button id="btnExportCurrentPlan" type="button" onclick="window.exportCurrentPlanExcel()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 과목 및 학생별 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>📥 현재 배치 다운로드</span>
+                    <span>현재 배치 다운로드</span>
                   </button>
                                     <button id="btnExportHtmlViewer" type="button" onclick="window.exportHtmlViewer()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 표시된 시간표를 이름 검색 기능이 포함된 단일 웹페이지(.html)로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
-                    <span>🌐 시간표 뷰어 다운로드</span>
+                    <span>시간표 뷰어 다운로드</span>
                   </button>
                   <button id="btnCreateGoogleForm" type="button" onclick="window.openCreateGoogleFormModal()" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 1, 2학기 그룹별 선택과목으로 학생용 구글 폼(설문지)을 자동 생성합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>📝 구글 폼 생성</span>
+                    <span>구글 폼 생성</span>
                   </button>
                   <button id="btnExportAllPlans" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="모든 저장된 안을 엑셀로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>📥 모든 저장 안 다운로드</span>
+                    <span>모든 저장 안 다운로드</span>
                   </button>
                   <button id="btnGasSaveToSheets" class="hidden px-3 py-1.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                    <span>☁️ 구글 시트 저장</span>
+                    <span>구글 시트 저장</span>
                   </button>
                 </div>
               </div>
@@ -1439,7 +1440,7 @@
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
-                  <span>👤 학생별 그룹 배정 시간표 (개인별 이동수업 시간표)</span>
+                  <span>👤 학생별 그룹 배정 시간표 (개인별 시간표)</span>
                   <span id="scheduleTableSortBadge" class="hidden text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs"></span>
                 </h4>
                 <p class="text-xs text-slate-500 mt-0.5">과목 헤더를 클릭하여 엑셀처럼 특정 과목 선택 학생을 상단/하단으로 정렬하거나 필터링할 수 있습니다.</p>
@@ -1468,7 +1469,7 @@
                 </div>
                 <button id="btnRegroup2" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="설정한 조건 및 충돌 목표에 맞춰 새로운 조합을 탐색합니다">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                  <span>🔄 새로고침</span>
+                  <span>새로고침</span>
                 </button>
               </div>
             </div>
@@ -1558,19 +1559,19 @@
             <div class="flex items-center gap-2">
               <button id="btnSavePlan2" type="button" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="작성한 메모와 함께 현재 배치 안을 저장합니다">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                <span>⭐ 현재 배치 저장</span>
+                <span>현재 배치 저장</span>
               </button>
               <button id="btnExportCurrentPlan2" type="button" onclick="window.exportCurrentPlanExcel()" class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 과목 및 학생별 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span>📥 현재 배치 다운로드</span>
+                <span>현재 배치 다운로드</span>
               </button>
               <button id="btnExportHtmlViewer2" type="button" onclick="window.exportHtmlViewer()" class="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 표시된 시간표를 이름 검색 기능이 포함된 단일 웹페이지(.html)로 다운로드합니다">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
-                <span>🌐 시간표 뷰어 다운로드</span>
+                <span>시간표 뷰어 다운로드</span>
               </button>
               <button id="btnExportAllPlans2" type="button" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="모든 저장된 안을 엑셀로 다운로드합니다">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span>📥 모든 저장 안 다운로드</span>
+                <span>모든 저장 안 다운로드</span>
               </button>
             </div>
           </div>
@@ -1659,7 +1660,7 @@
                 <span>🏷️ 교과군 및 과목 배정 설정</span>
               </button>
               <button type="button" onclick="window.exportStep3ValidationExcel()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 transition cursor-pointer shadow-md">
-                <span>📥 검증 결과 엑셀 다운로드 (.xlsx)</span>
+                <span>검증 결과 엑셀 다운로드 (.xlsx)</span>
               </button>
             </div>
           </div>
@@ -3648,7 +3649,7 @@
       <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
         <button type="button" onclick="window.copyGoogleFormAppsScript();" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-300 text-slate-700 font-bold text-xs transition border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-2xs" title="구글 스프레드시트 Apps Script에 붙여넣을 수 있는 원클릭 실행 코드를 복사합니다">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-          <span>📋 Apps Script 원클릭 코드 복사</span>
+          <span>Apps Script 원클릭 코드 복사</span>
         </button>
         <div class="flex items-center gap-2">
           <button type="button" onclick="window.closeCreateGoogleFormModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
@@ -4325,10 +4326,10 @@
       const priorTargetGradeName = (activeG === '3학년') ? '2학년' : '1학년';
 
       if (priorCardTitle) priorCardTitle.textContent = `[${activeG}] 사전 데이터 등록`;
-      if (priorCardGradeBadge) priorCardGradeBadge.textContent = `${activeG} 명부 & 기이수 과목`;
+      if (priorCardGradeBadge) { priorCardGradeBadge.textContent = ""; priorCardGradeBadge.classList.add("hidden"); }
       if (priorCardDesc) priorCardDesc.textContent = `${priorTargetGradeName} NEIS 파일 1·2학기 개별 등록 (수강생편성-학생편성현황.xlsx)`;
       if (surveyCardTitle) surveyCardTitle.textContent = `[${activeG}] 수강신청 조사 엑셀 파일`;
-      if (surveyCardGradeBadge) surveyCardGradeBadge.textContent = `${activeG} 설문 결과`;
+      if (surveyCardGradeBadge) { surveyCardGradeBadge.textContent = ""; surveyCardGradeBadge.classList.add("hidden"); }
 
       if (AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0) {
         if (priorStatusBadge) priorStatusBadge.classList.remove('hidden');
@@ -15090,7 +15091,7 @@ function createSangjiCourseSelectionForm() {
         if (appBody) appBody.classList.add('hidden');
         if (btnResetAll) btnResetAll.classList.add('hidden');
         if (allGradesSection) allGradesSection.classList.remove('hidden');
-        if (allGradesYearBadge) allGradesYearBadge.textContent = `${targetYear}학년도 전체`;
+        if (allGradesYearBadge) { allGradesYearBadge.textContent = ""; allGradesYearBadge.classList.add("hidden"); }
 
         if (currentWorkText) {
           currentWorkText.textContent = `${targetYear}학년도 전체 (전학년 교육과정 및 교사 시수)`;
