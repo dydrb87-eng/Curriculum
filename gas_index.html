@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.04_09:46)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.04_11:35)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.04_09:46)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.04_11:35)</span></p>
         </div>
       </div>
 
@@ -13585,7 +13585,8 @@
         confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
       }
 
-      selectedImportDate = otherYears[0] || MultiState.yearsList[0];
+      // 가장 최근에 생성된 기준 날짜(otherYears의 마지막 항목)를 기본값으로 선택
+      selectedImportDate = otherYears.length > 0 ? otherYears[otherYears.length - 1] : MultiState.yearsList[0];
       selectedImportPlanId = 'active_sem';
 
       renderImportGroupDateButtons();
