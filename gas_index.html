@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.03_07:58)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.04_09:46)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.03_07:58)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.04_09:46)</span></p>
         </div>
       </div>
 
@@ -13586,7 +13586,7 @@
       }
 
       selectedImportDate = otherYears[0] || MultiState.yearsList[0];
-      selectedImportPlanId = 'active';
+      selectedImportPlanId = 'active_sem';
 
       renderImportGroupDateButtons();
       renderImportGroupPlansAndPreview();
@@ -13651,50 +13651,59 @@
         return;
       }
 
-      // 1. 계획 목록 추출: currentPlan + savedPlans (동일 학년)
+      // 1. 계획 목록 추출: 현재 학기(activeSem)에 정확히 일치하는 배치안만 수집 (학기 교차 오염 100% 방지)
       const availablePlans = [];
+
+      // A. 대상 기준 날짜의 currentPlans[activeSem] 확인 (가장 정확한 해당 학기 기본 활성 배치안)
+      const semActivePlan = targetYearData.currentPlans?.[activeSem];
+      if (semActivePlan && semActivePlan.groups && semActivePlan.groups.length > 0) {
+        availablePlans.push({
+          id: 'active_sem',
+          name: `기본 활성 배치안 (${activeSem}학기)`,
+          semester: activeSem,
+          groups: semActivePlan.groups,
+          conflictCount: semActivePlan.conflictCount || 0
+        });
+      }
+
+      // B. 대상 기준 날짜의 currentPlan 확인 (학기가 activeSem과 일치하고 아직 추가되지 않은 경우)
       if (targetYearData.currentPlan && targetYearData.currentPlan.groups && targetYearData.currentPlan.groups.length > 0) {
-        if (!targetYearData.currentPlan.semester || targetYearData.currentPlan.semester === activeSem) {
+        const curPlanSem = targetYearData.currentPlan.semester || 1;
+        if (curPlanSem === activeSem && !availablePlans.some(p => p.id === 'active_sem')) {
           availablePlans.push({
             id: 'active',
-            name: '기본 활성 배치안',
-            semester: targetYearData.currentPlan.semester || activeSem,
+            name: `기본 활성 배치안 (${activeSem}학기)`,
+            semester: activeSem,
             groups: targetYearData.currentPlan.groups,
             conflictCount: targetYearData.currentPlan.conflictCount || 0
           });
         }
       }
 
+      // C. 대상 기준 날짜의 savedPlans 중 현재 학기(activeSem)에 저장된 안들 추가
       if (targetYearData.savedPlans && Array.isArray(targetYearData.savedPlans)) {
         targetYearData.savedPlans.forEach(p => {
-          if (p.groups && p.groups.length > 0 && (!p.semester || p.semester === activeSem)) {
-            availablePlans.push({
-              id: p.id,
-              name: p.name || '저장된 안',
-              semester: p.semester || activeSem,
-              groups: p.groups,
-              conflictCount: p.conflictCount || 0
-            });
+          if (p.groups && p.groups.length > 0) {
+            const pSem = p.semester || 1;
+            if (pSem === activeSem) {
+              availablePlans.push({
+                id: p.id,
+                name: p.name || `저장된 안 (${activeSem}학기)`,
+                semester: activeSem,
+                groups: p.groups,
+                conflictCount: p.conflictCount || 0
+              });
+            }
           }
         });
       }
 
-      // 만약 해당 학기 플랜이 없지만 다른 학기 플랜이라도 있는 경우 유연하게 표시
-      if (availablePlans.length === 0 && targetYearData.currentPlan && targetYearData.currentPlan.groups && targetYearData.currentPlan.groups.length > 0) {
-        availablePlans.push({
-          id: 'active_other_sem',
-          name: `활성 배치안 (${targetYearData.currentPlan.semester || 1}학기)`,
-          semester: targetYearData.currentPlan.semester || 1,
-          groups: targetYearData.currentPlan.groups,
-          conflictCount: targetYearData.currentPlan.conflictCount || 0
-        });
-      }
-
+      // 2. 현재 학기(activeSem)에 해당하는 배치안이 전혀 없는 경우
       if (availablePlans.length === 0) {
         if (previewContainer) {
-          previewContainer.innerHTML = `<div class="text-center py-8 text-slate-400 space-y-1">
-            <p class="text-xs font-bold text-slate-600">[${selectedImportDate}] [${activeGrade} ${activeSem}학기]에 생성된 그룹 배치 데이터가 없습니다.</p>
-            <p class="text-[11px]">해당 기준 날짜로 이동하여 2단계에서 그룹을 먼저 생성해주세요.</p>
+          previewContainer.innerHTML = `<div class="text-center py-8 text-slate-400 space-y-1.5">
+            <p class="text-xs font-bold text-slate-700">[${selectedImportDate}]의 [${activeGrade} ${activeSem}학기]에 생성된 그룹 배치 데이터가 없습니다.</p>
+            <p class="text-[11px] text-slate-500">해당 기준 날짜로 이동하여 [${activeGrade} ${activeSem}학기] 2단계에서 그룹을 먼저 생성해주세요.</p>
           </div>`;
         }
         if (summaryInfo) summaryInfo.textContent = '';
@@ -13712,7 +13721,13 @@
         confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
       }
 
-      // 배치안 다중 선택 UI
+      // 3. 배치안 선택 기본값 처리 (저장한 안이 없는 경우에도 기본 활성 배치안이 즉시 기본값으로 선택됨)
+      const validPlanExists = availablePlans.some(p => String(p.id) === String(selectedImportPlanId));
+      if (!validPlanExists) {
+        selectedImportPlanId = availablePlans[0].id;
+      }
+
+      // 배치안 다중 선택 UI 렌더링
       if (availablePlans.length > 1) {
         if (planContainer) {
           planContainer.classList.remove('hidden');
@@ -13723,9 +13738,9 @@
               return `
                 <button type="button" 
                         onclick="window.selectImportGroupPlan('${p.id}')"
-                        class="px-2.5 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center gap-1.5 ${
                           isSelected 
-                            ? 'bg-purple-100 text-purple-800 border-purple-400 ring-2 ring-purple-300' 
+                            ? 'bg-purple-100 text-purple-800 border-purple-400 ring-2 ring-purple-300 shadow-2xs' 
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                         }">
                   <span>${escapeHtml(p.name)}</span>
@@ -13792,7 +13807,7 @@
       }
     }
 
-    window.selectImportGroupPlan = function(pId) {
+        window.selectImportGroupPlan = function(pId) {
       selectedImportPlanId = pId;
       renderImportGroupPlansAndPreview();
     };
