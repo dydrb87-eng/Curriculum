@@ -1058,7 +1058,7 @@
                 <span class="text-[11px] px-2 py-0.5 rounded-full font-bold ${col.badge}">현재 편집 중</span>
               </div>
               <div class="flex items-center gap-1">
-                <button type="button" onclick="window.openScmCategoryEditForm('${activeCat.id}')" class="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition cursor-pointer" title="교과군 명칭, 색상, 적용 대상 및 조건 상세 수정">⚙️ 명칭·조건 상세 수정</button>
+                <button type="button" onclick="window.openScmCategoryEditForm('${activeCat.id}')" class="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition cursor-pointer" title="교과군 명칭, 색상, 적용 대상 및 조건 상세 수정">⚙️ 상세 수정</button>
                 <button type="button" onclick="window.deleteStep3Category('${activeCat.id}'); window.renderScmModal();" class="px-2 py-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition cursor-pointer" title="이 교과군 삭제">삭제</button>
               </div>
             </div>
