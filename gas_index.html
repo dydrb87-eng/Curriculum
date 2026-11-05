@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.04_23:18)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.06_05:32)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.04_23:17)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.06_05:32)</span></p>
         </div>
       </div>
 
@@ -774,6 +774,9 @@
               <span>🏷️ 교과군 설정</span>
               <span id="allGradesCategorySummaryBadge" class="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-200 text-purple-900 font-black">0개 군</span>
             </button>
+              <button type="button" onclick="window.openStep3MappingModal()" class="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white border border-white/30 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm" title="전학년(1·2·3학년) 과목별 교과군 지정 및 매핑 새 창 열기">
+                <span>📋 과목별 교과군 지정 매핑</span>
+              </button>
             <button type="button" onclick="window.exportCurriculumByCategoryExcel()" class="px-3 py-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs flex items-center gap-1.5 cursor-pointer transition select-none ring-1 ring-emerald-300/60" title="학년별 1·2학기 선택과목을 교과군별 열로 묶어 현재 배치 다운로드(1,2학기 통합 배치표) 양식의 엑셀로 다운로드합니다">
               <span>📥 교과군별 선택과목 다운로드</span>
             </button>
@@ -1663,7 +1666,7 @@
               </h2>
               <p class="text-purple-200 text-xs sm:text-sm mt-1 max-w-3xl leading-relaxed">
                 전체 시수 종합의 전학년(1·2·3학년) 과목 목록을 바탕으로 교과군 및 선택 개수 제한 조건을 등록하고, 
-                2·3학년 학생들의 최종 수강신청(선택과목)이 조건에 부합하는지 정밀 검증합니다.
+                3학년 학생들의 최종 수강신청(선택과목)이 조건에 부합하는지 정밀 검증합니다.
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2 shrink-0">
@@ -1686,7 +1689,7 @@
               <div class="flex items-baseline gap-1.5 mt-0.5">
                 <span id="step3StatTotalStudents" class="text-xl sm:text-2xl font-black text-white">0</span>
                 <span class="text-xs text-purple-200">명</span>
-                <span id="step3StatGradeDetail" class="text-[10px] text-purple-300 ml-1">(2학년 0, 3학년 0)</span>
+                <span id="step3StatGradeDetail" class="text-[10px] text-purple-300 ml-1">(3학년 전용 검증)</span>
               </div>
             </div>
             <div class="bg-emerald-500/20 backdrop-blur-xs rounded-xl p-3 border border-emerald-400/30">
@@ -1716,30 +1719,7 @@
           </div>
         </div>
 
-        <!-- Step 3 Sub-Navigation Tabs (3단계 하위 탭) -->
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-2">
-          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button type="button" id="step3SubTabBtnResults" onclick="window.switchStep3SubTab('results')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-black transition cursor-pointer flex items-center gap-2 bg-white text-indigo-700 shadow-xs ring-1 ring-slate-200">
-              <span>🚨 학생별 조건 검증 대시보드</span>
-              <span id="step3TabViolatedBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-100 text-rose-800">0명 위반</span>
-            </button>
-            <button type="button" id="step3SubTabBtnCategories" onclick="window.switchStep3SubTab('categories')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition cursor-pointer flex items-center gap-1.5">
-              <span>🏷️ 1. 교과군 및 조건 등록/관리</span>
-              <span id="step3TabCategoryBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">0</span>
-            </button>
-            <button type="button" id="step3SubTabBtnMappings" onclick="window.switchStep3SubTab('mappings')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition cursor-pointer flex items-center gap-1.5">
-              <span>📋 2. 과목별 교과군 지정 매핑</span>
-              <span id="step3TabMappingBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">0과목</span>
-            </button>
-          </div>
-
-          <div class="flex items-center gap-2 text-xs text-slate-500">
-            <span class="font-bold text-slate-700">💡 권장 진행 순서:</span>
-            <span>① 교과군 및 제한 조건 등록 ➔ ② 과목별 교과군 지정 ➔ ③ 학생별 검증 결과 확인</span>
-          </div>
-        </div>
-
-        <!-- SUB VIEW 1: RESULTS DASHBOARD -->
+        <!-- RESULTS DASHBOARD (기본 메인 화면) -->
         <div id="step3SubViewResults" class="space-y-4">
 
           <div id="step3ResultsWarningBanner" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center justify-between gap-3 text-amber-900">
@@ -1747,8 +1727,8 @@
               <span class="text-xl">⚠️</span>
               <span id="step3ResultsWarningText" class="text-xs sm:text-sm font-medium">교과군 등록이 필요합니다.</span>
             </div>
-            <button type="button" onclick="window.switchStep3SubTab('categories')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shrink-0">
-              교과군 등록 바로가기 ➔
+            <button type="button" onclick="window.openSubjectCategoryManagerModal()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shrink-0">
+              교과군 설정 열기 ➔
             </button>
           </div>
 
@@ -1775,9 +1755,7 @@
 
               <div class="flex flex-wrap items-center gap-2">
                 <select id="step3FilterGrade" onchange="window.setStep3ResultFilter('grade', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
-                  <option value="all">전체 학년</option>
-                  <option value="2학년">2학년</option>
-                  <option value="3학년">3학년</option>
+                  <option value="3학년" selected>3학년 (검증 대상)</option>
                 </select>
 
                 <select id="step3FilterClass" onchange="window.setStep3ResultFilter('classNum', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
@@ -1835,47 +1813,41 @@
 
         </div>
 
-        <!-- SUB VIEW 2: CATEGORY & RULES MANAGER -->
-        <div id="step3SubViewCategories" class="hidden space-y-4">
+                <!-- END OF DASHBOARD -->
 
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
-                  <span>🏷️ 교과군 및 선택 개수 제한 조건 등록</span>
-                  <span class="text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full font-bold">1단계 설정</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-1">
-                  학교 교육과정 편제표에 따라 교과군(예: 기초, 탐구, 체육·예술, 생활·교양 등)을 등록하고, 
-                  학생 1인당 선택해야 하는 개수 제한 조건(최소 N과목 이상, 최대 N과목 이하 등)을 설정합니다.
-                </p>
-              </div>
-              <div class="flex flex-wrap items-center gap-2 shrink-0">
-                <button type="button" onclick="window.generateDefaultStep3Categories()" class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-2xs">
-                  <span>⚡ 표준 교과군 자동 생성</span>
-                </button>
-                <button type="button" onclick="window.openStep3CategoryModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-sm">
-                  <span>+ 새 교과군 추가</span>
-                </button>
-              </div>
-            </div>
-
-            <div id="step3CategoryCardGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            </div>
-
-            <div id="step3CategoriesEmptyState" class="hidden p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl">
-              <span class="text-4xl">🏷️</span>
-              <h4 class="text-sm font-black text-slate-700 mt-2">등록된 교과군이 없습니다.</h4>
-              <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                '+ 새 교과군 추가' 버튼을 눌러 직접 등록하시거나, '표준 교과군 자동 생성' 버튼을 눌러 시작하세요.
-              </p>
-            </div>
+  <!-- ========================================================================= -->
+  <!-- MODAL: 전학년(1·2·3학년) 과목별 교과군 지정 매핑 모달 -->
+  <!-- ========================================================================= -->
+  <div id="step3MappingModal" onclick="if(event.target.id === 'step3MappingModal') window.closeStep3MappingModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-slate-50 via-indigo-50/50 to-purple-50/50 border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl shadow-2xs border border-indigo-200/80">
+            📋
           </div>
-
+          <div>
+            <h3 class="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2">
+              <span>전학년(1·2·3학년) 과목별 교과군 지정 매핑</span>
+              <span id="step3ModalMappingYearBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-extrabold border border-indigo-200">2027학년도</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              전체 시수 종합의 전학년 교육과정 과목 목록을 바탕으로 각 과목이 속할 교과군을 지정하고 관리합니다.
+            </p>
+          </div>
         </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.autoAssignStep3CategoriesByName()" class="px-3.5 py-1.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+            <span>⚡ 과목명 기반 자동 추천</span>
+          </button>
+          <button type="button" onclick="window.closeStep3MappingModal()" class="text-slate-400 hover:text-slate-700 text-2xl font-light p-1 leading-none cursor-pointer transition">✕</button>
+        </div>
+      </div>
 
+      <!-- Modal Body (Mapping Content) -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-4">
         <!-- SUB VIEW 3: SUBJECT MAPPING TABLE -->
-        <div id="step3SubViewMappings" class="hidden space-y-4">
+        <div id="step3SubViewMappings" class="space-y-4">
 
           <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
@@ -1957,7 +1929,20 @@
       
         </div>
 
-        <!-- ================= MAIN TAB 2: 학기별 이수학점 점검 (전입생·전학년 신규 시스템) ================= -->
+        
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <span class="text-xs text-slate-500">교과군 변경 시 학생 검증 결과에 실시간 자동 반영됩니다.</span>
+        <button type="button" onclick="window.closeStep3MappingModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-sm">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+<!-- ================= MAIN TAB 2: 학기별 이수학점 점검 (전입생·전학년 신규 시스템) ================= -->
         <div id="step3MainTabViewCreditAudit" class="hidden space-y-6">
           
           <!-- Banner Header -->
@@ -2347,6 +2332,16 @@
           </div>
 
           <!-- Inline Category Add / Edit Form -->
+          
+          <!-- Category Selector Tabs / Pills (상단으로 이동 배치) -->
+          <div id="scmCategoryTabsContainer" class="flex flex-wrap gap-1.5 shrink-0 max-h-24 overflow-y-auto custom-scrollbar p-1.5 bg-white rounded-xl border border-slate-200">
+          </div>
+
+          <!-- Active Category Detail & Rule Banner -->
+          <div id="scmActiveCategoryBanner" class="p-2.5 rounded-xl border border-slate-200 bg-white shrink-0 space-y-1">
+          </div>
+
+          <!-- Inline Category Add / Edit Form (선택 시 교과군 내용 상세 수정) -->
           <div id="scmCategoryFormWrapper" class="hidden bg-white rounded-2xl p-4 border border-indigo-300 shadow-sm space-y-3 shrink-0">
             <div class="flex items-center justify-between border-b border-slate-100 pb-2">
               <h5 id="scmFormTitle" class="text-xs font-bold text-slate-800">새 교과군 등록</h5>
@@ -2388,6 +2383,10 @@
               <label class="block text-[11px] font-black text-indigo-950">선택 개수 제한 조건 설정</label>
               <div class="grid grid-cols-2 gap-1.5 text-xs">
                 <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
+                  <input type="radio" name="scmFormRuleType" value="none" onchange="window.updateScmFormRuleInputs()">
+                  <span>조건 없음 (자율)</span>
+                </label>
+                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
                   <input type="radio" name="scmFormRuleType" value="min" checked onchange="window.updateScmFormRuleInputs()">
                   <span>최소 N개 이상</span>
                 </label>
@@ -2420,12 +2419,7 @@
           </div>
 
           <!-- Category Selector Tabs / Pills -->
-          <div id="scmCategoryTabsContainer" class="flex flex-wrap gap-1.5 shrink-0 max-h-24 overflow-y-auto custom-scrollbar p-1.5 bg-white rounded-xl border border-slate-200">
-          </div>
-
-          <!-- Active Category Detail & Rule Banner -->
-          <div id="scmActiveCategoryBanner" class="p-2.5 rounded-xl border border-slate-200 bg-white shrink-0 space-y-1">
-          </div>
+  
 
           <!-- Left List Header -->
           <div class="flex items-center justify-between pt-1 shrink-0">
@@ -15598,7 +15592,8 @@ function createSangjiCourseSelectionForm() {
       const gStr = cat.targetGrade === '전체' ? '2·3학년 전체' : cat.targetGrade;
       const semStr = cat.targetSemester === '1' ? '1학기' : (cat.targetSemester === '2' ? '2학기' : '연간');
       let ruleStr = '';
-      if (cat.ruleType === 'min') ruleStr = `최소 ${cat.minCount || 0}과목 이상`;
+      if (cat.ruleType === 'none') ruleStr = '조건 없음 (자율 선택)';
+      else if (cat.ruleType === 'min') ruleStr = `최소 ${cat.minCount || 0}과목 이상`;
       else if (cat.ruleType === 'max') ruleStr = `최대 ${cat.maxCount || 0}과목 이하`;
       else if (cat.ruleType === 'range') ruleStr = `${cat.minCount || 0}~${cat.maxCount || 0}과목`;
       else if (cat.ruleType === 'exact') ruleStr = `정확히 ${cat.exactCount || 0}과목`;
@@ -16035,7 +16030,8 @@ function createSangjiCourseSelectionForm() {
       const sData = getStep3Data();
       const categories = sData.categories || [];
       const { grade2Students, grade3Students } = getStep3StudentsData();
-      const allStudents = [...grade2Students, ...grade3Students];
+      // [이수과목 검증 대상]: 3학년 학생 전용 (2학년 제외)
+      const allStudents = [...grade3Students];
 
       const priorDataG2 = getPriorDataForGrade('2학년');
       const priorDataG3 = getPriorDataForGrade('3학년');
@@ -16180,7 +16176,10 @@ function createSangjiCourseSelectionForm() {
           let isViolated = false;
           let reason = '';
 
-          if (cat.ruleType === 'min') {
+          if (cat.ruleType === 'none') {
+            isViolated = false;
+            reason = '';
+          } else if (cat.ruleType === 'min') {
             const minReq = parseInt(cat.minCount || 0, 10);
             if (count < minReq) {
               isViolated = true;
@@ -16320,7 +16319,7 @@ function createSangjiCourseSelectionForm() {
       if (showAlert) {
         if (categories.length === 0 && allStudents.length > 0) {
           alert(`✅ 교과군 선택 조건 검증 완료!
-- 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명${addedCount > 0 ? ` / 웹 추가학생 ${addedCount}명 포함` : ''})
+- 검증 대상: 총 ${allStudents.length}명 (3학년 전용 ${allStudents.length}명${addedCount > 0 ? ` / 웹 추가학생 ${addedCount}명 포함` : ''})
 - 점검 필요 (위반·중복·미신청): ${needGuidanceCount}명
 - 조건 충족 (정상): ${passedCount}명
 ※ 안내: 등록된 교과군이 아직 없습니다. [1. 교과군 및 조건 등록/관리]에서 교과군 조건을 추가하시면 세부 위반 여부까지 정밀하게 검증됩니다.`);
@@ -16328,7 +16327,7 @@ function createSangjiCourseSelectionForm() {
           alert('⚠️ 검증할 2학년 및 3학년 학생 데이터가 없습니다. 학생 수강신청 엑셀 파일을 먼저 업로드해주세요.');
         } else {
           alert(`✅ 교과군 선택 조건 검증 완료!
-- 검증 대상: 총 ${allStudents.length}명 (2학년 ${grade2Students.length}명, 3학년 ${grade3Students.length}명${addedCount > 0 ? ` / 웹 추가학생 ${addedCount}명 포함` : ''})
+- 검증 대상: 총 ${allStudents.length}명 (3학년 전용 ${allStudents.length}명${addedCount > 0 ? ` / 웹 추가학생 ${addedCount}명 포함` : ''})
 - 점검 필요 학생: ${needGuidanceCount}명 (교과군 위반·미신청 ${violatedCount}명, 과목 중복 ${duplicateCount}명)
 - 조건 충족 (정상): ${passedCount}명${unmappedSubjSet.size > 0 ? `
 - 교과군 미지정 과목: ${unmappedSubjSet.size}건` : ''}`);
@@ -16351,6 +16350,24 @@ function createSangjiCourseSelectionForm() {
     };
     window._scmFormCurColor = 'blue';
     window._scmHighlightedSubject = null;
+
+    
+    // Step 3 Subject Mapping Modal Controller
+    window.openStep3MappingModal = function() {
+      const modal = document.getElementById('step3MappingModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        const badge = document.getElementById('step3ModalMappingYearBadge');
+        if (badge) badge.textContent = MultiState.activeAcademicYear || '2027학년도';
+        if (typeof renderStep3MappingTable === 'function') {
+          renderStep3MappingTable();
+        }
+      }
+    };
+    window.closeStep3MappingModal = function() {
+      const modal = document.getElementById('step3MappingModal');
+      if (modal) modal.classList.add('hidden');
+    };
 
     function openSubjectCategoryManagerModal(preferredSubject = null, preferredGrade = null) {
       const modal = document.getElementById('subjectCategoryManagerModal');
@@ -16502,9 +16519,7 @@ function createSangjiCourseSelectionForm() {
                   ${activeCat.name}
                   <span class="text-xs text-slate-400 hover:text-indigo-600">✏️</span>
                 </span>
-                <button type="button" onclick="window.quickRenameScmCategory('${activeCat.id}')" class="px-2 py-0.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 rounded border border-slate-200 transition cursor-pointer flex items-center gap-1" title="교과군 명칭 즉시 변경">
-                  <span>✏️ 명칭 변경</span>
-                </button>
+                
                 <span class="text-[11px] px-2 py-0.5 rounded-full font-bold ${col.badge}">현재 편집 중</span>
               </div>
               <div class="flex items-center gap-1">
@@ -16888,7 +16903,9 @@ function createSangjiCourseSelectionForm() {
       const container = document.getElementById('scmFormRuleInputsContainer');
       if (!container) return;
 
-      if (rType === 'min') {
+      if (rType === 'none') {
+        container.innerHTML = `<span class="text-xs font-bold text-slate-500 italic py-1">선택 개수 제한 조건 없음 (학생 자율 선택)</span>`;
+      } else if (rType === 'min') {
         container.innerHTML = `
           <span class="text-xs font-medium text-slate-700">최소</span>
           <input type="number" id="scmInputMinCount" value="${window._scmFormCurRuleValues.minCount ?? 1}" min="1" max="20" oninput="window.updateScmFormPreview()" class="w-16 text-xs border border-indigo-300 rounded px-2 py-0.5 font-bold text-center">
@@ -19003,7 +19020,9 @@ function createSangjiCourseSelectionForm() {
       const container = document.getElementById('step3ModalRuleCountContainer');
       if (!container) return;
 
-      if (rType === 'min') {
+      if (rType === 'none') {
+        container.innerHTML = `<span class="text-xs font-bold text-slate-500 italic py-1">선택 개수 제한 조건 없음 (학생 자율 선택)</span>`;
+      } else if (rType === 'min') {
         container.innerHTML = `
           <span class="text-xs font-bold text-slate-700">최소</span>
           <input type="number" id="step3InputMinCount" value="${window._step3ModalCurRuleValues.minCount ?? 1}" min="1" max="20" oninput="window.updateStep3ModalSummaryPreview()" class="w-20 text-xs border border-indigo-300 rounded-lg px-2.5 py-1 font-black text-center focus:ring-2 focus:ring-indigo-400">
