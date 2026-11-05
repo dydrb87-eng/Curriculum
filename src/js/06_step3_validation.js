@@ -15,7 +15,7 @@
     let _step3ActiveSubTab = 'results'; // 'results' | 'categories' | 'mappings'
     let _step3ResultFilters = {
       status: 'all', // 초기값: 전체 학생 (위반·중복 학생이 최상단에 우선 정렬됨)
-      grade: 'all',
+      grade: '3학년', // 3단계는 3학년 전용 검증이므로 3학년 기본값
       classNum: 'all',
       categoryId: 'all',
       search: ''
@@ -783,7 +783,11 @@
             },
             ruleDesc: `[${st.grade} 필수] 학기별 선택과목 신청 완료`,
             count: 0,
+            chosenCount: 0,
+            priorCount: 0,
             subjects: [],
+            priorSubjects: [],
+            allSubjects: [],
             isViolated: true,
             reason: `${missingSems.join('·')} 선택과목 미입력 (0과목)`
           };
@@ -2071,9 +2075,14 @@
       if (cntP) cntP.textContent = `(${val.passedCount})`;
       if (cntAdd) cntAdd.textContent = `(${addedCount})`;
 
+      // 3단계는 3학년 전용 검증이므로 grade 필터가 2학년 등 타 학년으로 오염되어 있으면 3학년으로 즉시 자동 보정
+      if (_step3ResultFilters.grade && _step3ResultFilters.grade !== 'all' && _step3ResultFilters.grade !== '3학년') {
+        _step3ResultFilters.grade = '3학년';
+      }
+
       const filterGradeEl = document.getElementById('step3FilterGrade');
       if (filterGradeEl && filterGradeEl.value !== _step3ResultFilters.grade) {
-        filterGradeEl.value = _step3ResultFilters.grade || 'all';
+        filterGradeEl.value = _step3ResultFilters.grade || '3학년';
       }
 
       // 반 필터 드롭다운을 현재 결과 데이터 기반으로 동적 구성
@@ -2137,7 +2146,7 @@
           if (_step3ResultFilters.status === 'added' && (!stRes.student || !stRes.student.isNewlyAdded)) return false;
         }
 
-        if (_step3ResultFilters.grade !== 'all' && stRes.grade !== _step3ResultFilters.grade) return false;
+        if (_step3ResultFilters.grade !== 'all' && _step3ResultFilters.grade !== '3학년' && stRes.grade !== _step3ResultFilters.grade) return false;
         if (_step3ResultFilters.classNum !== 'all') {
           const stC = String(stRes.classNum || '').replace(/[^0-9]/g, '');
           const fC = String(_step3ResultFilters.classNum || '').replace(/[^0-9]/g, '');

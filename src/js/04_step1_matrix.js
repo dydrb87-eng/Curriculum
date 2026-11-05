@@ -35,10 +35,13 @@
         if (step2View) step2View.classList.add('hidden');
         if (step3View) step3View.classList.remove('hidden');
 
-        // 3단계 진입 시 필터 초기화
+        // 3단계 진입 시 필터 초기화 (3단계는 3학년 전용 검증이므로 3학년으로 고정)
         if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
-          _step3ResultFilters.grade = (MultiState.activeGrade === '2학년' || MultiState.activeGrade === '3학년') ? MultiState.activeGrade : 'all';
+          _step3ResultFilters.grade = '3학년';
           _step3ResultFilters.status = 'all';
+          _step3ResultFilters.classNum = 'all';
+          _step3ResultFilters.categoryId = 'all';
+          _step3ResultFilters.search = '';
         }
         if (typeof runStep3Validation === 'function') {
           runStep3Validation(false);
@@ -784,10 +787,10 @@
       AppState.students.push(newStudent);
       sortStudentsByClassAndNum();
 
-      // Step 3 검증 필터를 전체 학생 및 추가된 학생 학년으로 맞춤
+      // Step 3 검증 필터를 전체 학생 및 3학년(검증 대상)으로 맞춤
       if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
         _step3ResultFilters.status = 'all';
-        _step3ResultFilters.grade = curGrade;
+        _step3ResultFilters.grade = '3학년';
         _step3ResultFilters.classNum = 'all';
         _step3ResultFilters.search = '';
       }
@@ -868,10 +871,10 @@
 
       sortStudentsByClassAndNum();
 
-      // Step 3 검증 필터를 전체 학생 및 추가된 학생 학년으로 맞춤
+      // Step 3 검증 필터를 전체 학생 및 3학년(검증 대상)으로 맞춤
       if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
         _step3ResultFilters.status = 'all';
-        _step3ResultFilters.grade = curGrade;
+        _step3ResultFilters.grade = '3학년';
         _step3ResultFilters.classNum = 'all';
         _step3ResultFilters.search = '';
       }

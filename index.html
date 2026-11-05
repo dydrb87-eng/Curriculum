@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.06_06:21)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.06_08:11)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.06_06:21)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.06_08:11)</span></p>
         </div>
       </div>
 
@@ -6369,10 +6369,13 @@
         if (step2View) step2View.classList.add('hidden');
         if (step3View) step3View.classList.remove('hidden');
 
-        // 3단계 진입 시 필터 초기화
+        // 3단계 진입 시 필터 초기화 (3단계는 3학년 전용 검증이므로 3학년으로 고정)
         if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
-          _step3ResultFilters.grade = (MultiState.activeGrade === '2학년' || MultiState.activeGrade === '3학년') ? MultiState.activeGrade : 'all';
+          _step3ResultFilters.grade = '3학년';
           _step3ResultFilters.status = 'all';
+          _step3ResultFilters.classNum = 'all';
+          _step3ResultFilters.categoryId = 'all';
+          _step3ResultFilters.search = '';
         }
         if (typeof runStep3Validation === 'function') {
           runStep3Validation(false);
@@ -7118,10 +7121,10 @@
       AppState.students.push(newStudent);
       sortStudentsByClassAndNum();
 
-      // Step 3 검증 필터를 전체 학생 및 추가된 학생 학년으로 맞춤
+      // Step 3 검증 필터를 전체 학생 및 3학년(검증 대상)으로 맞춤
       if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
         _step3ResultFilters.status = 'all';
-        _step3ResultFilters.grade = curGrade;
+        _step3ResultFilters.grade = '3학년';
         _step3ResultFilters.classNum = 'all';
         _step3ResultFilters.search = '';
       }
@@ -7202,10 +7205,10 @@
 
       sortStudentsByClassAndNum();
 
-      // Step 3 검증 필터를 전체 학생 및 추가된 학생 학년으로 맞춤
+      // Step 3 검증 필터를 전체 학생 및 3학년(검증 대상)으로 맞춤
       if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
         _step3ResultFilters.status = 'all';
-        _step3ResultFilters.grade = curGrade;
+        _step3ResultFilters.grade = '3학년';
         _step3ResultFilters.classNum = 'all';
         _step3ResultFilters.search = '';
       }
@@ -15486,7 +15489,7 @@ function createSangjiCourseSelectionForm() {
     let _step3ActiveSubTab = 'results'; // 'results' | 'categories' | 'mappings'
     let _step3ResultFilters = {
       status: 'all', // 초기값: 전체 학생 (위반·중복 학생이 최상단에 우선 정렬됨)
-      grade: 'all',
+      grade: '3학년', // 3단계는 3학년 전용 검증이므로 3학년 기본값
       classNum: 'all',
       categoryId: 'all',
       search: ''
@@ -16254,7 +16257,11 @@ function createSangjiCourseSelectionForm() {
             },
             ruleDesc: `[${st.grade} 필수] 학기별 선택과목 신청 완료`,
             count: 0,
+            chosenCount: 0,
+            priorCount: 0,
             subjects: [],
+            priorSubjects: [],
+            allSubjects: [],
             isViolated: true,
             reason: `${missingSems.join('·')} 선택과목 미입력 (0과목)`
           };
@@ -17542,9 +17549,14 @@ function createSangjiCourseSelectionForm() {
       if (cntP) cntP.textContent = `(${val.passedCount})`;
       if (cntAdd) cntAdd.textContent = `(${addedCount})`;
 
+      // 3단계는 3학년 전용 검증이므로 grade 필터가 2학년 등 타 학년으로 오염되어 있으면 3학년으로 즉시 자동 보정
+      if (_step3ResultFilters.grade && _step3ResultFilters.grade !== 'all' && _step3ResultFilters.grade !== '3학년') {
+        _step3ResultFilters.grade = '3학년';
+      }
+
       const filterGradeEl = document.getElementById('step3FilterGrade');
       if (filterGradeEl && filterGradeEl.value !== _step3ResultFilters.grade) {
-        filterGradeEl.value = _step3ResultFilters.grade || 'all';
+        filterGradeEl.value = _step3ResultFilters.grade || '3학년';
       }
 
       // 반 필터 드롭다운을 현재 결과 데이터 기반으로 동적 구성
@@ -17608,7 +17620,7 @@ function createSangjiCourseSelectionForm() {
           if (_step3ResultFilters.status === 'added' && (!stRes.student || !stRes.student.isNewlyAdded)) return false;
         }
 
-        if (_step3ResultFilters.grade !== 'all' && stRes.grade !== _step3ResultFilters.grade) return false;
+        if (_step3ResultFilters.grade !== 'all' && _step3ResultFilters.grade !== '3학년' && stRes.grade !== _step3ResultFilters.grade) return false;
         if (_step3ResultFilters.classNum !== 'all') {
           const stC = String(stRes.classNum || '').replace(/[^0-9]/g, '');
           const fC = String(_step3ResultFilters.classNum || '').replace(/[^0-9]/g, '');
