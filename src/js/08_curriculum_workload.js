@@ -4808,7 +4808,3 @@
 
     loadAllState();
     syncGitHubLastCommitDate();
-  </script>
-
-</body>
-</html>

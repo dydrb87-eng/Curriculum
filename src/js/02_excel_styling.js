@@ -278,4 +278,4 @@
     const crossCheckDetailsContainer = document.getElementById('crossCheckDetailsContainer');
     const crossCheckToggleText = document.getElementById('crossCheckToggleText');
 
-    // ==========================================
+    // ==========================================
