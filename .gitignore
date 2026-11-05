@@ -8,3 +8,6 @@ Thumbs.db
 .DS_Store
 *.log
 scratch/
+
+backup/
+
