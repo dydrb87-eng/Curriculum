@@ -1239,6 +1239,12 @@
       window._scmActiveCategoryId = catId;
       window._scmHighlightedSubject = null;
       renderScmModal();
+
+      // 수정 폼(scmCategoryFormWrapper)이 열려 있는 상태라면 선택한 교과군 정보로 즉시 내용 자동 갱신
+      const wrapper = document.getElementById('scmCategoryFormWrapper');
+      if (wrapper && !wrapper.classList.contains('hidden')) {
+        openScmCategoryEditForm(catId);
+      }
     }
     window.selectScmActiveCategory = selectScmActiveCategory;
 
