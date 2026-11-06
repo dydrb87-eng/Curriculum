@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_06:36)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_08:35)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_06:36)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_08:35)</span></p>
         </div>
       </div>
 
@@ -1327,14 +1327,21 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <span>그룹핑 배치표</span>
                   </button>
-                  <button id="btnOpenNoticeModal" type="button" onclick="window.openNoticeModal()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="과목별 배치인원 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
-                    <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    <span>안내 사항 ✏️</span>
-                  </button>
-                  <button id="btnExportSubjectPlacementSummary" type="button" onclick="window.exportSubjectPlacementSummaryExcel()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 배포 및 출력용 1·2학기 과목별 배치 및 수강 인원 안내표를 엑셀 파일(.xlsx)로 다운로드합니다">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>과목별 배치인원</span>
-                  </button>
+                  <!-- 과목별 배치인원 & 안내사항 세트 묶음 테두리 -->
+                  <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-teal-50/70 border-2 border-teal-300 rounded-xl shadow-2xs" title="과목별 배치인원 안내표(상단 안내사항 포함) 관련 메뉴입니다">
+                    <span class="text-[10px] font-black text-teal-800 select-none flex items-center gap-0.5">
+                      <span>📄</span>
+                      <span class="hidden md:inline">과목별 안내표:</span>
+                    </span>
+                    <button id="btnOpenNoticeModal" type="button" onclick="window.openNoticeModal()" class="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 hover:border-rose-400 rounded-lg text-xs font-bold shadow-2xs transition-colors flex items-center space-x-1 cursor-pointer" title="과목별 배치인원 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
+                      <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                      <span>안내 사항 ✏️</span>
+                    </button>
+                    <button id="btnExportSubjectPlacementSummary" type="button" onclick="window.exportSubjectPlacementSummaryExcel()" class="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-2xs transition-colors flex items-center space-x-1 cursor-pointer" title="학생 배포 및 출력용 1·2학기 과목별 배치 및 수강 인원 안내표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                      <span>과목별 배치인원</span>
+                    </button>
+                  </div>
                   <button id="btnExportStudentTimetable" type="button" onclick="window.exportStudentTimetableExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 개개인의 1학기 및 2학기 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <span>학생별 시간표</span>
@@ -1594,14 +1601,21 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <span>그룹핑 배치표</span>
               </button>
-              <button id="btnOpenNoticeModal2" type="button" onclick="window.openNoticeModal()" class="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="과목별 배치인원 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
-                <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                <span>안내 사항 ✏️</span>
-              </button>
-              <button id="btnExportSubjectPlacementSummary2" type="button" onclick="window.exportSubjectPlacementSummaryExcel()" class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 배포 및 출력용 1·2학기 과목별 배치 및 수강 인원 안내표를 엑셀 파일(.xlsx)로 다운로드합니다">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span>과목별 배치인원</span>
-              </button>
+              <!-- 과목별 배치인원 & 안내사항 세트 묶음 테두리 -->
+              <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-teal-50/70 border-2 border-teal-300 rounded-xl shadow-2xs" title="과목별 배치인원 안내표(상단 안내사항 포함) 관련 메뉴입니다">
+                <span class="text-[10px] font-black text-teal-800 select-none flex items-center gap-0.5">
+                  <span>📄</span>
+                  <span class="hidden md:inline">과목별 안내표:</span>
+                </span>
+                <button id="btnOpenNoticeModal2" type="button" onclick="window.openNoticeModal()" class="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 hover:border-rose-400 rounded-lg text-xs font-bold shadow-2xs transition-colors flex items-center space-x-1 cursor-pointer" title="과목별 배치인원 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
+                  <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  <span>안내 사항 ✏️</span>
+                </button>
+                <button id="btnExportSubjectPlacementSummary2" type="button" onclick="window.exportSubjectPlacementSummaryExcel()" class="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-2xs transition-colors flex items-center space-x-1 cursor-pointer" title="학생 배포 및 출력용 1·2학기 과목별 배치 및 수강 인원 안내표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>과목별 배치인원</span>
+                </button>
+              </div>
               <button id="btnExportStudentTimetable2" type="button" onclick="window.exportStudentTimetableExcel()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 개개인의 1학기 및 2학기 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <span>학생별 시간표</span>
