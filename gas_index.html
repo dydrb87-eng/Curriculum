@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_05:37)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_05:39)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_05:37)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_05:39)</span></p>
         </div>
       </div>
 
@@ -13112,7 +13112,7 @@
 
       // Row 1: 서브 타이틀
       const totalStudentsCount = (AppState.students && AppState.students.length) || 0;
-      rows.push([`대상: ${gradeStr} 전체 | 총 학생 수: ${totalStudentsCount}명 | 학생 배포 및 출력용 요약 시간표 | 출력일시: ${new Date().toLocaleDateString('ko-KR')}`]);
+      rows.push([`대상: ${gradeStr} 전체 | 총 학생 수: ${totalStudentsCount}명 | 출력일시: ${new Date().toLocaleDateString('ko-KR')}`]);
       merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalColSpan - 1 } });
       rowHeights.push({ hpt: 20 });
 

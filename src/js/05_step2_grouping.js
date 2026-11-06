@@ -4215,7 +4215,7 @@
 
       // Row 1: 서브 타이틀
       const totalStudentsCount = (AppState.students && AppState.students.length) || 0;
-      rows.push([`대상: ${gradeStr} 전체 | 총 학생 수: ${totalStudentsCount}명 | 학생 배포 및 출력용 요약 시간표 | 출력일시: ${new Date().toLocaleDateString('ko-KR')}`]);
+      rows.push([`대상: ${gradeStr} 전체 | 총 학생 수: ${totalStudentsCount}명 | 출력일시: ${new Date().toLocaleDateString('ko-KR')}`]);
       merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalColSpan - 1 } });
       rowHeights.push({ hpt: 20 });
 
