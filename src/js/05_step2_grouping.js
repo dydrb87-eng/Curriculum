@@ -4322,16 +4322,6 @@
       merges.push({ s: { r: summaryR, c: 5 }, e: { r: summaryR, c: 6 } });
       rowHeights.push({ hpt: 24 });
 
-      // 빈 여백 행
-      rows.push([]);
-      rowHeights.push({ hpt: 12 });
-
-      // 하단 안내 문구 행
-      const noteR = rows.length;
-      rows.push(['※ 안내: 본 배치표는 학생 수강신청 결과에 따라 편성된 그룹별 과목 개설 현황입니다. 각 그룹 내에서 본인이 신청한 1과목을 수강하게 됩니다.']);
-      merges.push({ s: { r: noteR, c: 0 }, e: { r: noteR, c: totalColSpan - 1 } });
-      rowHeights.push({ hpt: 20 });
-
       // Sheet 생성
       const ws = XLSX.utils.aoa_to_sheet(rows);
       ws['!merges'] = merges;
@@ -4620,16 +4610,6 @@
           border: summaryBorder
         });
       });
-
-      // 하단 각주 스타일링
-      for (let c = 0; c < totalColSpan; c++) {
-        const ref = XLSX.utils.encode_cell({ r: noteR, c });
-        if (!ws[ref]) ws[ref] = { v: '' };
-        ExcelStyler.applyStyle(ws[ref], {
-          font: { name: ExcelStyler.fontFamily, sz: 9, italic: true, color: { rgb: '64748B' } },
-          alignment: { horizontal: 'left', vertical: 'center' }
-        });
-      }
 
       XLSX.utils.book_append_sheet(wb, ws, customSheetName.substring(0, 31));
     }
