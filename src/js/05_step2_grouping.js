@@ -5050,13 +5050,7 @@
         XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
 
         const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} 1·2학기 통합 시간표 및 배치표`, "xlsx");
-        const saveRes = await window.saveExcelFile(wb, outFileName);
-
-        if (saveRes && saveRes.cancelled) return;
-        let locMsg = "브라우저 기본 다운로드 폴더";
-        if (saveRes && saveRes.method === "directory") locMsg = `지정된 [${saveRes.dirName}] 폴더`;
-        else if (saveRes && saveRes.method === "picker") locMsg = "선택하신 저장 폴더";
-        alert(`📥 [${acadYearStr} ${gradeStr} 1·2학기 현재 배치 저장 완료!]\n\n저장 위치: ${locMsg}\n생성된 엑셀 시트 탭 목록:\n- ${exportedTabNames.join("\n- ")}\n\n저장 파일명: ${outFileName}`);
+        await window.saveExcelFile(wb, outFileName);
       } catch (err) {
         console.error('exportCurrentPlanExcel error:', err);
         alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
