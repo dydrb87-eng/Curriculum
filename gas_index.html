@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_05:20)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_05:35)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_05:20)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_05:35)</span></p>
         </div>
       </div>
 
@@ -13120,18 +13120,42 @@
       rows.push([]);
       rowHeights.push({ hpt: 10 });
 
-      // Row 3: 학기 대헤더 배너 (1학기 좌측 / 2학기 우측)
+      // Row 3: '안내 사항' 타이틀 (빨간 글씨)
+      rows.push(['안내 사항', '', '', '', '', '', '']);
+      rowHeights.push({ hpt: 22 });
+
+      // Row 4: 안내 사항 테이블 헤더 (학기 | 과목 | 내용 C~G열 병합)
+      rows.push(['학기', '과목', '내용', '', '', '', '']);
+      merges.push({ s: { r: 4, c: 2 }, e: { r: 4, c: 6 } });
+      rowHeights.push({ hpt: 22 });
+
+      // Row 5, 6: 안내 사항 2개 기본 입력 행 (테두리 및 C~G 병합 완료, 사용자가 엑셀에서 바로 입력 또는 행 추가 가능)
+      const noticeRowsCount = 2;
+      for (let nr = 0; nr < noticeRowsCount; nr++) {
+        const curNoticeR = 5 + nr;
+        rows.push(['', '', '', '', '', '', '']);
+        merges.push({ s: { r: curNoticeR, c: 2 }, e: { r: curNoticeR, c: 6 } });
+        rowHeights.push({ hpt: 24 });
+      }
+
+      // Row 7: 빈 여백 행
+      rows.push([]);
+      rowHeights.push({ hpt: 12 });
+
+      // Row 8: 학기 대헤더 배너 (1학기 좌측 / 2학기 우측)
+      const bannerR = rows.length; // 8
       const bannerRow = [
         '■ 1학기 선택과목 배치 및 수강 현황', '', '',
         '',
         '■ 2학기 선택과목 배치 및 수강 현황', '', ''
       ];
       rows.push(bannerRow);
-      merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: 2 } });
-      merges.push({ s: { r: 3, c: 4 }, e: { r: 3, c: 6 } });
+      merges.push({ s: { r: bannerR, c: 0 }, e: { r: bannerR, c: 2 } });
+      merges.push({ s: { r: bannerR, c: 4 }, e: { r: bannerR, c: 6 } });
       rowHeights.push({ hpt: 24 });
 
-      // Row 4: 열 헤더 행
+      // Row 9: 열 헤더 행
+      const colHeaderR = rows.length; // 9
       const colHeaderRow = [
         '그룹 (총 인원)', '선택 과목명', '수강 인원',
         '',
@@ -13140,8 +13164,8 @@
       rows.push(colHeaderRow);
       rowHeights.push({ hpt: 22 });
 
-      // Row 5부터 Row (5 + maxDataRows - 1): 데이터 행들
-      const dataStartR = 5;
+      // Row 10부터: 데이터 행들
+      const dataStartR = rows.length; // 10
       for (let i = 0; i < maxDataRows; i++) {
         const rIdx = dataStartR + i;
         const row = ['', '', '', '', '', '', ''];
@@ -13264,10 +13288,84 @@
         });
       }
 
-      // Row 3: 학기 배너
+      // Row 3: '안내 사항' 타이틀 (빨간 글씨, 굵게)
+      const noticeTitleRef = XLSX.utils.encode_cell({ r: 3, c: 0 });
+      if (!ws[noticeTitleRef]) ws[noticeTitleRef] = { v: '안내 사항' };
+      ExcelStyler.applyStyle(ws[noticeTitleRef], {
+        font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: 'DC2626' } },
+        alignment: { horizontal: 'left', vertical: 'center' }
+      });
+
+      // Row 4: 안내 사항 테이블 헤더 (학기, 과목, 내용)
+      const nh0 = XLSX.utils.encode_cell({ r: 4, c: 0 });
+      if (!ws[nh0]) ws[nh0] = { v: '학기' };
+      ExcelStyler.applyStyle(ws[nh0], {
+        font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+        fill: { fgColor: { rgb: 'F1F5F9' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: softBorder
+      });
+
+      const nh1 = XLSX.utils.encode_cell({ r: 4, c: 1 });
+      if (!ws[nh1]) ws[nh1] = { v: '과목' };
+      ExcelStyler.applyStyle(ws[nh1], {
+        font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+        fill: { fgColor: { rgb: 'F1F5F9' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: softBorder
+      });
+
+      for (let c = 2; c <= 6; c++) {
+        const nhC = XLSX.utils.encode_cell({ r: 4, c });
+        if (!ws[nhC]) ws[nhC] = { v: (c === 2 ? '내용' : '') };
+        ExcelStyler.applyStyle(ws[nhC], {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: 'F1F5F9' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+      }
+
+      // Row 5, 6: 안내 사항 2개 기본 입력 행
+      for (let nr = 0; nr < noticeRowsCount; nr++) {
+        const curR = 5 + nr;
+        // 학기 (Col 0) - 가운데 정렬
+        const nr0 = XLSX.utils.encode_cell({ r: curR, c: 0 });
+        if (!ws[nr0]) ws[nr0] = { v: '' };
+        ExcelStyler.applyStyle(ws[nr0], {
+          font: { name: ExcelStyler.fontFamily, sz: 10, color: { rgb: '0F172A' } },
+          fill: { fgColor: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+
+        // 과목 (Col 1) - 왼쪽 정렬 + 들여쓰기 1
+        const nr1 = XLSX.utils.encode_cell({ r: curR, c: 1 });
+        if (!ws[nr1]) ws[nr1] = { v: '' };
+        ExcelStyler.applyStyle(ws[nr1], {
+          font: { name: ExcelStyler.fontFamily, sz: 10, color: { rgb: '0F172A' } },
+          fill: { fgColor: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
+          border: softBorder
+        });
+
+        // 내용 (Col 2~6) - 왼쪽 정렬 + 들여쓰기 1
+        for (let c = 2; c <= 6; c++) {
+          const nrC = XLSX.utils.encode_cell({ r: curR, c });
+          if (!ws[nrC]) ws[nrC] = { v: '' };
+          ExcelStyler.applyStyle(ws[nrC], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, color: { rgb: '0F172A' } },
+            fill: { fgColor: { rgb: 'FFFFFF' } },
+            alignment: { horizontal: 'left', vertical: 'center', indent: 1, wrapText: true },
+            border: softBorder
+          });
+        }
+      }
+
+      // Row 8: 학기 배너 (bannerR)
       // 1학기 배너 (Col 0, 1, 2)
       for (let c = 0; c <= 2; c++) {
-        const ref = XLSX.utils.encode_cell({ r: 3, c });
+        const ref = XLSX.utils.encode_cell({ r: bannerR, c });
         if (!ws[ref]) ws[ref] = { v: '' };
         ExcelStyler.applyStyle(ws[ref], {
           font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: '3730A3' } },
@@ -13278,7 +13376,7 @@
       }
       // 2학기 배너 (Col 4, 5, 6)
       for (let c = 4; c <= 6; c++) {
-        const ref = XLSX.utils.encode_cell({ r: 3, c });
+        const ref = XLSX.utils.encode_cell({ r: bannerR, c });
         if (!ws[ref]) ws[ref] = { v: '' };
         ExcelStyler.applyStyle(ws[ref], {
           font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: '065F46' } },
@@ -13288,9 +13386,9 @@
         });
       }
 
-      // Row 4: 열 헤더
+      // Row 9: 열 헤더 (colHeaderR)
       [0, 1, 2, 4, 5, 6].forEach(c => {
-        const ref = XLSX.utils.encode_cell({ r: 4, c });
+        const ref = XLSX.utils.encode_cell({ r: colHeaderR, c });
         if (!ws[ref]) ws[ref] = { v: '' };
         ExcelStyler.applyStyle(ws[ref], {
           font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
