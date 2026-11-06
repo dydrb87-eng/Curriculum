@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.06_08:11)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_04:53)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.06_08:11)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_04:53)</span></p>
         </div>
       </div>
 
@@ -3930,64 +3930,172 @@
       }
     });
 
-    // Global Application State
-    const AppState = {
-      detectedGrade: '2학년',
-      fileName: '',
-      students: [], // Array of { id, classNum, studentNum, name, career, sem1: [], sem2: [] }
-      sem1Subjects: [], // Unique subjects
-      sem2Subjects: [],
-      currentSemester: 1, // 1 or 2
-      step1Threshold: 3, // Threshold for medium gray shading
-      
-      // Step 2 Grouping Configurations
-      sem1GroupCount: 5,
-      sem2GroupCount: 7,
-      splitSubjects: { 1: {}, 2: {} }, // { '물리학Ⅰ': 2 }
-      pinnedSubjects: { 1: {}, 2: {} }, // { '국어독서': 1 }
-      lockedGroups: { 1: {}, 2: {} }, // { 0: true } - 그룹 잠금 (해당 그룹 내 과목 고정 및 다른 과목 유입 차단)
-      togetherPairs: { 1: [], 2: [] }, // Array of [subj1, subj2] pairs (동일 그룹 배치)
-      separatePairs: { 1: [], 2: [] }, // Array of [subj1, subj2] pairs (다른 그룹 분리)
-      closedSubjects: { 1: [], 2: [] }, // Array of confirmed closed subject names (폐강 확정)
-      subjectMemos: { 1: {}, 2: {} }, // { 1: { '일본어': '소인수 선택 유지 요청' } }
-      studentPins: [], // Array of { studentId, subject, group } (kept for compatibility)
-      
-      // Current Grouping Results
-      currentPlan: {
-        semester: 1,
-        groups: [], // Array of Array of subject strings
-        conflicts: [], // Array of conflict details
-        timestamp: null
-      },
-      currentPlans: {
-        1: null,
-        2: null
-      },
-      crossSemesterRules: [], // Array of { id, sem1Subject, sem1Type, sem2Subject, sem2Type }
-      step2Memos: { 1: '', 2: '' }, // { 1: '1학기 메모', 2: '2학기 메모' } (기준 날짜·학년·학기별 독립 메모)
+    // Helper: 빈 학년 상태 객체 생성
+    function createEmptyGradeState(grade = '2학년') {
+      const is3rd = (grade === '3학년');
+      return {
+        detectedGrade: grade,
+        fileName: '',
+        students: [],
+        sem1Subjects: [],
+        sem2Subjects: [],
+        currentSemester: 1,
+        step1Threshold: 3,
+        sem1GroupCount: is3rd ? 5 : 3,
+        sem2GroupCount: is3rd ? 7 : 4,
+        splitSubjects: { 1: {}, 2: {} },
+        pinnedSubjects: { 1: {}, 2: {} },
+        lockedGroups: { 1: {}, 2: {} },
+        togetherPairs: { 1: [], 2: [] },
+        separatePairs: { 1: [], 2: [] },
+        closedSubjects: { 1: [], 2: [] },
+        _closedImportedFromPrev: false,
+        subjectMemos: { 1: {}, 2: {} },
+        studentPins: [],
+        currentPlan: {
+          semester: 1,
+          groups: [],
+          conflicts: [],
+          timestamp: null
+        },
+        currentPlans: {
+          1: null,
+          2: null
+        },
+        crossSemesterRules: [],
+        step2Memos: { 1: '', 2: '' },
+        priorData: null,
+        crossCheckResult: {
+          missingStudents: [],
+          duplicateEnrollments: []
+        },
+        savedPlans: [],
+        targetConflictN: {
+          1: null,
+          2: null
+        },
+        simulationHistory: {
+          1: { runCount: 0, minConflictEver: null, minConflictPlan: null },
+          2: { runCount: 0, minConflictEver: null, minConflictPlan: null }
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+    window.createEmptyGradeState = createEmptyGradeState;
 
-      // Prior Enrollment Data (학생 명부 및 기이수 과목)
-      priorData: null,
-      crossCheckResult: {
-        missingStudents: [],
-        duplicateEnrollments: []
-      },
-
-      // Saved candidate proposals
-      savedPlans: [], // Array of saved plan objects
-
-      // Target Conflict N (null: optimal / number: exact N) & Historical Best Tracker
-      targetConflictN: {
-        1: null,
-        2: null
-      },
-      simulationHistory: {
-        1: { runCount: 0, minConflictEver: null, minConflictPlan: null },
-        2: { runCount: 0, minConflictEver: null, minConflictPlan: null }
+    function getActiveAcademicYearName() {
+      if (typeof MultiState !== "undefined" && MultiState && MultiState.activeAcademicYear) {
+        return MultiState.activeAcademicYear.trim();
       }
-    };
+      const y = (typeof MultiState !== "undefined" && MultiState && MultiState.activeYear) 
+        ? String(MultiState.activeYear).replace(/[^0-9]/g, "").slice(0, 4) 
+        : "2027";
+      return (y || "2027") + "학년도";
+    }
+    window.getActiveAcademicYearName = getActiveAcademicYearName;
 
-    // ==========================================
+    function getFormattedTimestamp() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      const hh = String(now.getHours()).padStart(2, "0");
+      const min = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      return `${yyyy}${mm}${dd}_${hh}${min}${ss}`;
+    }
+    window.getFormattedTimestamp = getFormattedTimestamp;
+
+    function buildExportFileName(title, ext = "xlsx") {
+      const acadYear = getActiveAcademicYearName();
+      const ts = getFormattedTimestamp();
+      const cleanExt = ext.replace(/^\./, "");
+      let cleanTitle = String(title || "").trim();
+      if (acadYear && cleanTitle.startsWith(acadYear)) {
+        cleanTitle = cleanTitle.slice(acadYear.length).replace(/^[\s_]+/, "");
+      }
+      return `${acadYear} ${cleanTitle}_${ts}.${cleanExt}`;
+    }
+    window.buildExportFileName = buildExportFileName;
+
+    // MultiState: 상위 기준 학년도 / 하위 기준 날짜 / 학년 / 전체 관리 최상위 상태
+    const MultiState = {
+      academicYearsList: ['2027학년도'], // 상위: 기준 학년도 목록
+      activeAcademicYear: '2027학년도', // 현재 활성 기준 학년도
+      datesByAcademicYear: {
+        '2027학년도': ['2027.10.11.']
+      },
+      curriculumByAcademicYear: {
+        '2027학년도': [] // '전체 시수 종합' 기초 데이터 (해당 학년도 하위 모든 날짜 탭에서 100% 공유)
+      },
+      subjectGroupsByAcademicYear: {}, // 교과군 설정 및 과목별 교과군 배정 데이터 (학년도별 영구 보존)
+      customTeacherOrder: [], // 교사별 요약표 출력 순서 (모든 탭에서 영구 전역 공유)
+      activeYear: '2027.10.11.', // 하위: 현재 활성 기준 날짜
+      activeGrade: '2학년', // 기본 2학년 ('2학년' | '3학년' | '전체')
+      activeStep: 1, // 1: 1단계(수강신청 매트릭스), 2: 2단계(과목 그룹핑 & 분반)
+      yearsList: ['2027.10.11.'], // 현재 학년도의 기준 날짜 목록
+      data: {
+        '2027학년도': {
+          '2027.10.11.': {
+            '2학년': null,
+            '3학년': null,
+            '전체': null
+          }
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    window.MultiState = MultiState;
+
+    // 학년도별 데이터 격리 접근 헬퍼 (하위 탭 이름이 동일해도 학년도 간 충돌 0% 보장)
+    function getAcadData(acadYear = null) {
+      const ay = acadYear || MultiState.activeAcademicYear || '2027학년도';
+      if (!MultiState.data || typeof MultiState.data !== 'object') MultiState.data = {};
+      if (!MultiState.data[ay] || typeof MultiState.data[ay] !== 'object') MultiState.data[ay] = {};
+      return MultiState.data[ay];
+    }
+    window.getAcadData = getAcadData;
+
+    // 이전 버전(단일 flat 구조)의 데이터를 학년도별 격리 구조로 자동 마이그레이션 (하위 호환성 100%)
+    function migrateDataStructure(dataObj, fallbackAY = '2027학년도') {
+      if (!dataObj || typeof dataObj !== 'object') return {};
+      const keys = Object.keys(dataObj);
+      if (keys.length === 0) return {};
+      
+      const hasAcademicYearKeys = keys.some(k => k.includes('학년도'));
+      if (!hasAcademicYearKeys) {
+        const migrated = {};
+        migrated[fallbackAY] = JSON.parse(JSON.stringify(dataObj));
+        return migrated;
+      }
+      return JSON.parse(JSON.stringify(dataObj));
+    }
+    window.migrateDataStructure = migrateDataStructure;
+
+    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V6';
+    const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
+
+    // Cloud Sync Manager (보안 원칙: 웹상/원격에 데이터를 자동 보관하지 않음)
+    class CourseCloudSync {
+      constructor() {
+        this.firebaseApp = null;
+        this.firestoreDb = null;
+        this.isSyncing = false;
+        this.status = 'local';
+      }
+      async init() { this.status = 'local'; }
+      updateUiBadge() {}
+      async save() {}
+      subscribeRemote() {}
+    }
+
+    const cloudSync = new CourseCloudSync();
+    window.cloudSync = cloudSync;
+
+    // Global Application State (단일 학년 컨텍스트)
+    const AppState = createEmptyGradeState('2학년');
+    window.AppState = AppState;
+
 
     // EXCEL STYLING ENGINE (xlsx-js-style helper)
     // ==========================================
@@ -4039,6 +4147,11 @@
           ws[ref] = { t: 's', v: '' };
         }
         ws[ref].s = style;
+      },
+
+      applyStyle(cell, style) {
+        if (!cell) return;
+        cell.s = style;
       },
 
       setRange(ws, startR, startC, endR, endC, style) {
@@ -8567,7 +8680,7 @@
       wb.Workbook.Names = wb.Workbook.Names || [];
       wb.Workbook.Names.push({
         Name: '_xlnm.Print_Area',
-        Ref: `'과목별_개설_폐강현황'!$A$1:$F${rows.length}`,
+        Ref: `'과목별_개설_폐강현황'!$A$1:$F$${rows.length}`,
         Sheet: 0
       });
 
@@ -12893,6 +13006,362 @@
       XLSX.utils.book_append_sheet(wb, wsPlan, placementSheetName);
     }
 
+    // Helper to build 1·2학기 과목배치 및 수강 인원 안내 시트 (학생 안내 및 출력용 통합 요약표)
+    function buildSummaryTimetableSheet(wb, plan1, plan2, customSheetName = '1·2학기_과목배치_및_인원안내') {
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      const pastelGroupThemes = [
+        { headerBg: 'DBEAFE', headerText: '1E40AF', subBg: 'EFF6FF', subText: '1E40AF', border: '93C5FD' }, // 파스텔 블루
+        { headerBg: 'CCFBF1', headerText: '0F766E', subBg: 'F0FDFA', subText: '0F766E', border: '5EEAD4' }, // 파스텔 민트
+        { headerBg: 'EDE9FE', headerText: '5B21B6', subBg: 'F5F3FF', subText: '5B21B6', border: 'C4B5FD' }, // 파스텔 라벤더
+        { headerBg: 'FFEDD5', headerText: '9A3412', subBg: 'FFF7ED', subText: '9A3412', border: 'FDBA74' }, // 파스텔 피치
+        { headerBg: 'FEF3C7', headerText: '92400E', subBg: 'FFFBEB', subText: '92400E', border: 'FCD34D' }, // 파스텔 앰버
+        { headerBg: 'FFE4E6', headerText: '9F1239', subBg: 'FFF1F2', subText: '9F1239', border: 'FDA4AF' }, // 파스텔 로즈
+        { headerBg: 'E0E7FF', headerText: '3730A3', subBg: 'EEF2FF', subText: '3730A3', border: 'A5B4FC' }, // 파스텔 인디고
+        { headerBg: 'D1FAE5', headerText: '065F46', subBg: 'ECFDF5', subText: '065F46', border: '6EE7B7' }  // 파스텔 에메랄드
+      ];
+
+      const softBorder = {
+        top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
+
+      // 1학기 / 2학기 데이터 준비
+      const plans = [
+        { sem: 1, label: '1학기', plan: plan1 },
+        { sem: 2, label: '2학기', plan: plan2 }
+      ];
+
+      // 각 학기별 과목 인원 및 충돌 분석
+      const semData = plans.map(({ sem, label, plan }) => {
+        if (!plan || !plan.groups || plan.groups.length === 0) {
+          return { sem, label, plan: null, groups: [], subjCounts: {}, groupTotals: [], colCount: 0 };
+        }
+        const { studentGroupOverlaps } = analyzeGroupConflicts(plan);
+        const subjCounts = {};
+        plan.groups.forEach(gSubjs => {
+          gSubjs.forEach(s => { subjCounts[s] = 0; });
+        });
+
+        if (AppState.students && Array.isArray(AppState.students)) {
+          AppState.students.forEach(st => {
+            const overlaps = studentGroupOverlaps[st.id] || {};
+            plan.groups.forEach((gSubjs, gIdx) => {
+              const inGrp = overlaps[gIdx] || [];
+              inGrp.forEach(s => {
+                if (subjCounts[s] !== undefined) subjCounts[s]++;
+              });
+            });
+          });
+        }
+
+        const groupTotals = plan.groups.map(gSubjs => {
+          return gSubjs.reduce((sum, s) => sum + (subjCounts[s] || 0), 0);
+        });
+
+        const totalCols = plan.groups.reduce((acc, g) => acc + Math.max(g.length, 1), 0);
+        return { sem, label, plan, groups: plan.groups, subjCounts, groupTotals, colCount: totalCols };
+      });
+
+      const maxCols = Math.max(semData[0].colCount, semData[1].colCount, 1);
+      const totalColSpan = maxCols + 1; // Col 0 is 구분
+
+      const rows = [];
+      const merges = [];
+      const rowHeights = [];
+
+      // Row 0: Title
+      rows.push([`${acadYearStr} ${gradeStr} 선택과목 배치 및 수강 인원 안내`]);
+      merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: totalColSpan - 1 } });
+      rowHeights.push({ hpt: 32 });
+
+      // Row 1: Subtitle
+      const totalStudentsCount = (AppState.students && AppState.students.length) || 0;
+      rows.push([`대상: ${gradeStr} 전체 | 총 학생 수: ${totalStudentsCount}명 | 학생 안내용 요약 시간표 | 출력일시: ${new Date().toLocaleDateString('ko-KR')}`]);
+      merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalColSpan - 1 } });
+      rowHeights.push({ hpt: 20 });
+
+      // Row 2: Empty Spacer
+      rows.push([]);
+      rowHeights.push({ hpt: 12 });
+
+      // Helper to render one semester block
+      function appendSemesterBlock(sInfo) {
+        if (!sInfo.plan) {
+          const rIdx = rows.length;
+          rows.push([`[ ${sInfo.label} ] 편성된 배치안이 없습니다.`]);
+          merges.push({ s: { r: rIdx, c: 0 }, e: { r: rIdx, c: totalColSpan - 1 } });
+          rowHeights.push({ hpt: 24 });
+          return;
+        }
+
+        const startR = rows.length;
+
+        // 1. Semester Banner Row
+        const semBannerRow = [`■ ${sInfo.label} 과목 배치 및 수강 현황`];
+        for (let i = 1; i < totalColSpan; i++) semBannerRow.push('');
+        rows.push(semBannerRow);
+        merges.push({ s: { r: startR, c: 0 }, e: { r: startR, c: totalColSpan - 1 } });
+        rowHeights.push({ hpt: 24 });
+
+        // 2. Group Header Row & Subject Name Row
+        const groupRow = ['구분'];
+        const subjRow = ['']; // will merge with groupRow for col 0
+
+        // Merging 구분 cell (startR + 1 ~ startR + 2, Col 0)
+        merges.push({ s: { r: startR + 1, c: 0 }, e: { r: startR + 2, c: 0 } });
+
+        // 3. Subject Count Row & Group Total Row
+        const countRow = ['과목 수강 인원'];
+        const totalRow = ['그룹 총 인원'];
+
+        let curC = 1;
+        sInfo.groups.forEach((gSubjs, gIdx) => {
+          const gStartC = curC;
+          const gSpan = Math.max(gSubjs.length, 1);
+          const gEndC = curC + gSpan - 1;
+
+          // Group Header
+          groupRow.push(`${gIdx + 1}그룹`);
+          for (let k = 1; k < gSpan; k++) groupRow.push('');
+          if (gSpan > 1) {
+            merges.push({ s: { r: startR + 1, c: gStartC }, e: { r: startR + 1, c: gEndC } });
+          }
+
+          // Subject Names & Counts
+          if (gSubjs.length === 0) {
+            subjRow.push('(과목 없음)');
+            countRow.push('0명');
+            curC++;
+          } else {
+            gSubjs.forEach(sName => {
+              subjRow.push(sName);
+              const c = sInfo.subjCounts[sName] || 0;
+              countRow.push(`${c}명`);
+              curC++;
+            });
+          }
+
+          // Group Total Row
+          const gTot = sInfo.groupTotals[gIdx] || 0;
+          totalRow.push(`총 ${gTot}명`);
+          for (let k = 1; k < gSpan; k++) totalRow.push('');
+          if (gSpan > 1) {
+            merges.push({ s: { r: startR + 4, c: gStartC }, e: { r: startR + 4, c: gEndC } });
+          }
+        });
+
+        // Fill remaining columns if other semester has more columns
+        while (curC < totalColSpan) {
+          groupRow.push('');
+          subjRow.push('');
+          countRow.push('');
+          totalRow.push('');
+          curC++;
+        }
+
+        rows.push(groupRow);
+        rowHeights.push({ hpt: 22 });
+
+        rows.push(subjRow);
+        rowHeights.push({ hpt: 24 });
+
+        rows.push(countRow);
+        rowHeights.push({ hpt: 22 });
+
+        rows.push(totalRow);
+        rowHeights.push({ hpt: 22 });
+      }
+
+      // Render 1학기
+      appendSemesterBlock(semData[0]);
+
+      // Spacer between semesters
+      rows.push([]);
+      rowHeights.push({ hpt: 16 });
+
+      // Render 2학기
+      appendSemesterBlock(semData[1]);
+
+      // Bottom Note Row
+      rows.push([]);
+      rowHeights.push({ hpt: 12 });
+
+      const noteR = rows.length;
+      rows.push(['※ 본 안내표는 수강신청 결과에 따른 학기별 그룹 배치 현황입니다. 각 그룹에서 학생 본인이 신청한 과목을 1과목씩 수강하게 됩니다.']);
+      merges.push({ s: { r: noteR, c: 0 }, e: { r: noteR, c: totalColSpan - 1 } });
+      rowHeights.push({ hpt: 20 });
+
+      // Build Sheet
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!merges'] = merges;
+      ws['!rows'] = rowHeights;
+
+      // Col Widths
+      const colWidths = [{ wch: 16 }]; // 구분 컬럼
+      for (let c = 1; c < totalColSpan; c++) {
+        colWidths.push({ wch: 14 });
+      }
+      ws['!cols'] = colWidths;
+
+      // Print Setup: Fit-to-page A4 Landscape (학생 배포 및 출력 최적화)
+      ws['!pageSetup'] = {
+        paperSize: 9, // A4
+        orientation: 'landscape',
+        fitToWidth: 1,
+        fitToHeight: 1,
+        fitToPage: true
+      };
+      ws['!sheetPr'] = { pageSetUpPr: { fitToPage: true } };
+      ws['!printOptions'] = {
+        horizontalCentered: true,
+        verticalCentered: false
+      };
+      ws['!margins'] = {
+        left: 0.4,
+        right: 0.4,
+        top: 0.5,
+        bottom: 0.5,
+        header: 0.2,
+        footer: 0.2
+      };
+
+      // Styling Cells
+      // Row 0: Title Style
+      for (let c = 0; c < totalColSpan; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 0, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 16, bold: true, color: { rgb: '1E293B' } },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        });
+      }
+
+      // Row 1: Subtitle Style
+      for (let c = 0; c < totalColSpan; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 1, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 9, color: { rgb: '64748B' } },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        });
+      }
+
+      // Apply styling to Semester Blocks
+      let sem1StartR = 3;
+      let sem2StartR = semData[0].plan ? sem1StartR + 5 + 1 : sem1StartR + 1 + 1;
+
+      const styleSemBlock = (startR, sInfo, bannerColor, bannerText) => {
+        if (!sInfo.plan) return;
+
+        // Banner Row (startR)
+        for (let c = 0; c < totalColSpan; c++) {
+          const ref = XLSX.utils.encode_cell({ r: startR, c });
+          if (!ws[ref]) ws[ref] = { v: '' };
+          ExcelStyler.applyStyle(ws[ref], {
+            font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: bannerText } },
+            fill: { fgColor: { rgb: bannerColor } },
+            alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
+            border: softBorder
+          });
+        }
+
+        // 구분 cell (startR + 1 & startR + 2, c = 0)
+        [startR + 1, startR + 2].forEach(r => {
+          const ref = XLSX.utils.encode_cell({ r, c: 0 });
+          if (!ws[ref]) ws[ref] = { v: '' };
+          ExcelStyler.applyStyle(ws[ref], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+            fill: { fgColor: { rgb: 'F1F5F9' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+        });
+
+        // Group Headers & Subjects & Counts & Totals
+        let curC = 1;
+        sInfo.groups.forEach((gSubjs, gIdx) => {
+          const theme = pastelGroupThemes[gIdx % pastelGroupThemes.length];
+          const gSpan = Math.max(gSubjs.length, 1);
+
+          for (let k = 0; k < gSpan; k++) {
+            const col = curC + k;
+
+            // Group Header (startR + 1)
+            const gRef = XLSX.utils.encode_cell({ r: startR + 1, c: col });
+            if (!ws[gRef]) ws[gRef] = { v: '' };
+            ExcelStyler.applyStyle(ws[gRef], {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme.headerText } },
+              fill: { fgColor: { rgb: theme.headerBg } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: softBorder
+            });
+
+            // Subject Name (startR + 2)
+            const sRef = XLSX.utils.encode_cell({ r: startR + 2, c: col });
+            if (!ws[sRef]) ws[sRef] = { v: '' };
+            ExcelStyler.applyStyle(ws[sRef], {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
+              fill: { fgColor: { rgb: theme.subBg } },
+              alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+              border: softBorder
+            });
+
+            // Count Row (startR + 3)
+            const cRef = XLSX.utils.encode_cell({ r: startR + 3, c: col });
+            if (!ws[cRef]) ws[cRef] = { v: '' };
+            ExcelStyler.applyStyle(ws[cRef], {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme.headerText } },
+              fill: { fgColor: { rgb: 'FFFFFF' } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: softBorder
+            });
+
+            // Group Total Row (startR + 4)
+            const tRef = XLSX.utils.encode_cell({ r: startR + 4, c: col });
+            if (!ws[tRef]) ws[tRef] = { v: '' };
+            ExcelStyler.applyStyle(ws[tRef], {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
+              fill: { fgColor: { rgb: theme.subBg } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: softBorder
+            });
+          }
+          curC += gSpan;
+        });
+
+        // Row label styles for startR + 3 & startR + 4 (Col 0)
+        [startR + 3, startR + 4].forEach(r => {
+          const ref = XLSX.utils.encode_cell({ r, c: 0 });
+          if (!ws[ref]) ws[ref] = { v: '' };
+          ExcelStyler.applyStyle(ws[ref], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+            fill: { fgColor: { rgb: 'F8FAFC' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+        });
+      };
+
+      styleSemBlock(sem1StartR, semData[0], 'E0E7FF', '3730A3'); // 1학기: 인디고 테마 배너
+      styleSemBlock(sem2StartR, semData[1], 'D1FAE5', '065F46'); // 2학기: 에메랄드 테마 배너
+
+      // Note Style
+      for (let c = 0; c < totalColSpan; c++) {
+        const ref = XLSX.utils.encode_cell({ r: noteR, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 9, italic: true, color: { rgb: '64748B' } },
+          alignment: { horizontal: 'left', vertical: 'center' }
+        });
+      }
+
+      XLSX.utils.book_append_sheet(wb, ws, customSheetName.substring(0, 31));
+    }
+
     // Helper to build Combined 1st & 2nd Semester Placement Sheet (한 페이지에 1,2학기 배치표 동시 확인)
     function buildCombinedPlacementSheet(wb, plan1, plan2, customSheetName = '1,2학기_배치표') {
       const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
@@ -13289,6 +13758,12 @@
       try {
         const wb = XLSX.utils.book_new();
         const exportedTabNames = [];
+
+        // 0. Sheet 0: 1·2학기_과목배치_및_인원안내 (학생 배포 및 출력용 통합 요약 안내표)
+        if (hasPlan1 || hasPlan2) {
+          buildSummaryTimetableSheet(wb, plan1, plan2, '1·2학기_과목배치_및_인원안내');
+          exportedTabNames.push('1·2학기_과목배치_및_인원안내');
+        }
 
         // 1. Sheet 1: 1학기_배치안_학생시간표
         if (hasPlan1) {
@@ -14710,7 +15185,7 @@ function createSangjiCourseSelectionForm() {
 
     function highlightText(text, q) {
       if (!q || !text) return text || '';
-      const regex = new RegExp('(' + q.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\<!-- INJECT_SCRIPTS -->') + ')', 'gi');
+      const regex = new RegExp('(' + q.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + ')', 'gi');
       return text.replace(regex, '<span class="highlight">$1</span>');
     }
 
@@ -14925,161 +15400,7 @@ function createSangjiCourseSelectionForm() {
     // MULTI-YEAR, MULTI-GRADE & CLOUD DATABASE PERSISTENCE ENGINE
     // =========================================================================
 
-    function createEmptyGradeState(grade = '2학년') {
-      const is3rd = (grade === '3학년');
-      return {
-        detectedGrade: grade,
-        fileName: '',
-        students: [],
-        sem1Subjects: [],
-        sem2Subjects: [],
-        currentSemester: 1,
-        step1Threshold: 3,
-        sem1GroupCount: is3rd ? 5 : 3,
-        sem2GroupCount: is3rd ? 7 : 4,
-        splitSubjects: { 1: {}, 2: {} },
-        pinnedSubjects: { 1: {}, 2: {} },
-        lockedGroups: { 1: {}, 2: {} },
-        togetherPairs: { 1: [], 2: [] },
-        separatePairs: { 1: [], 2: [] },
-        closedSubjects: { 1: [], 2: [] },
-        _closedImportedFromPrev: false,
-        subjectMemos: { 1: {}, 2: {} },
-        studentPins: [],
-        currentPlan: {
-          semester: 1,
-          groups: [],
-          conflicts: [],
-          timestamp: null
-        },
-        currentPlans: {
-          1: null,
-          2: null
-        },
-        crossSemesterRules: [],
-        step2Memos: { 1: '', 2: '' },
-        priorData: null,
-        crossCheckResult: {
-          missingStudents: [],
-          duplicateEnrollments: []
-        },
-        savedPlans: [],
-        targetConflictN: {
-          1: null,
-          2: null
-        },
-        simulationHistory: {
-          1: { runCount: 0, minConflictEver: null, minConflictPlan: null },
-          2: { runCount: 0, minConflictEver: null, minConflictPlan: null }
-        },
-        lastUpdated: new Date().toISOString()
-      };
-    }
-
-    function getActiveAcademicYearName() {
-      if (typeof MultiState !== "undefined" && MultiState && MultiState.activeAcademicYear) {
-        return MultiState.activeAcademicYear.trim();
-      }
-      const y = (typeof MultiState !== "undefined" && MultiState && MultiState.activeYear) 
-        ? String(MultiState.activeYear).replace(/[^0-9]/g, "").slice(0, 4) 
-        : "2027";
-      return (y || "2027") + "학년도";
-    }
-    window.getActiveAcademicYearName = getActiveAcademicYearName;
-
-    function getFormattedTimestamp() {
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, "0");
-      const dd = String(now.getDate()).padStart(2, "0");
-      const hh = String(now.getHours()).padStart(2, "0");
-      const min = String(now.getMinutes()).padStart(2, "0");
-      const ss = String(now.getSeconds()).padStart(2, "0");
-      return `${yyyy}${mm}${dd}_${hh}${min}${ss}`;
-    }
-    window.getFormattedTimestamp = getFormattedTimestamp;
-
-    function buildExportFileName(title, ext = "xlsx") {
-      const acadYear = getActiveAcademicYearName();
-      const ts = getFormattedTimestamp();
-      const cleanExt = ext.replace(/^\./, "");
-      let cleanTitle = String(title || "").trim();
-      if (acadYear && cleanTitle.startsWith(acadYear)) {
-        cleanTitle = cleanTitle.slice(acadYear.length).replace(/^[\s_]+/, "");
-      }
-      return `${acadYear} ${cleanTitle}_${ts}.${cleanExt}`;
-    }
-    window.buildExportFileName = buildExportFileName;
-
-    const MultiState = {
-      academicYearsList: ['2027학년도'], // 상위: 기준 학년도 목록
-      activeAcademicYear: '2027학년도', // 현재 활성 기준 학년도
-      datesByAcademicYear: {
-        '2027학년도': ['2027.10.11.']
-      },
-      curriculumByAcademicYear: {
-        '2027학년도': [] // '전체 시수 종합' 기초 데이터 (해당 학년도 하위 모든 날짜 탭에서 100% 공유)
-      },
-      subjectGroupsByAcademicYear: {}, // 교과군 설정 및 과목별 교과군 배정 데이터 (학년도별 영구 보존)
-      customTeacherOrder: [], // 교사별 요약표 출력 순서 (모든 탭에서 영구 전역 공유)
-      activeYear: '2027.10.11.', // 하위: 현재 활성 기준 날짜
-      activeGrade: '2학년', // 기본 2학년 ('2학년' | '3학년' | '전체')
-      activeStep: 1, // 1: 1단계(수강신청 매트릭스), 2: 2단계(과목 그룹핑 & 분반)
-      yearsList: ['2027.10.11.'], // 현재 학년도의 기준 날짜 목록
-      data: {
-        '2027학년도': {
-          '2027.10.11.': {
-            '2학년': null,
-            '3학년': null,
-            '전체': null
-          }
-        }
-      },
-      lastUpdated: new Date().toISOString()
-    };
-
-    // 학년도별 데이터 격리 접근 헬퍼 (하위 탭 이름이 동일해도 학년도 간 충돌 0% 보장)
-    function getAcadData(acadYear = null) {
-      const ay = acadYear || MultiState.activeAcademicYear || '2027학년도';
-      if (!MultiState.data || typeof MultiState.data !== 'object') MultiState.data = {};
-      if (!MultiState.data[ay] || typeof MultiState.data[ay] !== 'object') MultiState.data[ay] = {};
-      return MultiState.data[ay];
-    }
-    window.getAcadData = getAcadData;
-
-    // 이전 버전(단일 flat 구조)의 데이터를 학년도별 격리 구조로 자동 마이그레이션 (하위 호환성 100%)
-    function migrateDataStructure(dataObj, fallbackAY = '2027학년도') {
-      if (!dataObj || typeof dataObj !== 'object') return {};
-      const keys = Object.keys(dataObj);
-      if (keys.length === 0) return {};
-      
-      const hasAcademicYearKeys = keys.some(k => k.includes('학년도'));
-      if (!hasAcademicYearKeys) {
-        const migrated = {};
-        migrated[fallbackAY] = JSON.parse(JSON.stringify(dataObj));
-        return migrated;
-      }
-      return JSON.parse(JSON.stringify(dataObj));
-    }
-
-    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V6';
-    const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
-
-    // Cloud Sync Manager (보안 원칙: 웹상/원격에 데이터를 자동 보관하지 않음)
-    class CourseCloudSync {
-      constructor() {
-        this.firebaseApp = null;
-        this.firestoreDb = null;
-        this.isSyncing = false;
-        this.status = 'local';
-      }
-      async init() { this.status = 'local'; }
-      updateUiBadge() {}
-      async save() {}
-      subscribeRemote() {}
-    }
-
-    const cloudSync = new CourseCloudSync();
+    // (Core State definitions moved to 01_core_state.js for safe hoist and global initialization)
 
     function syncCurrentToMulti() {
       const acadData = getAcadData();
@@ -20818,6 +21139,7 @@ function createSangjiCourseSelectionForm() {
     };
 
 function renderYearGradeNav() {
+  try {
       const yearContainer = document.getElementById('academicYearTabs');
       const gradeContainer = document.getElementById('academicGradeTabs');
       const semesterContainer = document.getElementById('academicSemesterTabs');
@@ -20827,358 +21149,425 @@ function renderYearGradeNav() {
       const stepNavWrapper = document.getElementById('academicStepNavWrapper');
       const currentWorkText = document.getElementById('currentWorkText');
 
+      // State Fallback & Auto-Recovery
+      if (typeof MultiState === 'undefined' || !MultiState) {
+        console.warn('[Auto-Recovery] MultiState is undefined in renderYearGradeNav, restoring fallback.');
+        window.MultiState = {
+          academicYearsList: ['2027학년도'],
+          activeAcademicYear: '2027학년도',
+          datesByAcademicYear: { '2027학년도': ['2027.10.11.'] },
+          curriculumByAcademicYear: { '2027학년도': [] },
+          yearsList: ['2027.10.11.'],
+          activeYear: '2027.10.11.',
+          activeGrade: '2학년',
+          activeStep: 1,
+          data: {}
+        };
+      }
+      if (!Array.isArray(MultiState.academicYearsList) || MultiState.academicYearsList.length === 0) {
+        MultiState.academicYearsList = ['2027학년도'];
+      }
+      if (!MultiState.activeAcademicYear) {
+        MultiState.activeAcademicYear = MultiState.academicYearsList[0];
+      }
+      if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
+      if (!Array.isArray(MultiState.datesByAcademicYear[MultiState.activeAcademicYear]) || MultiState.datesByAcademicYear[MultiState.activeAcademicYear].length === 0) {
+        MultiState.datesByAcademicYear[MultiState.activeAcademicYear] = ['2027.10.11.'];
+      }
+      if (!Array.isArray(MultiState.yearsList) || MultiState.yearsList.length === 0) {
+        MultiState.yearsList = [...MultiState.datesByAcademicYear[MultiState.activeAcademicYear]];
+      }
+      if (!MultiState.activeYear) {
+        MultiState.activeYear = MultiState.yearsList[0];
+      }
+      if (!MultiState.activeGrade) {
+        MultiState.activeGrade = '2학년';
+      }
+
       const isAllGrades = MultiState.activeGrade === '전체';
       const curStep = MultiState.activeStep || 1;
       const isStep3Mode = !isAllGrades && curStep === 3;
       const isLockedMode = isAllGrades || isStep3Mode;
-      const curSem = AppState.currentSemester || 1;
+      const curSem = (typeof AppState !== 'undefined' && AppState && AppState.currentSemester) || 1;
 
       if (currentWorkText) {
-        if (isAllGrades) {
-          currentWorkText.textContent = `${MultiState.activeYear} 전체 (전학년 교육과정 및 교사 시수)`;
-        } else if (isStep3Mode) {
-          currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · 3단계: 이수과목 검증`;
-        } else {
-          currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
+        try {
+          if (isAllGrades) {
+            currentWorkText.textContent = `${MultiState.activeYear} 전체 (전학년 교육과정 및 교사 시수)`;
+          } else if (isStep3Mode) {
+            currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · 3단계: 이수과목 검증`;
+          } else {
+            currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
+          }
+        } catch (e) {
+          console.warn('Error updating currentWorkText:', e);
         }
       }
 
       // 0. Render Academic Year Group Tabs (상위 기준 학년도)
-      const acadGroupContainer = document.getElementById('academicYearGroupTabs');
-      if (acadGroupContainer) {
-        if (!MultiState.academicYearsList) MultiState.academicYearsList = ['2027학년도'];
-        if (!MultiState.activeAcademicYear) MultiState.activeAcademicYear = MultiState.academicYearsList[0];
-
-        acadGroupContainer.innerHTML = MultiState.academicYearsList.map(ay => {
-          const isAct = (ay === MultiState.activeAcademicYear);
-          return `
-            <div class="inline-flex items-center rounded-lg transition-all h-[26px] ${
-              isAct 
-                ? 'bg-indigo-600 text-white shadow-xs font-bold ring-2 ring-indigo-400/40' 
-                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
-            }">
-              <button type="button" 
-                      onclick="window.switchAcademicYearGroup('${ay}')"
-                      class="px-2.5 py-0.5 text-xs flex items-center gap-1 focus:outline-hidden cursor-pointer"
-                      title="${ay} 교육과정으로 전환">
-                <span>${ay}</span>
-              </button>
-              <button type="button" 
-                      onclick="window.handleEditAcademicYearGroup('${ay}', event)"
-                      class="px-1 py-0.5 text-[10px] opacity-70 hover:opacity-100 ${isAct ? 'hover:text-amber-200' : 'hover:text-indigo-600'} transition cursor-pointer"
-                      title="${ay} 이름 수정">
-                ✏️
-              </button>
-              ${MultiState.academicYearsList.length > 1 ? `
+      try {
+        const acadGroupContainer = document.getElementById('academicYearGroupTabs');
+        if (acadGroupContainer) {
+          acadGroupContainer.innerHTML = MultiState.academicYearsList.map(ay => {
+            const isAct = (ay === MultiState.activeAcademicYear);
+            return `
+              <div class="inline-flex items-center rounded-lg transition-all h-[26px] ${
+                isAct 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold ring-2 ring-indigo-400/40' 
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
+              }">
                 <button type="button" 
-                        onclick="window.handleDeleteAcademicYearGroup('${ay}', event)"
-                        class="pr-1.5 pl-0.5 py-0.5 text-[10px] opacity-60 hover:opacity-100 ${isAct ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
-                        title="${ay} 삭제">
-                  ✕
+                        onclick="window.switchAcademicYearGroup('${ay}')"
+                        class="px-2.5 py-0.5 text-xs flex items-center gap-1 focus:outline-hidden cursor-pointer"
+                        title="${ay} 교육과정으로 전환">
+                  <span>${ay}</span>
                 </button>
-              ` : ''}
-            </div>
-          `;
-        }).join('');
+                <button type="button" 
+                        onclick="window.handleEditAcademicYearGroup('${ay}', event)"
+                        class="px-1 py-0.5 text-[10px] opacity-70 hover:opacity-100 ${isAct ? 'hover:text-amber-200' : 'hover:text-indigo-600'} transition cursor-pointer"
+                        title="${ay} 이름 수정">
+                  ✏️
+                </button>
+                ${MultiState.academicYearsList.length > 1 ? `
+                  <button type="button" 
+                          onclick="window.handleDeleteAcademicYearGroup('${ay}', event)"
+                          class="pr-1.5 pl-0.5 py-0.5 text-[10px] opacity-60 hover:opacity-100 ${isAct ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
+                          title="${ay} 삭제">
+                    ✕
+                  </button>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err0) {
+        console.error('Error rendering academicYearGroupTabs:', err0);
       }
 
       // 1. Render Reference Date Tabs (하위 기준 날짜)
-      if (yearContainer) {
-        yearContainer.innerHTML = MultiState.yearsList.map(y => {
-          const isActive = y === MultiState.activeYear;
-          const acadData = getAcadData();
-          const yData = acadData[y] || {};
-          let totalStudents = 0;
-          ['2학년', '3학년'].forEach(g => {
-            if (yData[g] && yData[g].students) {
-              totalStudents += yData[g].students.length;
-            }
-          });
+      try {
+        if (yearContainer) {
+          yearContainer.innerHTML = MultiState.yearsList.map(y => {
+            const isActive = y === MultiState.activeYear;
+            const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+            const yData = acadData[y] || {};
+            let totalStudents = 0;
+            ['2학년', '3학년'].forEach(g => {
+              if (yData[g] && yData[g].students) {
+                totalStudents += yData[g].students.length;
+              }
+            });
 
-          return `
-            <div class="inline-flex items-center rounded-lg transition-all select-none h-[26px] ${
-              isActive 
-                ? 'bg-blue-600 text-white shadow-xs font-bold ring-2 ring-blue-400/40' 
-                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
-            }"
-            draggable="true"
-            data-year="${escapeHtml(y)}"
-            style="cursor: grab;"
-            title="드래그하여 탭 순서를 변경할 수 있습니다">
-              <span class="pl-2 pr-0.5 text-xs select-none opacity-40 hover:opacity-100 cursor-grab" title="드래그하여 순서 변경">⋮⋮</span>
-              <button type="button" 
-                      draggable="false"
-                      onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
-                      class="px-2 py-0.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
-                      title="${y} 작업으로 전환">
-                <span>${y}</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isActive ? 'bg-white text-blue-700 shadow-2xs' : 'bg-slate-100 text-slate-500'
-                }">
-                  ${totalStudents}명
-                </span>
-              </button>
-              
-              <button type="button" 
-                      draggable="false"
-                      onclick="window.handleEditAcademicYear('${y}', event)"
-                      class="px-1 py-1 text-[11px] opacity-70 hover:opacity-100 ${isActive ? 'hover:text-amber-200' : 'hover:text-blue-600'} transition cursor-pointer"
-                      title="${y} 이름 수정">
-                ✏️
-              </button>
-
-              ${MultiState.yearsList.length > 1 ? `
+            return `
+              <div class="inline-flex items-center rounded-lg transition-all select-none h-[26px] ${
+                isActive 
+                  ? 'bg-blue-600 text-white shadow-xs font-bold ring-2 ring-blue-400/40' 
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
+              }"
+              draggable="true"
+              data-year="${(typeof escapeHtml === 'function') ? escapeHtml(y) : y}"
+              style="cursor: grab;"
+              title="드래그하여 탭 순서를 변경할 수 있습니다">
+                <span class="pl-2 pr-0.5 text-xs select-none opacity-40 hover:opacity-100 cursor-grab" title="드래그하여 순서 변경">⋮⋮</span>
                 <button type="button" 
                         draggable="false"
-                        onclick="window.handleDeleteAcademicYear('${y}', event)"
-                        class="pr-2 pl-0.5 py-1 text-xs opacity-60 hover:opacity-100 ${isActive ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
-                        title="${y} 및 해당 데이터 삭제">
-                  ✕
+                        onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
+                        class="px-2 py-0.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
+                        title="${y} 작업으로 전환">
+                  <span>${y}</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive ? 'bg-white text-blue-700 shadow-2xs' : 'bg-slate-100 text-slate-500'
+                  }">
+                    ${totalStudents}명
+                  </span>
                 </button>
-              ` : ''}
-            </div>
-          `;
-        }).join('');
+                
+                <button type="button" 
+                        draggable="false"
+                        onclick="window.handleEditAcademicYear('${y}', event)"
+                        class="px-1 py-1 text-[11px] opacity-70 hover:opacity-100 ${isActive ? 'hover:text-amber-200' : 'hover:text-blue-600'} transition cursor-pointer"
+                        title="${y} 이름 수정">
+                  ✏️
+                </button>
+
+                ${MultiState.yearsList.length > 1 ? `
+                  <button type="button" 
+                          draggable="false"
+                          onclick="window.handleDeleteAcademicYear('${y}', event)"
+                          class="pr-2 pl-0.5 py-1 text-xs opacity-60 hover:opacity-100 ${isActive ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
+                          title="${y} 및 해당 데이터 삭제">
+                    ✕
+                  </button>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err1) {
+        console.error('Error rendering academicYearTabs:', err1);
       }
 
       // 2. Render Grade Tabs (2학년 / 3학년 2행) - 항상 클릭 가능하며, 클릭 시 1·2학기 및 1·2단계가 다시 활성화됨
-      if (gradeNavWrapper) {
-        gradeNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-        gradeNavWrapper.title = '';
-      }
+      try {
+        if (gradeNavWrapper) {
+          gradeNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+          gradeNavWrapper.title = '';
+        }
 
-      if (gradeContainer) {
-        const acadData = getAcadData();
-        const yData = acadData[MultiState.activeYear] || {};
+        if (gradeContainer) {
+          const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+          const yData = acadData[MultiState.activeYear] || {};
 
-        gradeContainer.innerHTML = ['2학년', '3학년'].map(g => {
-          // 이수과목 검증(isStep3Mode) 또는 전체 시수종합(isAllGrades) 진입 시 2·3학년 활성 색상을 끄고, 클릭 시 1·2학기 및 1·2단계를 다시 활성화
-          const isActive = !isAllGrades && !isStep3Mode && (g === MultiState.activeGrade);
-          const gData = yData[g] || {};
-          const count = (gData.students && Array.isArray(gData.students)) ? gData.students.length : 0;
-          const hasPrior = (gData.priorData && gData.priorData.students && gData.priorData.students.length > 0);
-          const priorCount = hasPrior ? gData.priorData.students.length : 0;
+          gradeContainer.innerHTML = ['2학년', '3학년'].map(g => {
+            const isActive = !isAllGrades && !isStep3Mode && (g === MultiState.activeGrade);
+            const gData = yData[g] || {};
+            const count = (gData.students && Array.isArray(gData.students)) ? gData.students.length : 0;
+            const hasPrior = (gData.priorData && gData.priorData.students && gData.priorData.students.length > 0);
+            const priorCount = hasPrior ? gData.priorData.students.length : 0;
 
-          let modCount = 0;
-          if (gData.students && Array.isArray(gData.students) && typeof isStudentChoicesModified === 'function') {
-            modCount = gData.students.filter(st => isStudentChoicesModified(st, 1) || isStudentChoicesModified(st, 2)).length;
-          }
+            let modCount = 0;
+            if (gData.students && Array.isArray(gData.students) && typeof isStudentChoicesModified === 'function') {
+              modCount = gData.students.filter(st => isStudentChoicesModified(st, 1) || isStudentChoicesModified(st, 2)).length;
+            }
 
-          const countBadgeText = hasPrior ? `${count}명/${priorCount}명` : `${count}명`;
+            const countBadgeText = hasPrior ? `${count}명/${priorCount}명` : `${count}명`;
 
-          return `
-            <button type="button" 
-                    onclick="window.selectGradeTabFromNav('${MultiState.activeYear}', '${g}')"
-                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
-                      isActive 
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
-                    }"
-                    title="${isLockedMode ? `클릭 시 ${g} 1·2단계 및 1·2학기 메뉴가 활성화됩니다` : `${MultiState.activeYear}학년도 ${g}`}">
-              <span class="whitespace-nowrap">${g}</span>
-              <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold whitespace-nowrap ${
-                isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
-              }">
-                ${countBadgeText}
-              </span>
-              ${hasPrior ? `
-                <span class="text-[10px] px-1 py-0.2 rounded font-bold whitespace-nowrap ${
-                  isActive ? 'bg-emerald-400 text-slate-900 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
-                }" title="사전 등록학생 명부 ${priorCount}명 등록 완료">
-                  ✓
+            return `
+              <button type="button" 
+                      onclick="window.selectGradeTabFromNav('${MultiState.activeYear}', '${g}')"
+                      class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                        isActive 
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                      }"
+                      title="${isLockedMode ? `클릭 시 ${g} 1·2단계 및 1·2학기 메뉴가 활성화됩니다` : `${MultiState.activeYear}학년도 ${g}`}">
+                <span class="whitespace-nowrap">${g}</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold whitespace-nowrap ${
+                  isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
+                }">
+                  ${countBadgeText}
                 </span>
-              ` : ''}
-            </button>
-          `;
-        }).join('');
+                ${hasPrior ? `
+                  <span class="text-[10px] px-1 py-0.2 rounded font-bold whitespace-nowrap ${
+                    isActive ? 'bg-emerald-400 text-slate-900 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
+                  }" title="사전 등록학생 명부 ${priorCount}명 등록 완료">
+                    ✓
+                  </span>
+                ` : ''}
+              </button>
+            `;
+          }).join('');
+        }
+      } catch (err2) {
+        console.error('Error rendering academicGradeTabs:', err2);
       }
 
       // 3. Render Semester Tabs (1학기 / 2학기 2행) - 잠금 상태 완벽 적용!
-      if (semesterNavWrapper) {
-        if (isLockedMode) {
-          semesterNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-          semesterNavWrapper.title = isStep3Mode 
-            ? '이수과목 검증 모드에서는 학기 및 1·2단계가 비활성화(잠금)됩니다.' 
-            : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
-        } else {
-          semesterNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-          semesterNavWrapper.title = '';
-        }
-      }
-
-      if (semesterContainer) {
-        semesterContainer.innerHTML = [1, 2].map(sem => {
-          const isActive = !isLockedMode && curSem === sem;
-          
-          let semModCount = 0;
-          if (!isLockedMode && AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function') {
-            semModCount = AppState.students.filter(st => isStudentChoicesModified(st, sem)).length;
+      try {
+        if (semesterNavWrapper) {
+          if (isLockedMode) {
+            semesterNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+            semesterNavWrapper.title = isStep3Mode 
+              ? '이수과목 검증 모드에서는 학기 및 1·2단계가 비활성화(잠금)됩니다.' 
+              : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
+          } else {
+            semesterNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+            semesterNavWrapper.title = '';
           }
+        }
 
-          return `
-            <button type="button" 
-                    onclick="window.switchSemester(${sem})"
-                    ${isLockedMode ? 'disabled' : ''}
-                    class="px-3 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
-                      isActive
-                        ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-xs ring-2 ring-sky-400'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
-                    }"
-                    title="${sem}학기 선택 및 작업 전환">
-              <span class="whitespace-nowrap">${sem}학기</span>
-              ${semModCount > 0 ? `
-                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-                  isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
-                }" title="${sem}학기 수정 ${semModCount}건">
-                  수정 ${semModCount}
-                </span>
-              ` : ''}
-            </button>
-          `;
-        }).join('');
+        if (semesterContainer) {
+          semesterContainer.innerHTML = [1, 2].map(sem => {
+            const isActive = !isLockedMode && curSem === sem;
+            
+            let semModCount = 0;
+            if (!isLockedMode && typeof AppState !== 'undefined' && AppState && AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function') {
+              semModCount = AppState.students.filter(st => isStudentChoicesModified(st, sem)).length;
+            }
+
+            return `
+              <button type="button" 
+                      onclick="window.switchSemester(${sem})"
+                      ${isLockedMode ? 'disabled' : ''}
+                      class="px-3 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
+                        isActive
+                          ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-xs ring-2 ring-sky-400'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                      }"
+                      title="${sem}학기 선택 및 작업 전환">
+                <span class="whitespace-nowrap">${sem}학기</span>
+                ${semModCount > 0 ? `
+                  <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                    isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                  }" title="${sem}학기 수정 ${semModCount}건">
+                    수정 ${semModCount}
+                  </span>
+                ` : ''}
+              </button>
+            `;
+          }).join('');
+        }
+      } catch (err3) {
+        console.error('Error rendering academicSemesterTabs:', err3);
       }
 
       // 4. Render Step Tabs (1단계 / 2단계 2행 - 학년별 수강신청/시간표) - 잠금 상태 완벽 적용!
-      if (stepNavWrapper) {
-        if (isLockedMode) {
-          stepNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-          stepNavWrapper.title = isStep3Mode 
-            ? '이수과목 검증 모드에서는 1·2단계가 비활성화(잠금)됩니다.' 
-            : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
-        } else {
-          stepNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-          stepNavWrapper.title = '';
+      try {
+        if (stepNavWrapper) {
+          if (isLockedMode) {
+            stepNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+            stepNavWrapper.title = isStep3Mode 
+              ? '이수과목 검증 모드에서는 1·2단계가 비활성화(잠금)됩니다.' 
+              : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
+          } else {
+            stepNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+            stepNavWrapper.title = '';
+          }
         }
-      }
 
-      if (stepContainer) {
-        stepContainer.innerHTML = [
-          { step: 1, label: '1단계', desc: '선택 매트릭스' },
-          { step: 2, label: '2단계', desc: '그룹핑 & 시간표' }
-        ].map(item => {
-          const isActive = !isLockedMode && curStep === item.step;
-          
-          let badgeHtml = '';
-          if (!isLockedMode) {
-            if (item.step === 1) {
-              const modCount = (AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function')
-                ? AppState.students.filter(st => isStudentChoicesModified(st, curSem)).length
-                : 0;
-              if (modCount > 0) {
-                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-                  isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
-                }">수정 ${modCount}</span>`;
-              }
-            } else if (item.step === 2) {
-              if (AppState.currentPlan) {
-                const conflicts = AppState.currentPlan.conflictCount || 0;
-                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-                  conflicts === 0 
-                    ? (isActive ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800')
-                    : (isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800')
-                }">${conflicts === 0 ? '충돌 0명' : `충돌 ${conflicts}명`}</span>`;
+        if (stepContainer) {
+          stepContainer.innerHTML = [
+            { step: 1, label: '1단계', desc: '선택 매트릭스' },
+            { step: 2, label: '2단계', desc: '그룹핑 & 시간표' }
+          ].map(item => {
+            const isActive = !isLockedMode && curStep === item.step;
+            
+            let badgeHtml = '';
+            if (!isLockedMode && typeof AppState !== 'undefined' && AppState) {
+              if (item.step === 1) {
+                const modCount = (AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function')
+                  ? AppState.students.filter(st => isStudentChoicesModified(st, curSem)).length
+                  : 0;
+                if (modCount > 0) {
+                  badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                    isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                  }">수정 ${modCount}</span>`;
+                }
+              } else if (item.step === 2) {
+                if (AppState.currentPlan) {
+                  const conflicts = AppState.currentPlan.conflictCount || 0;
+                  badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                    conflicts === 0 
+                      ? (isActive ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800')
+                      : (isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800')
+                  }">${conflicts === 0 ? '충돌 0명' : `충돌 ${conflicts}명`}</span>`;
+                }
               }
             }
-          }
 
-          return `
-            <button type="button" 
-                    onclick="window.switchStepView(${item.step})"
-                    ${isLockedMode ? 'disabled' : ''}
-                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
-                      isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs ring-2 ring-blue-400'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
-                    }"
-                    title="${item.label}: ${item.desc} 화면으로 전환">
-              <div class="flex items-center gap-1 whitespace-nowrap">
-                <span>${item.label}</span>
-                <span class="text-[11px] font-semibold opacity-85">(${item.desc})</span>
-              </div>
-              ${badgeHtml}
-            </button>
-          `;
-        }).join('');
+            return `
+              <button type="button" 
+                      onclick="window.switchStepView(${item.step})"
+                      ${isLockedMode ? 'disabled' : ''}
+                      class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                        isActive
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs ring-2 ring-blue-400'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                      }"
+                      title="${item.label}: ${item.desc} 화면으로 전환">
+                <div class="flex items-center gap-1 whitespace-nowrap">
+                  <span>${item.label}</span>
+                  <span class="text-[11px] font-semibold opacity-85">(${item.desc})</span>
+                </div>
+                ${badgeHtml}
+              </button>
+            `;
+          }).join('');
+        }
+      } catch (err4) {
+        console.error('Error rendering academicStepTabs:', err4);
       }
 
       // 5. Render Common Nav Area (공통 바깥 테두리: 위=3단계 교과군 선택조건 검증 / 아래=전체 시수종합)
-      const commonTabsContainer = document.getElementById('academicCommonTabs');
-      if (commonTabsContainer) {
-        const isStep3Active = !isAllGrades && (MultiState.activeStep === 3);
-        const isAllActive = isAllGrades;
+      try {
+        const commonTabsContainer = document.getElementById('academicCommonTabs');
+        if (commonTabsContainer) {
+          const isStep3Active = !isAllGrades && (MultiState.activeStep === 3);
+          const isAllActive = isAllGrades;
 
-        // 3단계 위반 요약 뱃지
-        let step3BadgeHtml = '';
-        const vSummary = (typeof getStep3ValidationSummaryQuick === 'function') ? getStep3ValidationSummaryQuick() : null;
-        if (vSummary && vSummary.total > 0) {
-          if (vSummary.violated > 0) {
-            step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-              isStep3Active ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800'
-            }">위반 ${vSummary.violated}명</span>`;
-          } else {
-            step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-              isStep3Active ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
-            }">정상</span>`;
+          // 3단계 위반 요약 뱃지
+          let step3BadgeHtml = '';
+          const vSummary = (typeof getStep3ValidationSummaryQuick === 'function') ? getStep3ValidationSummaryQuick() : null;
+          if (vSummary && vSummary.total > 0) {
+            if (vSummary.violated > 0) {
+              step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                isStep3Active ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800'
+              }">위반 ${vSummary.violated}명</span>`;
+            } else {
+              step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                isStep3Active ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
+              }">정상</span>`;
+            }
           }
-        }
 
-        // 전체 시수종합 요약 뱃지
-        const yData = getAcadData()[MultiState.activeYear] || {};
-        const allData = yData['전체'] || {};
-        const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
-        const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
+          // 전체 시수종합 요약 뱃지
+          const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+          const yData = acadData[MultiState.activeYear] || {};
+          const allData = yData['전체'] || {};
+          const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
+          const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
 
-        commonTabsContainer.innerHTML = `
-          <!-- 위: 3단계 교과군 선택조건 검증 -->
-          <button type="button" 
-                  onclick="window.toggleStep3OrStep1()"
-                  class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
-                    isStep3Active 
-                      ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400' 
-                      : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
-                  }"
-                  title="3단계: 이수과목 검증 화면으로 전환">
-            <div class="flex items-center gap-1.5 whitespace-nowrap">
-              <span>📋</span>
-              <span>이수과목 검증</span>
-            </div>
-            ${step3BadgeHtml}
-          </button>
+          commonTabsContainer.innerHTML = `
+            <!-- 위: 3단계 교과군 선택조건 검증 -->
+            <button type="button" 
+                    onclick="window.toggleStep3OrStep1()"
+                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                      isStep3Active 
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400' 
+                        : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
+                    }"
+                    title="3단계: 이수과목 검증 화면으로 전환">
+              <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span>📋</span>
+                <span>이수과목 검증</span>
+              </div>
+              ${step3BadgeHtml}
+            </button>
 
-          <!-- 아래: 전체 시수종합 -->
-          <button type="button" 
-                  onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
-                  class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
-                    isAllActive 
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
-                      : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
-                  }"
-                  title="${MultiState.activeYear} 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
-            <div class="flex items-center gap-1.5 whitespace-nowrap">
-              <span>📊</span>
-              <span>전체 시수종합</span>
-            </div>
-            <div class="flex items-center gap-1 text-[10px] whitespace-nowrap">
-              <span class="px-1.5 py-0.2 rounded-full font-bold ${
-                isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-100 text-slate-600'
-              }">
-                ${curCount > 0 ? `교사 ${teacherSet.size}명` : '교원수급'}
-              </span>
-              ${curCount > 0 ? `
+            <!-- 아래: 전체 시수종합 -->
+            <button type="button" 
+                    onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
+                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                      isAllActive 
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
+                        : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
+                    }"
+                    title="${MultiState.activeYear} 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
+              <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span>📊</span>
+                <span>전체 시수종합</span>
+              </div>
+              <div class="flex items-center gap-1 text-[10px] whitespace-nowrap">
                 <span class="px-1.5 py-0.2 rounded-full font-bold ${
-                  isAllActive ? 'bg-amber-300 text-slate-900 shadow-2xs' : 'bg-amber-100 text-amber-900'
-                }" title="${curCount}개 과목 편성됨">
-                  ${curCount}과목
+                  isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-100 text-slate-600'
+                }">
+                  ${curCount > 0 ? `교사 ${teacherSet.size}명` : '교원수급'}
                 </span>
-              ` : ''}
-            </div>
-          </button>
-        `;
+                ${curCount > 0 ? `
+                  <span class="px-1.5 py-0.2 rounded-full font-bold ${
+                    isAllActive ? 'bg-amber-300 text-slate-900 shadow-2xs' : 'bg-amber-100 text-amber-900'
+                  }" title="${curCount}개 과목 편성됨">
+                    ${curCount}과목
+                  </span>
+                ` : ''}
+              </div>
+            </button>
+          `;
+        }
+      } catch (err5) {
+        console.error('Error rendering academicCommonTabs:', err5);
       }
 
       // 기준 날짜 탭 드래그 앤 드롭 순서 변경 바인딩
-      attachYearTabsDragAndDrop();
-    }
+      try {
+        attachYearTabsDragAndDrop();
+      } catch (errDrag) {
+        console.warn('attachYearTabsDragAndDrop failed silently:', errDrag);
+      }
+  } catch (globalNavErr) {
+    console.error('FATAL in renderYearGradeNav:', globalNavErr);
+  }
+}
 
     let draggedYearTab = null;
 
@@ -26804,7 +27193,11 @@ function renderYearGradeNav() {
 
     // Initialize MultiState & Load on Startup (항상 완전한 빈 화면으로 시작 - 웹상 데이터 0%)
     function loadAllState() {
-      initAllGradesListeners();
+      try {
+        initAllGradesListeners();
+      } catch (errInit) {
+        console.warn('initAllGradesListeners skipped/warned:', errInit);
+      }
 
       // 브라우저 로컬 저장소에 남아있을 수 있는 이전 캐시 완전 소거 (웹상에 데이터 보존 금지)
       try {
@@ -26814,12 +27207,16 @@ function renderYearGradeNav() {
       } catch (e) {}
 
       // 저장된 폴더 핸들(저장 위치) 비동기 로드
-      getSavedDirHandle().then(handle => {
-        if (handle) {
-          rememberedDirHandle = handle;
-          updateSaveButtonTooltip(handle.name);
+      try {
+        if (typeof getSavedDirHandle === 'function') {
+          getSavedDirHandle().then(handle => {
+            if (handle) {
+              rememberedDirHandle = handle;
+              updateSaveButtonTooltip(handle.name);
+            }
+          }).catch(() => {});
         }
-      });
+      } catch (eHandle) {}
 
       // 항상 완전히 깨끗한 초기 빈 상태로 시작 (사용자가 JSON 또는 엑셀 파일을 불러와야만 데이터 표시)
       MultiState.academicYearsList = ['2027학년도'];
@@ -26855,10 +27252,24 @@ function renderYearGradeNav() {
       if (allGradesSection) allGradesSection.classList.add('hidden');
       if (btnResetAll) btnResetAll.classList.add('hidden');
 
-      switchAcademicContext('2027.10.11.', '2학년', false);
-      renderYearGradeNav();
-      updateModalStats();
-      cloudSync.init();
+      try {
+        switchAcademicContext('2027.10.11.', '2학년', false);
+      } catch (eSwitch) {
+        console.error('switchAcademicContext during loadAllState failed:', eSwitch);
+      }
+      try {
+        renderYearGradeNav();
+      } catch (eNav) {
+        console.error('renderYearGradeNav during loadAllState failed:', eNav);
+      }
+      try {
+        updateModalStats();
+      } catch (eStats) {}
+      try {
+        if (typeof cloudSync !== 'undefined' && cloudSync && typeof cloudSync.init === 'function') {
+          cloudSync.init();
+        }
+      } catch (eCloud) {}
     }
 
     // Run Startup Initialization
@@ -26916,8 +27327,27 @@ function renderYearGradeNav() {
       }
     }
 
-    loadAllState();
-    syncGitHubLastCommitDate();
+    function safeInitApp() {
+      try {
+        loadAllState();
+      } catch (err) {
+        console.error('Fatal error in loadAllState:', err);
+        try {
+          renderYearGradeNav();
+        } catch (e2) {}
+      }
+      try {
+        syncGitHubLastCommitDate();
+      } catch (err) {
+        console.warn('syncGitHubLastCommitDate error:', err);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', safeInitApp);
+    } else {
+      safeInitApp();
+    }
 
   </script>
 </body>

@@ -152,6 +152,7 @@
     };
 
 function renderYearGradeNav() {
+  try {
       const yearContainer = document.getElementById('academicYearTabs');
       const gradeContainer = document.getElementById('academicGradeTabs');
       const semesterContainer = document.getElementById('academicSemesterTabs');
@@ -161,358 +162,425 @@ function renderYearGradeNav() {
       const stepNavWrapper = document.getElementById('academicStepNavWrapper');
       const currentWorkText = document.getElementById('currentWorkText');
 
+      // State Fallback & Auto-Recovery
+      if (typeof MultiState === 'undefined' || !MultiState) {
+        console.warn('[Auto-Recovery] MultiState is undefined in renderYearGradeNav, restoring fallback.');
+        window.MultiState = {
+          academicYearsList: ['2027학년도'],
+          activeAcademicYear: '2027학년도',
+          datesByAcademicYear: { '2027학년도': ['2027.10.11.'] },
+          curriculumByAcademicYear: { '2027학년도': [] },
+          yearsList: ['2027.10.11.'],
+          activeYear: '2027.10.11.',
+          activeGrade: '2학년',
+          activeStep: 1,
+          data: {}
+        };
+      }
+      if (!Array.isArray(MultiState.academicYearsList) || MultiState.academicYearsList.length === 0) {
+        MultiState.academicYearsList = ['2027학년도'];
+      }
+      if (!MultiState.activeAcademicYear) {
+        MultiState.activeAcademicYear = MultiState.academicYearsList[0];
+      }
+      if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
+      if (!Array.isArray(MultiState.datesByAcademicYear[MultiState.activeAcademicYear]) || MultiState.datesByAcademicYear[MultiState.activeAcademicYear].length === 0) {
+        MultiState.datesByAcademicYear[MultiState.activeAcademicYear] = ['2027.10.11.'];
+      }
+      if (!Array.isArray(MultiState.yearsList) || MultiState.yearsList.length === 0) {
+        MultiState.yearsList = [...MultiState.datesByAcademicYear[MultiState.activeAcademicYear]];
+      }
+      if (!MultiState.activeYear) {
+        MultiState.activeYear = MultiState.yearsList[0];
+      }
+      if (!MultiState.activeGrade) {
+        MultiState.activeGrade = '2학년';
+      }
+
       const isAllGrades = MultiState.activeGrade === '전체';
       const curStep = MultiState.activeStep || 1;
       const isStep3Mode = !isAllGrades && curStep === 3;
       const isLockedMode = isAllGrades || isStep3Mode;
-      const curSem = AppState.currentSemester || 1;
+      const curSem = (typeof AppState !== 'undefined' && AppState && AppState.currentSemester) || 1;
 
       if (currentWorkText) {
-        if (isAllGrades) {
-          currentWorkText.textContent = `${MultiState.activeYear} 전체 (전학년 교육과정 및 교사 시수)`;
-        } else if (isStep3Mode) {
-          currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · 3단계: 이수과목 검증`;
-        } else {
-          currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
+        try {
+          if (isAllGrades) {
+            currentWorkText.textContent = `${MultiState.activeYear} 전체 (전학년 교육과정 및 교사 시수)`;
+          } else if (isStep3Mode) {
+            currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · 3단계: 이수과목 검증`;
+          } else {
+            currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
+          }
+        } catch (e) {
+          console.warn('Error updating currentWorkText:', e);
         }
       }
 
       // 0. Render Academic Year Group Tabs (상위 기준 학년도)
-      const acadGroupContainer = document.getElementById('academicYearGroupTabs');
-      if (acadGroupContainer) {
-        if (!MultiState.academicYearsList) MultiState.academicYearsList = ['2027학년도'];
-        if (!MultiState.activeAcademicYear) MultiState.activeAcademicYear = MultiState.academicYearsList[0];
-
-        acadGroupContainer.innerHTML = MultiState.academicYearsList.map(ay => {
-          const isAct = (ay === MultiState.activeAcademicYear);
-          return `
-            <div class="inline-flex items-center rounded-lg transition-all h-[26px] ${
-              isAct 
-                ? 'bg-indigo-600 text-white shadow-xs font-bold ring-2 ring-indigo-400/40' 
-                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
-            }">
-              <button type="button" 
-                      onclick="window.switchAcademicYearGroup('${ay}')"
-                      class="px-2.5 py-0.5 text-xs flex items-center gap-1 focus:outline-hidden cursor-pointer"
-                      title="${ay} 교육과정으로 전환">
-                <span>${ay}</span>
-              </button>
-              <button type="button" 
-                      onclick="window.handleEditAcademicYearGroup('${ay}', event)"
-                      class="px-1 py-0.5 text-[10px] opacity-70 hover:opacity-100 ${isAct ? 'hover:text-amber-200' : 'hover:text-indigo-600'} transition cursor-pointer"
-                      title="${ay} 이름 수정">
-                ✏️
-              </button>
-              ${MultiState.academicYearsList.length > 1 ? `
+      try {
+        const acadGroupContainer = document.getElementById('academicYearGroupTabs');
+        if (acadGroupContainer) {
+          acadGroupContainer.innerHTML = MultiState.academicYearsList.map(ay => {
+            const isAct = (ay === MultiState.activeAcademicYear);
+            return `
+              <div class="inline-flex items-center rounded-lg transition-all h-[26px] ${
+                isAct 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold ring-2 ring-indigo-400/40' 
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
+              }">
                 <button type="button" 
-                        onclick="window.handleDeleteAcademicYearGroup('${ay}', event)"
-                        class="pr-1.5 pl-0.5 py-0.5 text-[10px] opacity-60 hover:opacity-100 ${isAct ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
-                        title="${ay} 삭제">
-                  ✕
+                        onclick="window.switchAcademicYearGroup('${ay}')"
+                        class="px-2.5 py-0.5 text-xs flex items-center gap-1 focus:outline-hidden cursor-pointer"
+                        title="${ay} 교육과정으로 전환">
+                  <span>${ay}</span>
                 </button>
-              ` : ''}
-            </div>
-          `;
-        }).join('');
+                <button type="button" 
+                        onclick="window.handleEditAcademicYearGroup('${ay}', event)"
+                        class="px-1 py-0.5 text-[10px] opacity-70 hover:opacity-100 ${isAct ? 'hover:text-amber-200' : 'hover:text-indigo-600'} transition cursor-pointer"
+                        title="${ay} 이름 수정">
+                  ✏️
+                </button>
+                ${MultiState.academicYearsList.length > 1 ? `
+                  <button type="button" 
+                          onclick="window.handleDeleteAcademicYearGroup('${ay}', event)"
+                          class="pr-1.5 pl-0.5 py-0.5 text-[10px] opacity-60 hover:opacity-100 ${isAct ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
+                          title="${ay} 삭제">
+                    ✕
+                  </button>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err0) {
+        console.error('Error rendering academicYearGroupTabs:', err0);
       }
 
       // 1. Render Reference Date Tabs (하위 기준 날짜)
-      if (yearContainer) {
-        yearContainer.innerHTML = MultiState.yearsList.map(y => {
-          const isActive = y === MultiState.activeYear;
-          const acadData = getAcadData();
-          const yData = acadData[y] || {};
-          let totalStudents = 0;
-          ['2학년', '3학년'].forEach(g => {
-            if (yData[g] && yData[g].students) {
-              totalStudents += yData[g].students.length;
-            }
-          });
+      try {
+        if (yearContainer) {
+          yearContainer.innerHTML = MultiState.yearsList.map(y => {
+            const isActive = y === MultiState.activeYear;
+            const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+            const yData = acadData[y] || {};
+            let totalStudents = 0;
+            ['2학년', '3학년'].forEach(g => {
+              if (yData[g] && yData[g].students) {
+                totalStudents += yData[g].students.length;
+              }
+            });
 
-          return `
-            <div class="inline-flex items-center rounded-lg transition-all select-none h-[26px] ${
-              isActive 
-                ? 'bg-blue-600 text-white shadow-xs font-bold ring-2 ring-blue-400/40' 
-                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
-            }"
-            draggable="true"
-            data-year="${escapeHtml(y)}"
-            style="cursor: grab;"
-            title="드래그하여 탭 순서를 변경할 수 있습니다">
-              <span class="pl-2 pr-0.5 text-xs select-none opacity-40 hover:opacity-100 cursor-grab" title="드래그하여 순서 변경">⋮⋮</span>
-              <button type="button" 
-                      draggable="false"
-                      onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
-                      class="px-2 py-0.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
-                      title="${y} 작업으로 전환">
-                <span>${y}</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isActive ? 'bg-white text-blue-700 shadow-2xs' : 'bg-slate-100 text-slate-500'
-                }">
-                  ${totalStudents}명
-                </span>
-              </button>
-              
-              <button type="button" 
-                      draggable="false"
-                      onclick="window.handleEditAcademicYear('${y}', event)"
-                      class="px-1 py-1 text-[11px] opacity-70 hover:opacity-100 ${isActive ? 'hover:text-amber-200' : 'hover:text-blue-600'} transition cursor-pointer"
-                      title="${y} 이름 수정">
-                ✏️
-              </button>
-
-              ${MultiState.yearsList.length > 1 ? `
+            return `
+              <div class="inline-flex items-center rounded-lg transition-all select-none h-[26px] ${
+                isActive 
+                  ? 'bg-blue-600 text-white shadow-xs font-bold ring-2 ring-blue-400/40' 
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs font-medium'
+              }"
+              draggable="true"
+              data-year="${(typeof escapeHtml === 'function') ? escapeHtml(y) : y}"
+              style="cursor: grab;"
+              title="드래그하여 탭 순서를 변경할 수 있습니다">
+                <span class="pl-2 pr-0.5 text-xs select-none opacity-40 hover:opacity-100 cursor-grab" title="드래그하여 순서 변경">⋮⋮</span>
                 <button type="button" 
                         draggable="false"
-                        onclick="window.handleDeleteAcademicYear('${y}', event)"
-                        class="pr-2 pl-0.5 py-1 text-xs opacity-60 hover:opacity-100 ${isActive ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
-                        title="${y} 및 해당 데이터 삭제">
-                  ✕
+                        onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
+                        class="px-2 py-0.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
+                        title="${y} 작업으로 전환">
+                  <span>${y}</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive ? 'bg-white text-blue-700 shadow-2xs' : 'bg-slate-100 text-slate-500'
+                  }">
+                    ${totalStudents}명
+                  </span>
                 </button>
-              ` : ''}
-            </div>
-          `;
-        }).join('');
+                
+                <button type="button" 
+                        draggable="false"
+                        onclick="window.handleEditAcademicYear('${y}', event)"
+                        class="px-1 py-1 text-[11px] opacity-70 hover:opacity-100 ${isActive ? 'hover:text-amber-200' : 'hover:text-blue-600'} transition cursor-pointer"
+                        title="${y} 이름 수정">
+                  ✏️
+                </button>
+
+                ${MultiState.yearsList.length > 1 ? `
+                  <button type="button" 
+                          draggable="false"
+                          onclick="window.handleDeleteAcademicYear('${y}', event)"
+                          class="pr-2 pl-0.5 py-1 text-xs opacity-60 hover:opacity-100 ${isActive ? 'hover:text-rose-200' : 'hover:text-rose-600'} transition cursor-pointer"
+                          title="${y} 및 해당 데이터 삭제">
+                    ✕
+                  </button>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err1) {
+        console.error('Error rendering academicYearTabs:', err1);
       }
 
       // 2. Render Grade Tabs (2학년 / 3학년 2행) - 항상 클릭 가능하며, 클릭 시 1·2학기 및 1·2단계가 다시 활성화됨
-      if (gradeNavWrapper) {
-        gradeNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-        gradeNavWrapper.title = '';
-      }
+      try {
+        if (gradeNavWrapper) {
+          gradeNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+          gradeNavWrapper.title = '';
+        }
 
-      if (gradeContainer) {
-        const acadData = getAcadData();
-        const yData = acadData[MultiState.activeYear] || {};
+        if (gradeContainer) {
+          const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+          const yData = acadData[MultiState.activeYear] || {};
 
-        gradeContainer.innerHTML = ['2학년', '3학년'].map(g => {
-          // 이수과목 검증(isStep3Mode) 또는 전체 시수종합(isAllGrades) 진입 시 2·3학년 활성 색상을 끄고, 클릭 시 1·2학기 및 1·2단계를 다시 활성화
-          const isActive = !isAllGrades && !isStep3Mode && (g === MultiState.activeGrade);
-          const gData = yData[g] || {};
-          const count = (gData.students && Array.isArray(gData.students)) ? gData.students.length : 0;
-          const hasPrior = (gData.priorData && gData.priorData.students && gData.priorData.students.length > 0);
-          const priorCount = hasPrior ? gData.priorData.students.length : 0;
+          gradeContainer.innerHTML = ['2학년', '3학년'].map(g => {
+            const isActive = !isAllGrades && !isStep3Mode && (g === MultiState.activeGrade);
+            const gData = yData[g] || {};
+            const count = (gData.students && Array.isArray(gData.students)) ? gData.students.length : 0;
+            const hasPrior = (gData.priorData && gData.priorData.students && gData.priorData.students.length > 0);
+            const priorCount = hasPrior ? gData.priorData.students.length : 0;
 
-          let modCount = 0;
-          if (gData.students && Array.isArray(gData.students) && typeof isStudentChoicesModified === 'function') {
-            modCount = gData.students.filter(st => isStudentChoicesModified(st, 1) || isStudentChoicesModified(st, 2)).length;
-          }
+            let modCount = 0;
+            if (gData.students && Array.isArray(gData.students) && typeof isStudentChoicesModified === 'function') {
+              modCount = gData.students.filter(st => isStudentChoicesModified(st, 1) || isStudentChoicesModified(st, 2)).length;
+            }
 
-          const countBadgeText = hasPrior ? `${count}명/${priorCount}명` : `${count}명`;
+            const countBadgeText = hasPrior ? `${count}명/${priorCount}명` : `${count}명`;
 
-          return `
-            <button type="button" 
-                    onclick="window.selectGradeTabFromNav('${MultiState.activeYear}', '${g}')"
-                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
-                      isActive 
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
-                    }"
-                    title="${isLockedMode ? `클릭 시 ${g} 1·2단계 및 1·2학기 메뉴가 활성화됩니다` : `${MultiState.activeYear}학년도 ${g}`}">
-              <span class="whitespace-nowrap">${g}</span>
-              <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold whitespace-nowrap ${
-                isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
-              }">
-                ${countBadgeText}
-              </span>
-              ${hasPrior ? `
-                <span class="text-[10px] px-1 py-0.2 rounded font-bold whitespace-nowrap ${
-                  isActive ? 'bg-emerald-400 text-slate-900 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
-                }" title="사전 등록학생 명부 ${priorCount}명 등록 완료">
-                  ✓
+            return `
+              <button type="button" 
+                      onclick="window.selectGradeTabFromNav('${MultiState.activeYear}', '${g}')"
+                      class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                        isActive 
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-2 ring-indigo-400' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                      }"
+                      title="${isLockedMode ? `클릭 시 ${g} 1·2단계 및 1·2학기 메뉴가 활성화됩니다` : `${MultiState.activeYear}학년도 ${g}`}">
+                <span class="whitespace-nowrap">${g}</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold whitespace-nowrap ${
+                  isActive ? 'bg-white text-indigo-700 shadow-2xs' : 'bg-slate-200 text-slate-600'
+                }">
+                  ${countBadgeText}
                 </span>
-              ` : ''}
-            </button>
-          `;
-        }).join('');
+                ${hasPrior ? `
+                  <span class="text-[10px] px-1 py-0.2 rounded font-bold whitespace-nowrap ${
+                    isActive ? 'bg-emerald-400 text-slate-900 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
+                  }" title="사전 등록학생 명부 ${priorCount}명 등록 완료">
+                    ✓
+                  </span>
+                ` : ''}
+              </button>
+            `;
+          }).join('');
+        }
+      } catch (err2) {
+        console.error('Error rendering academicGradeTabs:', err2);
       }
 
       // 3. Render Semester Tabs (1학기 / 2학기 2행) - 잠금 상태 완벽 적용!
-      if (semesterNavWrapper) {
-        if (isLockedMode) {
-          semesterNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-          semesterNavWrapper.title = isStep3Mode 
-            ? '이수과목 검증 모드에서는 학기 및 1·2단계가 비활성화(잠금)됩니다.' 
-            : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
-        } else {
-          semesterNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-          semesterNavWrapper.title = '';
-        }
-      }
-
-      if (semesterContainer) {
-        semesterContainer.innerHTML = [1, 2].map(sem => {
-          const isActive = !isLockedMode && curSem === sem;
-          
-          let semModCount = 0;
-          if (!isLockedMode && AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function') {
-            semModCount = AppState.students.filter(st => isStudentChoicesModified(st, sem)).length;
+      try {
+        if (semesterNavWrapper) {
+          if (isLockedMode) {
+            semesterNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+            semesterNavWrapper.title = isStep3Mode 
+              ? '이수과목 검증 모드에서는 학기 및 1·2단계가 비활성화(잠금)됩니다.' 
+              : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
+          } else {
+            semesterNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+            semesterNavWrapper.title = '';
           }
+        }
 
-          return `
-            <button type="button" 
-                    onclick="window.switchSemester(${sem})"
-                    ${isLockedMode ? 'disabled' : ''}
-                    class="px-3 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
-                      isActive
-                        ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-xs ring-2 ring-sky-400'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
-                    }"
-                    title="${sem}학기 선택 및 작업 전환">
-              <span class="whitespace-nowrap">${sem}학기</span>
-              ${semModCount > 0 ? `
-                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-                  isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
-                }" title="${sem}학기 수정 ${semModCount}건">
-                  수정 ${semModCount}
-                </span>
-              ` : ''}
-            </button>
-          `;
-        }).join('');
+        if (semesterContainer) {
+          semesterContainer.innerHTML = [1, 2].map(sem => {
+            const isActive = !isLockedMode && curSem === sem;
+            
+            let semModCount = 0;
+            if (!isLockedMode && typeof AppState !== 'undefined' && AppState && AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function') {
+              semModCount = AppState.students.filter(st => isStudentChoicesModified(st, sem)).length;
+            }
+
+            return `
+              <button type="button" 
+                      onclick="window.switchSemester(${sem})"
+                      ${isLockedMode ? 'disabled' : ''}
+                      class="px-3 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none ${
+                        isActive
+                          ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-xs ring-2 ring-sky-400'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                      }"
+                      title="${sem}학기 선택 및 작업 전환">
+                <span class="whitespace-nowrap">${sem}학기</span>
+                ${semModCount > 0 ? `
+                  <span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                    isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                  }" title="${sem}학기 수정 ${semModCount}건">
+                    수정 ${semModCount}
+                  </span>
+                ` : ''}
+              </button>
+            `;
+          }).join('');
+        }
+      } catch (err3) {
+        console.error('Error rendering academicSemesterTabs:', err3);
       }
 
       // 4. Render Step Tabs (1단계 / 2단계 2행 - 학년별 수강신청/시간표) - 잠금 상태 완벽 적용!
-      if (stepNavWrapper) {
-        if (isLockedMode) {
-          stepNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-          stepNavWrapper.title = isStep3Mode 
-            ? '이수과목 검증 모드에서는 1·2단계가 비활성화(잠금)됩니다.' 
-            : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
-        } else {
-          stepNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-          stepNavWrapper.title = '';
+      try {
+        if (stepNavWrapper) {
+          if (isLockedMode) {
+            stepNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+            stepNavWrapper.title = isStep3Mode 
+              ? '이수과목 검증 모드에서는 1·2단계가 비활성화(잠금)됩니다.' 
+              : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
+          } else {
+            stepNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+            stepNavWrapper.title = '';
+          }
         }
-      }
 
-      if (stepContainer) {
-        stepContainer.innerHTML = [
-          { step: 1, label: '1단계', desc: '선택 매트릭스' },
-          { step: 2, label: '2단계', desc: '그룹핑 & 시간표' }
-        ].map(item => {
-          const isActive = !isLockedMode && curStep === item.step;
-          
-          let badgeHtml = '';
-          if (!isLockedMode) {
-            if (item.step === 1) {
-              const modCount = (AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function')
-                ? AppState.students.filter(st => isStudentChoicesModified(st, curSem)).length
-                : 0;
-              if (modCount > 0) {
-                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-                  isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
-                }">수정 ${modCount}</span>`;
-              }
-            } else if (item.step === 2) {
-              if (AppState.currentPlan) {
-                const conflicts = AppState.currentPlan.conflictCount || 0;
-                badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-                  conflicts === 0 
-                    ? (isActive ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800')
-                    : (isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800')
-                }">${conflicts === 0 ? '충돌 0명' : `충돌 ${conflicts}명`}</span>`;
+        if (stepContainer) {
+          stepContainer.innerHTML = [
+            { step: 1, label: '1단계', desc: '선택 매트릭스' },
+            { step: 2, label: '2단계', desc: '그룹핑 & 시간표' }
+          ].map(item => {
+            const isActive = !isLockedMode && curStep === item.step;
+            
+            let badgeHtml = '';
+            if (!isLockedMode && typeof AppState !== 'undefined' && AppState) {
+              if (item.step === 1) {
+                const modCount = (AppState.students && Array.isArray(AppState.students) && typeof isStudentChoicesModified === 'function')
+                  ? AppState.students.filter(st => isStudentChoicesModified(st, curSem)).length
+                  : 0;
+                if (modCount > 0) {
+                  badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                    isActive ? 'bg-amber-300 text-amber-950 shadow-2xs' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                  }">수정 ${modCount}</span>`;
+                }
+              } else if (item.step === 2) {
+                if (AppState.currentPlan) {
+                  const conflicts = AppState.currentPlan.conflictCount || 0;
+                  badgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                    conflicts === 0 
+                      ? (isActive ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800')
+                      : (isActive ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800')
+                  }">${conflicts === 0 ? '충돌 0명' : `충돌 ${conflicts}명`}</span>`;
+                }
               }
             }
-          }
 
-          return `
-            <button type="button" 
-                    onclick="window.switchStepView(${item.step})"
-                    ${isLockedMode ? 'disabled' : ''}
-                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
-                      isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs ring-2 ring-blue-400'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
-                    }"
-                    title="${item.label}: ${item.desc} 화면으로 전환">
-              <div class="flex items-center gap-1 whitespace-nowrap">
-                <span>${item.label}</span>
-                <span class="text-[11px] font-semibold opacity-85">(${item.desc})</span>
-              </div>
-              ${badgeHtml}
-            </button>
-          `;
-        }).join('');
+            return `
+              <button type="button" 
+                      onclick="window.switchStepView(${item.step})"
+                      ${isLockedMode ? 'disabled' : ''}
+                      class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                        isActive
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs ring-2 ring-blue-400'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold'
+                      }"
+                      title="${item.label}: ${item.desc} 화면으로 전환">
+                <div class="flex items-center gap-1 whitespace-nowrap">
+                  <span>${item.label}</span>
+                  <span class="text-[11px] font-semibold opacity-85">(${item.desc})</span>
+                </div>
+                ${badgeHtml}
+              </button>
+            `;
+          }).join('');
+        }
+      } catch (err4) {
+        console.error('Error rendering academicStepTabs:', err4);
       }
 
       // 5. Render Common Nav Area (공통 바깥 테두리: 위=3단계 교과군 선택조건 검증 / 아래=전체 시수종합)
-      const commonTabsContainer = document.getElementById('academicCommonTabs');
-      if (commonTabsContainer) {
-        const isStep3Active = !isAllGrades && (MultiState.activeStep === 3);
-        const isAllActive = isAllGrades;
+      try {
+        const commonTabsContainer = document.getElementById('academicCommonTabs');
+        if (commonTabsContainer) {
+          const isStep3Active = !isAllGrades && (MultiState.activeStep === 3);
+          const isAllActive = isAllGrades;
 
-        // 3단계 위반 요약 뱃지
-        let step3BadgeHtml = '';
-        const vSummary = (typeof getStep3ValidationSummaryQuick === 'function') ? getStep3ValidationSummaryQuick() : null;
-        if (vSummary && vSummary.total > 0) {
-          if (vSummary.violated > 0) {
-            step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-              isStep3Active ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800'
-            }">위반 ${vSummary.violated}명</span>`;
-          } else {
-            step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
-              isStep3Active ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
-            }">정상</span>`;
+          // 3단계 위반 요약 뱃지
+          let step3BadgeHtml = '';
+          const vSummary = (typeof getStep3ValidationSummaryQuick === 'function') ? getStep3ValidationSummaryQuick() : null;
+          if (vSummary && vSummary.total > 0) {
+            if (vSummary.violated > 0) {
+              step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                isStep3Active ? 'bg-rose-300 text-rose-950 shadow-2xs' : 'bg-rose-100 text-rose-800'
+              }">위반 ${vSummary.violated}명</span>`;
+            } else {
+              step3BadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold whitespace-nowrap ${
+                isStep3Active ? 'bg-emerald-300 text-emerald-950 shadow-2xs' : 'bg-emerald-100 text-emerald-800'
+              }">정상</span>`;
+            }
           }
-        }
 
-        // 전체 시수종합 요약 뱃지
-        const yData = getAcadData()[MultiState.activeYear] || {};
-        const allData = yData['전체'] || {};
-        const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
-        const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
+          // 전체 시수종합 요약 뱃지
+          const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+          const yData = acadData[MultiState.activeYear] || {};
+          const allData = yData['전체'] || {};
+          const curCount = (allData.curriculum && Array.isArray(allData.curriculum)) ? allData.curriculum.length : 0;
+          const teacherSet = new Set((allData.curriculum || []).map(c => c.teacher).filter(t => t && t !== '폐강'));
 
-        commonTabsContainer.innerHTML = `
-          <!-- 위: 3단계 교과군 선택조건 검증 -->
-          <button type="button" 
-                  onclick="window.toggleStep3OrStep1()"
-                  class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
-                    isStep3Active 
-                      ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400' 
-                      : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
-                  }"
-                  title="3단계: 이수과목 검증 화면으로 전환">
-            <div class="flex items-center gap-1.5 whitespace-nowrap">
-              <span>📋</span>
-              <span>이수과목 검증</span>
-            </div>
-            ${step3BadgeHtml}
-          </button>
+          commonTabsContainer.innerHTML = `
+            <!-- 위: 3단계 교과군 선택조건 검증 -->
+            <button type="button" 
+                    onclick="window.toggleStep3OrStep1()"
+                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                      isStep3Active 
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400' 
+                        : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
+                    }"
+                    title="3단계: 이수과목 검증 화면으로 전환">
+              <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span>📋</span>
+                <span>이수과목 검증</span>
+              </div>
+              ${step3BadgeHtml}
+            </button>
 
-          <!-- 아래: 전체 시수종합 -->
-          <button type="button" 
-                  onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
-                  class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
-                    isAllActive 
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
-                      : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
-                  }"
-                  title="${MultiState.activeYear} 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
-            <div class="flex items-center gap-1.5 whitespace-nowrap">
-              <span>📊</span>
-              <span>전체 시수종합</span>
-            </div>
-            <div class="flex items-center gap-1 text-[10px] whitespace-nowrap">
-              <span class="px-1.5 py-0.2 rounded-full font-bold ${
-                isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-100 text-slate-600'
-              }">
-                ${curCount > 0 ? `교사 ${teacherSet.size}명` : '교원수급'}
-              </span>
-              ${curCount > 0 ? `
+            <!-- 아래: 전체 시수종합 -->
+            <button type="button" 
+                    onclick="window.switchAcademicContext('${MultiState.activeYear}', '전체')"
+                    class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
+                      isAllActive 
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs ring-2 ring-emerald-400' 
+                        : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
+                    }"
+                    title="${MultiState.activeYear} 전학년(1·2·3학년) 교사별 시수 및 교육과정 종합 관리">
+              <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span>📊</span>
+                <span>전체 시수종합</span>
+              </div>
+              <div class="flex items-center gap-1 text-[10px] whitespace-nowrap">
                 <span class="px-1.5 py-0.2 rounded-full font-bold ${
-                  isAllActive ? 'bg-amber-300 text-slate-900 shadow-2xs' : 'bg-amber-100 text-amber-900'
-                }" title="${curCount}개 과목 편성됨">
-                  ${curCount}과목
+                  isAllActive ? 'bg-white text-emerald-800 shadow-2xs' : 'bg-slate-100 text-slate-600'
+                }">
+                  ${curCount > 0 ? `교사 ${teacherSet.size}명` : '교원수급'}
                 </span>
-              ` : ''}
-            </div>
-          </button>
-        `;
+                ${curCount > 0 ? `
+                  <span class="px-1.5 py-0.2 rounded-full font-bold ${
+                    isAllActive ? 'bg-amber-300 text-slate-900 shadow-2xs' : 'bg-amber-100 text-amber-900'
+                  }" title="${curCount}개 과목 편성됨">
+                    ${curCount}과목
+                  </span>
+                ` : ''}
+              </div>
+            </button>
+          `;
+        }
+      } catch (err5) {
+        console.error('Error rendering academicCommonTabs:', err5);
       }
 
       // 기준 날짜 탭 드래그 앤 드롭 순서 변경 바인딩
-      attachYearTabsDragAndDrop();
-    }
+      try {
+        attachYearTabsDragAndDrop();
+      } catch (errDrag) {
+        console.warn('attachYearTabsDragAndDrop failed silently:', errDrag);
+      }
+  } catch (globalNavErr) {
+    console.error('FATAL in renderYearGradeNav:', globalNavErr);
+  }
+}
 
     let draggedYearTab = null;
 

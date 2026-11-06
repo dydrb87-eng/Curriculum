@@ -4694,7 +4694,11 @@
 
     // Initialize MultiState & Load on Startup (항상 완전한 빈 화면으로 시작 - 웹상 데이터 0%)
     function loadAllState() {
-      initAllGradesListeners();
+      try {
+        initAllGradesListeners();
+      } catch (errInit) {
+        console.warn('initAllGradesListeners skipped/warned:', errInit);
+      }
 
       // 브라우저 로컬 저장소에 남아있을 수 있는 이전 캐시 완전 소거 (웹상에 데이터 보존 금지)
       try {
@@ -4704,12 +4708,16 @@
       } catch (e) {}
 
       // 저장된 폴더 핸들(저장 위치) 비동기 로드
-      getSavedDirHandle().then(handle => {
-        if (handle) {
-          rememberedDirHandle = handle;
-          updateSaveButtonTooltip(handle.name);
+      try {
+        if (typeof getSavedDirHandle === 'function') {
+          getSavedDirHandle().then(handle => {
+            if (handle) {
+              rememberedDirHandle = handle;
+              updateSaveButtonTooltip(handle.name);
+            }
+          }).catch(() => {});
         }
-      });
+      } catch (eHandle) {}
 
       // 항상 완전히 깨끗한 초기 빈 상태로 시작 (사용자가 JSON 또는 엑셀 파일을 불러와야만 데이터 표시)
       MultiState.academicYearsList = ['2027학년도'];
@@ -4745,10 +4753,24 @@
       if (allGradesSection) allGradesSection.classList.add('hidden');
       if (btnResetAll) btnResetAll.classList.add('hidden');
 
-      switchAcademicContext('2027.10.11.', '2학년', false);
-      renderYearGradeNav();
-      updateModalStats();
-      cloudSync.init();
+      try {
+        switchAcademicContext('2027.10.11.', '2학년', false);
+      } catch (eSwitch) {
+        console.error('switchAcademicContext during loadAllState failed:', eSwitch);
+      }
+      try {
+        renderYearGradeNav();
+      } catch (eNav) {
+        console.error('renderYearGradeNav during loadAllState failed:', eNav);
+      }
+      try {
+        updateModalStats();
+      } catch (eStats) {}
+      try {
+        if (typeof cloudSync !== 'undefined' && cloudSync && typeof cloudSync.init === 'function') {
+          cloudSync.init();
+        }
+      } catch (eCloud) {}
     }
 
     // Run Startup Initialization
@@ -4806,5 +4828,24 @@
       }
     }
 
-    loadAllState();
-    syncGitHubLastCommitDate();
+    function safeInitApp() {
+      try {
+        loadAllState();
+      } catch (err) {
+        console.error('Fatal error in loadAllState:', err);
+        try {
+          renderYearGradeNav();
+        } catch (e2) {}
+      }
+      try {
+        syncGitHubLastCommitDate();
+      } catch (err) {
+        console.warn('syncGitHubLastCommitDate error:', err);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', safeInitApp);
+    } else {
+      safeInitApp();
+    }

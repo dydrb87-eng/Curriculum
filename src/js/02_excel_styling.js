@@ -50,6 +50,11 @@
         ws[ref].s = style;
       },
 
+      applyStyle(cell, style) {
+        if (!cell) return;
+        cell.s = style;
+      },
+
       setRange(ws, startR, startC, endR, endC, style) {
         for (let r = startR; r <= endR; r++) {
           for (let c = startC; c <= endC; c++) {

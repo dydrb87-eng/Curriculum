@@ -4109,6 +4109,362 @@
       XLSX.utils.book_append_sheet(wb, wsPlan, placementSheetName);
     }
 
+    // Helper to build 1·2학기 과목배치 및 수강 인원 안내 시트 (학생 안내 및 출력용 통합 요약표)
+    function buildSummaryTimetableSheet(wb, plan1, plan2, customSheetName = '1·2학기_과목배치_및_인원안내') {
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      const pastelGroupThemes = [
+        { headerBg: 'DBEAFE', headerText: '1E40AF', subBg: 'EFF6FF', subText: '1E40AF', border: '93C5FD' }, // 파스텔 블루
+        { headerBg: 'CCFBF1', headerText: '0F766E', subBg: 'F0FDFA', subText: '0F766E', border: '5EEAD4' }, // 파스텔 민트
+        { headerBg: 'EDE9FE', headerText: '5B21B6', subBg: 'F5F3FF', subText: '5B21B6', border: 'C4B5FD' }, // 파스텔 라벤더
+        { headerBg: 'FFEDD5', headerText: '9A3412', subBg: 'FFF7ED', subText: '9A3412', border: 'FDBA74' }, // 파스텔 피치
+        { headerBg: 'FEF3C7', headerText: '92400E', subBg: 'FFFBEB', subText: '92400E', border: 'FCD34D' }, // 파스텔 앰버
+        { headerBg: 'FFE4E6', headerText: '9F1239', subBg: 'FFF1F2', subText: '9F1239', border: 'FDA4AF' }, // 파스텔 로즈
+        { headerBg: 'E0E7FF', headerText: '3730A3', subBg: 'EEF2FF', subText: '3730A3', border: 'A5B4FC' }, // 파스텔 인디고
+        { headerBg: 'D1FAE5', headerText: '065F46', subBg: 'ECFDF5', subText: '065F46', border: '6EE7B7' }  // 파스텔 에메랄드
+      ];
+
+      const softBorder = {
+        top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
+
+      // 1학기 / 2학기 데이터 준비
+      const plans = [
+        { sem: 1, label: '1학기', plan: plan1 },
+        { sem: 2, label: '2학기', plan: plan2 }
+      ];
+
+      // 각 학기별 과목 인원 및 충돌 분석
+      const semData = plans.map(({ sem, label, plan }) => {
+        if (!plan || !plan.groups || plan.groups.length === 0) {
+          return { sem, label, plan: null, groups: [], subjCounts: {}, groupTotals: [], colCount: 0 };
+        }
+        const { studentGroupOverlaps } = analyzeGroupConflicts(plan);
+        const subjCounts = {};
+        plan.groups.forEach(gSubjs => {
+          gSubjs.forEach(s => { subjCounts[s] = 0; });
+        });
+
+        if (AppState.students && Array.isArray(AppState.students)) {
+          AppState.students.forEach(st => {
+            const overlaps = studentGroupOverlaps[st.id] || {};
+            plan.groups.forEach((gSubjs, gIdx) => {
+              const inGrp = overlaps[gIdx] || [];
+              inGrp.forEach(s => {
+                if (subjCounts[s] !== undefined) subjCounts[s]++;
+              });
+            });
+          });
+        }
+
+        const groupTotals = plan.groups.map(gSubjs => {
+          return gSubjs.reduce((sum, s) => sum + (subjCounts[s] || 0), 0);
+        });
+
+        const totalCols = plan.groups.reduce((acc, g) => acc + Math.max(g.length, 1), 0);
+        return { sem, label, plan, groups: plan.groups, subjCounts, groupTotals, colCount: totalCols };
+      });
+
+      const maxCols = Math.max(semData[0].colCount, semData[1].colCount, 1);
+      const totalColSpan = maxCols + 1; // Col 0 is 구분
+
+      const rows = [];
+      const merges = [];
+      const rowHeights = [];
+
+      // Row 0: Title
+      rows.push([`${acadYearStr} ${gradeStr} 선택과목 배치 및 수강 인원 안내`]);
+      merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: totalColSpan - 1 } });
+      rowHeights.push({ hpt: 32 });
+
+      // Row 1: Subtitle
+      const totalStudentsCount = (AppState.students && AppState.students.length) || 0;
+      rows.push([`대상: ${gradeStr} 전체 | 총 학생 수: ${totalStudentsCount}명 | 학생 안내용 요약 시간표 | 출력일시: ${new Date().toLocaleDateString('ko-KR')}`]);
+      merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalColSpan - 1 } });
+      rowHeights.push({ hpt: 20 });
+
+      // Row 2: Empty Spacer
+      rows.push([]);
+      rowHeights.push({ hpt: 12 });
+
+      // Helper to render one semester block
+      function appendSemesterBlock(sInfo) {
+        if (!sInfo.plan) {
+          const rIdx = rows.length;
+          rows.push([`[ ${sInfo.label} ] 편성된 배치안이 없습니다.`]);
+          merges.push({ s: { r: rIdx, c: 0 }, e: { r: rIdx, c: totalColSpan - 1 } });
+          rowHeights.push({ hpt: 24 });
+          return;
+        }
+
+        const startR = rows.length;
+
+        // 1. Semester Banner Row
+        const semBannerRow = [`■ ${sInfo.label} 과목 배치 및 수강 현황`];
+        for (let i = 1; i < totalColSpan; i++) semBannerRow.push('');
+        rows.push(semBannerRow);
+        merges.push({ s: { r: startR, c: 0 }, e: { r: startR, c: totalColSpan - 1 } });
+        rowHeights.push({ hpt: 24 });
+
+        // 2. Group Header Row & Subject Name Row
+        const groupRow = ['구분'];
+        const subjRow = ['']; // will merge with groupRow for col 0
+
+        // Merging 구분 cell (startR + 1 ~ startR + 2, Col 0)
+        merges.push({ s: { r: startR + 1, c: 0 }, e: { r: startR + 2, c: 0 } });
+
+        // 3. Subject Count Row & Group Total Row
+        const countRow = ['과목 수강 인원'];
+        const totalRow = ['그룹 총 인원'];
+
+        let curC = 1;
+        sInfo.groups.forEach((gSubjs, gIdx) => {
+          const gStartC = curC;
+          const gSpan = Math.max(gSubjs.length, 1);
+          const gEndC = curC + gSpan - 1;
+
+          // Group Header
+          groupRow.push(`${gIdx + 1}그룹`);
+          for (let k = 1; k < gSpan; k++) groupRow.push('');
+          if (gSpan > 1) {
+            merges.push({ s: { r: startR + 1, c: gStartC }, e: { r: startR + 1, c: gEndC } });
+          }
+
+          // Subject Names & Counts
+          if (gSubjs.length === 0) {
+            subjRow.push('(과목 없음)');
+            countRow.push('0명');
+            curC++;
+          } else {
+            gSubjs.forEach(sName => {
+              subjRow.push(sName);
+              const c = sInfo.subjCounts[sName] || 0;
+              countRow.push(`${c}명`);
+              curC++;
+            });
+          }
+
+          // Group Total Row
+          const gTot = sInfo.groupTotals[gIdx] || 0;
+          totalRow.push(`총 ${gTot}명`);
+          for (let k = 1; k < gSpan; k++) totalRow.push('');
+          if (gSpan > 1) {
+            merges.push({ s: { r: startR + 4, c: gStartC }, e: { r: startR + 4, c: gEndC } });
+          }
+        });
+
+        // Fill remaining columns if other semester has more columns
+        while (curC < totalColSpan) {
+          groupRow.push('');
+          subjRow.push('');
+          countRow.push('');
+          totalRow.push('');
+          curC++;
+        }
+
+        rows.push(groupRow);
+        rowHeights.push({ hpt: 22 });
+
+        rows.push(subjRow);
+        rowHeights.push({ hpt: 24 });
+
+        rows.push(countRow);
+        rowHeights.push({ hpt: 22 });
+
+        rows.push(totalRow);
+        rowHeights.push({ hpt: 22 });
+      }
+
+      // Render 1학기
+      appendSemesterBlock(semData[0]);
+
+      // Spacer between semesters
+      rows.push([]);
+      rowHeights.push({ hpt: 16 });
+
+      // Render 2학기
+      appendSemesterBlock(semData[1]);
+
+      // Bottom Note Row
+      rows.push([]);
+      rowHeights.push({ hpt: 12 });
+
+      const noteR = rows.length;
+      rows.push(['※ 본 안내표는 수강신청 결과에 따른 학기별 그룹 배치 현황입니다. 각 그룹에서 학생 본인이 신청한 과목을 1과목씩 수강하게 됩니다.']);
+      merges.push({ s: { r: noteR, c: 0 }, e: { r: noteR, c: totalColSpan - 1 } });
+      rowHeights.push({ hpt: 20 });
+
+      // Build Sheet
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!merges'] = merges;
+      ws['!rows'] = rowHeights;
+
+      // Col Widths
+      const colWidths = [{ wch: 16 }]; // 구분 컬럼
+      for (let c = 1; c < totalColSpan; c++) {
+        colWidths.push({ wch: 14 });
+      }
+      ws['!cols'] = colWidths;
+
+      // Print Setup: Fit-to-page A4 Landscape (학생 배포 및 출력 최적화)
+      ws['!pageSetup'] = {
+        paperSize: 9, // A4
+        orientation: 'landscape',
+        fitToWidth: 1,
+        fitToHeight: 1,
+        fitToPage: true
+      };
+      ws['!sheetPr'] = { pageSetUpPr: { fitToPage: true } };
+      ws['!printOptions'] = {
+        horizontalCentered: true,
+        verticalCentered: false
+      };
+      ws['!margins'] = {
+        left: 0.4,
+        right: 0.4,
+        top: 0.5,
+        bottom: 0.5,
+        header: 0.2,
+        footer: 0.2
+      };
+
+      // Styling Cells
+      // Row 0: Title Style
+      for (let c = 0; c < totalColSpan; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 0, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 16, bold: true, color: { rgb: '1E293B' } },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        });
+      }
+
+      // Row 1: Subtitle Style
+      for (let c = 0; c < totalColSpan; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 1, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 9, color: { rgb: '64748B' } },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        });
+      }
+
+      // Apply styling to Semester Blocks
+      let sem1StartR = 3;
+      let sem2StartR = semData[0].plan ? sem1StartR + 5 + 1 : sem1StartR + 1 + 1;
+
+      const styleSemBlock = (startR, sInfo, bannerColor, bannerText) => {
+        if (!sInfo.plan) return;
+
+        // Banner Row (startR)
+        for (let c = 0; c < totalColSpan; c++) {
+          const ref = XLSX.utils.encode_cell({ r: startR, c });
+          if (!ws[ref]) ws[ref] = { v: '' };
+          ExcelStyler.applyStyle(ws[ref], {
+            font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: bannerText } },
+            fill: { fgColor: { rgb: bannerColor } },
+            alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
+            border: softBorder
+          });
+        }
+
+        // 구분 cell (startR + 1 & startR + 2, c = 0)
+        [startR + 1, startR + 2].forEach(r => {
+          const ref = XLSX.utils.encode_cell({ r, c: 0 });
+          if (!ws[ref]) ws[ref] = { v: '' };
+          ExcelStyler.applyStyle(ws[ref], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+            fill: { fgColor: { rgb: 'F1F5F9' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+        });
+
+        // Group Headers & Subjects & Counts & Totals
+        let curC = 1;
+        sInfo.groups.forEach((gSubjs, gIdx) => {
+          const theme = pastelGroupThemes[gIdx % pastelGroupThemes.length];
+          const gSpan = Math.max(gSubjs.length, 1);
+
+          for (let k = 0; k < gSpan; k++) {
+            const col = curC + k;
+
+            // Group Header (startR + 1)
+            const gRef = XLSX.utils.encode_cell({ r: startR + 1, c: col });
+            if (!ws[gRef]) ws[gRef] = { v: '' };
+            ExcelStyler.applyStyle(ws[gRef], {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme.headerText } },
+              fill: { fgColor: { rgb: theme.headerBg } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: softBorder
+            });
+
+            // Subject Name (startR + 2)
+            const sRef = XLSX.utils.encode_cell({ r: startR + 2, c: col });
+            if (!ws[sRef]) ws[sRef] = { v: '' };
+            ExcelStyler.applyStyle(ws[sRef], {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
+              fill: { fgColor: { rgb: theme.subBg } },
+              alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+              border: softBorder
+            });
+
+            // Count Row (startR + 3)
+            const cRef = XLSX.utils.encode_cell({ r: startR + 3, c: col });
+            if (!ws[cRef]) ws[cRef] = { v: '' };
+            ExcelStyler.applyStyle(ws[cRef], {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme.headerText } },
+              fill: { fgColor: { rgb: 'FFFFFF' } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: softBorder
+            });
+
+            // Group Total Row (startR + 4)
+            const tRef = XLSX.utils.encode_cell({ r: startR + 4, c: col });
+            if (!ws[tRef]) ws[tRef] = { v: '' };
+            ExcelStyler.applyStyle(ws[tRef], {
+              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
+              fill: { fgColor: { rgb: theme.subBg } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: softBorder
+            });
+          }
+          curC += gSpan;
+        });
+
+        // Row label styles for startR + 3 & startR + 4 (Col 0)
+        [startR + 3, startR + 4].forEach(r => {
+          const ref = XLSX.utils.encode_cell({ r, c: 0 });
+          if (!ws[ref]) ws[ref] = { v: '' };
+          ExcelStyler.applyStyle(ws[ref], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+            fill: { fgColor: { rgb: 'F8FAFC' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+        });
+      };
+
+      styleSemBlock(sem1StartR, semData[0], 'E0E7FF', '3730A3'); // 1학기: 인디고 테마 배너
+      styleSemBlock(sem2StartR, semData[1], 'D1FAE5', '065F46'); // 2학기: 에메랄드 테마 배너
+
+      // Note Style
+      for (let c = 0; c < totalColSpan; c++) {
+        const ref = XLSX.utils.encode_cell({ r: noteR, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 9, italic: true, color: { rgb: '64748B' } },
+          alignment: { horizontal: 'left', vertical: 'center' }
+        });
+      }
+
+      XLSX.utils.book_append_sheet(wb, ws, customSheetName.substring(0, 31));
+    }
+
     // Helper to build Combined 1st & 2nd Semester Placement Sheet (한 페이지에 1,2학기 배치표 동시 확인)
     function buildCombinedPlacementSheet(wb, plan1, plan2, customSheetName = '1,2학기_배치표') {
       const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
@@ -4505,6 +4861,12 @@
       try {
         const wb = XLSX.utils.book_new();
         const exportedTabNames = [];
+
+        // 0. Sheet 0: 1·2학기_과목배치_및_인원안내 (학생 배포 및 출력용 통합 요약 안내표)
+        if (hasPlan1 || hasPlan2) {
+          buildSummaryTimetableSheet(wb, plan1, plan2, '1·2학기_과목배치_및_인원안내');
+          exportedTabNames.push('1·2학기_과목배치_및_인원안내');
+        }
 
         // 1. Sheet 1: 1학기_배치안_학생시간표
         if (hasPlan1) {
@@ -6141,161 +6503,7 @@ function createSangjiCourseSelectionForm() {
     // MULTI-YEAR, MULTI-GRADE & CLOUD DATABASE PERSISTENCE ENGINE
     // =========================================================================
 
-    function createEmptyGradeState(grade = '2학년') {
-      const is3rd = (grade === '3학년');
-      return {
-        detectedGrade: grade,
-        fileName: '',
-        students: [],
-        sem1Subjects: [],
-        sem2Subjects: [],
-        currentSemester: 1,
-        step1Threshold: 3,
-        sem1GroupCount: is3rd ? 5 : 3,
-        sem2GroupCount: is3rd ? 7 : 4,
-        splitSubjects: { 1: {}, 2: {} },
-        pinnedSubjects: { 1: {}, 2: {} },
-        lockedGroups: { 1: {}, 2: {} },
-        togetherPairs: { 1: [], 2: [] },
-        separatePairs: { 1: [], 2: [] },
-        closedSubjects: { 1: [], 2: [] },
-        _closedImportedFromPrev: false,
-        subjectMemos: { 1: {}, 2: {} },
-        studentPins: [],
-        currentPlan: {
-          semester: 1,
-          groups: [],
-          conflicts: [],
-          timestamp: null
-        },
-        currentPlans: {
-          1: null,
-          2: null
-        },
-        crossSemesterRules: [],
-        step2Memos: { 1: '', 2: '' },
-        priorData: null,
-        crossCheckResult: {
-          missingStudents: [],
-          duplicateEnrollments: []
-        },
-        savedPlans: [],
-        targetConflictN: {
-          1: null,
-          2: null
-        },
-        simulationHistory: {
-          1: { runCount: 0, minConflictEver: null, minConflictPlan: null },
-          2: { runCount: 0, minConflictEver: null, minConflictPlan: null }
-        },
-        lastUpdated: new Date().toISOString()
-      };
-    }
-
-    function getActiveAcademicYearName() {
-      if (typeof MultiState !== "undefined" && MultiState && MultiState.activeAcademicYear) {
-        return MultiState.activeAcademicYear.trim();
-      }
-      const y = (typeof MultiState !== "undefined" && MultiState && MultiState.activeYear) 
-        ? String(MultiState.activeYear).replace(/[^0-9]/g, "").slice(0, 4) 
-        : "2027";
-      return (y || "2027") + "학년도";
-    }
-    window.getActiveAcademicYearName = getActiveAcademicYearName;
-
-    function getFormattedTimestamp() {
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, "0");
-      const dd = String(now.getDate()).padStart(2, "0");
-      const hh = String(now.getHours()).padStart(2, "0");
-      const min = String(now.getMinutes()).padStart(2, "0");
-      const ss = String(now.getSeconds()).padStart(2, "0");
-      return `${yyyy}${mm}${dd}_${hh}${min}${ss}`;
-    }
-    window.getFormattedTimestamp = getFormattedTimestamp;
-
-    function buildExportFileName(title, ext = "xlsx") {
-      const acadYear = getActiveAcademicYearName();
-      const ts = getFormattedTimestamp();
-      const cleanExt = ext.replace(/^\./, "");
-      let cleanTitle = String(title || "").trim();
-      if (acadYear && cleanTitle.startsWith(acadYear)) {
-        cleanTitle = cleanTitle.slice(acadYear.length).replace(/^[\s_]+/, "");
-      }
-      return `${acadYear} ${cleanTitle}_${ts}.${cleanExt}`;
-    }
-    window.buildExportFileName = buildExportFileName;
-
-    const MultiState = {
-      academicYearsList: ['2027학년도'], // 상위: 기준 학년도 목록
-      activeAcademicYear: '2027학년도', // 현재 활성 기준 학년도
-      datesByAcademicYear: {
-        '2027학년도': ['2027.10.11.']
-      },
-      curriculumByAcademicYear: {
-        '2027학년도': [] // '전체 시수 종합' 기초 데이터 (해당 학년도 하위 모든 날짜 탭에서 100% 공유)
-      },
-      subjectGroupsByAcademicYear: {}, // 교과군 설정 및 과목별 교과군 배정 데이터 (학년도별 영구 보존)
-      customTeacherOrder: [], // 교사별 요약표 출력 순서 (모든 탭에서 영구 전역 공유)
-      activeYear: '2027.10.11.', // 하위: 현재 활성 기준 날짜
-      activeGrade: '2학년', // 기본 2학년 ('2학년' | '3학년' | '전체')
-      activeStep: 1, // 1: 1단계(수강신청 매트릭스), 2: 2단계(과목 그룹핑 & 분반)
-      yearsList: ['2027.10.11.'], // 현재 학년도의 기준 날짜 목록
-      data: {
-        '2027학년도': {
-          '2027.10.11.': {
-            '2학년': null,
-            '3학년': null,
-            '전체': null
-          }
-        }
-      },
-      lastUpdated: new Date().toISOString()
-    };
-
-    // 학년도별 데이터 격리 접근 헬퍼 (하위 탭 이름이 동일해도 학년도 간 충돌 0% 보장)
-    function getAcadData(acadYear = null) {
-      const ay = acadYear || MultiState.activeAcademicYear || '2027학년도';
-      if (!MultiState.data || typeof MultiState.data !== 'object') MultiState.data = {};
-      if (!MultiState.data[ay] || typeof MultiState.data[ay] !== 'object') MultiState.data[ay] = {};
-      return MultiState.data[ay];
-    }
-    window.getAcadData = getAcadData;
-
-    // 이전 버전(단일 flat 구조)의 데이터를 학년도별 격리 구조로 자동 마이그레이션 (하위 호환성 100%)
-    function migrateDataStructure(dataObj, fallbackAY = '2027학년도') {
-      if (!dataObj || typeof dataObj !== 'object') return {};
-      const keys = Object.keys(dataObj);
-      if (keys.length === 0) return {};
-      
-      const hasAcademicYearKeys = keys.some(k => k.includes('학년도'));
-      if (!hasAcademicYearKeys) {
-        const migrated = {};
-        migrated[fallbackAY] = JSON.parse(JSON.stringify(dataObj));
-        return migrated;
-      }
-      return JSON.parse(JSON.stringify(dataObj));
-    }
-
-    const STORAGE_KEY = 'SANGJI_COURSE_REG_MULTI_V6';
-    const FIREBASE_CONFIG_KEY = 'SANGJI_FIREBASE_CONFIG_V1';
-
-    // Cloud Sync Manager (보안 원칙: 웹상/원격에 데이터를 자동 보관하지 않음)
-    class CourseCloudSync {
-      constructor() {
-        this.firebaseApp = null;
-        this.firestoreDb = null;
-        this.isSyncing = false;
-        this.status = 'local';
-      }
-      async init() { this.status = 'local'; }
-      updateUiBadge() {}
-      async save() {}
-      subscribeRemote() {}
-    }
-
-    const cloudSync = new CourseCloudSync();
+    // (Core State definitions moved to 01_core_state.js for safe hoist and global initialization)
 
     function syncCurrentToMulti() {
       const acadData = getAcadData();

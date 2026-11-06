@@ -21,7 +21,7 @@ jsFiles.forEach(file => {
   combinedJs += '\n' + content + '\n';
 });
 
-const finalHtml = template.replace('<!-- INJECT_SCRIPTS -->', combinedJs);
+const finalHtml = template.replace('<!-- INJECT_SCRIPTS -->', () => combinedJs);
 
 fs.writeFileSync('index.html', finalHtml, 'utf8');
 fs.writeFileSync('gas_index.html', finalHtml, 'utf8');
