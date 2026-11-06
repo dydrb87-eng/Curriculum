@@ -4109,7 +4109,7 @@
       XLSX.utils.book_append_sheet(wb, wsPlan, placementSheetName);
     }
 
-    // Helper to build 1·2학기 과목배치 및 수강 인원 안내 시트 (학생 안내 및 출력용 통합 요약표)
+    // Helper to build 1·2학기 과목배치 및 수강 인원 안내 시트 (세로형 Side-by-Side: 좌측 1학기, 우측 2학기)
     function buildSummaryTimetableSheet(wb, plan1, plan2, customSheetName = '1·2학기_과목배치_및_인원안내') {
       const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
       const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
@@ -4132,16 +4132,17 @@
         right: { style: 'thin', color: { rgb: 'CBD5E1' } }
       };
 
-      // 1학기 / 2학기 데이터 준비
-      const plans = [
-        { sem: 1, label: '1학기', plan: plan1 },
-        { sem: 2, label: '2학기', plan: plan2 }
-      ];
+      const summaryBorder = {
+        top: { style: 'medium', color: { rgb: '64748B' } },
+        bottom: { style: 'double', color: { rgb: '0F172A' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
 
-      // 각 학기별 과목 인원 및 충돌 분석
-      const semData = plans.map(({ sem, label, plan }) => {
+      // 1. 각 학기별 데이터 집계 및 세로 행 목록 생성
+      function prepareSemesterItems(plan, semNum) {
         if (!plan || !plan.groups || plan.groups.length === 0) {
-          return { sem, label, plan: null, groups: [], subjCounts: {}, groupTotals: [], colCount: 0 };
+          return { items: [], totalSubjects: 0, totalChoices: 0 };
         }
         const { studentGroupOverlaps } = analyzeGroupConflicts(plan);
         const subjCounts = {};
@@ -4161,156 +4162,167 @@
           });
         }
 
-        const groupTotals = plan.groups.map(gSubjs => {
-          return gSubjs.reduce((sum, s) => sum + (subjCounts[s] || 0), 0);
+        const items = [];
+        let totalSubjects = 0;
+        let totalChoices = 0;
+
+        plan.groups.forEach((gSubjs, gIdx) => {
+          const gTot = gSubjs.reduce((acc, s) => acc + (subjCounts[s] || 0), 0);
+          totalChoices += gTot;
+          if (gSubjs.length === 0) {
+            items.push({
+              gIdx,
+              gName: `${gIdx + 1}그룹`,
+              gTot,
+              isFirstInGroup: true,
+              groupSpan: 1,
+              sName: '(과목 없음)',
+              count: 0
+            });
+          } else {
+            totalSubjects += gSubjs.length;
+            gSubjs.forEach((sName, sIdx) => {
+              items.push({
+                gIdx,
+                gName: `${gIdx + 1}그룹`,
+                gTot,
+                isFirstInGroup: (sIdx === 0),
+                groupSpan: gSubjs.length,
+                sName,
+                count: subjCounts[sName] || 0
+              });
+            });
+          }
         });
 
-        const totalCols = plan.groups.reduce((acc, g) => acc + Math.max(g.length, 1), 0);
-        return { sem, label, plan, groups: plan.groups, subjCounts, groupTotals, colCount: totalCols };
-      });
+        return { items, totalSubjects, totalChoices };
+      }
 
-      const maxCols = Math.max(semData[0].colCount, semData[1].colCount, 1);
-      const totalColSpan = maxCols + 1; // Col 0 is 구분
+      const sem1Data = prepareSemesterItems(plan1, 1);
+      const sem2Data = prepareSemesterItems(plan2, 2);
+
+      const maxDataRows = Math.max(sem1Data.items.length, sem2Data.items.length, 1);
+      const totalColSpan = 7; // Col 0,1,2 (1학기) | Col 3 (구분) | Col 4,5,6 (2학기)
 
       const rows = [];
       const merges = [];
       const rowHeights = [];
 
-      // Row 0: Title
+      // Row 0: 메인 타이틀
       rows.push([`${acadYearStr} ${gradeStr} 선택과목 배치 및 수강 인원 안내`]);
       merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: totalColSpan - 1 } });
       rowHeights.push({ hpt: 32 });
 
-      // Row 1: Subtitle
+      // Row 1: 서브 타이틀
       const totalStudentsCount = (AppState.students && AppState.students.length) || 0;
-      rows.push([`대상: ${gradeStr} 전체 | 총 학생 수: ${totalStudentsCount}명 | 학생 안내용 요약 시간표 | 출력일시: ${new Date().toLocaleDateString('ko-KR')}`]);
+      rows.push([`대상: ${gradeStr} 전체 | 총 학생 수: ${totalStudentsCount}명 | 학생 배포 및 출력용 요약 시간표 | 출력일시: ${new Date().toLocaleDateString('ko-KR')}`]);
       merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalColSpan - 1 } });
       rowHeights.push({ hpt: 20 });
 
-      // Row 2: Empty Spacer
+      // Row 2: 빈 여백 행
       rows.push([]);
-      rowHeights.push({ hpt: 12 });
+      rowHeights.push({ hpt: 10 });
 
-      // Helper to render one semester block
-      function appendSemesterBlock(sInfo) {
-        if (!sInfo.plan) {
-          const rIdx = rows.length;
-          rows.push([`[ ${sInfo.label} ] 편성된 배치안이 없습니다.`]);
-          merges.push({ s: { r: rIdx, c: 0 }, e: { r: rIdx, c: totalColSpan - 1 } });
-          rowHeights.push({ hpt: 24 });
-          return;
+      // Row 3: 학기 대헤더 배너 (1학기 좌측 / 2학기 우측)
+      const bannerRow = [
+        '■ 1학기 선택과목 배치 및 수강 현황', '', '',
+        '',
+        '■ 2학기 선택과목 배치 및 수강 현황', '', ''
+      ];
+      rows.push(bannerRow);
+      merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: 2 } });
+      merges.push({ s: { r: 3, c: 4 }, e: { r: 3, c: 6 } });
+      rowHeights.push({ hpt: 24 });
+
+      // Row 4: 열 헤더 행
+      const colHeaderRow = [
+        '그룹 (총 인원)', '선택 과목명', '수강 인원',
+        '',
+        '그룹 (총 인원)', '선택 과목명', '수강 인원'
+      ];
+      rows.push(colHeaderRow);
+      rowHeights.push({ hpt: 22 });
+
+      // Row 5부터 Row (5 + maxDataRows - 1): 데이터 행들
+      const dataStartR = 5;
+      for (let i = 0; i < maxDataRows; i++) {
+        const rIdx = dataStartR + i;
+        const row = ['', '', '', '', '', '', ''];
+
+        // 1학기 (Col 0, 1, 2)
+        if (i < sem1Data.items.length) {
+          const item1 = sem1Data.items[i];
+          if (item1.isFirstInGroup) {
+            row[0] = `${item1.gName}\n(총 ${item1.gTot}명)`;
+            if (item1.groupSpan > 1) {
+              merges.push({ s: { r: rIdx, c: 0 }, e: { r: rIdx + item1.groupSpan - 1, c: 0 } });
+            }
+          }
+          row[1] = item1.sName;
+          row[2] = `${item1.count}명`;
         }
 
-        const startR = rows.length;
+        // 구분 열 (Col 3)
+        row[3] = '';
 
-        // 1. Semester Banner Row
-        const semBannerRow = [`■ ${sInfo.label} 과목 배치 및 수강 현황`];
-        for (let i = 1; i < totalColSpan; i++) semBannerRow.push('');
-        rows.push(semBannerRow);
-        merges.push({ s: { r: startR, c: 0 }, e: { r: startR, c: totalColSpan - 1 } });
-        rowHeights.push({ hpt: 24 });
-
-        // 2. Group Header Row & Subject Name Row
-        const groupRow = ['구분'];
-        const subjRow = ['']; // will merge with groupRow for col 0
-
-        // Merging 구분 cell (startR + 1 ~ startR + 2, Col 0)
-        merges.push({ s: { r: startR + 1, c: 0 }, e: { r: startR + 2, c: 0 } });
-
-        // 3. Subject Count Row & Group Total Row
-        const countRow = ['과목 수강 인원'];
-        const totalRow = ['그룹 총 인원'];
-
-        let curC = 1;
-        sInfo.groups.forEach((gSubjs, gIdx) => {
-          const gStartC = curC;
-          const gSpan = Math.max(gSubjs.length, 1);
-          const gEndC = curC + gSpan - 1;
-
-          // Group Header
-          groupRow.push(`${gIdx + 1}그룹`);
-          for (let k = 1; k < gSpan; k++) groupRow.push('');
-          if (gSpan > 1) {
-            merges.push({ s: { r: startR + 1, c: gStartC }, e: { r: startR + 1, c: gEndC } });
+        // 2학기 (Col 4, 5, 6)
+        if (i < sem2Data.items.length) {
+          const item2 = sem2Data.items[i];
+          if (item2.isFirstInGroup) {
+            row[4] = `${item2.gName}\n(총 ${item2.gTot}명)`;
+            if (item2.groupSpan > 1) {
+              merges.push({ s: { r: rIdx, c: 4 }, e: { r: rIdx + item2.groupSpan - 1, c: 4 } });
+            }
           }
-
-          // Subject Names & Counts
-          if (gSubjs.length === 0) {
-            subjRow.push('(과목 없음)');
-            countRow.push('0명');
-            curC++;
-          } else {
-            gSubjs.forEach(sName => {
-              subjRow.push(sName);
-              const c = sInfo.subjCounts[sName] || 0;
-              countRow.push(`${c}명`);
-              curC++;
-            });
-          }
-
-          // Group Total Row
-          const gTot = sInfo.groupTotals[gIdx] || 0;
-          totalRow.push(`총 ${gTot}명`);
-          for (let k = 1; k < gSpan; k++) totalRow.push('');
-          if (gSpan > 1) {
-            merges.push({ s: { r: startR + 4, c: gStartC }, e: { r: startR + 4, c: gEndC } });
-          }
-        });
-
-        // Fill remaining columns if other semester has more columns
-        while (curC < totalColSpan) {
-          groupRow.push('');
-          subjRow.push('');
-          countRow.push('');
-          totalRow.push('');
-          curC++;
+          row[5] = item2.sName;
+          row[6] = `${item2.count}명`;
         }
 
-        rows.push(groupRow);
-        rowHeights.push({ hpt: 22 });
-
-        rows.push(subjRow);
-        rowHeights.push({ hpt: 24 });
-
-        rows.push(countRow);
-        rowHeights.push({ hpt: 22 });
-
-        rows.push(totalRow);
-        rowHeights.push({ hpt: 22 });
+        rows.push(row);
+        rowHeights.push({ hpt: 23 });
       }
 
-      // Render 1학기
-      appendSemesterBlock(semData[0]);
+      // 학기별 합계 행 (Total Summary Row)
+      const summaryR = dataStartR + maxDataRows;
+      const summaryRow = [
+        '1학기 합계',
+        `개설 ${sem1Data.totalSubjects}과목`,
+        `총 ${sem1Data.totalChoices}명`,
+        '',
+        '2학기 합계',
+        `개설 ${sem2Data.totalSubjects}과목`,
+        `총 ${sem2Data.totalChoices}명`
+      ];
+      rows.push(summaryRow);
+      rowHeights.push({ hpt: 24 });
 
-      // Spacer between semesters
-      rows.push([]);
-      rowHeights.push({ hpt: 16 });
-
-      // Render 2학기
-      appendSemesterBlock(semData[1]);
-
-      // Bottom Note Row
+      // 빈 여백 행
       rows.push([]);
       rowHeights.push({ hpt: 12 });
 
+      // 하단 안내 문구 행
       const noteR = rows.length;
-      rows.push(['※ 본 안내표는 수강신청 결과에 따른 학기별 그룹 배치 현황입니다. 각 그룹에서 학생 본인이 신청한 과목을 1과목씩 수강하게 됩니다.']);
+      rows.push(['※ 안내: 본 배치표는 학생 수강신청 결과에 따라 편성된 그룹별 과목 개설 현황입니다. 각 그룹 내에서 본인이 신청한 1과목을 수강하게 됩니다.']);
       merges.push({ s: { r: noteR, c: 0 }, e: { r: noteR, c: totalColSpan - 1 } });
       rowHeights.push({ hpt: 20 });
 
-      // Build Sheet
+      // Sheet 생성
       const ws = XLSX.utils.aoa_to_sheet(rows);
       ws['!merges'] = merges;
       ws['!rows'] = rowHeights;
 
-      // Col Widths
-      const colWidths = [{ wch: 16 }]; // 구분 컬럼
-      for (let c = 1; c < totalColSpan; c++) {
-        colWidths.push({ wch: 14 });
-      }
-      ws['!cols'] = colWidths;
+      // 열 너비 설정 (A4 가로 fit-to-page 최적화)
+      ws['!cols'] = [
+        { wch: 14 }, // Col 0: 1학기 그룹
+        { wch: 20 }, // Col 1: 1학기 과목명
+        { wch: 11 }, // Col 2: 1학기 인원
+        { wch: 3 },  // Col 3: 중간 구분
+        { wch: 14 }, // Col 4: 2학기 그룹
+        { wch: 20 }, // Col 5: 2학기 과목명
+        { wch: 11 }  // Col 6: 2학기 인원
+      ];
 
-      // Print Setup: Fit-to-page A4 Landscape (학생 배포 및 출력 최적화)
+      // A4 가로 인쇄 설정
       ws['!pageSetup'] = {
         paperSize: 9, // A4
         orientation: 'landscape',
@@ -4326,14 +4338,14 @@
       ws['!margins'] = {
         left: 0.4,
         right: 0.4,
-        top: 0.5,
-        bottom: 0.5,
+        top: 0.4,
+        bottom: 0.4,
         header: 0.2,
         footer: 0.2
       };
 
-      // Styling Cells
-      // Row 0: Title Style
+      // 셀 스타일링 적용
+      // Row 0: 메인 타이틀
       for (let c = 0; c < totalColSpan; c++) {
         const ref = XLSX.utils.encode_cell({ r: 0, c });
         if (!ws[ref]) ws[ref] = { v: '' };
@@ -4343,7 +4355,7 @@
         });
       }
 
-      // Row 1: Subtitle Style
+      // Row 1: 서브 타이틀
       for (let c = 0; c < totalColSpan; c++) {
         const ref = XLSX.utils.encode_cell({ r: 1, c });
         if (!ws[ref]) ws[ref] = { v: '' };
@@ -4353,106 +4365,163 @@
         });
       }
 
-      // Apply styling to Semester Blocks
-      let sem1StartR = 3;
-      let sem2StartR = semData[0].plan ? sem1StartR + 5 + 1 : sem1StartR + 1 + 1;
+      // Row 3: 학기 배너
+      // 1학기 배너 (Col 0, 1, 2)
+      for (let c = 0; c <= 2; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 3, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: '3730A3' } },
+          fill: { fgColor: { rgb: 'E0E7FF' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+      }
+      // 2학기 배너 (Col 4, 5, 6)
+      for (let c = 4; c <= 6; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 3, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: '065F46' } },
+          fill: { fgColor: { rgb: 'D1FAE5' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+      }
 
-      const styleSemBlock = (startR, sInfo, bannerColor, bannerText) => {
-        if (!sInfo.plan) return;
+      // Row 4: 열 헤더
+      [0, 1, 2, 4, 5, 6].forEach(c => {
+        const ref = XLSX.utils.encode_cell({ r: 4, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: 'F1F5F9' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: softBorder
+        });
+      });
 
-        // Banner Row (startR)
-        for (let c = 0; c < totalColSpan; c++) {
-          const ref = XLSX.utils.encode_cell({ r: startR, c });
-          if (!ws[ref]) ws[ref] = { v: '' };
-          ExcelStyler.applyStyle(ws[ref], {
-            font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: bannerText } },
-            fill: { fgColor: { rgb: bannerColor } },
+      // Row 5부터: 데이터 셀 스타일링
+      for (let i = 0; i < maxDataRows; i++) {
+        const rIdx = dataStartR + i;
+
+        // 1학기 스타일링
+        if (i < sem1Data.items.length) {
+          const item1 = sem1Data.items[i];
+          const theme1 = pastelGroupThemes[item1.gIdx % pastelGroupThemes.length];
+
+          // Col 0: 그룹 셀
+          const refG = XLSX.utils.encode_cell({ r: rIdx, c: 0 });
+          if (!ws[refG]) ws[refG] = { v: '' };
+          ExcelStyler.applyStyle(ws[refG], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme1.headerText } },
+            fill: { fgColor: { rgb: theme1.headerBg } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+            border: softBorder
+          });
+
+          // Col 1: 과목명 셀
+          const refS = XLSX.utils.encode_cell({ r: rIdx, c: 1 });
+          if (!ws[refS]) ws[refS] = { v: '' };
+          ExcelStyler.applyStyle(ws[refS], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
+            fill: { fgColor: { rgb: theme1.subBg } },
             alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
             border: softBorder
           });
+
+          // Col 2: 수강 인원 셀
+          const refC = XLSX.utils.encode_cell({ r: rIdx, c: 2 });
+          if (!ws[refC]) ws[refC] = { v: '' };
+          ExcelStyler.applyStyle(ws[refC], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme1.headerText } },
+            fill: { fgColor: { rgb: 'FFFFFF' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: softBorder
+          });
+        } else {
+          // 빈 영역
+          [0, 1, 2].forEach(c => {
+            const ref = XLSX.utils.encode_cell({ r: rIdx, c });
+            if (!ws[ref]) ws[ref] = { v: '' };
+            ExcelStyler.applyStyle(ws[ref], {
+              fill: { fgColor: { rgb: 'FAFAFA' } },
+              border: softBorder
+            });
+          });
         }
 
-        // 구분 cell (startR + 1 & startR + 2, c = 0)
-        [startR + 1, startR + 2].forEach(r => {
-          const ref = XLSX.utils.encode_cell({ r, c: 0 });
-          if (!ws[ref]) ws[ref] = { v: '' };
-          ExcelStyler.applyStyle(ws[ref], {
-            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
-            fill: { fgColor: { rgb: 'F1F5F9' } },
+        // 2학기 스타일링
+        if (i < sem2Data.items.length) {
+          const item2 = sem2Data.items[i];
+          const theme2 = pastelGroupThemes[item2.gIdx % pastelGroupThemes.length];
+
+          // Col 4: 그룹 셀
+          const refG = XLSX.utils.encode_cell({ r: rIdx, c: 4 });
+          if (!ws[refG]) ws[refG] = { v: '' };
+          ExcelStyler.applyStyle(ws[refG], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme2.headerText } },
+            fill: { fgColor: { rgb: theme2.headerBg } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+            border: softBorder
+          });
+
+          // Col 5: 과목명 셀
+          const refS = XLSX.utils.encode_cell({ r: rIdx, c: 5 });
+          if (!ws[refS]) ws[refS] = { v: '' };
+          ExcelStyler.applyStyle(ws[refS], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
+            fill: { fgColor: { rgb: theme2.subBg } },
+            alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
+            border: softBorder
+          });
+
+          // Col 6: 수강 인원 셀
+          const refC = XLSX.utils.encode_cell({ r: rIdx, c: 6 });
+          if (!ws[refC]) ws[refC] = { v: '' };
+          ExcelStyler.applyStyle(ws[refC], {
+            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme2.headerText } },
+            fill: { fgColor: { rgb: 'FFFFFF' } },
             alignment: { horizontal: 'center', vertical: 'center' },
             border: softBorder
           });
-        });
-
-        // Group Headers & Subjects & Counts & Totals
-        let curC = 1;
-        sInfo.groups.forEach((gSubjs, gIdx) => {
-          const theme = pastelGroupThemes[gIdx % pastelGroupThemes.length];
-          const gSpan = Math.max(gSubjs.length, 1);
-
-          for (let k = 0; k < gSpan; k++) {
-            const col = curC + k;
-
-            // Group Header (startR + 1)
-            const gRef = XLSX.utils.encode_cell({ r: startR + 1, c: col });
-            if (!ws[gRef]) ws[gRef] = { v: '' };
-            ExcelStyler.applyStyle(ws[gRef], {
-              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme.headerText } },
-              fill: { fgColor: { rgb: theme.headerBg } },
-              alignment: { horizontal: 'center', vertical: 'center' },
+        } else {
+          // 빈 영역
+          [4, 5, 6].forEach(c => {
+            const ref = XLSX.utils.encode_cell({ r: rIdx, c });
+            if (!ws[ref]) ws[ref] = { v: '' };
+            ExcelStyler.applyStyle(ws[ref], {
+              fill: { fgColor: { rgb: 'FAFAFA' } },
               border: softBorder
             });
-
-            // Subject Name (startR + 2)
-            const sRef = XLSX.utils.encode_cell({ r: startR + 2, c: col });
-            if (!ws[sRef]) ws[sRef] = { v: '' };
-            ExcelStyler.applyStyle(ws[sRef], {
-              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
-              fill: { fgColor: { rgb: theme.subBg } },
-              alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-              border: softBorder
-            });
-
-            // Count Row (startR + 3)
-            const cRef = XLSX.utils.encode_cell({ r: startR + 3, c: col });
-            if (!ws[cRef]) ws[cRef] = { v: '' };
-            ExcelStyler.applyStyle(ws[cRef], {
-              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: theme.headerText } },
-              fill: { fgColor: { rgb: 'FFFFFF' } },
-              alignment: { horizontal: 'center', vertical: 'center' },
-              border: softBorder
-            });
-
-            // Group Total Row (startR + 4)
-            const tRef = XLSX.utils.encode_cell({ r: startR + 4, c: col });
-            if (!ws[tRef]) ws[tRef] = { v: '' };
-            ExcelStyler.applyStyle(ws[tRef], {
-              font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
-              fill: { fgColor: { rgb: theme.subBg } },
-              alignment: { horizontal: 'center', vertical: 'center' },
-              border: softBorder
-            });
-          }
-          curC += gSpan;
-        });
-
-        // Row label styles for startR + 3 & startR + 4 (Col 0)
-        [startR + 3, startR + 4].forEach(r => {
-          const ref = XLSX.utils.encode_cell({ r, c: 0 });
-          if (!ws[ref]) ws[ref] = { v: '' };
-          ExcelStyler.applyStyle(ws[ref], {
-            font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
-            fill: { fgColor: { rgb: 'F8FAFC' } },
-            alignment: { horizontal: 'center', vertical: 'center' },
-            border: softBorder
           });
+        }
+      }
+
+      // 합계 행 스타일링 (summaryR)
+      [0, 1, 2].forEach(c => {
+        const ref = XLSX.utils.encode_cell({ r: summaryR, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '1E3A8A' } },
+          fill: { fgColor: { rgb: 'EEF2FF' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: summaryBorder
         });
-      };
+      });
 
-      styleSemBlock(sem1StartR, semData[0], 'E0E7FF', '3730A3'); // 1학기: 인디고 테마 배너
-      styleSemBlock(sem2StartR, semData[1], 'D1FAE5', '065F46'); // 2학기: 에메랄드 테마 배너
+      [4, 5, 6].forEach(c => {
+        const ref = XLSX.utils.encode_cell({ r: summaryR, c });
+        if (!ws[ref]) ws[ref] = { v: '' };
+        ExcelStyler.applyStyle(ws[ref], {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '065F46' } },
+          fill: { fgColor: { rgb: 'ECFDF5' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: summaryBorder
+        });
+      });
 
-      // Note Style
+      // 하단 각주 스타일링
       for (let c = 0; c < totalColSpan; c++) {
         const ref = XLSX.utils.encode_cell({ r: noteR, c });
         if (!ws[ref]) ws[ref] = { v: '' };
