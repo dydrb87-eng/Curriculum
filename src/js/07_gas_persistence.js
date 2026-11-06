@@ -581,6 +581,7 @@ function renderYearGradeNav() {
     console.error('FATAL in renderYearGradeNav:', globalNavErr);
   }
 }
+window.renderYearGradeNav = renderYearGradeNav;
 
     let draggedYearTab = null;
 

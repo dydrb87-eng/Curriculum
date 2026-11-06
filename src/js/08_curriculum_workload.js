@@ -4844,6 +4844,9 @@
       }
     }
 
+    window.loadAllState = loadAllState;
+    window.safeInitApp = safeInitApp;
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', safeInitApp);
     } else {

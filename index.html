@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_05:57)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_06:09)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_05:57)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_06:09)</span></p>
         </div>
       </div>
 
@@ -3916,10 +3916,6 @@
     </div>
   </div>
 
-  <!-- ================= APPLICATION JAVASCRIPT ================= -->
-  <!-- ================= APPLICATION JAVASCRIPT ================= -->
-  <script>
-
   <!-- ================= 2단계 학생 배포 안내표 '안내 사항' 편집 모달 ================= -->
   <div id="step2NoticeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 hidden p-3 sm:p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -3997,6 +3993,10 @@
       </div>
     </div>
   </div>
+
+  <!-- ================= APPLICATION JAVASCRIPT ================= -->
+  <!-- ================= APPLICATION JAVASCRIPT ================= -->
+  <script>
 
     // SECURITY & CODE PROTECTION (우클릭 및 소스보기/F12 차단)
     // ==========================================
@@ -21954,6 +21954,7 @@ function renderYearGradeNav() {
     console.error('FATAL in renderYearGradeNav:', globalNavErr);
   }
 }
+window.renderYearGradeNav = renderYearGradeNav;
 
     let draggedYearTab = null;
 
@@ -27729,6 +27730,9 @@ function renderYearGradeNav() {
       }
     }
 
+    window.loadAllState = loadAllState;
+    window.safeInitApp = safeInitApp;
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', safeInitApp);
     } else {
@@ -27738,4 +27742,3 @@ function renderYearGradeNav() {
   </script>
 </body>
 </html>
-
