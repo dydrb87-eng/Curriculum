@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_06:29)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.07_06:36)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_06:29)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.07_06:36)</span></p>
         </div>
       </div>
 
@@ -1323,13 +1323,21 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                     <span>현재 배치 저장</span>
                   </button>
-                                    <button id="btnOpenNoticeModal" type="button" onclick="window.openNoticeModal()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
+                                    <button id="btnExportGroupingPlacement" type="button" onclick="window.exportGroupingPlacementExcel()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="1, 2학기 그룹별 과목 배치표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>그룹핑 배치표</span>
+                  </button>
+                  <button id="btnOpenNoticeModal" type="button" onclick="window.openNoticeModal()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="과목별 배치인원 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
                     <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     <span>안내 사항 ✏️</span>
                   </button>
-<button id="btnExportCurrentPlan" type="button" onclick="window.exportCurrentPlanExcel()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 과목 및 학생별 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                  <button id="btnExportSubjectPlacementSummary" type="button" onclick="window.exportSubjectPlacementSummaryExcel()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 배포 및 출력용 1·2학기 과목별 배치 및 수강 인원 안내표를 엑셀 파일(.xlsx)로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>현재 배치 다운로드</span>
+                    <span>과목별 배치인원</span>
+                  </button>
+                  <button id="btnExportStudentTimetable" type="button" onclick="window.exportStudentTimetableExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 개개인의 1학기 및 2학기 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>학생별 시간표</span>
                   </button>
                                     <button id="btnExportHtmlViewer" type="button" onclick="window.exportHtmlViewer()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 표시된 시간표를 이름 검색 기능이 포함된 단일 웹페이지(.html)로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
@@ -1582,13 +1590,21 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                 <span>현재 배치 저장</span>
               </button>
-                            <button id="btnOpenNoticeModal2" type="button" onclick="window.openNoticeModal()" class="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
+              <button id="btnExportGroupingPlacement2" type="button" onclick="window.exportGroupingPlacementExcel()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="1, 2학기 그룹별 과목 배치표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>그룹핑 배치표</span>
+              </button>
+              <button id="btnOpenNoticeModal2" type="button" onclick="window.openNoticeModal()" class="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="과목별 배치인원 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
                 <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 <span>안내 사항 ✏️</span>
               </button>
-<button id="btnExportCurrentPlan2" type="button" onclick="window.exportCurrentPlanExcel()" class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 과목 및 학생별 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
+              <button id="btnExportSubjectPlacementSummary2" type="button" onclick="window.exportSubjectPlacementSummaryExcel()" class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 배포 및 출력용 1·2학기 과목별 배치 및 수강 인원 안내표를 엑셀 파일(.xlsx)로 다운로드합니다">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span>현재 배치 다운로드</span>
+                <span>과목별 배치인원</span>
+              </button>
+              <button id="btnExportStudentTimetable2" type="button" onclick="window.exportStudentTimetableExcel()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 개개인의 1학기 및 2학기 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>학생별 시간표</span>
               </button>
               <button id="btnExportHtmlViewer2" type="button" onclick="window.exportHtmlViewer()" class="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 표시된 시간표를 이름 검색 기능이 포함된 단일 웹페이지(.html)로 다운로드합니다">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
@@ -13970,6 +13986,150 @@
 
     // Export Current Plan Directly as Formatted Excel:
     // 선생님 요청 서식: 1학기_배치안_학생시간표 / 2학기_배치안_학생시간표 / 1,2학기_배치표 통합 시트 구성
+
+    // Helper: _APP_STATE 메타데이터 시트 첨부
+    function appendAppStateSheet(wb, plan1, plan2) {
+      try {
+        const serializedState = JSON.stringify({
+          detectedGrade: AppState.detectedGrade,
+          students: AppState.students,
+          sem1Subjects: AppState.sem1Subjects,
+          sem2Subjects: AppState.sem2Subjects,
+          sem1GroupCount: AppState.sem1GroupCount,
+          sem2GroupCount: AppState.sem2GroupCount,
+          splitSubjects: AppState.splitSubjects,
+          pinnedSubjects: AppState.pinnedSubjects,
+          studentPins: AppState.studentPins,
+          step2NoticeList: AppState.step2NoticeList || [],
+          savedPlans: [plan1, plan2].filter(Boolean)
+        });
+        const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
+        XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
+      } catch (e) {
+        console.warn('appendAppStateSheet error:', e);
+      }
+    }
+
+    // Helper: 활성 플랜 가져오기
+    function getActivePlansForExport() {
+      const memoTextarea = document.getElementById('planWorkMemo');
+      if (memoTextarea && AppState.currentPlan) {
+        AppState.currentPlan.memo = memoTextarea.value;
+      }
+
+      let plan1 = getActivePlanForSemester(1);
+      let plan2 = getActivePlanForSemester(2);
+
+      if (AppState.currentSemester === 1 && AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, 1)) {
+        plan1 = AppState.currentPlan;
+      }
+      if (AppState.currentSemester === 2 && AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, 2)) {
+        plan2 = AppState.currentPlan;
+      }
+
+      return { plan1, plan2 };
+    }
+
+    // 1. 그룹핑 배치표 다운로드 (1,2학기 배치표 시트)
+    window.exportGroupingPlacementExcel = async function() {
+      const { plan1, plan2 } = getActivePlansForExport();
+      const hasPlan1 = plan1 && plan1.groups && plan1.groups.length > 0;
+      const hasPlan2 = plan2 && plan2.groups && plan2.groups.length > 0;
+
+      if (!hasPlan1 && !hasPlan2) {
+        alert('다운로드할 현재 배치안이 없습니다. 먼저 2단계에서 과목 그룹 배치를 진행해 주세요.');
+        return;
+      }
+
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      try {
+        const wb = XLSX.utils.book_new();
+
+        // 1,2학기_배치표 (한 페이지에 1학기와 2학기 배치 동시 표시)
+        buildCombinedPlacementSheet(wb, plan1, plan2, '1,2학기_배치표');
+
+        // _APP_STATE 메타데이터 시트 (추후 100% 복원용)
+        appendAppStateSheet(wb, plan1, plan2);
+
+        const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} 그룹핑 배치표`, "xlsx");
+        await window.saveExcelFile(wb, outFileName);
+      } catch (err) {
+        console.error('exportGroupingPlacementExcel error:', err);
+        alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
+      }
+    };
+
+    // 2. 과목별 배치인원 다운로드 (1·2학기 과목배치 및 인원안내 시트)
+    window.exportSubjectPlacementSummaryExcel = async function() {
+      const { plan1, plan2 } = getActivePlansForExport();
+      const hasPlan1 = plan1 && plan1.groups && plan1.groups.length > 0;
+      const hasPlan2 = plan2 && plan2.groups && plan2.groups.length > 0;
+
+      if (!hasPlan1 && !hasPlan2) {
+        alert('다운로드할 현재 배치안이 없습니다. 먼저 2단계에서 과목 그룹 배치를 진행해 주세요.');
+        return;
+      }
+
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      try {
+        const wb = XLSX.utils.book_new();
+
+        // 1·2학기_과목배치_및_인원안내 (학생 배포 및 출력용 통합 요약 안내표 + 안내사항)
+        buildSummaryTimetableSheet(wb, plan1, plan2, '1·2학기_과목배치_및_인원안내');
+
+        // _APP_STATE 메타데이터 시트 (추후 100% 복원용)
+        appendAppStateSheet(wb, plan1, plan2);
+
+        const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} 과목별 배치인원`, "xlsx");
+        await window.saveExcelFile(wb, outFileName);
+      } catch (err) {
+        console.error('exportSubjectPlacementSummaryExcel error:', err);
+        alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
+      }
+    };
+
+    // 3. 학생별 시간표 다운로드 (1학기_배치안_학생시간표, 2학기_배치안_학생시간표 시트)
+    window.exportStudentTimetableExcel = async function() {
+      const { plan1, plan2 } = getActivePlansForExport();
+      const hasPlan1 = plan1 && plan1.groups && plan1.groups.length > 0;
+      const hasPlan2 = plan2 && plan2.groups && plan2.groups.length > 0;
+
+      if (!hasPlan1 && !hasPlan2) {
+        alert('다운로드할 현재 배치안이 없습니다. 먼저 2단계에서 과목 그룹 배치를 진행해 주세요.');
+        return;
+      }
+
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      try {
+        const wb = XLSX.utils.book_new();
+
+        // 1학기_배치안_학생시간표
+        if (hasPlan1) {
+          buildTimetableSheet(wb, plan1, '1학기_배치안_학생시간표');
+        }
+
+        // 2학기_배치안_학생시간표
+        if (hasPlan2) {
+          buildTimetableSheet(wb, plan2, '2학기_배치안_학생시간표');
+        }
+
+        // _APP_STATE 메타데이터 시트 (추후 100% 복원용)
+        appendAppStateSheet(wb, plan1, plan2);
+
+        const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} 학생별 시간표`, "xlsx");
+        await window.saveExcelFile(wb, outFileName);
+      } catch (err) {
+        console.error('exportStudentTimetableExcel error:', err);
+        alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
+      }
+    };
+
     window.exportCurrentPlanExcel = async function() {
       // 1. 최신 작업 메모 동기화
       const memoTextarea = document.getElementById('planWorkMemo');

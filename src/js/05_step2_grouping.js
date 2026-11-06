@@ -4985,6 +4985,150 @@
 
     // Export Current Plan Directly as Formatted Excel:
     // 선생님 요청 서식: 1학기_배치안_학생시간표 / 2학기_배치안_학생시간표 / 1,2학기_배치표 통합 시트 구성
+
+    // Helper: _APP_STATE 메타데이터 시트 첨부
+    function appendAppStateSheet(wb, plan1, plan2) {
+      try {
+        const serializedState = JSON.stringify({
+          detectedGrade: AppState.detectedGrade,
+          students: AppState.students,
+          sem1Subjects: AppState.sem1Subjects,
+          sem2Subjects: AppState.sem2Subjects,
+          sem1GroupCount: AppState.sem1GroupCount,
+          sem2GroupCount: AppState.sem2GroupCount,
+          splitSubjects: AppState.splitSubjects,
+          pinnedSubjects: AppState.pinnedSubjects,
+          studentPins: AppState.studentPins,
+          step2NoticeList: AppState.step2NoticeList || [],
+          savedPlans: [plan1, plan2].filter(Boolean)
+        });
+        const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
+        XLSX.utils.book_append_sheet(wb, wsState, '_APP_STATE');
+      } catch (e) {
+        console.warn('appendAppStateSheet error:', e);
+      }
+    }
+
+    // Helper: 활성 플랜 가져오기
+    function getActivePlansForExport() {
+      const memoTextarea = document.getElementById('planWorkMemo');
+      if (memoTextarea && AppState.currentPlan) {
+        AppState.currentPlan.memo = memoTextarea.value;
+      }
+
+      let plan1 = getActivePlanForSemester(1);
+      let plan2 = getActivePlanForSemester(2);
+
+      if (AppState.currentSemester === 1 && AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, 1)) {
+        plan1 = AppState.currentPlan;
+      }
+      if (AppState.currentSemester === 2 && AppState.currentPlan && isPlanValidForCurrentGrade(AppState.currentPlan, 2)) {
+        plan2 = AppState.currentPlan;
+      }
+
+      return { plan1, plan2 };
+    }
+
+    // 1. 그룹핑 배치표 다운로드 (1,2학기 배치표 시트)
+    window.exportGroupingPlacementExcel = async function() {
+      const { plan1, plan2 } = getActivePlansForExport();
+      const hasPlan1 = plan1 && plan1.groups && plan1.groups.length > 0;
+      const hasPlan2 = plan2 && plan2.groups && plan2.groups.length > 0;
+
+      if (!hasPlan1 && !hasPlan2) {
+        alert('다운로드할 현재 배치안이 없습니다. 먼저 2단계에서 과목 그룹 배치를 진행해 주세요.');
+        return;
+      }
+
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      try {
+        const wb = XLSX.utils.book_new();
+
+        // 1,2학기_배치표 (한 페이지에 1학기와 2학기 배치 동시 표시)
+        buildCombinedPlacementSheet(wb, plan1, plan2, '1,2학기_배치표');
+
+        // _APP_STATE 메타데이터 시트 (추후 100% 복원용)
+        appendAppStateSheet(wb, plan1, plan2);
+
+        const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} 그룹핑 배치표`, "xlsx");
+        await window.saveExcelFile(wb, outFileName);
+      } catch (err) {
+        console.error('exportGroupingPlacementExcel error:', err);
+        alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
+      }
+    };
+
+    // 2. 과목별 배치인원 다운로드 (1·2학기 과목배치 및 인원안내 시트)
+    window.exportSubjectPlacementSummaryExcel = async function() {
+      const { plan1, plan2 } = getActivePlansForExport();
+      const hasPlan1 = plan1 && plan1.groups && plan1.groups.length > 0;
+      const hasPlan2 = plan2 && plan2.groups && plan2.groups.length > 0;
+
+      if (!hasPlan1 && !hasPlan2) {
+        alert('다운로드할 현재 배치안이 없습니다. 먼저 2단계에서 과목 그룹 배치를 진행해 주세요.');
+        return;
+      }
+
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      try {
+        const wb = XLSX.utils.book_new();
+
+        // 1·2학기_과목배치_및_인원안내 (학생 배포 및 출력용 통합 요약 안내표 + 안내사항)
+        buildSummaryTimetableSheet(wb, plan1, plan2, '1·2학기_과목배치_및_인원안내');
+
+        // _APP_STATE 메타데이터 시트 (추후 100% 복원용)
+        appendAppStateSheet(wb, plan1, plan2);
+
+        const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} 과목별 배치인원`, "xlsx");
+        await window.saveExcelFile(wb, outFileName);
+      } catch (err) {
+        console.error('exportSubjectPlacementSummaryExcel error:', err);
+        alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
+      }
+    };
+
+    // 3. 학생별 시간표 다운로드 (1학기_배치안_학생시간표, 2학기_배치안_학생시간표 시트)
+    window.exportStudentTimetableExcel = async function() {
+      const { plan1, plan2 } = getActivePlansForExport();
+      const hasPlan1 = plan1 && plan1.groups && plan1.groups.length > 0;
+      const hasPlan2 = plan2 && plan2.groups && plan2.groups.length > 0;
+
+      if (!hasPlan1 && !hasPlan2) {
+        alert('다운로드할 현재 배치안이 없습니다. 먼저 2단계에서 과목 그룹 배치를 진행해 주세요.');
+        return;
+      }
+
+      const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
+      const gradeStr = AppState.detectedGrade || MultiState?.activeGrade || '3학년';
+
+      try {
+        const wb = XLSX.utils.book_new();
+
+        // 1학기_배치안_학생시간표
+        if (hasPlan1) {
+          buildTimetableSheet(wb, plan1, '1학기_배치안_학생시간표');
+        }
+
+        // 2학기_배치안_학생시간표
+        if (hasPlan2) {
+          buildTimetableSheet(wb, plan2, '2학기_배치안_학생시간표');
+        }
+
+        // _APP_STATE 메타데이터 시트 (추후 100% 복원용)
+        appendAppStateSheet(wb, plan1, plan2);
+
+        const outFileName = buildExportFileName(`${acadYearStr} ${gradeStr} 학생별 시간표`, "xlsx");
+        await window.saveExcelFile(wb, outFileName);
+      } catch (err) {
+        console.error('exportStudentTimetableExcel error:', err);
+        alert(`엑셀 파일 생성 중 오류가 발생했습니다: ${err.message || err}`);
+      }
+    };
+
     window.exportCurrentPlanExcel = async function() {
       // 1. 최신 작업 메모 동기화
       const memoTextarea = document.getElementById('planWorkMemo');
