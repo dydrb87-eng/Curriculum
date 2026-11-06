@@ -4282,18 +4282,20 @@
         rowHeights.push({ hpt: 23 });
       }
 
-      // 학기별 합계 행 (Total Summary Row)
+      // 학기별 합계 행 (Total Summary Row: 수강 인원 총계 제외, 개설 과목 수만 표기)
       const summaryR = dataStartR + maxDataRows;
       const summaryRow = [
         '1학기 합계',
         `개설 ${sem1Data.totalSubjects}과목`,
-        `총 ${sem1Data.totalChoices}명`,
+        '',
         '',
         '2학기 합계',
         `개설 ${sem2Data.totalSubjects}과목`,
-        `총 ${sem2Data.totalChoices}명`
+        ''
       ];
       rows.push(summaryRow);
+      merges.push({ s: { r: summaryR, c: 1 }, e: { r: summaryR, c: 2 } });
+      merges.push({ s: { r: summaryR, c: 5 }, e: { r: summaryR, c: 6 } });
       rowHeights.push({ hpt: 24 });
 
       // 빈 여백 행
