@@ -7047,9 +7047,10 @@ function createSangjiCourseSelectionForm() {
 
     // =========================================================================
     // ==========================================
-    // 2단계 학생 배포용 시간표 '안내 사항' 모달 관리
+    // 2단계 학생 배포용 시간표 '안내 사항' 모달 관리 (드래그 앤 드롭 및 순서 이동 지원)
     // ==========================================
     let _tempNoticeList = [];
+    let _draggedNoticeIndex = null;
 
     function openNoticeModal() {
       const modal = document.getElementById('step2NoticeModal');
@@ -7112,30 +7113,81 @@ function createSangjiCourseSelectionForm() {
       if (emptyDiv) emptyDiv.classList.add('hidden');
 
       let html = '';
+      const totalLen = _tempNoticeList.length;
       _tempNoticeList.forEach((item, idx) => {
         const sem1Selected = (item.semester === '1학기') ? 'selected' : '';
         const sem2Selected = (item.semester === '2학기') ? 'selected' : '';
         const commonSelected = (item.semester === '공통' || item.semester === '전체') ? 'selected' : '';
 
         html += `
-          <tr data-notice-row data-index="${idx}" class="hover:bg-slate-50/70 transition-colors">
+          <tr data-notice-row 
+              data-index="${idx}"
+              draggable="true"
+              ondragstart="window.handleNoticeRowDragStart(event, ${idx})"
+              ondragover="window.handleNoticeRowDragOver(event)"
+              ondragleave="window.handleNoticeRowDragLeave(event)"
+              ondrop="window.handleNoticeRowDrop(event, ${idx})"
+              ondragend="window.handleNoticeRowDragEnd(event)"
+              class="hover:bg-rose-50/40 transition-colors group cursor-grab active:cursor-grabbing border-b border-slate-100">
+            
+            <!-- 1. 순서 & 드래그 핸들 & 원클릭 위/아래 이동 버튼 -->
+            <td class="py-2.5 px-2 text-center align-top select-none">
+              <div class="flex flex-col items-center justify-center gap-0.5 pt-1">
+                <div class="flex items-center gap-1 text-slate-400 group-hover:text-rose-600 transition" title="마우스로 드래그하여 위아래 위치를 변경할 수 있습니다">
+                  <span class="text-sm font-black leading-none">⋮⋮</span>
+                  <span class="text-[11px] font-bold text-slate-600">${idx + 1}</span>
+                </div>
+                <div class="flex items-center gap-0.5 mt-1">
+                  <button type="button" 
+                          onclick="event.stopPropagation(); window.moveNoticeModalRow(${idx}, -1)" 
+                          ${idx === 0 ? 'disabled' : ''}
+                          class="w-4 h-4 flex items-center justify-center text-[9px] font-bold rounded bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-600 disabled:opacity-20 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 transition cursor-pointer disabled:cursor-not-allowed" 
+                          title="한 칸 위로 이동">▲</button>
+                  <button type="button" 
+                          onclick="event.stopPropagation(); window.moveNoticeModalRow(${idx}, 1)" 
+                          ${idx === totalLen - 1 ? 'disabled' : ''}
+                          class="w-4 h-4 flex items-center justify-center text-[9px] font-bold rounded bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-600 disabled:opacity-20 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 transition cursor-pointer disabled:cursor-not-allowed" 
+                          title="한 칸 아래로 이동">▼</button>
+                </div>
+              </div>
+            </td>
+
+            <!-- 2. 학기 -->
             <td class="py-2.5 px-3 text-center align-top">
-              <select class="notice-sem-input w-full text-xs font-bold border border-slate-300 rounded-lg p-1.5 bg-white text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none cursor-pointer">
+              <select class="notice-sem-input w-full text-xs font-bold border border-slate-300 rounded-lg p-1.5 bg-white text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none cursor-pointer"
+                      onfocus="this.closest('tr').draggable = false;"
+                      onblur="this.closest('tr').draggable = true;">
                 <option value="1학기" ${sem1Selected}>1학기</option>
                 <option value="2학기" ${sem2Selected}>2학기</option>
                 <option value="공통" ${commonSelected}>공통/전체</option>
               </select>
             </td>
+
+            <!-- 3. 대상 과목 -->
             <td class="py-2.5 px-3 align-top">
-              <input type="text" class="notice-subj-input w-full text-xs font-semibold border border-slate-300 rounded-lg p-1.5 bg-white text-slate-900 focus:ring-2 focus:ring-rose-400 focus:outline-none placeholder-slate-400" 
-                     placeholder="예: 일본어, 중국어" value="${(item.subject || '').replace(/"/g, '&quot;')}">
+              <input type="text" 
+                     class="notice-subj-input w-full text-xs font-semibold border border-slate-300 rounded-lg p-1.5 bg-white text-slate-900 focus:ring-2 focus:ring-rose-400 focus:outline-none placeholder-slate-400" 
+                     placeholder="예: 일본어, 중국어" 
+                     value="${(item.subject || '').replace(/"/g, '&quot;')}"
+                     onfocus="this.closest('tr').draggable = false;"
+                     onblur="this.closest('tr').draggable = true;">
             </td>
+
+            <!-- 4. 안내 내용 -->
             <td class="py-2.5 px-3 align-top">
-              <textarea rows="2" class="notice-content-input w-full text-xs border border-slate-300 rounded-lg p-1.5 bg-white text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none placeholder-slate-400 resize-y" 
-                        placeholder="안내 내용을 입력하세요 (엑셀 C~G열에 자동 병합 및 줄바꿈되어 출력됩니다)">${item.content || ''}</textarea>
+              <textarea rows="2" 
+                        class="notice-content-input w-full text-xs border border-slate-300 rounded-lg p-1.5 bg-white text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none placeholder-slate-400 resize-y" 
+                        placeholder="안내 내용을 입력하세요 (엑셀 C~G열에 자동 병합 및 줄바꿈되어 출력됩니다)"
+                        onfocus="this.closest('tr').draggable = false;"
+                        onblur="this.closest('tr').draggable = true;">${item.content || ''}</textarea>
             </td>
-            <td class="py-2.5 px-3 text-center align-top pt-3">
-              <button type="button" onclick="window.deleteNoticeModalRow(${idx})" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="이 행 삭제">
+
+            <!-- 5. 삭제 버튼 -->
+            <td class="py-2.5 px-2 text-center align-top pt-3">
+              <button type="button" 
+                      onclick="window.deleteNoticeModalRow(${idx})" 
+                      class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-100/80 rounded-lg transition cursor-pointer" 
+                      title="이 안내 행 삭제">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               </button>
             </td>
@@ -7146,6 +7198,89 @@ function createSangjiCourseSelectionForm() {
       tbody.innerHTML = html;
     }
     window.renderNoticeModalRows = renderNoticeModalRows;
+
+    // --- 드래그 앤 드롭 핸들러 ---
+    window.handleNoticeRowDragStart = function(e, idx) {
+      syncNoticeModalInputsToTemp();
+      _draggedNoticeIndex = idx;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(idx));
+      const row = e.currentTarget;
+      setTimeout(() => {
+        if (row) {
+          row.classList.add('opacity-40', 'bg-rose-100/70', 'scale-[0.99]');
+        }
+      }, 0);
+    };
+
+    window.handleNoticeRowDragOver = function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const row = e.currentTarget;
+      const rect = row.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        row.classList.add('border-t-2', 'border-rose-500');
+        row.classList.remove('border-b-2');
+      } else {
+        row.classList.add('border-b-2', 'border-rose-500');
+        row.classList.remove('border-t-2');
+      }
+    };
+
+    window.handleNoticeRowDragLeave = function(e) {
+      const row = e.currentTarget;
+      row.classList.remove('border-t-2', 'border-b-2', 'border-rose-500');
+    };
+
+    window.handleNoticeRowDrop = function(e, targetIdx) {
+      e.preventDefault();
+      const row = e.currentTarget;
+      row.classList.remove('border-t-2', 'border-b-2', 'border-rose-500');
+
+      if (_draggedNoticeIndex === null || _draggedNoticeIndex === targetIdx) {
+        return;
+      }
+
+      const rect = row.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const insertBefore = e.clientY < midY;
+
+      // 요소 이동
+      const fromIdx = _draggedNoticeIndex;
+      const [movedItem] = _tempNoticeList.splice(fromIdx, 1);
+      
+      let toIdx = targetIdx;
+      if (fromIdx < targetIdx) {
+        toIdx = insertBefore ? targetIdx - 1 : targetIdx;
+      } else {
+        toIdx = insertBefore ? targetIdx : targetIdx + 1;
+      }
+      if (toIdx < 0) toIdx = 0;
+      if (toIdx > _tempNoticeList.length) toIdx = _tempNoticeList.length;
+
+      _tempNoticeList.splice(toIdx, 0, movedItem);
+      _draggedNoticeIndex = null;
+      renderNoticeModalRows();
+    };
+
+    window.handleNoticeRowDragEnd = function(e) {
+      _draggedNoticeIndex = null;
+      document.querySelectorAll('#noticeModalTbody tr[data-notice-row]').forEach(tr => {
+        tr.classList.remove('opacity-40', 'bg-rose-100/70', 'scale-[0.99]', 'border-t-2', 'border-b-2', 'border-rose-500');
+      });
+    };
+
+    // --- 버튼을 통한 원클릭 위/아래 이동 함수 ---
+    window.moveNoticeModalRow = function(index, direction) {
+      syncNoticeModalInputsToTemp();
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= _tempNoticeList.length) return;
+      const temp = _tempNoticeList[index];
+      _tempNoticeList[index] = _tempNoticeList[targetIndex];
+      _tempNoticeList[targetIndex] = temp;
+      renderNoticeModalRows();
+    };
 
     function addNoticeModalRow() {
       syncNoticeModalInputsToTemp();
