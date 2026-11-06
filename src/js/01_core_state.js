@@ -51,6 +51,7 @@
         crossSemesterRules: [],
         step2Memos: { 1: '', 2: '' },
         step2NoticeList: [],
+        step2ChangePeriod: { enabled: false, round: '1차', period: '' },
         priorData: null,
         crossCheckResult: {
           missingStudents: [],

@@ -4223,13 +4223,32 @@
       rows.push([]);
       rowHeights.push({ hpt: 10 });
 
-      // Row 3: '안내 사항' 타이틀 (빨간 글씨)
+      // 수강신청 변경 기간 배너 (설정 및 활성화 시)
+      const changePeriod = AppState.step2ChangePeriod || { enabled: false, round: '1차', period: '' };
+      const hasChangePeriod = changePeriod.enabled && (changePeriod.period || '').trim().length > 0;
+      let periodR = -1;
+      if (hasChangePeriod) {
+        periodR = rows.length;
+        const roundStr = (changePeriod.round || '1차').trim();
+        const pText = `[${roundStr} 수강신청 변경 기간 : ${changePeriod.period.trim()}]`;
+        rows.push([pText, '', '', '', '', '', '']);
+        merges.push({ s: { r: periodR, c: 0 }, e: { r: periodR, c: totalColSpan - 1 } });
+        rowHeights.push({ hpt: 26 });
+
+        // 배너 아래 여백 행
+        rows.push([]);
+        rowHeights.push({ hpt: 8 });
+      }
+
+      // '안내 사항' 타이틀 (빨간 글씨)
+      const noticeTitleR = rows.length;
       rows.push(['안내 사항', '', '', '', '', '', '']);
       rowHeights.push({ hpt: 22 });
 
-      // Row 4: 안내 사항 테이블 헤더 (학기 | 과목 | 내용 C~G열 병합)
+      // 안내 사항 테이블 헤더 (학기 | 과목 | 내용 C~G열 병합)
+      const noticeHeaderR = rows.length;
       rows.push(['학기', '과목', '내용', '', '', '', '']);
-      merges.push({ s: { r: 4, c: 2 }, e: { r: 4, c: 6 } });
+      merges.push({ s: { r: noticeHeaderR, c: 2 }, e: { r: noticeHeaderR, c: 6 } });
       rowHeights.push({ hpt: 22 });
 
       // 안내 사항 데이터 행 생성 (AppState.step2NoticeList 연동)
@@ -4239,7 +4258,7 @@
         : [{ semester: '', subject: '', content: '' }, { semester: '', subject: '', content: '' }];
       const noticeRowsCount = noticeList.length;
 
-      const noticeStartR = 5;
+      const noticeStartR = rows.length;
       for (let nr = 0; nr < noticeRowsCount; nr++) {
         const curNoticeR = noticeStartR + nr;
         const item = noticeList[nr] || {};
@@ -4388,55 +4407,74 @@
         });
       }
 
-      // Row 3: '안내 사항' 타이틀 (빨간 글씨, 굵게)
-      const noticeTitleRef = XLSX.utils.encode_cell({ r: 3, c: 0 });
+      // 수강신청 변경 기간 배너 스타일링 (연노랑/연앰버 배경 + 굵은 테두리)
+      if (periodR !== -1) {
+        for (let c = 0; c < totalColSpan; c++) {
+          const pRef = XLSX.utils.encode_cell({ r: periodR, c });
+          if (!ws[pRef]) ws[pRef] = { v: '' };
+          ExcelStyler.applyStyle(ws[pRef], {
+            font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: '78350F' } },
+            fill: { fgColor: { rgb: 'FEF3C7' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: {
+              top: { style: 'medium', color: { rgb: 'D97706' } },
+              bottom: { style: 'medium', color: { rgb: 'D97706' } },
+              left: { style: (c === 0 ? 'medium' : 'thin'), color: { rgb: 'D97706' } },
+              right: { style: (c === totalColSpan - 1 ? 'medium' : 'thin'), color: { rgb: 'D97706' } }
+            }
+          });
+        }
+      }
+
+      // '안내 사항' 타이틀 (빨간 글씨, 굵게)
+      const noticeTitleRef = XLSX.utils.encode_cell({ r: noticeTitleR, c: 0 });
       if (!ws[noticeTitleRef]) ws[noticeTitleRef] = { v: '안내 사항' };
       ExcelStyler.applyStyle(ws[noticeTitleRef], {
         font: { name: ExcelStyler.fontFamily, sz: 11, bold: true, color: { rgb: 'DC2626' } },
         alignment: { horizontal: 'left', vertical: 'center' }
       });
 
-      // Row 4: 안내 사항 테이블 헤더 (학기, 과목, 내용)
-      const nh0 = XLSX.utils.encode_cell({ r: 4, c: 0 });
-      if (!ws[nh0]) ws[nh0] = { v: '학기' };
-      ExcelStyler.applyStyle(ws[nh0], {
-        font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
-        fill: { fgColor: { rgb: 'F1F5F9' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        border: softBorder
-      });
-
-      const nh1 = XLSX.utils.encode_cell({ r: 4, c: 1 });
-      if (!ws[nh1]) ws[nh1] = { v: '과목' };
-      ExcelStyler.applyStyle(ws[nh1], {
-        font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
-        fill: { fgColor: { rgb: 'F1F5F9' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        border: softBorder
-      });
-
-      for (let c = 2; c <= 6; c++) {
-        const nhC = XLSX.utils.encode_cell({ r: 4, c });
-        if (!ws[nhC]) ws[nhC] = { v: (c === 2 ? '내용' : '') };
-        ExcelStyler.applyStyle(ws[nhC], {
-          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '334155' } },
+      // 안내 사항 테이블 헤더 (학기, 과목, 내용 - 상단 medium, 하단 double 이중 실선, 좌/우 medium 외곽선)
+      for (let c = 0; c <= 6; c++) {
+        const nhRef = XLSX.utils.encode_cell({ r: noticeHeaderR, c });
+        if (!ws[nhRef]) {
+          const defaultVal = (c === 0 ? '학기' : (c === 1 ? '과목' : (c === 2 ? '내용' : '')));
+          ws[nhRef] = { v: defaultVal };
+        }
+        ExcelStyler.applyStyle(ws[nhRef], {
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
           fill: { fgColor: { rgb: 'F1F5F9' } },
           alignment: { horizontal: 'center', vertical: 'center' },
-          border: softBorder
+          border: {
+            top: { style: 'medium', color: { rgb: '334155' } },
+            bottom: { style: 'double', color: { rgb: '0F172A' } },
+            left: { style: (c === 0 ? 'medium' : 'thin'), color: { rgb: (c === 0 ? '334155' : 'CBD5E1') } },
+            right: { style: (c === 6 ? 'medium' : 'thin'), color: { rgb: (c === 6 ? '334155' : 'CBD5E1') } }
+          }
         });
       }
 
-      // 안내 사항 데이터 행 스타일링 (학기, 과목 항목 볼드 bold: true 처리 및 테두리/정렬)
+      // 안내 사항 데이터 행 스타일링 (이중 실선 테두리 Double Border 및 학기/과목 볼드 처리)
       for (let nr = 0; nr < noticeRowsCount; nr++) {
         const curR = noticeStartR + nr;
-        // 학기 (Col 0) - 가운데 정렬 + 볼드(bold: true)
+        const isLastRow = (nr === noticeRowsCount - 1);
+        const bottomBorderDef = isLastRow
+          ? { style: 'double', color: { rgb: '0F172A' } }
+          : { style: 'thin', color: { rgb: 'CBD5E1' } };
+
+        // 학기 (Col 0) - 가운데 정렬 + 볼드(bold: true) + 좌측 외곽 medium선
         const nr0 = XLSX.utils.encode_cell({ r: curR, c: 0 });
         if (!ws[nr0]) ws[nr0] = { v: '' };
         ExcelStyler.applyStyle(ws[nr0], {
           font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
           fill: { fgColor: { rgb: 'FFFFFF' } },
           alignment: { horizontal: 'center', vertical: 'center' },
-          border: softBorder
+          border: {
+            top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            bottom: bottomBorderDef,
+            left: { style: 'medium', color: { rgb: '334155' } },
+            right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+          }
         });
 
         // 과목 (Col 1) - 왼쪽 정렬 + 들여쓰기 1 + 볼드(bold: true)
@@ -4446,10 +4484,15 @@
           font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
           fill: { fgColor: { rgb: 'FFFFFF' } },
           alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
-          border: softBorder
+          border: {
+            top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            bottom: bottomBorderDef,
+            left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+          }
         });
 
-        // 내용 (Col 2~6) - 왼쪽 정렬 + 들여쓰기 1
+        // 내용 (Col 2~6) - 왼쪽 정렬 + 들여쓰기 1 + 우측 끝 외곽 medium선
         for (let c = 2; c <= 6; c++) {
           const nrC = XLSX.utils.encode_cell({ r: curR, c });
           if (!ws[nrC]) ws[nrC] = { v: '' };
@@ -4457,7 +4500,12 @@
             font: { name: ExcelStyler.fontFamily, sz: 10, color: { rgb: '0F172A' } },
             fill: { fgColor: { rgb: 'FFFFFF' } },
             alignment: { horizontal: 'left', vertical: 'center', indent: 1, wrapText: true },
-            border: softBorder
+            border: {
+              top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+              bottom: bottomBorderDef,
+              left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+              right: { style: (c === 6 ? 'medium' : 'thin'), color: { rgb: (c === 6 ? '334155' : 'CBD5E1') } }
+            }
           });
         }
       }
@@ -5000,6 +5048,7 @@
           pinnedSubjects: AppState.pinnedSubjects,
           studentPins: AppState.studentPins,
           step2NoticeList: AppState.step2NoticeList || [],
+          step2ChangePeriod: AppState.step2ChangePeriod || { enabled: false, round: '1차', period: '' },
           savedPlans: [plan1, plan2].filter(Boolean)
         });
         const wsState = XLSX.utils.aoa_to_sheet([[serializedState]]);
@@ -6844,6 +6893,7 @@ function createSangjiCourseSelectionForm() {
         crossSemesterRules: JSON.parse(JSON.stringify(AppState.crossSemesterRules || [])),
         step2Memos: JSON.parse(JSON.stringify(AppState.step2Memos || { 1: '', 2: '' })),
         step2NoticeList: JSON.parse(JSON.stringify(AppState.step2NoticeList || [])),
+        step2ChangePeriod: JSON.parse(JSON.stringify(AppState.step2ChangePeriod || { enabled: false, round: '1차', period: '' })),
         priorData: AppState.priorData ? JSON.parse(JSON.stringify(AppState.priorData)) : null,
         crossCheckResult: AppState.crossCheckResult ? JSON.parse(JSON.stringify(AppState.crossCheckResult)) : null,
         savedPlans: JSON.parse(JSON.stringify(AppState.savedPlans || [])),
@@ -7196,6 +7246,49 @@ function createSangjiCourseSelectionForm() {
     let _tempNoticeList = [];
     let _draggedNoticeIndex = null;
 
+    window.updateNoticePeriodPreview = function() {
+      const chk = document.getElementById('noticePeriodEnabled');
+      const roundInput = document.getElementById('noticePeriodRound');
+      const textInput = document.getElementById('noticePeriodText');
+      const inputsWrap = document.getElementById('noticePeriodInputsWrap');
+      const badge = document.getElementById('noticePeriodStatusBadge');
+      const previewBox = document.getElementById('noticePeriodPreviewBox');
+      const previewText = document.getElementById('noticePeriodPreviewText');
+
+      const isEnabled = chk ? chk.checked : false;
+      const round = (roundInput?.value || '1차').trim();
+      const period = (textInput?.value || '').trim();
+
+      if (inputsWrap) {
+        if (isEnabled) {
+          inputsWrap.classList.remove('opacity-40', 'pointer-events-none');
+        } else {
+          inputsWrap.classList.add('opacity-40', 'pointer-events-none');
+        }
+      }
+
+      if (badge) {
+        if (isEnabled) {
+          badge.textContent = '✅ 활성화됨 (엑셀 상단에 배너 삽입)';
+          badge.className = 'text-[11px] font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-full';
+        } else {
+          badge.textContent = '비활성화됨 (엑셀 미표기)';
+          badge.className = 'text-[11px] font-semibold text-slate-400';
+        }
+      }
+
+      if (previewBox && previewText) {
+        if (isEnabled) {
+          const bannerStr = `[${round || '1차'} 수강신청 변경 기간 : ${period || '기간을 입력하세요'}]`;
+          previewText.textContent = bannerStr;
+          previewBox.className = 'p-2.5 rounded-xl border border-amber-300 bg-amber-100/70 text-xs font-bold text-amber-950 flex items-center justify-center gap-1.5 transition shadow-2xs';
+        } else {
+          previewText.textContent = '(체크 해제됨: 엑셀 다운로드 시 기간 배너가 생성되지 않습니다)';
+          previewBox.className = 'p-2 rounded-xl border border-dashed border-slate-200 bg-slate-100/60 text-xs font-medium text-slate-400 flex items-center justify-center gap-1.5 transition';
+        }
+      }
+    };
+
     function openNoticeModal() {
       const modal = document.getElementById('step2NoticeModal');
       if (!modal) return;
@@ -7205,6 +7298,18 @@ function createSangjiCourseSelectionForm() {
         const acadYear = MultiState?.activeAcademicYear || '2027학년도';
         const grade = AppState.detectedGrade || '2학년';
         badge.textContent = `${acadYear} ${grade}`;
+      }
+
+      // 수강신청 변경 기간 데이터 로드
+      const changePeriod = AppState.step2ChangePeriod || { enabled: false, round: '1차', period: '' };
+      const chk = document.getElementById('noticePeriodEnabled');
+      const roundInput = document.getElementById('noticePeriodRound');
+      const textInput = document.getElementById('noticePeriodText');
+      if (chk) chk.checked = !!changePeriod.enabled;
+      if (roundInput) roundInput.value = changePeriod.round || '1차';
+      if (textInput) textInput.value = changePeriod.period || '';
+      if (typeof window.updateNoticePeriodPreview === 'function') {
+        window.updateNoticePeriodPreview();
       }
 
       // AppState의 noticeList를 임시 복사
@@ -7455,6 +7560,16 @@ function createSangjiCourseSelectionForm() {
       const cleaned = _tempNoticeList.filter(item => {
         return (item.subject && item.subject.trim()) || (item.content && item.content.trim());
       });
+
+      // 수강신청 변경 기간 상태 저장
+      const chk = document.getElementById('noticePeriodEnabled');
+      const roundInput = document.getElementById('noticePeriodRound');
+      const textInput = document.getElementById('noticePeriodText');
+      AppState.step2ChangePeriod = {
+        enabled: chk ? chk.checked : false,
+        round: roundInput ? (roundInput.value.trim() || '1차') : '1차',
+        period: textInput ? textInput.value.trim() : ''
+      };
 
       AppState.step2NoticeList = cleaned;
       if (typeof syncCurrentToMulti === 'function') {
