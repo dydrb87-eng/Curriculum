@@ -4232,11 +4232,18 @@
       merges.push({ s: { r: 4, c: 2 }, e: { r: 4, c: 6 } });
       rowHeights.push({ hpt: 22 });
 
-      // Row 5, 6: 안내 사항 2개 기본 입력 행 (테두리 및 C~G 병합 완료, 사용자가 엑셀에서 바로 입력 또는 행 추가 가능)
-      const noticeRowsCount = 2;
+      // 안내 사항 데이터 행 생성 (AppState.step2NoticeList 연동)
+      const rawNoticeList = (AppState.step2NoticeList && Array.isArray(AppState.step2NoticeList)) ? AppState.step2NoticeList : [];
+      const noticeList = rawNoticeList.length > 0
+        ? rawNoticeList
+        : [{ semester: '', subject: '', content: '' }, { semester: '', subject: '', content: '' }];
+      const noticeRowsCount = noticeList.length;
+
+      const noticeStartR = 5;
       for (let nr = 0; nr < noticeRowsCount; nr++) {
-        const curNoticeR = 5 + nr;
-        rows.push(['', '', '', '', '', '', '']);
+        const curNoticeR = noticeStartR + nr;
+        const item = noticeList[nr] || {};
+        rows.push([item.semester || '', item.subject || '', item.content || '', '', '', '', '']);
         merges.push({ s: { r: curNoticeR, c: 2 }, e: { r: curNoticeR, c: 6 } });
         rowHeights.push({ hpt: 24 });
       }
@@ -4419,24 +4426,24 @@
         });
       }
 
-      // Row 5, 6: 안내 사항 2개 기본 입력 행
+      // 안내 사항 데이터 행 스타일링 (학기, 과목 항목 볼드 bold: true 처리 및 테두리/정렬)
       for (let nr = 0; nr < noticeRowsCount; nr++) {
-        const curR = 5 + nr;
-        // 학기 (Col 0) - 가운데 정렬
+        const curR = noticeStartR + nr;
+        // 학기 (Col 0) - 가운데 정렬 + 볼드(bold: true)
         const nr0 = XLSX.utils.encode_cell({ r: curR, c: 0 });
         if (!ws[nr0]) ws[nr0] = { v: '' };
         ExcelStyler.applyStyle(ws[nr0], {
-          font: { name: ExcelStyler.fontFamily, sz: 10, color: { rgb: '0F172A' } },
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
           fill: { fgColor: { rgb: 'FFFFFF' } },
           alignment: { horizontal: 'center', vertical: 'center' },
           border: softBorder
         });
 
-        // 과목 (Col 1) - 왼쪽 정렬 + 들여쓰기 1
+        // 과목 (Col 1) - 왼쪽 정렬 + 들여쓰기 1 + 볼드(bold: true)
         const nr1 = XLSX.utils.encode_cell({ r: curR, c: 1 });
         if (!ws[nr1]) ws[nr1] = { v: '' };
         ExcelStyler.applyStyle(ws[nr1], {
-          font: { name: ExcelStyler.fontFamily, sz: 10, color: { rgb: '0F172A' } },
+          font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '0F172A' } },
           fill: { fgColor: { rgb: 'FFFFFF' } },
           alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
           border: softBorder
@@ -6692,6 +6699,7 @@ function createSangjiCourseSelectionForm() {
         currentPlans: JSON.parse(JSON.stringify(AppState.currentPlans || { 1: null, 2: null })), 
         crossSemesterRules: JSON.parse(JSON.stringify(AppState.crossSemesterRules || [])),
         step2Memos: JSON.parse(JSON.stringify(AppState.step2Memos || { 1: '', 2: '' })),
+        step2NoticeList: JSON.parse(JSON.stringify(AppState.step2NoticeList || [])),
         priorData: AppState.priorData ? JSON.parse(JSON.stringify(AppState.priorData)) : null,
         crossCheckResult: AppState.crossCheckResult ? JSON.parse(JSON.stringify(AppState.crossCheckResult)) : null,
         savedPlans: JSON.parse(JSON.stringify(AppState.savedPlans || [])),
@@ -7038,3 +7046,150 @@ function createSangjiCourseSelectionForm() {
 
 
     // =========================================================================
+    // ==========================================
+    // 2단계 학생 배포용 시간표 '안내 사항' 모달 관리
+    // ==========================================
+    let _tempNoticeList = [];
+
+    function openNoticeModal() {
+      const modal = document.getElementById('step2NoticeModal');
+      if (!modal) return;
+
+      const badge = document.getElementById('noticeModalGradeBadge');
+      if (badge) {
+        const acadYear = MultiState?.activeAcademicYear || '2027학년도';
+        const grade = AppState.detectedGrade || '2학년';
+        badge.textContent = `${acadYear} ${grade}`;
+      }
+
+      // AppState의 noticeList를 임시 복사
+      if (!Array.isArray(AppState.step2NoticeList)) {
+        AppState.step2NoticeList = [];
+      }
+      _tempNoticeList = JSON.parse(JSON.stringify(AppState.step2NoticeList));
+
+      // 기본적으로 비어있다면 안내 행 1개 기본 준비
+      if (_tempNoticeList.length === 0) {
+        _tempNoticeList.push({ semester: '1학기', subject: '', content: '' });
+      }
+
+      renderNoticeModalRows();
+      modal.classList.remove('hidden');
+    }
+    window.openNoticeModal = openNoticeModal;
+
+    function closeNoticeModal() {
+      const modal = document.getElementById('step2NoticeModal');
+      if (modal) modal.classList.add('hidden');
+    }
+    window.closeNoticeModal = closeNoticeModal;
+
+    function syncNoticeModalInputsToTemp() {
+      const tbody = document.getElementById('noticeModalTbody');
+      if (!tbody) return;
+      const rows = tbody.querySelectorAll('tr[data-notice-row]');
+      const updated = [];
+      rows.forEach(tr => {
+        const sem = tr.querySelector('.notice-sem-input')?.value || '1학기';
+        const subj = tr.querySelector('.notice-subj-input')?.value || '';
+        const content = tr.querySelector('.notice-content-input')?.value || '';
+        updated.push({ semester: sem, subject: subj, content: content });
+      });
+      _tempNoticeList = updated;
+    }
+
+    function renderNoticeModalRows() {
+      const tbody = document.getElementById('noticeModalTbody');
+      const emptyDiv = document.getElementById('noticeModalEmpty');
+      if (!tbody) return;
+
+      if (!_tempNoticeList || _tempNoticeList.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyDiv) emptyDiv.classList.remove('hidden');
+        return;
+      }
+
+      if (emptyDiv) emptyDiv.classList.add('hidden');
+
+      let html = '';
+      _tempNoticeList.forEach((item, idx) => {
+        const sem1Selected = (item.semester === '1학기') ? 'selected' : '';
+        const sem2Selected = (item.semester === '2학기') ? 'selected' : '';
+        const commonSelected = (item.semester === '공통' || item.semester === '전체') ? 'selected' : '';
+
+        html += `
+          <tr data-notice-row data-index="${idx}" class="hover:bg-slate-50/70 transition-colors">
+            <td class="py-2.5 px-3 text-center align-top">
+              <select class="notice-sem-input w-full text-xs font-bold border border-slate-300 rounded-lg p-1.5 bg-white text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none cursor-pointer">
+                <option value="1학기" ${sem1Selected}>1학기</option>
+                <option value="2학기" ${sem2Selected}>2학기</option>
+                <option value="공통" ${commonSelected}>공통/전체</option>
+              </select>
+            </td>
+            <td class="py-2.5 px-3 align-top">
+              <input type="text" class="notice-subj-input w-full text-xs font-semibold border border-slate-300 rounded-lg p-1.5 bg-white text-slate-900 focus:ring-2 focus:ring-rose-400 focus:outline-none placeholder-slate-400" 
+                     placeholder="예: 일본어, 중국어" value="${(item.subject || '').replace(/"/g, '&quot;')}">
+            </td>
+            <td class="py-2.5 px-3 align-top">
+              <textarea rows="2" class="notice-content-input w-full text-xs border border-slate-300 rounded-lg p-1.5 bg-white text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none placeholder-slate-400 resize-y" 
+                        placeholder="안내 내용을 입력하세요 (엑셀 C~G열에 자동 병합 및 줄바꿈되어 출력됩니다)">${item.content || ''}</textarea>
+            </td>
+            <td class="py-2.5 px-3 text-center align-top pt-3">
+              <button type="button" onclick="window.deleteNoticeModalRow(${idx})" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="이 행 삭제">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+    window.renderNoticeModalRows = renderNoticeModalRows;
+
+    function addNoticeModalRow() {
+      syncNoticeModalInputsToTemp();
+      _tempNoticeList.push({ semester: '1학기', subject: '', content: '' });
+      renderNoticeModalRows();
+      setTimeout(() => {
+        const rows = document.querySelectorAll('#noticeModalTbody tr[data-notice-row]');
+        if (rows.length > 0) {
+          const lastRow = rows[rows.length - 1];
+          lastRow.querySelector('.notice-subj-input')?.focus();
+        }
+      }, 50);
+    }
+    window.addNoticeModalRow = addNoticeModalRow;
+
+    function deleteNoticeModalRow(index) {
+      syncNoticeModalInputsToTemp();
+      if (index >= 0 && index < _tempNoticeList.length) {
+        _tempNoticeList.splice(index, 1);
+      }
+      renderNoticeModalRows();
+    }
+    window.deleteNoticeModalRow = deleteNoticeModalRow;
+
+    function saveNoticeModalData() {
+      syncNoticeModalInputsToTemp();
+      // 과목이나 내용이 입력된 행만 유지
+      const cleaned = _tempNoticeList.filter(item => {
+        return (item.subject && item.subject.trim()) || (item.content && item.content.trim());
+      });
+
+      AppState.step2NoticeList = cleaned;
+      if (typeof syncCurrentToMulti === 'function') {
+        syncCurrentToMulti();
+      }
+      if (typeof saveAllState === 'function') {
+        saveAllState();
+      }
+      closeNoticeModal();
+
+      if (typeof showToast === 'function') {
+        showToast(`안내 사항 ${cleaned.length}건이 저장되었습니다. (엑셀 다운로드에 즉시 반영)`, 'success');
+      } else {
+        alert(`안내 사항 ${cleaned.length}건이 저장되었습니다.\n현재 배치 다운로드 시 엑셀 파일 상단에 반영됩니다.`);
+      }
+    }
+    window.saveNoticeModalData = saveNoticeModalData;

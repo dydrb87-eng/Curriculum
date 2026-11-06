@@ -1323,7 +1323,11 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                     <span>현재 배치 저장</span>
                   </button>
-                  <button id="btnExportCurrentPlan" type="button" onclick="window.exportCurrentPlanExcel()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 과목 및 학생별 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                                    <button id="btnOpenNoticeModal" type="button" onclick="window.openNoticeModal()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
+                    <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    <span>안내 사항 ✏️</span>
+                  </button>
+<button id="btnExportCurrentPlan" type="button" onclick="window.exportCurrentPlanExcel()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 과목 및 학생별 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <span>현재 배치 다운로드</span>
                   </button>
@@ -1578,7 +1582,11 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                 <span>현재 배치 저장</span>
               </button>
-              <button id="btnExportCurrentPlan2" type="button" onclick="window.exportCurrentPlanExcel()" class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 과목 및 학생별 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
+                            <button id="btnOpenNoticeModal2" type="button" onclick="window.openNoticeModal()" class="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="학생 안내표 상단에 표기될 안내 사항을 작성/수정합니다">
+                <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                <span>안내 사항 ✏️</span>
+              </button>
+<button id="btnExportCurrentPlan2" type="button" onclick="window.exportCurrentPlanExcel()" class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 배치된 과목 및 학생별 시간표를 엑셀 파일(.xlsx)로 다운로드합니다">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <span>현재 배치 다운로드</span>
               </button>
@@ -3911,6 +3919,84 @@
   <!-- ================= APPLICATION JAVASCRIPT ================= -->
   <!-- ================= APPLICATION JAVASCRIPT ================= -->
   <script>
+
+  <!-- ================= 2단계 학생 배포 안내표 '안내 사항' 편집 모달 ================= -->
+  <div id="step2NoticeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 hidden p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-rose-50 via-white to-slate-50 border-b border-rose-100 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold text-base shadow-sm">
+            ✏️
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+              <span>학생 배포용 시간표 '안내 사항' 작성</span>
+              <span id="noticeModalGradeBadge" class="text-xs font-bold text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-full"></span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              엑셀 다운로드 시 <strong class="text-slate-700">1·2학기 과목배치 및 인원안내</strong> 시트 상단에 포함되며, 작업 저장 및 JSON 파일 백업 시 영구 저장됩니다.
+            </p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeNoticeModal();" class="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition cursor-pointer text-lg leading-none" title="닫기">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-4 flex-1 bg-slate-50/50">
+        <!-- 상단 툴바: 행 추가 버튼 및 팁 -->
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+          <div class="text-xs text-slate-600 flex items-center gap-1.5">
+            <span class="text-rose-500 font-bold">💡 Tip</span>
+            <span>과목 이동 권고, 폐강 예정 과목, 분반 안내 등 학생들에게 전달할 공지를 행별로 추가하세요.</span>
+          </div>
+          <button type="button" onclick="window.addNoticeModalRow()" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1 cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>안내 행 추가</span>
+          </button>
+        </div>
+
+        <!-- 안내 사항 테이블 -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <tr>
+                  <th class="py-2.5 px-3 text-center w-28">학기</th>
+                  <th class="py-2.5 px-3 w-48">대상 과목</th>
+                  <th class="py-2.5 px-3">안내 내용 (엑셀 C~G열 병합 출력)</th>
+                  <th class="py-2.5 px-3 text-center w-16">삭제</th>
+                </tr>
+              </thead>
+              <tbody id="noticeModalTbody" class="divide-y divide-slate-100">
+                <!-- Javascript dynamically renders rows -->
+              </tbody>
+            </table>
+          </div>
+          <div id="noticeModalEmpty" class="hidden py-12 text-center text-slate-400 space-y-2">
+            <div class="text-3xl">📋</div>
+            <p class="font-medium text-xs">작성된 안내 사항이 없습니다.<br>우측 상단의 <strong>[+ 안내 행 추가]</strong> 버튼을 눌러 새 안내 항목을 추가하세요.</p>
+            <p class="text-[11px] text-slate-400">(비어 있는 상태로 엑셀 다운로드 시 사용자가 엑셀에서 직접 쓸 수 있는 기본 빈 서식 2행이 제공됩니다)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between px-6 py-3.5 bg-white border-t border-slate-100 shrink-0">
+        <button type="button" onclick="window.closeNoticeModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1">
+          <span>✕ 취소</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.saveNoticeModalData();" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition cursor-pointer flex items-center gap-1.5">
+            <span>💾 저장 및 닫기</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 <!-- INJECT_SCRIPTS -->
   </script>
 </body>

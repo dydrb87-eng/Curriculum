@@ -50,6 +50,7 @@
         },
         crossSemesterRules: [],
         step2Memos: { 1: '', 2: '' },
+        step2NoticeList: [],
         priorData: null,
         crossCheckResult: {
           missingStudents: [],
