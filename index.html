@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.10_04:11)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.10_04:34)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.10_04:11)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.10_04:34)</span></p>
         </div>
       </div>
 
@@ -25142,8 +25142,11 @@ window.renderYearGradeNav = renderYearGradeNav;
         right: { style: 'thin', color: { rgb: 'CBD5E1' } }
       };
 
+      const rawYear = year || MultiState?.activeAcademicYear || '2027학년도';
+      const acadYearStr = String(rawYear).includes('학년도') ? String(rawYear).trim() : `${String(rawYear).trim()}학년도`;
+
       const aoa = [
-        [`${year}학년도 교사별 학기 수업 시수 및 담당 과목 요약표`],
+        [`${acadYearStr} 교사별 학기 수업 시수 및 담당 과목 요약표`],
         [`출력일시: ${new Date().toLocaleDateString('ko-KR')} | 대상 교사: 총 ${teachersList.length}명 | 상지대관령고등학교`],
         [],
         ['순서', '교사명', '학기', '담당 과목 (학년 / 시수)', '1학기 시수', '2학기 시수', '연간 총시수', '학기당 평균시수']
@@ -25759,8 +25762,10 @@ window.renderYearGradeNav = renderYearGradeNav;
         alert('내보낼 기초데이터 과목이 없습니다.');
         return;
       }
-      const year = MultiState?.activeYear || '2027';
-      const { ws, count } = createTeacherWorkloadSheet(curriculum, year);
+      const acadYearStr = (MultiState?.activeAcademicYear || '2027학년도').includes('학년도')
+        ? MultiState.activeAcademicYear.trim()
+        : `${(MultiState?.activeAcademicYear || '2027').trim()}학년도`;
+      const { ws, count } = createTeacherWorkloadSheet(curriculum, acadYearStr);
       if (!ws || count === 0) {
         alert('배정된 담당 교사 데이터가 없습니다.');
         return;
@@ -26863,16 +26868,18 @@ window.renderYearGradeNav = renderYearGradeNav;
         return;
       }
 
-      const year = MultiState?.activeYear || '2027';
+      const acadYearStr = (MultiState?.activeAcademicYear || '2027학년도').includes('학년도')
+        ? MultiState.activeAcademicYear.trim()
+        : `${(MultiState?.activeAcademicYear || '2027').trim()}학년도`;
       const wb = XLSX.utils.book_new();
 
       // Sheet 1: 교사별 시수 종합표 (파스텔톤 정밀 서식 적용, 반 구분 및 순수 시수 숫자 연동)
-      const { ws: ws1 } = createTeacherWorkloadSheet(curriculum, year);
+      const { ws: ws1 } = createTeacherWorkloadSheet(curriculum, acadYearStr);
       XLSX.utils.book_append_sheet(wb, ws1, '교사별_시수_종합');
 
       // Sheet 2: 교사별 학급(반) 과목 배정 현황 (교사명, 학기, 시수합계, 학급별 과목명)
       try {
-        const { ws: wsClass } = createTeacherClassWorksheet(curriculum, year);
+        const { ws: wsClass } = createTeacherClassWorksheet(curriculum, acadYearStr);
         if (wsClass) {
           XLSX.utils.book_append_sheet(wb, wsClass, '교사별_학급_배정현황');
         }
@@ -26880,7 +26887,17 @@ window.renderYearGradeNav = renderYearGradeNav;
         console.warn('교사별 학급 배정 현황 시트 생성 중 오류:', err);
       }
 
-      // Sheet 3: 전학년 과목별 배정 상세 (반 구분, 출판사, 담당교사 포함)
+      // Sheet 3: 과목 기준 데이터 정리 (반별 행 분리, 과목명(총원), 분반 처리 및 셀 병합)
+      try {
+        const { ws: ws3 } = createSubjectBasedWorksheet();
+        if (ws3) {
+          XLSX.utils.book_append_sheet(wb, ws3, '과목_기준_데이터_정리');
+        }
+      } catch (err) {
+        console.warn('과목 기준 데이터 정리 시트 생성 중 오류:', err);
+      }
+
+      // Sheet 4: 전학년 과목별 배정 상세 (맨 뒤로 배치)
       const detailRows = curriculum.map((c, idx) => ({
         '연번': idx + 1,
         '학년': c.grade,
@@ -26912,16 +26929,6 @@ window.renderYearGradeNav = renderYearGradeNav;
         { wch: 14 }   // 최초원래교사
       ];
       XLSX.utils.book_append_sheet(wb, ws2, '전학년_과목_배정_상세');
-
-      // Sheet 3: 과목 기준 데이터 정리 (반별 행 분리, 과목명(총원), 분반 처리 및 셀 병합)
-      try {
-        const { ws: ws3 } = createSubjectBasedWorksheet();
-        if (ws3) {
-          XLSX.utils.book_append_sheet(wb, ws3, '과목_기준_데이터_정리');
-        }
-      } catch (err) {
-        console.warn('과목 기준 데이터 정리 시트 생성 중 오류:', err);
-      }
 
       const allGradesFileName = buildExportFileName("전학년 교사별시수 및 과목배정 종합", "xlsx");
       window.saveExcelFile(wb, allGradesFileName);
