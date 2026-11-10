@@ -1021,6 +1021,12 @@
               <span>↩ 선택 변경 전체 복원</span>
             </button>
 
+            <!-- Step 1 과목 추가 버튼 -->
+            <button id="btnOpenAddSubjectStep1Modal" type="button" onclick="window.openAddSubjectStep1Modal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 학년도 1단계에 새 과목을 추가합니다 (2단계 1그룹에 자동 반영)">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>➕ 과목 추가</span>
+            </button>
+
             <!-- Excel Export Button for Step 1 -->
             <button id="btnExportStep1" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors flex items-center space-x-1.5">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1310,10 +1316,6 @@
                   <button id="btnRegroup" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5" title="설정한 조건 및 충돌 목표에 맞춰 새로운 조합을 탐색합니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>새로고침</span>
-                  </button>
-                  <button id="btnOpenAddSubjectModal" type="button" onclick="window.openAddSubjectModal()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="현재 학기 2단계 그룹에 새로운 과목을 직접 추가합니다">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>과목 추가</span>
                   </button>
                   <button id="btnOpenImportGroupModal" type="button" onclick="window.openImportGroupModal()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer" title="다른 '기준 날짜'에서 동일 학년의 N그룹별 과목 배치를 불러옵니다">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
@@ -3071,72 +3073,76 @@
     </div>
   </div>
 
-  <!-- Add Subject to Step 2 Group Modal (2단계 그룹에 과목 추가 모달) -->
-  <div id="addSubjectModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+  <!-- Add Subject to Step 1 Modal (1단계 과목 추가 모달 - 2단계 1그룹 자동 연동) -->
+  <div id="addSubjectStep1Modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] space-y-4">
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
         <div class="flex items-center space-x-2.5">
-          <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-base shadow-2xs">
+          <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base shadow-2xs">
             ➕
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <h3 class="text-base font-bold text-slate-900">2단계 그룹에 과목 추가</h3>
-              <span id="addSubjectContextBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800"></span>
+              <h3 class="text-base font-bold text-slate-900">1단계 과목 추가</h3>
+              <span id="addSubjectStep1ContextBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800"></span>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">과목명과 배치할 그룹을 지정하여 그룹 및 전체 시스템에 새 과목을 추가합니다.</p>
+            <p class="text-xs text-slate-500 mt-0.5">추가된 과목은 1단계 개설 목록에 등록되며, 2단계 1그룹에 자동으로 추가 배치됩니다.</p>
           </div>
         </div>
-        <button type="button" onclick="window.closeAddSubjectModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="닫기">
+        <button type="button" onclick="window.closeAddSubjectStep1Modal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="닫기">
           ✕
         </button>
       </div>
 
       <!-- Body -->
       <div class="space-y-4 flex-1 overflow-y-auto pr-1">
-        <!-- 1. 과목명 입력 -->
+        <!-- 1. 학기 선택 -->
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1.5">
-            1. 과목명 입력
+            1. 개설 학기 선택
           </label>
-          <input type="text" id="addSubjectNameInput" placeholder="예: 세계시민, 인공지능 기초, 심화영어..." 
-                 class="w-full px-3.5 py-2 text-xs font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none placeholder:font-normal placeholder:text-slate-400 bg-white" />
-          <div id="addSubjectSuggestions" class="mt-2 flex flex-wrap gap-1.5 items-center">
-            <!-- Quick suggestions from 1단계 survey or curriculum unassigned subjects -->
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center justify-center gap-2 p-2 rounded-xl border border-slate-200 hover:border-indigo-400 bg-slate-50 cursor-pointer font-bold text-xs text-slate-700">
+              <input type="radio" name="addSubjectStep1Sem" id="addSubjectStep1Sem1" value="1" class="text-indigo-600 focus:ring-indigo-500" checked>
+              <span>1학기 개설</span>
+            </label>
+            <label class="flex items-center justify-center gap-2 p-2 rounded-xl border border-slate-200 hover:border-indigo-400 bg-slate-50 cursor-pointer font-bold text-xs text-slate-700">
+              <input type="radio" name="addSubjectStep1Sem" id="addSubjectStep1Sem2" value="2" class="text-indigo-600 focus:ring-indigo-500">
+              <span>2학기 개설</span>
+            </label>
           </div>
         </div>
 
-        <!-- 2. 배치할 그룹 위치 선택 -->
+        <!-- 2. 과목명 입력 -->
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1.5">
-            2. 배치할 그룹 위치 선택
+            2. 추가할 과목명 입력
           </label>
-          <select id="addSubjectGroupSelect" class="w-full px-3.5 py-2 text-xs font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none bg-white cursor-pointer">
-            <!-- Dynamically populated options: 1그룹, 2그룹, ... -->
-          </select>
+          <input type="text" id="addSubjectStep1NameInput" onkeydown="if(event.key==='Enter') window.confirmAddSubjectStep1();" placeholder="예: 인공지능 기초, 심화영어, 세계시민..." 
+                 class="w-full px-3.5 py-2 text-xs font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none placeholder:font-normal placeholder:text-slate-400 bg-white" />
         </div>
 
-        <!-- 3. 안내 사항 -->
-        <div class="bg-teal-50/70 border border-teal-200 rounded-xl p-3 text-[11px] text-teal-900 space-y-1">
-          <p class="font-bold flex items-center gap-1">
-            <span>💡</span> <span>반영 범위 안내:</span>
+        <!-- 3. 시스템 연동 및 안정성 안내 -->
+        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3 text-[11px] text-indigo-950 space-y-1.5">
+          <p class="font-bold flex items-center gap-1 text-indigo-900">
+            <span>💡</span> <span>시스템 자동 연동 안내:</span>
           </p>
-          <ul class="list-disc list-inside text-teal-800 space-y-0.5 ml-1">
-            <li><strong>2단계 그룹 카드</strong>: 지정한 그룹에 즉시 배치되어 카드가 생성됩니다.</li>
-            <li><strong>이동수업 시간표</strong>: 해당 그룹 하위에 신규 과목 열이 추가되며, 학생 셀 클릭으로 수강 배정할 수 있습니다.</li>
-            <li><strong>1단계 현황표 & 3·4단계</strong>: 1단계 수강 과목 목록 및 전체 교육과정 편제표/교원 시수표에도 자동 연동 반영됩니다.</li>
+          <ul class="list-disc list-inside text-indigo-800 space-y-1 ml-1">
+            <li><strong>1단계 현황표</strong>: 정식 개설 과목으로 추가되며, 신설 이력이 비고란에 자동 기록됩니다.</li>
+            <li><strong>2단계 1그룹 자동 추가</strong>: 2단계 조합의 <strong>1그룹</strong>에 자동으로 추가 배치되며, 2단계에서 원하는 그룹으로 자유롭게 이동할 수 있습니다.</li>
+            <li><strong>폐강 관리 시 안전 보존</strong>: 1단계에 원천 등록되므로, 이후 다른 과목을 폐강하더라도 삭제되지 않고 영구 보존됩니다.</li>
           </ul>
         </div>
       </div>
 
       <!-- Footer -->
       <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
-        <button type="button" onclick="window.closeAddSubjectModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
+        <button type="button" onclick="window.closeAddSubjectStep1Modal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
           취소
         </button>
-        <button type="button" onclick="window.confirmAddNewSubject()" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5">
-          <span>➕ 이 그룹에 과목 추가</span>
+        <button type="button" onclick="window.confirmAddSubjectStep1()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5">
+          <span>➕ 과목 추가 (2단계 1그룹에 자동 반영)</span>
         </button>
       </div>
     </div>

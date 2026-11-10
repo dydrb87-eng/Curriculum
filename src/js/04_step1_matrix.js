@@ -1430,7 +1430,7 @@
     }
     window.importPrevDateClosedSubjectsOnce = importPrevDateClosedSubjectsOnce;
 
-    // Toggle Subject Closed (폐강 확정 / 해제 - 현재 탭 고유 상태 관리, 이전 날짜와 완전히 독립)
+    // Toggle Subject Closed (폐강 확정 / 해제 - 현재 탭 고유 상태 관리, 2단계 기존 배치 보존)
     window.toggleSubjectClosed = function(subjectName) {
       const sem = AppState.currentSemester;
       if (!AppState.closedSubjects) AppState.closedSubjects = { 1: [], 2: [] };
@@ -1439,9 +1439,26 @@
 
       const normTarget = normalizeSubject(subjectName);
       const idx = AppState.closedSubjects[sem].findIndex(s => normalizeSubject(s) === normTarget);
+
+      let plan = AppState.currentPlans?.[sem] || (AppState.currentSemester === sem ? AppState.currentPlan : null);
+
       if (idx >= 0) {
+        // 폐강 해제 -> 2단계 플랜이 있다면 1그룹에 복귀 추가
         AppState.closedSubjects[sem].splice(idx, 1);
+        if (plan && plan.groups && plan.groups.length > 0) {
+          const exists = plan.groups.some(g => g.some(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) === normTarget));
+          if (!exists) {
+            if (!plan.groups[0]) plan.groups[0] = [];
+            plan.groups[0].push(subjectName);
+            if (typeof analyzeGroupConflicts === 'function') {
+              const analysis = analyzeGroupConflicts(plan);
+              plan.conflictCount = analysis.conflictStudentCount;
+              plan.conflicts = analysis.conflictDetails;
+            }
+          }
+        }
       } else {
+        // 폐강 확정 -> 2단계 플랜에서 해당 과목만 그룹에서 안전 제거 (다른 과목의 배치는 100% 보존!)
         AppState.closedSubjects[sem].push(subjectName);
         if (AppState.splitSubjects?.[sem]?.[subjectName]) {
           delete AppState.splitSubjects[sem][subjectName];
@@ -1449,14 +1466,156 @@
         if (AppState.pinnedSubjects?.[sem]?.[subjectName]) {
           delete AppState.pinnedSubjects[sem][subjectName];
         }
+        if (plan && plan.groups && plan.groups.length > 0) {
+          plan.groups = plan.groups.map(grp => grp.filter(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) !== normTarget));
+          if (typeof analyzeGroupConflicts === 'function') {
+            const analysis = analyzeGroupConflicts(plan);
+            plan.conflictCount = analysis.conflictStudentCount;
+            plan.conflicts = analysis.conflictDetails;
+          }
+        }
       }
 
       renderSubjectSummaryTable();
       initStep2Controls();
-      runOptimization();
+
+      // 플랜이 아예 없을 때만 최초 자동 생성(runOptimization) 실행
+      if (!plan || !plan.groups || plan.groups.length === 0) {
+        runOptimization();
+      }
+
       renderStep2Results();
       renderSavedPlansList();
       saveAllState();
+    };
+
+    // ==========================================
+    // 1단계 과목 추가 모달 및 로직 (2단계 1그룹 자동 연동)
+    // ==========================================
+    window.openAddSubjectStep1Modal = function() {
+      const activeGrade = MultiState.activeGrade || AppState.detectedGrade || '2학년';
+      const activeSem = AppState.currentSemester || 1;
+      const currentAY = MultiState.activeAcademicYear || '2027학년도';
+
+      const badge = document.getElementById('addSubjectStep1ContextBadge');
+      if (badge) badge.textContent = `${currentAY} ${activeGrade}`;
+
+      const r1 = document.getElementById('addSubjectStep1Sem1');
+      const r2 = document.getElementById('addSubjectStep1Sem2');
+      if (activeSem === 2) {
+        if (r2) r2.checked = true;
+      } else {
+        if (r1) r1.checked = true;
+      }
+
+      const input = document.getElementById('addSubjectStep1NameInput');
+      if (input) input.value = '';
+
+      const modal = document.getElementById('addSubjectStep1Modal');
+      if (modal) modal.classList.remove('hidden');
+      setTimeout(() => input?.focus(), 50);
+    };
+
+    window.closeAddSubjectStep1Modal = function() {
+      const modal = document.getElementById('addSubjectStep1Modal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.confirmAddSubjectStep1 = function() {
+      const input = document.getElementById('addSubjectStep1NameInput');
+      if (!input) return;
+
+      const rawName = input.value.trim();
+      if (!rawName) {
+        alert('추가할 과목명을 입력해주세요.');
+        input.focus();
+        return;
+      }
+
+      const cleanName = rawName.replace(/^[*※★☆\s]+/, '').replace(/-[A-Z]$/, '').trim();
+      if (!cleanName) {
+        alert('올바른 과목명을 입력해주세요.');
+        input.focus();
+        return;
+      }
+
+      const r2 = document.getElementById('addSubjectStep1Sem2');
+      const sem = (r2 && r2.checked) ? 2 : 1;
+      const curSemSubjs = (sem === 1 ? AppState.sem1Subjects : AppState.sem2Subjects) || [];
+      const normNew = normalizeSubject(cleanName);
+
+      // 1. 이미 개설된 과목인지 확인
+      const isAlreadyInSem = curSemSubjs.some(s => normalizeSubject(s) === normNew);
+      const curClosed = AppState.closedSubjects?.[sem] || [];
+      const isClosedInCurrent = curClosed.some(s => normalizeSubject(s) === normNew);
+
+      if (isAlreadyInSem && !isClosedInCurrent) {
+        alert(`⚠️ [${cleanName}] 과목은 이미 ${sem}학기에 개설되어 있는 과목입니다.`);
+        input.focus();
+        return;
+      }
+
+      // 2. 만약 이미 존재하지만 폐강 상태였다면 -> 폐강 해제 처리
+      if (isClosedInCurrent) {
+        if (confirm(`ℹ️ [${cleanName}] 과목은 현재 ${sem}학기에 폐강 상태로 등록되어 있습니다.\n\n폐강을 해제하고 정상 개설 과목으로 전환하시겠습니까?`)) {
+          AppState.closedSubjects[sem] = AppState.closedSubjects[sem].filter(s => normalizeSubject(s) !== normNew);
+        } else {
+          return;
+        }
+      } else {
+        // 1단계 과목 목록에 추가
+        curSemSubjs.push(cleanName);
+        curSemSubjs.sort((a, b) => a.localeCompare(b, 'ko'));
+        if (sem === 1) AppState.sem1Subjects = curSemSubjs;
+        else AppState.sem2Subjects = curSemSubjs;
+      }
+
+      // 3. 비고 메모에 신설 이력 자동 기록
+      if (!AppState.subjectMemos) AppState.subjectMemos = { 1: {}, 2: {} };
+      if (!AppState.subjectMemos[sem]) AppState.subjectMemos[sem] = {};
+      const activeDateStr = MultiState.activeYear || '';
+      const memoText = activeDateStr ? `[${activeDateStr} 1단계 과목 신설]` : '[1단계 과목 신설]';
+      if (!AppState.subjectMemos[sem][cleanName]) {
+        AppState.subjectMemos[sem][cleanName] = memoText;
+      } else if (!AppState.subjectMemos[sem][cleanName].includes('신설')) {
+        AppState.subjectMemos[sem][cleanName] = `${AppState.subjectMemos[sem][cleanName]} ${memoText}`.trim();
+      }
+
+      // 4. 2단계 플랜에 1그룹(Group 1)으로 자동 배치!
+      if (!AppState.currentPlans) AppState.currentPlans = { 1: null, 2: null };
+      let plan = AppState.currentPlans[sem];
+      if (!plan && AppState.currentPlan && AppState.currentPlan.semester === sem) {
+        plan = AppState.currentPlan;
+      }
+
+      if (plan && plan.groups && plan.groups.length > 0) {
+        // 1그룹(groups[0])에 없으면 추가
+        const existsAnywhere = plan.groups.some(g => g.some(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) === normNew));
+        if (!existsAnywhere) {
+          if (!plan.groups[0]) plan.groups[0] = [];
+          plan.groups[0].push(cleanName);
+        }
+        if (typeof analyzeGroupConflicts === 'function') {
+          const analysis = analyzeGroupConflicts(plan);
+          plan.conflictCount = analysis.conflictStudentCount;
+          plan.conflicts = analysis.conflictDetails;
+        }
+        AppState.currentPlans[sem] = plan;
+        if (AppState.currentSemester === sem) {
+          AppState.currentPlan = plan;
+        }
+      }
+
+      // 5. 전체 상태 저장 & UI 갱신
+      saveAllState();
+
+      renderSubjectSummaryTable();
+      if (typeof initStep1Filters === 'function') initStep1Filters();
+      if (typeof renderStep2Results === 'function') renderStep2Results();
+
+      window.closeAddSubjectStep1Modal();
+
+      alert(`✅ [${cleanName}] 과목이 ${sem}학기 1단계에 성공적으로 추가되었습니다!\n\n- 1단계 현황표(신설 뱃지 및 비고 이력)에 즉시 반영되었습니다.\n- 2단계 1그룹에 자동으로 추가 배치되었습니다.\n- 2단계 화면에서 원하는 그룹으로 자유롭게 이동시킬 수 있습니다.`);
     };
 
     // Update Subject Retention Memo (폐강 보류 및 비고 메모)

@@ -5840,7 +5840,14 @@
     // STEP 2: MANUAL SUBJECT ADDITION & DELETION (2단계 과목 추가 및 그룹 삭제)
     // ==========================================
 
+    // 2단계 과목 추가는 1단계 과목 추가 모달로 일원화 (1단계 정규 등록 + 2단계 1그룹 자동 연동)
     window.openAddSubjectModal = function() {
+      if (typeof window.openAddSubjectStep1Modal === 'function') {
+        window.openAddSubjectStep1Modal();
+        return;
+      }
+    };
+    function legacy_openAddSubjectModal_unused() {
       const plan = AppState.currentPlan;
       if (!plan || !plan.groups || plan.groups.length === 0) {
         alert('현재 학기에 생성된 그룹 배치가 없습니다. 2단계 조합을 먼저 생성해주세요.');
