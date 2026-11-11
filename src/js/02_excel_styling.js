@@ -258,18 +258,15 @@
     const separatePairsList = document.getElementById('separatePairsList');
 
     // Prior Data & Cross-Check Elements
-    const priorSem1FileInput = document.getElementById('priorSem1FileInput');
-    const priorSem1UploadZone = document.getElementById('priorSem1UploadZone');
-    const priorSem2FileInput = document.getElementById('priorSem2FileInput');
-    const priorSem2UploadZone = document.getElementById('priorSem2UploadZone');
+    const priorFileInput = document.getElementById('priorFileInput');
+    const priorDropZone = document.getElementById('priorDropZone');
     const priorUploadZone = document.getElementById('priorUploadZone');
     const priorStatusBadge = document.getElementById('priorStatusBadge');
     const priorLoadedInfo = document.getElementById('priorLoadedInfo');
     const priorLoadedSummary = document.getElementById('priorLoadedSummary');
+    const priorClassBadges = document.getElementById('priorClassBadges');
     const priorLoadedFileName = document.getElementById('priorLoadedFileName');
     const btnClearPrior = document.getElementById('btnClearPrior');
-    const btnClearPriorSem1 = document.getElementById('btnClearPriorSem1');
-    const btnClearPriorSem2 = document.getElementById('btnClearPriorSem2');
     const btnSamplePrior = document.getElementById('btnSamplePrior');
     const crossCheckAlertPanel = document.getElementById('crossCheckAlertPanel');
     const missingCountDisplay = document.getElementById('missingCountDisplay');

@@ -3109,7 +3109,7 @@
           });
         } else if (gradeStr === '1학년') {
           // 1학년 (신입생 전원 수강): 사전데이터 우선 적용 및 학급 수 기준 행 분리
-          const priorG1 = yData['1학년']?.priorData?.students;
+          const priorG1 = yData['1학년']?.priorData?.students || yData['2학년']?.priorData?.students;
           const g1Students = (priorG1 && priorG1.length > 0) ? priorG1 : students;
           const totalGrade1Students = g1Students.length || 44;
           const class1 = g1Students.filter(st => String(st.classNum).replace(/[^0-9]/g, '') === '1');
