@@ -1365,21 +1365,38 @@
         };
 
         if (st.grade === '3학년') {
-          collectDetails(matchedG3);
-          collectDetails(matchedG2);
-          collectDetails(matchedCur);
+          // [사용자 요구사항]:
+          // 1. 교과학습발달상황에서 '2학년 1학기' 이수 과목 확인
+          // 2. 입학생교육과정 편제표 기준 '선택'에 해당하는 과목만 확인 (공통/지정 제외)
+          const targetPrior = matchedG3 || matchedCur || matchedG2;
+          if (targetPrior && Array.isArray(targetPrior.courseDetails)) {
+            targetPrior.courseDetails.forEach(cd => {
+              if (!cd || !cd.subject) return;
 
-          // [요구사항 반영]: 3학년 학생 검증 시 '입학생 교육과정 편제표의 3학년 학교지정 과목'을 자동으로 포함!
-          if (Array.isArray(g3DesignatedSubjects) && g3DesignatedSubjects.length > 0) {
-            g3DesignatedSubjects.forEach(ds => {
-              const cleanS = ds.subject;
-              const normS = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanS) : cleanS;
-              const cKey = `g3des::${ds.semester}::${normS}`;
+              // 2학년 1학기 과목인지 판별 (1학년 과목 제외, 2학기 과목 제외)
+              const gStr = String(cd.grade || '');
+              const isG2 = gStr.includes('2') || (!gStr.includes('1') && !gStr.includes('3'));
+              const isS1 = Number(cd.semester || 1) === 1 && cd.uploadSem !== 2 && cd.source !== '학생편성현황';
+              if (!isG2 || !isS1) return;
+
+              const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(cd.subject) : cd.subject;
+              const normS = cd.normSubject || (typeof normalizeSubject === 'function' ? normalizeSubject(cleanS) : cleanS);
+
+              // 입학생교육과정 편제표 기준 '선택'에 해당하는 과목만 확인 ('지정', '공통' 과목 및 검증제외 과목 제외!)
+              if (isDesignatedSubject(cleanS, '2학년', 1, cd.category)) return;
+              if (typeof isSubjectExcludedFromValidation === 'function' && isSubjectExcludedFromValidation(cleanS, '2학년')) return;
+
+              const cKey = `2-1::${normS}`;
               if (!seenCourseKeys.has(cKey)) {
                 seenCourseKeys.add(cKey);
                 combinedCourseDetails.push({
-                  ...ds,
-                  normSubject: normS
+                  ...cd,
+                  subject: cleanS,
+                  normSubject: normS,
+                  semester: 1,
+                  uploadSem: 1,
+                  grade: '2학년',
+                  source: '교과학습발달상황(2-1선택)'
                 });
               }
             });
