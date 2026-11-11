@@ -3432,39 +3432,73 @@
           statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">중복 ${item.dupList.length}</span>`;
         }
 
-        // 1단계의 '동일·기이수 과목 중복신청 의심 명단'과 동일한 표시 형식: 과목명 (n학기 / 중복 시기)
-        let dupBadgesHtml = '';
-        if (hasDup && Array.isArray(item.dupList) && item.dupList.length > 0) {
-          const badges = item.dupList.map(d => {
-            const isPrior = d.sourceType === 'prior_grade';
-            const badgeStyle = isPrior
-              ? 'bg-rose-100 text-rose-800 border-rose-300'
-              : 'bg-amber-100 text-amber-900 border-amber-300';
-            return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${badgeStyle} mr-1 mb-0.5" title="${d.sourceLabel}">${d.subject} (${d.semester}학기 / ${d.sourceLabel})</span>`;
-          }).filter((v, i, a) => a.indexOf(v) === i).join('');
-          dupBadgesHtml = `<div class="flex flex-wrap items-center">${badges}</div>`;
+        // 점검 필요 내역 (위반 교과군 및 불일치 사유 + 과목 중복 신청 통합)
+        let issueDetailsHtml = '';
+        if (isPass) {
+          issueDetailsHtml = '<span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-lg">✅ 정상 (조건 충족 및 중복 없음)</span>';
         } else {
-          dupBadgesHtml = '<span class="text-slate-400 text-xs">-</span>';
+          const issueBlocks = [];
+
+          // 1) 교과군 위반 카드 목록
+          if (hasViol && item.violations && item.violations.length > 0) {
+            const violCards = item.violations.map(v => {
+              const cat = v.category;
+              const cColor = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : STEP3_COLOR_SCHEMES.blue;
+              return `
+                <div class="p-1.5 rounded-lg border border-rose-200 bg-white/90 shadow-2xs space-y-0.5">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-black px-1.5 py-0.2 rounded ${cColor.badge}">${cat ? cat.name : '교과군'}</span>
+                    <span class="text-[10px] font-bold text-slate-500">${v.ruleDesc}</span>
+                  </div>
+                  <div class="text-xs font-bold text-rose-800 flex items-center gap-1">
+                    <span>🚨 ${v.reason}</span>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            issueBlocks.push(violCards);
+          }
+
+          // 2) 중복 신청 배지 블록
+          if (hasDup && Array.isArray(item.dupList) && item.dupList.length > 0) {
+            const badges = item.dupList.map(d => {
+              const isPrior = d.sourceType === 'prior_grade';
+              const badgeStyle = isPrior
+                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                : 'bg-amber-100 text-amber-900 border-amber-300';
+              return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold border ${badgeStyle} mr-1 mb-0.5" title="${d.sourceLabel}">${d.subject} (${d.semester}학기 / ${d.sourceLabel})</span>`;
+            }).filter((v, i, a) => a.indexOf(v) === i).join('');
+
+            issueBlocks.push(`
+              <div class="p-1.5 rounded-lg border border-amber-200 bg-amber-50/50 shadow-2xs space-y-1">
+                <div class="text-[10px] font-black text-amber-800 flex items-center gap-1">
+                  <span>⚠️ 과목 중복 신청 (${item.dupList.length}건)</span>
+                </div>
+                <div class="flex flex-wrap items-center">${badges}</div>
+              </div>
+            `);
+          }
+
+          issueDetailsHtml = `<div class="space-y-1.5">${issueBlocks.join('')}</div>`;
         }
 
         return `
           <tr class="${rowBg} transition-colors">
-            <td class="py-3 px-3 text-center font-black text-slate-700 whitespace-nowrap">${item.grade}</td>
-            <td class="py-3 px-3 text-center font-bold text-slate-600 whitespace-nowrap">${item.classNum}반 ${item.studentNum}번</td>
-            <td class="py-3 px-4 text-center font-black text-slate-900 whitespace-nowrap">
+            <td class="py-3 px-2 text-center font-black text-slate-700 whitespace-nowrap shrink-0 w-14">${item.grade}</td>
+            <td class="py-3 px-2 text-center font-bold text-slate-600 whitespace-nowrap shrink-0 w-20">${item.classNum}반 ${item.studentNum}번</td>
+            <td class="py-3 px-3 text-center font-black text-slate-900 whitespace-nowrap shrink-0 w-24">
               <div class="inline-flex items-center gap-1.5">
                 <span>${item.name}</span>
                 ${item.isDuplicateName ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300" title="사전 데이터에 동일 성명이 2명 이상 존재합니다. 반·번호를 확인해주세요.">⚠️동명이인</span>' : ''}
                 ${item.student && item.student.isNewlyAdded ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200" title="2단계에서 추가된 학생">추가</span>' : ''}
               </div>
             </td>
-            <td class="py-3 px-3 text-center whitespace-nowrap">
+            <td class="py-3 px-2 text-center whitespace-nowrap shrink-0 w-24">
               ${statusBadgeHtml}
             </td>
-            <td class="py-3 px-4">${violHtml}</td>
-            <td class="py-3 px-4">${dupBadgesHtml}</td>
-            <td class="py-3 px-4">${chosenInCatHtml}</td>
-            <td class="py-3 px-4">
+            <td class="py-3 px-3 align-top min-w-[280px] max-w-[340px]">${issueDetailsHtml}</td>
+            <td class="py-3 px-3 align-top min-w-[260px] max-w-[340px]">${chosenInCatHtml}</td>
+            <td class="py-3 px-4 align-top min-w-[340px]">
               <div class="space-y-1.5">
                 <!-- 3학년 수강신청 조사 과목 -->
                 <div class="p-1 rounded bg-slate-50/90 border border-slate-200/90 space-y-1">
@@ -3506,7 +3540,7 @@
                 </div>
               </div>
             </td>
-            <td class="py-3 px-3 text-center whitespace-nowrap">
+            <td class="py-3 px-2 text-center whitespace-nowrap shrink-0 w-24 align-top">
               <button type="button"
                 onclick="window.openStudentPriorSubjectModal('${item.grade}', '${item.classNum}', '${item.studentNum}', decodeURIComponent('${encodeURIComponent(item.name || '')}'))"
                 class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-black bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shadow-2xs cursor-pointer"
@@ -5001,7 +5035,7 @@
     window.generateDefaultStep3Categories = generateDefaultStep3Categories;
 
     function exportStep3ValidationExcel() {
-      const lastResult = runStep3Validation(false) || window._step3LastValidationResult;
+      const lastResult = window._step3LastValidationResult || runStep3Validation(false);
       if (!lastResult || !lastResult.results || lastResult.results.length === 0) {
         alert('다운로드할 검증 데이터가 없습니다. 먼저 학생 수강신청 엑셀 파일을 업로드해주세요.');
         return;
@@ -5058,7 +5092,7 @@
       function buildStructuredValidationSheet(studentList, sheetGradeTitle, subNote = '') {
         const rows = [];
         const merges = [];
-        const LAST_COL = 7; // 8개 항목 (0 ~ 7)
+        const LAST_COL = 6; // 7개 항목 (0 ~ 6)
 
         // Title row: exact required format 'nnnn학년도 n학년 1,2학기 학생별 교육과정 점검 결과'
         const mainTitle = `[상지대관령고등학교] ${acadYear} ${sheetGradeTitle} 1,2학기 학생별 교육과정 점검 결과`;
@@ -5084,14 +5118,13 @@
         rows.push([`※ 안내: 검증 상태가 '위반' 또는 '중복'인 학생은 해당 사유 및 선택 과목을 확인하여 담임 선생님 지도 및 수강 정정을 진행해주시기 바랍니다.`]);
         merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: LAST_COL } });
 
-        // Header row: 화면의 '📋 학생별 교과군 선택 조건 검증 결과 명단'과 100% 동일한 항목 구성
+        // Header row: 화면의 '📋 학생별 교과군 선택 조건 검증 결과 명단'과 100% 동일한 항목 구성 (위반·중복 단일 컬럼 통합)
         rows.push([
           '학년',
           '반/번호',
           '학생명',
           '검증 상태',
-          '위반 교과군 및 불일치 사유',
-          '과목 중복 신청',
+          '점검 필요 내역 (위반·중복)',
           '해당 교과군 선택 과목',
           '전체 선택 과목 (1학기 / 2학기)'
         ]);
@@ -5108,26 +5141,26 @@
             statusText = `중복 ${st.dupList.length}`;
           }
 
-          // 2) 위반 교과군 및 불일치 사유 (🚨1과목 미달 / 🚨n과목 초과 간결 표시)
-          let violText = '✅ 모든 교과군 이수 조건 충족';
+          // 2) 점검 필요 내역 (위반 교과군 + 과목 중복 신청 통합)
+          const issueParts = [];
           if (st.hasViol && st.violations && st.violations.length > 0) {
-            violText = st.violations.map(v => {
+            const vText = st.violations.map(v => {
               const catName = v.category ? v.category.name : '교과군';
               const ruleDesc = v.ruleDesc || '';
               const cleanReason = String(v.reason || '').replace(/^.*\(([^)]+)\)$/, '$1').replace(/^🚨\s*/, '');
-              return `${catName}\n${ruleDesc}\n🚨${cleanReason}`;
+              return `[교과군 위반] ${catName} (${ruleDesc})\n  🚨 ${cleanReason}`;
             }).join('\n\n');
+            issueParts.push(vText);
           }
-
-          // 3) 과목 중복 신청 (과목명 (n학기 / 중복 시기))
-          let dupText = '-';
           if (st.hasDup && st.dupList && st.dupList.length > 0) {
-            dupText = st.dupList.map(d => {
-              return `${d.subject} (${d.semester}학기 / ${d.sourceLabel})`;
+            const dText = st.dupList.map(d => {
+              return `[과목 중복 신청] ${d.subject} (${d.semester}학기 / ${d.sourceLabel})`;
             }).filter((v, i, a) => a.indexOf(v) === i).join('\n');
+            issueParts.push(dText);
           }
+          const issueText = issueParts.length > 0 ? issueParts.join('\n\n') : '✅ 정상 (조건 충족 및 중복 없음)';
 
-          // 4) 해당 교과군 선택 과목 (구체적 과목명 및 사전 기이수 과목)
+          // 3) 해당 교과군 선택 과목 (구체적 과목명 및 사전 기이수 과목)
           let chosenInCatText = '-';
           if (st.hasViol && st.violations && st.violations.length > 0) {
             chosenInCatText = st.violations.map(v => {
@@ -5147,7 +5180,7 @@
             }).join('\n');
           }
 
-          // 5) 전체 선택 과목 (1학기 / 2학기)
+          // 4) 전체 선택 과목 (1학기 / 2학기)
           const sem1Str = (st.sem1 && st.sem1.length > 0) ? st.sem1.join(', ') : '선택 없음';
           const sem2Str = (st.sem2 && st.sem2.length > 0) ? st.sem2.join(', ') : '선택 없음';
           const allCoursesText = `1학기: ${sem1Str}\n2학기: ${sem2Str}`;
@@ -5157,8 +5190,7 @@
             `${st.classNum}반 ${st.studentNum}번`,
             st.name,
             statusText,
-            violText,
-            dupText,
+            issueText,
             chosenInCatText,
             allCoursesText
           ]);
@@ -5170,8 +5202,7 @@
           '',
           `총 ${totalCnt}명`,
           `정상 ${passCnt}명 / 점검 ${needCnt}명`,
-          `위반 ${violCnt}명`,
-          `중복 ${dupCnt}명`,
+          `위반 ${violCnt}명, 중복 ${dupCnt}명`,
           '',
           ''
         ]);
@@ -5181,16 +5212,15 @@
         const ws = XLSX.utils.aoa_to_sheet(rows);
         ws['!merges'] = merges;
 
-        // Column widths (8개 항목)
+        // Column widths (7개 항목 최적화)
         const colWidths = [
           { wch: 9 },  // 0: 학년
           { wch: 12 }, // 1: 반/번호
           { wch: 12 }, // 2: 학생명
           { wch: 13 }, // 3: 검증 상태
-          { wch: 38 }, // 4: 위반 교과군 및 불일치 사유
-          { wch: 34 }, // 5: 과목 중복 신청
-          { wch: 38 }, // 6: 해당 교과군 선택 과목 (구체적 과목명)
-          { wch: 46 }  // 7: 전체 선택 과목 (1학기 / 2학기)
+          { wch: 44 }, // 4: 점검 필요 내역 (위반·중복)
+          { wch: 38 }, // 5: 해당 교과군 선택 과목 (구체적 과목명)
+          { wch: 54 }  // 6: 전체 선택 과목 (1학기 / 2학기)
         ];
         ws['!cols'] = colWidths;
 
@@ -5205,11 +5235,10 @@
         for (let i = 0; i < studentList.length; i++) {
           const dataRow = rows[5 + i] || [];
           const linesStatus = calcWrappedLineCount(dataRow[3], colWidths[3].wch);
-          const linesViol   = calcWrappedLineCount(dataRow[4], colWidths[4].wch);
-          const linesDup    = calcWrappedLineCount(dataRow[5], colWidths[5].wch);
-          const linesChosen = calcWrappedLineCount(dataRow[6], colWidths[6].wch);
-          const linesAll    = calcWrappedLineCount(dataRow[7], colWidths[7].wch);
-          const maxLines = Math.max(1, linesStatus, linesViol, linesDup, linesChosen, linesAll);
+          const linesIssue  = calcWrappedLineCount(dataRow[4], colWidths[4].wch);
+          const linesChosen = calcWrappedLineCount(dataRow[5], colWidths[5].wch);
+          const linesAll    = calcWrappedLineCount(dataRow[6], colWidths[6].wch);
+          const maxLines = Math.max(1, linesStatus, linesIssue, linesChosen, linesAll);
           const dynamicHpt = Math.max(28, maxLines * 16 + 12);
           rowHeights.push({ hpt: dynamicHpt });
         }
@@ -5340,11 +5369,10 @@
             } else if (c === 3) { // 검증 상태
               cellFont = { name: fontKo, sz: 9.5, bold: true, color: { rgb: statusColor } };
               cellBg = statusBg;
-            } else if (c === 4 && st.hasViol) { // 위반 교과군 및 불일치 사유
-              cellFont = { name: fontKo, sz: 9, bold: true, color: { rgb: '9F1239' } };
-            } else if (c === 5 && st.hasDup) { // 과목 중복 신청
-              cellFont = { name: fontKo, sz: 9, bold: true, color: { rgb: 'B45309' } };
-            } else if (c === 6 && st.hasViol) { // 해당 교과군 선택 과목
+            } else if (c === 4 && !st.isPass) { // 점검 필요 내역 (위반·중복)
+              const issueColor = st.hasViol ? '9F1239' : 'B45309';
+              cellFont = { name: fontKo, sz: 9, bold: true, color: { rgb: issueColor } };
+            } else if (c === 5 && st.hasViol) { // 해당 교과군 선택 과목
               cellFont = { name: fontKo, sz: 9, color: { rgb: '1E293B' } };
             }
 
