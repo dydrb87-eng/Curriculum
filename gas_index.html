@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.12_10:47)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.12_10:54)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.12_10:47)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.12_10:54)</span></p>
         </div>
       </div>
 
@@ -18316,40 +18316,75 @@ function createSangjiCourseSelectionForm() {
         const studentSem2 = Array.isArray(st.sem2) ? st.sem2 : [];
         const studentAllChoices = [...studentSem1, ...studentSem2];
 
-        // 사전 데이터에서 해당 학생의 기이수 과목 찾기 (3학년 탭 및 2학년 탭 사전데이터를 모두 대조하여 2학년 이수 과목 누락 방지)
-        const priorDataForSt = st.grade === '3학년' ? (priorDataG3 || priorDataG2) : priorDataG2;
+        // 사전 데이터에서 해당 학생의 기이수 및 2학기 수강 과목 찾기 (3학년 탭과 2학년 탭, 현재 탭을 모두 대조하여 1·2학기 과목 완전 통합)
         const cNum = String(st.classNum || '').replace(/[^0-9]/g, '');
         const sNum = String(st.studentNum || '').replace(/[^0-9]/g, '');
         const sName = (st.name || '').trim();
 
-        let matchedPriorSt = null;
+        const matchedG3 = (priorDataG3 && Array.isArray(priorDataG3.students)) ? findMatchingPriorStudent(priorDataG3.students, cNum, sNum, sName) : null;
+        const matchedG2 = (priorDataG2 && Array.isArray(priorDataG2.students)) ? findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName) : null;
+        const matchedCur = (AppState.priorData && Array.isArray(AppState.priorData.students)) ? findMatchingPriorStudent(AppState.priorData.students, cNum, sNum, sName) : null;
+
+        const combinedCourseDetails = [];
+        const seenCourseKeys = new Set();
+
+        const collectDetails = (cand) => {
+          if (!cand) return;
+          if (Array.isArray(cand.courseDetails) && cand.courseDetails.length > 0) {
+            cand.courseDetails.forEach(cd => {
+              if (!cd || !cd.subject) return;
+              const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(cd.subject) : cd.subject;
+              const normS = cd.normSubject || (typeof normalizeSubject === 'function' ? normalizeSubject(cleanS) : cleanS);
+              const isSem2 = (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || Number(cd.semester) === 2);
+              const semVal = isSem2 ? 2 : 1;
+              const cKey = `${semVal}::${normS}`;
+              if (!seenCourseKeys.has(cKey)) {
+                seenCourseKeys.add(cKey);
+                combinedCourseDetails.push({
+                  ...cd,
+                  subject: cleanS,
+                  normSubject: normS,
+                  semester: semVal,
+                  uploadSem: semVal,
+                  source: cd.source || (isSem2 ? '학생편성현황' : '교과학습발달상황')
+                });
+              }
+            });
+          } else if (Array.isArray(cand.rawSubjects) && cand.rawSubjects.length > 0) {
+            cand.rawSubjects.forEach(rs => {
+              const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rs) : rs;
+              const normS = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanS) : cleanS;
+              const cKey = `1::${normS}`;
+              if (!seenCourseKeys.has(cKey)) {
+                seenCourseKeys.add(cKey);
+                combinedCourseDetails.push({
+                  subject: cleanS,
+                  rawSubject: rs,
+                  normSubject: normS,
+                  credit: 4,
+                  semester: 1,
+                  uploadSem: 1,
+                  grade: '2학년',
+                  source: '교과학습발달상황'
+                });
+              }
+            });
+          }
+        };
+
         if (st.grade === '3학년') {
-          // 3학년 학생: 3학년 탭에 등록된 사전데이터 우선 확인, 없으면 2학년 탭 사전데이터에서 2학년 이수 과목 조회
-          if (priorDataG3 && Array.isArray(priorDataG3.students)) {
-            matchedPriorSt = findMatchingPriorStudent(priorDataG3.students, cNum, sNum, sName);
-          }
-          if (!matchedPriorSt && priorDataG2 && Array.isArray(priorDataG2.students)) {
-            matchedPriorSt = findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName);
-          }
+          collectDetails(matchedG3);
+          collectDetails(matchedG2);
+          collectDetails(matchedCur);
         } else {
-          // 2학년 학생: 2학년 탭 사전데이터(1학년 이수내역) 조회
-          if (priorDataG2 && Array.isArray(priorDataG2.students)) {
-            matchedPriorSt = findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName);
-          }
+          collectDetails(matchedG2);
+          collectDetails(matchedCur);
         }
 
-        let studentPriorSubjs = [];
-        let studentPriorCourseDetails = [];
-        if (matchedPriorSt) {
-          if (Array.isArray(matchedPriorSt.courseDetails) && matchedPriorSt.courseDetails.length > 0) {
-            studentPriorCourseDetails = matchedPriorSt.courseDetails;
-            studentPriorSubjs = matchedPriorSt.courseDetails.map(cd => cd.subject).filter(Boolean);
-          } else if (Array.isArray(matchedPriorSt.rawSubjects) && matchedPriorSt.rawSubjects.length > 0) {
-            studentPriorSubjs = matchedPriorSt.rawSubjects.map(rs => (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rs) : rs).filter(Boolean);
-          } else if (Array.isArray(matchedPriorSt.subjects)) {
-            studentPriorSubjs = matchedPriorSt.subjects;
-          }
-        }
+        const studentPriorCourseDetails = combinedCourseDetails;
+        const studentPriorSubjs = combinedCourseDetails.map(cd => cd.subject).filter(Boolean);
+        const priorSem1Details = combinedCourseDetails.filter(cd => cd.semester === 1);
+        const priorSem2Details = combinedCourseDetails.filter(cd => cd.semester === 2);
 
         // [오직 '선택' 과목만 검토 대상]: 지정 과목은 교과군 미지정 경고 및 검토에서 제외!
         studentAllChoices.forEach(s => {
@@ -18376,16 +18411,21 @@ function createSangjiCourseSelectionForm() {
           const priorSem1SubjectsInCat = [];
           const priorSem2SubjectsInCat = [];
 
-          // 1단계: 사전 데이터(기이수 과목) 중 '선택' 과목만 해당 교과군 과목 탐색 ('지정' 제외)
+          // 1단계: 사전 데이터(기이수 과목) 중 '선택' 과목만 해당 교과군 과목 탐색
           // 1학기/2학기 세부 이력(studentPriorCourseDetails)이 있으면 학기별로 분명하게 분류
           if (studentPriorCourseDetails && studentPriorCourseDetails.length > 0) {
             studentPriorCourseDetails.forEach(cd => {
               const pSubj = cd.subject;
-              if (!pSubj || isDesignatedSubject(pSubj)) return; // 지정 과목 제외
+              if (!pSubj) return;
               let cId = getSubjectCategory(pSubj, cat.targetGrade);
               if (!cId) cId = getSubjectCategory(pSubj, null);
               if (!cId) cId = getSubjectCategory(pSubj, '2학년');
+              if (!cId) cId = getSubjectCategory(pSubj, '3학년');
               if (!cId) cId = getSubjectCategory(pSubj, '1학년');
+
+              // 학교지정 과목이라도 교과군 매핑에 등록되어 있다면 교과군 인정에 포함
+              if (!cId && isDesignatedSubject(pSubj)) return;
+
               if (cId === cat.id) {
                 if (!priorSubjectsInCat.includes(pSubj)) priorSubjectsInCat.push(pSubj);
                 const isSem2 = (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || Number(cd.semester) === 2);
@@ -18398,11 +18438,15 @@ function createSangjiCourseSelectionForm() {
             });
           } else {
             studentPriorSubjs.forEach(pSubj => {
-              if (isDesignatedSubject(pSubj)) return; // 지정 과목 제외
+              if (!pSubj) return;
               let cId = getSubjectCategory(pSubj, cat.targetGrade);
               if (!cId) cId = getSubjectCategory(pSubj, null);
               if (!cId) cId = getSubjectCategory(pSubj, '2학년');
+              if (!cId) cId = getSubjectCategory(pSubj, '3학년');
               if (!cId) cId = getSubjectCategory(pSubj, '1학년');
+
+              if (!cId && isDesignatedSubject(pSubj)) return;
+
               if (cId === cat.id && !priorSubjectsInCat.includes(pSubj)) {
                 priorSubjectsInCat.push(pSubj);
               }
@@ -18553,7 +18597,16 @@ function createSangjiCourseSelectionForm() {
         }
 
         const crossDupsForSt = st.grade === '2학년' ? crossDupsG2 : crossDupsG3;
-        const dupList = detectStudentDuplicates(st, priorDataForSt, crossDupsForSt, st.grade.replace(/[^0-9]/g, ''));
+        // 통합된 기이수/수강 과목 명부로 중복 탐지 실행 (1학기 + 2학기 과목 모두 실시간 대조)
+        const syntheticPriorSt = {
+          name: st.name,
+          classNum: st.classNum,
+          studentNum: st.studentNum,
+          subjects: studentPriorSubjs,
+          courseDetails: studentPriorCourseDetails
+        };
+        const priorDataMergedForSt = { students: [syntheticPriorSt] };
+        const dupList = detectStudentDuplicates(st, priorDataMergedForSt, crossDupsForSt, st.grade.replace(/[^0-9]/g, ''));
         const hasViol = violations.length > 0;
         const hasDup = dupList.length > 0;
 
@@ -18563,10 +18616,13 @@ function createSangjiCourseSelectionForm() {
           classNum: st.classNum,
           studentNum: st.studentNum,
           name: st.name,
-          isDuplicateName: matchedPriorSt ? !!matchedPriorSt.isDuplicateName : false,
+          isDuplicateName: !!(matchedG3?.isDuplicateName || matchedG2?.isDuplicateName || matchedCur?.isDuplicateName),
           sem1: studentSem1,
           sem2: studentSem2,
           allChoices: studentAllChoices,
+          priorDetails: studentPriorCourseDetails,
+          priorSem1: priorSem1Details.map(cd => cd.subject),
+          priorSem2: priorSem2Details.map(cd => cd.subject),
           isPass: !hasViol && !hasDup,
           isCategoryPass: !hasViol,
           hasViol: hasViol,
@@ -19983,7 +20039,37 @@ function createSangjiCourseSelectionForm() {
 
         let chosenInCatHtml = '';
         if (!hasViol) {
-          chosenInCatHtml = '<span class="text-slate-400 text-xs">-</span>';
+          // 정상 학생의 경우에도 교과군별로 인정된 과목(사전 1·2학기 포함) 요약 표시
+          const satisfiedCats = (item.evaluations || []).filter(e => !e.isViolated && e.allSubjects && e.allSubjects.length > 0);
+          if (satisfiedCats.length === 0) {
+            chosenInCatHtml = '<span class="text-emerald-700 text-xs font-bold">✅ 전원 충족</span>';
+          } else {
+            chosenInCatHtml = '<div class="space-y-1">';
+            satisfiedCats.forEach(v => {
+              const cat = v.category;
+              const cColor = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : STEP3_COLOR_SCHEMES.blue;
+              const totalInCat = v.allSubjects.length;
+              const chosenPills = (v.subjects || []).map(s => `
+                <span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded ${cColor.badge} border shadow-2xs" title="3학년 수강신청 선택과목">${s}</span>
+              `).join('');
+              const priorPills = (v.priorSubjects || []).map(s => {
+                const isSem2 = (item.priorDetails || []).some(cd => (cd.subject === s || cd.normSubject === s) && (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || Number(cd.semester) === 2));
+                const badgeStyle = isSem2
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                  : 'bg-sky-50 text-sky-800 border-sky-300';
+                const label = isSem2 ? '[2학기수강]' : '[1학기이수]';
+                return `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded border shadow-2xs ${badgeStyle}" title="1단계 사전데이터 인정 과목">${label} ${s}</span>`;
+              }).join('');
+
+              chosenInCatHtml += `
+                <div class="py-0.5 px-1.5 rounded bg-white/80 border border-slate-200 text-[10px]">
+                  <span class="font-black text-slate-700 mr-1">[${cat ? cat.name : ''}] ${totalInCat}과목:</span>
+                  ${chosenPills} ${priorPills}
+                </div>
+              `;
+            });
+            chosenInCatHtml += '</div>';
+          }
         } else {
           chosenInCatHtml = '<div class="space-y-1.5">';
           item.violations.forEach(v => {
@@ -19998,17 +20084,22 @@ function createSangjiCourseSelectionForm() {
               `;
             } else {
               const chosenPills = (v.subjects || []).map(s => `
-                <span class="text-[11px] font-extrabold px-1.5 py-0.5 rounded ${cColor.badge} border shadow-2xs" title="이번 학년 수강신청 선택과목">${s}</span>
+                <span class="text-[11px] font-extrabold px-1.5 py-0.5 rounded ${cColor.badge} border shadow-2xs" title="3학년 수강신청 선택과목">${s}</span>
               `).join('');
-              const priorPills = (v.priorSubjects || []).map(s => `
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs" title="사전 데이터 등록 기이수 과목 (인정)">[기이수] ${s}</span>
-              `).join('');
+              const priorPills = (v.priorSubjects || []).map(s => {
+                const isSem2 = (item.priorDetails || []).some(cd => (cd.subject === s || cd.normSubject === s) && (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || Number(cd.semester) === 2));
+                const badgeStyle = isSem2
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                  : 'bg-sky-50 text-sky-800 border-sky-300';
+                const label = isSem2 ? '[2학기수강]' : '[1학기이수]';
+                return `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs ${badgeStyle}" title="1단계 사전데이터 인정 과목">${label} ${s}</span>`;
+              }).join('');
 
               chosenInCatHtml += `
                 <div class="py-1 px-2 rounded-lg bg-white border border-slate-200 shadow-2xs space-y-1">
                   <div class="flex items-center justify-between text-[10px] font-black text-slate-600">
                     <span>[${cat ? cat.name : ''}] 총 인정 ${totalInCat}과목</span>
-                    ${v.priorCount > 0 ? `<span class="text-indigo-600 font-bold">(선택 ${v.chosenCount} + 기이수 ${v.priorCount})</span>` : ''}
+                    ${v.priorCount > 0 ? `<span class="text-indigo-600 font-bold">(선택 ${v.chosenCount} + 기이수/수강 ${v.priorCount})</span>` : ''}
                   </div>
                   <div class="flex flex-wrap gap-1 items-center">
                     ${chosenPills}
@@ -20021,17 +20112,20 @@ function createSangjiCourseSelectionForm() {
           chosenInCatHtml += '</div>';
         }
 
-        const renderSubjTag = (subj) => {
+        const renderSubjTag = (subj, optClass = '') => {
           const cId = getSubjectCategory(subj, item.grade);
           const cat = cId ? categories.find(c => c.id === cId) : null;
           const cColor = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : null;
-          const tagClass = cColor ? cColor.badge : 'bg-slate-100 text-slate-600 border-slate-200';
+          const tagClass = optClass || (cColor ? cColor.badge : 'bg-slate-100 text-slate-600 border-slate-200');
           const title = cat ? `${subj} [${cat.name}]` : `${subj} [교과군 미지정]`;
           return `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${tagClass} border" title="${title}">${subj}</span>`;
         };
 
-        const sem1Tags = (item.sem1 || []).map(renderSubjTag).join('');
-        const sem2Tags = (item.sem2 || []).map(renderSubjTag).join('');
+        const sem1Tags = (item.sem1 || []).map(s => renderSubjTag(s)).join('');
+        const sem2Tags = (item.sem2 || []).map(s => renderSubjTag(s)).join('');
+
+        const priorSem1Tags = (item.priorSem1 || []).map(s => renderSubjTag(s, 'bg-sky-50 text-sky-800 border-sky-300')).join('');
+        const priorSem2Tags = (item.priorSem2 || []).map(s => renderSubjTag(s, 'bg-emerald-50 text-emerald-800 border-emerald-300')).join('');
 
         let statusBadgeHtml = '';
         if (isPass) {
@@ -20083,16 +20177,42 @@ function createSangjiCourseSelectionForm() {
             <td class="py-3 px-4">${chosenInCatHtml}</td>
             <td class="py-3 px-4">
               <div class="space-y-1.5">
-                <div class="flex items-start gap-1.5">
-                  <span class="text-[10px] font-black text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">1학기:</span>
-                  <div class="flex items-center gap-1 flex-wrap flex-1">
-                    ${sem1Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+                <!-- 3학년 수강신청 조사 과목 -->
+                <div class="p-1 rounded bg-slate-50/90 border border-slate-200/90 space-y-1">
+                  <div class="flex items-center justify-between text-[10px] font-black text-slate-600">
+                    <span>[3학년 수강신청 조사]</span>
+                  </div>
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-[10px] font-black text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded shrink-0">1학기:</span>
+                    <div class="flex items-center gap-1 flex-wrap flex-1">
+                      ${sem1Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-[10px] font-black text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded shrink-0">2학기:</span>
+                    <div class="flex items-center gap-1 flex-wrap flex-1">
+                      ${sem2Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+                    </div>
                   </div>
                 </div>
-                <div class="flex items-start gap-1.5">
-                  <span class="text-[10px] font-black text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">2학기:</span>
-                  <div class="flex items-center gap-1 flex-wrap flex-1">
-                    ${sem2Tags || '<span class="text-slate-400 text-[10px]">선택 없음</span>'}
+
+                <!-- 1단계 사전데이터 (1학기 기이수 + 2학기 수강 과목) -->
+                <div class="p-1 rounded bg-amber-50/40 border border-amber-200/70 space-y-1">
+                  <div class="flex items-center justify-between text-[10px] font-black text-amber-900">
+                    <span>[1단계 사전데이터 연동]</span>
+                    <span class="text-[9px] text-amber-700 font-bold">1학기 기이수 + 2학기 수강</span>
+                  </div>
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-[10px] font-black text-sky-800 bg-sky-100 px-1.5 py-0.5 rounded shrink-0">1학기 기이수:</span>
+                    <div class="flex items-center gap-1 flex-wrap flex-1">
+                      ${priorSem1Tags || '<span class="text-slate-400 text-[10px]">기록 없음</span>'}
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-[10px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">2학기 수강중:</span>
+                    <div class="flex items-center gap-1 flex-wrap flex-1">
+                      ${priorSem2Tags || '<span class="text-slate-400 text-[10px]">기록 없음</span>'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -20163,44 +20283,68 @@ function createSangjiCourseSelectionForm() {
 
       const priorDataG3 = getPriorDataForGrade('3학년');
       const priorDataG2 = getPriorDataForGrade('2학년');
-      let matchedSt = null;
-
-      if (stGrade === '3학년') {
-        if (priorDataG3 && Array.isArray(priorDataG3.students)) {
-          matchedSt = findMatchingPriorStudent(priorDataG3.students, cNum, sNum, sName);
-        }
-        if (!matchedSt && priorDataG2 && Array.isArray(priorDataG2.students)) {
-          matchedSt = findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName);
-        }
-      } else {
-        if (priorDataG2 && Array.isArray(priorDataG2.students)) {
-          matchedSt = findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName);
-        }
-      }
+      const matchedG3Modal = (priorDataG3 && Array.isArray(priorDataG3.students)) ? findMatchingPriorStudent(priorDataG3.students, cNum, sNum, sName) : null;
+      const matchedG2Modal = (priorDataG2 && Array.isArray(priorDataG2.students)) ? findMatchingPriorStudent(priorDataG2.students, cNum, sNum, sName) : null;
+      const matchedCurModal = (AppState.priorData && Array.isArray(AppState.priorData.students)) ? findMatchingPriorStudent(AppState.priorData.students, cNum, sNum, sName) : null;
 
       let allDetails = [];
-      if (matchedSt) {
-        if (Array.isArray(matchedSt.courseDetails) && matchedSt.courseDetails.length > 0) {
-          allDetails = JSON.parse(JSON.stringify(matchedSt.courseDetails));
-        } else if (Array.isArray(matchedSt.rawSubjects) && matchedSt.rawSubjects.length > 0) {
-          allDetails = matchedSt.rawSubjects.map(rs => {
+      const seenModalKeys = new Set();
+      const addModalDetails = (cand) => {
+        if (!cand) return;
+        if (Array.isArray(cand.courseDetails) && cand.courseDetails.length > 0) {
+          cand.courseDetails.forEach(cd => {
+            if (!cd || !cd.subject) return;
+            const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(cd.subject) : cd.subject;
+            const isSem2 = (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || Number(cd.semester) === 2);
+            const semVal = isSem2 ? 2 : 1;
+            const cKey = `${semVal}::${cleanS}`;
+            if (!seenModalKeys.has(cKey)) {
+              seenModalKeys.add(cKey);
+              allDetails.push({
+                ...cd,
+                subject: cleanS,
+                semester: semVal,
+                uploadSem: semVal,
+                grade: cd.grade || (stGrade === '3학년' ? '2학년' : '1학년'),
+                source: cd.source || (isSem2 ? '학생편성현황' : '교과학습발달상황')
+              });
+            }
+          });
+        } else if (Array.isArray(cand.rawSubjects) && cand.rawSubjects.length > 0) {
+          cand.rawSubjects.forEach(rs => {
             let creditVal = _lastPriorSubjectCredit || 4;
             const cm = rs.match(/[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:학점|단위)?[\)\]]/);
             if (cm) creditVal = parseFloat(cm[1]);
             const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(rs) : rs.replace(/[\(\[].*?[\)\]]/g, '').trim();
-            return {
-              subject: cleanS || rs,
-              rawSubject: rs,
-              normSubject: (typeof normalizeSubject === 'function') ? normalizeSubject(rs) : rs,
-              credit: creditVal,
-              semester: 1,
-              grade: stGrade === '3학년' ? '2학년' : '1학년',
-              organization: '',
-              classroom: ''
-            };
+            const cKey = `1::${cleanS}`;
+            if (!seenModalKeys.has(cKey)) {
+              seenModalKeys.add(cKey);
+              allDetails.push({
+                subject: cleanS || rs,
+                rawSubject: rs,
+                normSubject: (typeof normalizeSubject === 'function') ? normalizeSubject(rs) : rs,
+                credit: creditVal,
+                semester: 1,
+                uploadSem: 1,
+                grade: stGrade === '3학년' ? '2학년' : '1학년',
+                organization: '',
+                classroom: '',
+                source: '교과학습발달상황'
+              });
+            }
           });
         }
+      };
+
+      if (stGrade === '3학년') {
+        addModalDetails(matchedG3Modal);
+        addModalDetails(matchedG2Modal);
+        addModalDetails(matchedCurModal);
+      } else {
+        addModalDetails(matchedG2Modal);
+        addModalDetails(matchedCurModal);
       }
+      const matchedSt = matchedG3Modal || matchedG2Modal || matchedCurModal;
 
       // 편제표상 '지정' 과목 Set 구축 ('지정' 과목은 기이수 과목 관리 목록에 표시하지 않음!)
       const curriculumAll = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : [];
@@ -20499,14 +20643,28 @@ function createSangjiCourseSelectionForm() {
       if (emptyEl) emptyEl.classList.add('hidden');
 
       tbody.innerHTML = list.map((cd, idx) => {
-        // 과목이 속한 '학기'는 '전체 시수종합'(getAllGradesCurriculum)을 기준으로 표시
-        const currSem = getCurriculumSemesterForSubject(cd.subject || cd.rawSubject, cd.grade);
-        const displaySem = (currSem && currSem !== '-') ? currSem : (cd.semester ? cd.semester + '학기' : '-');
+        let displaySem = '-';
+        let semBadgeClass = 'text-indigo-700 bg-indigo-50/70 border-indigo-200';
+        const isSem2 = (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || Number(cd.semester) === 2);
+        const isSem1 = (cd.source === '교과학습발달상황' || Number(cd.uploadSem) === 1 || Number(cd.semester) === 1);
+
+        if (isSem2) {
+          displaySem = '2학기 (수강중)';
+          semBadgeClass = 'text-emerald-800 bg-emerald-100/90 border-emerald-300';
+        } else if (isSem1) {
+          displaySem = '1학기 (기이수)';
+          semBadgeClass = 'text-sky-800 bg-sky-100/90 border-sky-300';
+        } else {
+          const currSem = getCurriculumSemesterForSubject(cd.subject || cd.rawSubject, cd.grade);
+          displaySem = (currSem && currSem !== '-') ? currSem : (cd.semester ? cd.semester + '학기' : '-');
+        }
 
         return `
           <tr class="hover:bg-indigo-50/40 transition-colors">
             <td class="py-2.5 px-3 text-center font-bold text-slate-700 whitespace-nowrap">${cd.grade || '-'}</td>
-            <td class="py-2.5 px-3 text-center font-black text-indigo-700 whitespace-nowrap bg-indigo-50/50">${displaySem}</td>
+            <td class="py-2.5 px-3 text-center font-black whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded text-[11px] font-black border ${semBadgeClass}">${displaySem}</span>
+            </td>
             <td class="py-2.5 px-3 font-black text-slate-900">
               <div class="flex items-center gap-1.5">
                 <span>${cd.subject || cd.rawSubject}</span>
