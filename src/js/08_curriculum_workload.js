@@ -1097,6 +1097,19 @@
       window.updateUnassignedTeacherBadgeState();
     };
 
+    window.toggleCurriculumItemExcluded = function(itemId, isExcluded) {
+      const curriculum = getAllGradesCurriculum();
+      const item = curriculum.find(c => c.id === itemId);
+      if (!item) return;
+
+      item.isExcluded = Boolean(isExcluded);
+      setAllGradesCurriculum(curriculum);
+      renderAllGradesTeacherSummary();
+      renderAllGradesCurriculumTable();
+      renderAllGradesDashboard(false);
+      console.log(`✅ [${item.subject}] 일시 제외 상태 변경: ${item.isExcluded ? '제외됨' : '정상 포함'}`);
+    };
+
     // ==========================================
     // CURRICULUM DIVISION & GRADE CLASS COUNT MANAGEMENT
     // ==========================================
@@ -1741,6 +1754,7 @@
       const teacherMap = {};
       curriculum.forEach(item => {
         if (item.status === '폐강') return;
+        if (item.isExcluded) return;
         const t = (item.teacher || '').trim();
         if (!t || t === '폐강') return;
 
@@ -2118,6 +2132,7 @@
       const teacherMap = {};
       curriculum.forEach(item => {
         if (item.status === '폐강') return;
+        if (item.isExcluded) return;
         const t = (item.teacher || '').trim();
         if (!t || t === '폐강' || t === '-') return;
 
@@ -4004,6 +4019,7 @@
       const map = {};
       curriculum.forEach(item => {
         if (item.status === '폐강') return;
+        if (item.isExcluded) return;
         const t = (item.teacher || '').trim();
         if (!t || t === '폐강') return;
 
@@ -4153,6 +4169,7 @@
       const map = {};
       curriculum.forEach(item => {
         if (item.status === '폐강') return;
+        if (item.isExcluded) return;
         const t = (item.teacher || '').trim();
         if (!t || t === '폐강') return;
 
@@ -4780,6 +4797,7 @@
       const teacherMap = {};
       curriculum.forEach(item => {
         if (item.status === '폐강') return;
+        if (item.isExcluded) return;
         const t = (item.teacher || '').trim();
         if (!t || t === '폐강') return;
 
@@ -5007,7 +5025,7 @@
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="11" class="p-8 text-center text-slate-400 italic bg-white">
+            <td colspan="12" class="p-8 text-center text-slate-400 italic bg-white">
               <p class="mb-3">
                 ${window._isUnassignedTeacherFilterActive 
                   ? '🎉 축하합니다! 담당 교사가 지정되지 않은 과목이 없습니다. 모든 개설 과목에 교사가 배정되었습니다.' 
@@ -5026,10 +5044,16 @@
 
       tbody.innerHTML = filtered.map((c, idx) => {
         const isClosed = c.status === '폐강';
+        const isExcluded = Boolean(c.isExcluded);
         const isModified = Boolean(c.isModified);
-        const rowBg = isClosed 
-          ? 'bg-rose-50/50 text-slate-400' 
-          : (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50');
+        let rowBg = '';
+        if (isClosed) {
+          rowBg = 'bg-rose-50/50 text-slate-400';
+        } else if (isExcluded) {
+          rowBg = 'bg-slate-100/70 text-slate-500';
+        } else {
+          rowBg = (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50');
+        }
 
         const isChoice = (c.category === '선택' || c.category === '학생선택');
         const catBadge = isChoice 
@@ -5102,15 +5126,23 @@
               </button>
             </td>
             <td class="p-1.5 border-r border-slate-200">
-              <div class="flex items-center gap-1.5 min-w-[190px]">
+              <div class="flex items-center gap-1.5 min-w-[170px]">
                 <input type="text" 
                        value="${escapeHtml(c.subject)}" 
                        onchange="window.updateCurriculumItemSubject('${c.id}', this.value)" 
-                       class="w-36 sm:w-40 px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 outline-none transition shrink-0 ${isClosed ? 'line-through text-slate-400 bg-rose-50/40' : 'text-slate-900'}" 
+                       class="w-36 sm:w-40 px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 outline-none transition shrink-0 ${isClosed || isExcluded ? 'line-through text-slate-400 bg-slate-50' : 'text-slate-900'}" 
                        placeholder="과목명 입력" 
                        title="클릭하여 과목명 직접 수정 (별표 제거, 오타 수정 등)" />
                 ${divisionTag}
+                ${isExcluded ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200 shrink-0 select-none">제외됨</span>' : ''}
               </div>
+            </td>
+            <td class="p-1.5 text-center border-r border-slate-200">
+              <input type="checkbox" 
+                     ${isExcluded ? 'checked' : ''} 
+                     onchange="window.toggleCurriculumItemExcluded('${c.id}', this.checked)" 
+                     class="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500 cursor-pointer accent-rose-600" 
+                     title="체크 시 교사별 학기 수업 시수 및 담당 과목 요약에서 일시 제외 (체크 해제 시 복원)" />
             </td>
             <td class="p-1.5 text-center border-r border-slate-200">
               <input type="number" 
