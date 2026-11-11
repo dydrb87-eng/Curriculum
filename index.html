@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.12_03:42)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.12_03:45)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -19967,31 +19967,58 @@ function createSangjiCourseSelectionForm() {
       return data;
     }
 
+    let _neisSubjectCache = new Map();
+    let _neisSubjectCacheKey = '';
+
+    function invalidateNeisSubjectCache() {
+      _neisSubjectCache.clear();
+      _neisSubjectCacheKey = '';
+      _excludedSubjectCache.clear();
+    }
+    window.invalidateNeisSubjectCache = invalidateNeisSubjectCache;
+
     function getSubjectNeisInfo(subj, grade = null) {
       if (!subj) return null;
       const ay = MultiState?.activeAcademicYear || '2027학년도';
-      const neisCurricMap = MultiState?.neisCurriculumsByAcademicYear?.[ay] || {};
       const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(subj) : String(subj || '').replace(/\s+/g, '').toLowerCase();
-      for (const g of Object.keys(neisCurricMap)) {
-        const parsed = neisCurricMap[g];
-        if (!parsed || !Array.isArray(parsed.subjects)) continue;
-        const found = parsed.subjects.find(s => {
-          const sNorm = (typeof normalizeSubject === 'function') ? normalizeSubject(s.subject) : String(s.subject || '').replace(/\s+/g, '').toLowerCase();
-          return sNorm === norm;
-        });
-        if (found) return found;
+      
+      const cacheKey = `${ay}`;
+      if (_neisSubjectCacheKey !== cacheKey) {
+        _neisSubjectCache.clear();
+        _neisSubjectCacheKey = cacheKey;
+        
+        // 1회성 O(1) 해시 맵 빌드: 반복 탐색 오버헤드 0초화
+        const neisCurricMap = MultiState?.neisCurriculumsByAcademicYear?.[ay] || {};
+        for (const g of Object.keys(neisCurricMap)) {
+          const parsed = neisCurricMap[g];
+          if (parsed && Array.isArray(parsed.subjects)) {
+            parsed.subjects.forEach(s => {
+              if (s && s.subject) {
+                const sNorm = (typeof normalizeSubject === 'function') ? normalizeSubject(s.subject) : String(s.subject).replace(/\s+/g, '').toLowerCase();
+                if (!_neisSubjectCache.has(sNorm)) {
+                  _neisSubjectCache.set(sNorm, s);
+                }
+              }
+            });
+          }
+        }
+        if (AppState?.neisCurriculum && Array.isArray(AppState.neisCurriculum.subjects)) {
+          AppState.neisCurriculum.subjects.forEach(s => {
+            if (s && s.subject) {
+              const sNorm = (typeof normalizeSubject === 'function') ? normalizeSubject(s.subject) : String(s.subject).replace(/\s+/g, '').toLowerCase();
+              if (!_neisSubjectCache.has(sNorm)) {
+                _neisSubjectCache.set(sNorm, s);
+              }
+            }
+          });
+        }
       }
-      // Also check AppState.neisCurriculum
-      if (AppState?.neisCurriculum && Array.isArray(AppState.neisCurriculum.subjects)) {
-        const found = AppState.neisCurriculum.subjects.find(s => {
-          const sNorm = (typeof normalizeSubject === 'function') ? normalizeSubject(s.subject) : String(s.subject || '').replace(/\s+/g, '').toLowerCase();
-          return sNorm === norm;
-        });
-        if (found) return found;
-      }
-      return null;
+
+      return _neisSubjectCache.get(norm) || null;
     }
     window.getSubjectNeisInfo = getSubjectNeisInfo;
+
+    let _excludedSubjectCache = new Map();
 
     function isSubjectExcludedFromValidation(subj, grade = null) {
       if (!subj) return false;
@@ -20003,13 +20030,15 @@ function createSangjiCourseSelectionForm() {
         return sData.excludedSubjects[norm];
       }
 
-      // [요구사항] 입학생 교육과정 편성표 상의 '공통' 과목인 경우 기본 검증 제외(true)
-      const neisInfo = (typeof getSubjectNeisInfo === 'function') ? getSubjectNeisInfo(subj, grade) : null;
-      if (neisInfo && (neisInfo.subjectType === '공통' || neisInfo.isCommon)) {
-        return true;
+      if (_excludedSubjectCache.has(norm)) {
+        return _excludedSubjectCache.get(norm);
       }
 
-      return false;
+      // [요구사항] 입학생 교육과정 편성표 상의 '공통' 과목인 경우 기본 검증 제외(true)
+      const neisInfo = (typeof getSubjectNeisInfo === 'function') ? getSubjectNeisInfo(subj, grade) : null;
+      const isEx = !!(neisInfo && (neisInfo.subjectType === '공통' || neisInfo.isCommon));
+      _excludedSubjectCache.set(norm, isEx);
+      return isEx;
     }
     window.isSubjectExcludedFromValidation = isSubjectExcludedFromValidation;
 
@@ -20018,6 +20047,7 @@ function createSangjiCourseSelectionForm() {
       if (!sData.excludedSubjects) sData.excludedSubjects = {};
       const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(subj) : String(subj || '').replace(/\s+/g, '').toLowerCase();
       sData.excludedSubjects[norm] = Boolean(isExcluded);
+      _excludedSubjectCache.clear();
       saveStep3Data(sData);
       if (typeof renderScmModal === 'function') {
         renderScmModal();
@@ -22341,13 +22371,18 @@ function createSangjiCourseSelectionForm() {
       }
 
       window._scmActiveCategoryId = catId;
+      _excludedSubjectCache.clear();
       saveStep3Data(sData);
       toggleScmCategoryForm(false);
       renderScmModal();
-      if (typeof renderAllGradesCurriculumTable === 'function') {
-        renderAllGradesCurriculumTable();
-      }
-      runStep3Validation(false);
+
+      // 모달 화면이 즉각(0초) 닫히고 반응하도록 배경 재연산 및 전체시수표 갱신은 비동기 지연 실행
+      setTimeout(() => {
+        if (typeof renderAllGradesCurriculumTable === 'function') {
+          renderAllGradesCurriculumTable();
+        }
+        runStep3Validation(false);
+      }, 16);
     }
     window.saveScmCategoryFromForm = saveScmCategoryFromForm;
     window.getStep3Data = getStep3Data;
