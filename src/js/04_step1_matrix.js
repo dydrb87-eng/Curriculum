@@ -43,9 +43,8 @@
           _step3ResultFilters.categoryId = 'all';
           _step3ResultFilters.search = '';
         }
-        if (typeof runStep3Validation === 'function') {
-          runStep3Validation(false);
-        } else if (typeof renderStep3UI === 'function') {
+        // [요구사항 반영]: 3단계 진입 시 자동 즉시 실행하지 않고, '점검 시작' 버튼을 눌렀을 때만 점검 진행
+        if (typeof renderStep3UI === 'function') {
           renderStep3UI();
         }
       } else if (step === 1) {

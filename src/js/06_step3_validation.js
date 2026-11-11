@@ -206,7 +206,7 @@
       }
 
       saveStep3Data(sData);
-      runStep3Validation(false);
+      // window._step3LastValidationResult = null;
       renderStudentCategoryExceptionModal(grade, classNum, studentNum, name, catId);
     }
     window.toggleStudentCategorySubjectException = toggleStudentCategorySubjectException;
@@ -226,7 +226,7 @@
       });
 
       saveStep3Data(sData);
-      runStep3Validation(false);
+      // window._step3LastValidationResult = null;
       renderStudentCategoryExceptionModal(grade, classNum, studentNum, name, catId);
     }
     window.resetCurrentStudentExceptions = resetCurrentStudentExceptions;
@@ -1830,7 +1830,7 @@
         if (modal) modal.classList.add('hidden');
         if (typeof renderAllGradesCurriculumTable === 'function') renderAllGradesCurriculumTable();
         if (typeof renderStep3UI === 'function') {
-          runStep3Validation(false);
+          // window._step3LastValidationResult = null;
         }
       } catch (err) {
         console.error('closeSubjectCategoryManagerModal error:', err);
@@ -2181,7 +2181,7 @@
       saveStep3Data(sData);
       renderScmModal();
       if (typeof renderStep3SubjectMappingTable === 'function') renderStep3SubjectMappingTable();
-      if (typeof runStep3Validation === 'function') runStep3Validation(false);
+      window._step3LastValidationResult = null;
     }
     window.moveSubjectToLeft = moveSubjectToLeft;
 
@@ -2213,7 +2213,7 @@
       saveStep3Data(sData);
       renderScmModal();
       if (typeof renderStep3SubjectMappingTable === 'function') renderStep3SubjectMappingTable();
-      if (typeof runStep3Validation === 'function') runStep3Validation(false);
+      window._step3LastValidationResult = null;
     }
     window.moveSubjectToRight = moveSubjectToRight;
 
@@ -2347,7 +2347,7 @@
       if (typeof renderAllGradesCurriculumTable === 'function') {
         renderAllGradesCurriculumTable();
       }
-      runStep3Validation(false);
+      // window._step3LastValidationResult = null;
     }
     window.quickRenameScmCategory = quickRenameScmCategory;
 
@@ -2427,6 +2427,26 @@
     }
     window.updateScmFormPreview = updateScmFormPreview;
 
+    function showScmSaveNotice() {
+      let toast = document.getElementById('scmSaveNoticeModalToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'scmSaveNoticeModalToast';
+        toast.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100000] px-6 py-3.5 bg-slate-900/95 text-white text-sm font-extrabold rounded-2xl shadow-2xl flex items-center gap-2.5 border border-slate-700/80 pointer-events-none transition-all duration-200 transform scale-95 opacity-0';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = '<span class="text-emerald-400 text-lg">✅</span> <span>저장되었습니다</span>';
+      toast.classList.remove('opacity-0', 'scale-95');
+      toast.classList.add('opacity-100', 'scale-100');
+
+      if (window._scmSaveNoticeTimer) clearTimeout(window._scmSaveNoticeTimer);
+      window._scmSaveNoticeTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'scale-100');
+        toast.classList.add('opacity-0', 'scale-95');
+      }, 1000);
+    }
+    window.showScmSaveNotice = showScmSaveNotice;
+
     function saveScmCategoryFromForm() {
       const idInput = document.getElementById('scmFormCatId');
       const nameInput = document.getElementById('scmFormName');
@@ -2446,8 +2466,8 @@
       const sem = semSelect ? semSelect.value : 'all';
       const rType = selectedRadio ? selectedRadio.value : 'min';
 
-      const minVal = parseInt(document.getElementById('scmInputMinCount')?.value || 4, 10);
-      const maxVal = parseInt(document.getElementById('scmInputMaxCount')?.value || 12, 10);
+      const minVal = parseInt(document.getElementById('scmInputMinCount')?.value || 1, 10);
+      const maxVal = parseInt(document.getElementById('scmInputMaxCount')?.value || 3, 10);
 
       const sData = getStep3Data();
       if (!Array.isArray(sData.categories)) sData.categories = [];
@@ -2475,15 +2495,19 @@
       window._scmActiveCategoryId = catId;
       _excludedSubjectCache.clear();
       saveStep3Data(sData);
-      toggleScmCategoryForm(false);
+
+      // [요구사항] 저장 시 상세조정 화면을 닫지 않고 유지하며, '저장되었습니다' 알림창이 1초 나타났다 사라지도록 처리
+      const titleEl = document.getElementById('scmFormTitle');
+      if (titleEl) titleEl.textContent = '교과군 명칭 및 조건 수정: ' + name;
       renderScmModal();
+      showScmSaveNotice();
 
       // 모달 화면이 즉각(0초) 닫히고 반응하도록 배경 재연산 및 전체시수표 갱신은 비동기 지연 실행
       setTimeout(() => {
         if (typeof renderAllGradesCurriculumTable === 'function') {
           renderAllGradesCurriculumTable();
         }
-        runStep3Validation(false);
+        // window._step3LastValidationResult = null;
       }, 16);
     }
     window.saveScmCategoryFromForm = saveScmCategoryFromForm;
@@ -2883,6 +2907,53 @@
     window.setStep3MappingFilter = setStep3MappingFilter;
 
     // Main Render for Step 3
+    function renderStep3StandbyUI() {
+      const sData = getStep3Data();
+      const categories = sData.categories || [];
+      const { grade3Students } = getStep3StudentsData();
+      const candidateCount = grade3Students?.length || 0;
+
+      const totalEl = document.getElementById('step3StatTotalStudents');
+      const gradeDetailEl = document.getElementById('step3StatGradeDetail');
+      const passEl = document.getElementById('step3StatPassStudents');
+      const passRateEl = document.getElementById('step3StatPassRate');
+      const violEl = document.getElementById('step3StatViolatedStudents');
+      const violRateEl = document.getElementById('step3StatViolatedRate');
+      const catCountEl = document.getElementById('step3StatCategoryCount');
+      const unmappedNoticeEl = document.getElementById('step3StatUnmappedNotice');
+
+      if (totalEl) totalEl.textContent = candidateCount > 0 ? candidateCount : '-';
+      if (gradeDetailEl) gradeDetailEl.textContent = '(3학년 대상)';
+      if (passEl) passEl.textContent = '-';
+      if (passRateEl) passRateEl.textContent = '(대기 중)';
+      if (violEl) violEl.textContent = '-';
+      if (violRateEl) violRateEl.textContent = '(대기 중)';
+      if (catCountEl) catCountEl.textContent = categories.length;
+      if (unmappedNoticeEl) unmappedNoticeEl.textContent = '점검 대기';
+
+      const resultsContainer = document.getElementById('step3SubViewResults');
+      if (resultsContainer) {
+        resultsContainer.innerHTML = `
+          <div class="p-10 sm:p-14 text-center border-2 border-dashed border-purple-200 rounded-3xl bg-white shadow-xs space-y-4 my-4">
+            <span class="text-4xl sm:text-5xl block animate-bounce">📋</span>
+            <h3 class="text-lg sm:text-xl font-black text-slate-800">이수학점 점검 준비 완료</h3>
+            <p class="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
+              3학년 학생들의 <b>수강신청 내역(선택과목)</b> 및 1단계 <b>교과학습발달상황(2학년 1학기 선택과목)</b>을 대조하여<br>
+              교과군별 이수 기준 및 과목 중복 수강 여부를 점검합니다.<br>
+              아래 <b>[🚀 점검 시작]</b> 버튼을 누르면 점검이 시작됩니다.
+            </p>
+            <div class="pt-2">
+              <button type="button" onclick="window.runStep3Validation(true)" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 font-black text-sm rounded-2xl shadow-lg transition cursor-pointer transform hover:scale-105 ring-4 ring-amber-200">
+                <span class="text-base">🚀</span>
+                <span>점검 시작</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+    window.renderStep3StandbyUI = renderStep3StandbyUI;
+
     function renderStep3UI() {
       const sData = getStep3Data();
       const categories = sData.categories || [];
@@ -2892,7 +2963,8 @@
       if (yearBadge) yearBadge.textContent = acadYear;
 
       if (!window._step3LastValidationResult) {
-        runStep3Validation(false);
+        // 아직 '점검 시작' 버튼을 누르지 않은 상태: 점검 대기 안내 화면 렌더링
+        renderStep3StandbyUI();
         return;
       }
 
@@ -4114,7 +4186,7 @@
 
         // 3단계 선택조건 검증 즉시 재실행 및 화면 결과 테이블 강제 재렌더링
         if (typeof runStep3Validation === 'function') {
-          runStep3Validation(false);
+          // window._step3LastValidationResult = null;
         }
         if (typeof renderStep3ValidationResults === 'function') {
           renderStep3ValidationResults();
@@ -4390,7 +4462,7 @@
       }
 
       saveStep3Data(sData);
-      runStep3Validation(false);
+      // window._step3LastValidationResult = null;
       renderStep3SubjectMappingTable();
     }
     window.handleStep3SubjectCategoryChange = handleStep3SubjectCategoryChange;
@@ -4427,7 +4499,7 @@
 
       _step3SelectedSubjectIds.clear();
       saveStep3Data(sData);
-      runStep3Validation(false);
+      // window._step3LastValidationResult = null;
       renderStep3SubjectMappingTable();
       alert('선택한 과목의 교과군이 일괄 적용되었습니다.');
     }
@@ -4502,7 +4574,7 @@
 
       if (matchedCount > 0) {
         saveStep3Data(sData);
-        runStep3Validation(false);
+        // window._step3LastValidationResult = null;
         renderStep3SubjectMappingTable();
         if (typeof renderScmModal === 'function') renderScmModal();
         if (typeof renderAllGradesCurriculumTable === 'function') renderAllGradesCurriculumTable();
@@ -4796,7 +4868,7 @@
 
       saveStep3Data(sData);
       closeStep3CategoryModal();
-      runStep3Validation(false);
+      // window._step3LastValidationResult = null;
       renderStep3CategoryList();
       renderStep3SubjectMappingTable();
       if (typeof renderScmModal === 'function') renderScmModal();
@@ -4819,7 +4891,7 @@
       }
 
       saveStep3Data(sData);
-      runStep3Validation(false);
+      // window._step3LastValidationResult = null;
       renderStep3CategoryList();
       renderStep3SubjectMappingTable();
       if (typeof renderScmModal === 'function') renderScmModal();
@@ -4854,7 +4926,7 @@
 
       saveStep3Data(sData);
       autoAssignStep3CategoriesByName(true); // silent = true
-      runStep3Validation(false);
+      // window._step3LastValidationResult = null;
       renderStep3CategoryList();
       renderStep3SubjectMappingTable();
       if (typeof renderScmModal === 'function') renderScmModal();
