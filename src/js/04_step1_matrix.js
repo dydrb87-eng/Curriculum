@@ -1098,6 +1098,11 @@
 
       const subjects = getFilteredAndSortedStep1Subjects(sem, counts);
 
+      // Compute revision diffs for active date & grade (최신 회차가 왼쪽인 역순 정렬)
+      const { revisionColumns, studentDiffMap } = (typeof computeStudentRevisionDiffs === 'function')
+        ? computeStudentRevisionDiffs(MultiState.activeYear, MultiState.activeGrade)
+        : { revisionColumns: [], studentDiffMap: new Map() };
+
       // 1. Filter students by search and by step1TableSortState.subjectFilter
       const filteredStudents = AppState.students.filter(st => {
         const selected = sem === 1 ? (st.sem1 || []) : (st.sem2 || []);
@@ -1260,6 +1265,17 @@
           <div class="text-[11px] font-normal mt-0.5 opacity-90 flex items-center justify-center">${counts[s]}명 ${sortBadge}</div>
         </th>`;
       });
+
+      // 우측 차수별 누가 변경 열 추가 (최신 회차가 왼쪽인 역순 배치)
+      revisionColumns.forEach(revCol => {
+        html += `<th class="p-2.5 text-center border-r border-slate-300 whitespace-nowrap min-w-[150px] bg-slate-200 text-slate-800 font-bold select-none text-xs" title="${revCol.targetDate} (직전 기준: ${revCol.prevDate})">
+          <div class="flex items-center justify-center gap-1">
+            <span class="px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 text-[10px] font-black border border-indigo-300 shadow-2xs">[${revCol.roundTag}]</span>
+            <span>변경 내역</span>
+          </div>
+        </th>`;
+      });
+
       html += '</tr></thead>';
 
       // Table Body
@@ -1346,6 +1362,28 @@
             ${cellContent}
           </td>`;
         });
+
+        // 우측 차수별 누가 변경 열 내용 추가 (최신 회차가 왼쪽)
+        const stKey = `${String(st.classNum || '').replace(/[^0-9]/g, '')}_${String(st.studentNum || '').replace(/[^0-9]/g, '')}_${String(st.name || '').trim()}`;
+        const diffs = studentDiffMap.get(stKey) || studentDiffMap.get(st.id) || {};
+
+        revisionColumns.forEach(revCol => {
+          const diffText = diffs[revCol.colId] || '-';
+          const hasChange = diffText !== '-';
+
+          if (hasChange) {
+            html += `<td class="p-2 border-r border-slate-200 text-xs text-slate-900 bg-amber-50/80 font-medium whitespace-nowrap text-left" title="${diffText}">
+              <span class="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-950 font-bold border border-amber-300 shadow-2xs text-[11px]">
+                ${diffText}
+              </span>
+            </td>`;
+          } else {
+            html += `<td class="p-2 border-r border-slate-200 text-center text-xs text-slate-300 font-normal select-none">
+              -
+            </td>`;
+          }
+        });
+
         html += '</tr>';
       });
       html += '</tbody>';
@@ -1360,6 +1398,9 @@
           ${counts[s]}명
           ${isUnder ? '<span class="block text-[10px] font-normal">(기준 이하)</span>' : ''}
         </td>`;
+      });
+      revisionColumns.forEach(() => {
+        html += '<td class="p-2.5 text-center border-r border-slate-300 text-xs text-slate-400 font-normal bg-slate-200 select-none">-</td>';
       });
       html += '</tr></tfoot>';
 
@@ -2437,15 +2478,21 @@
           });
         });
 
+        // Compute revision diffs for active date & grade (최신 회차가 왼쪽인 역순 정렬)
+        const { revisionColumns, studentDiffMap } = (typeof computeStudentRevisionDiffs === 'function')
+          ? computeStudentRevisionDiffs(MultiState.activeYear, AppState.detectedGrade)
+          : { revisionColumns: [], studentDiffMap: new Map() };
+        const revHeaders = revisionColumns.map(rc => rc.colLabel);
+
         // 1. Matrix Table Rows
-        const totalCols = 4 + subjects.length;
+        const totalCols = 4 + subjects.length + revisionColumns.length;
         const sheetData = [];
         sheetData.push([`[상지대관령고등학교] ${AppState.detectedGrade} [${sem}학기] 학생별 선택과목 매트릭스 현황`]);
         sheetData.push([`총 학생 수: ${AppState.students.length}명 | 1인당 선택: ${sem === 1 ? AppState.sem1GroupCount : AppState.sem2GroupCount}과목 | 기준 인원: ${threshold}명 이하 | 출력일시: ${new Date().toLocaleString()}`]);
         sheetData.push([]);
 
         // Table 1 Header Row
-        sheetData.push(['반', '번호', '이름', '진로/관심학과', ...subjects]);
+        sheetData.push(['반', '번호', '이름', '진로/관심학과', ...subjects, ...revHeaders]);
 
         // Student Rows
         AppState.students.forEach(st => {
@@ -2456,6 +2503,11 @@
             const isSel = selected.some(sub => normalizeSubject(sub) === normS);
             row.push(isSel ? '선택' : '');
           });
+          const stKey = `${String(st.classNum || '').replace(/[^0-9]/g, '')}_${String(st.studentNum || '').replace(/[^0-9]/g, '')}_${String(st.name || '').trim()}`;
+          const diffs = studentDiffMap.get(stKey) || studentDiffMap.get(st.id) || {};
+          revisionColumns.forEach(rc => {
+            row.push(diffs[rc.colId] || '-');
+          });
           sheetData.push(row);
         });
 
@@ -2465,6 +2517,7 @@
         // Total Row
         const totalRow = ['합계', '', '', '총 수강 신청 인원'];
         subjects.forEach(s => totalRow.push(counts[s]));
+        revisionColumns.forEach(() => totalRow.push('-'));
         sheetData.push(totalRow);
 
         // Blank rows spacer
@@ -2507,6 +2560,7 @@
           { wch: 22 }
         ];
         subjects.forEach(() => colWidths.push({ wch: 16 }));
+        revisionColumns.forEach(() => colWidths.push({ wch: 28 }));
         ws['!cols'] = colWidths;
 
         const rowHeights = [
@@ -2544,8 +2598,25 @@
             const c = 4 + sIdx;
             const normS = normalizeSubject(s);
             const isSel = selected.some(sub => normalizeSubject(sub) === normS);
-            const isRight = (sIdx === subjects.length - 1);
+            const isRight = (sIdx === subjects.length - 1 && revisionColumns.length === 0);
             ExcelStyler.setCell(ws, r, c, isSel ? ExcelStyler.dataSelected(isEven, isRight, false) : ExcelStyler.dataCenter(isEven, isRight, false));
+          });
+
+          revisionColumns.forEach((rc, rcIdx) => {
+            const c = 4 + subjects.length + rcIdx;
+            const isRight = (rcIdx === revisionColumns.length - 1);
+            const val = sheetData[r][c];
+            const hasChange = val && val !== '-';
+            if (hasChange) {
+              ExcelStyler.setCell(ws, r, c, {
+                font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, color: { rgb: '78350F' } },
+                fill: { fgColor: { rgb: 'FEF3C7' } },
+                alignment: { horizontal: 'left', vertical: 'center' },
+                border: ExcelStyler.dataBorder(isRight, false)
+              });
+            } else {
+              ExcelStyler.setCell(ws, r, c, ExcelStyler.dataCenter(isEven, isRight, false));
+            }
           });
         });
 
@@ -2562,8 +2633,13 @@
         subjects.forEach((s, sIdx) => {
           const c = 4 + sIdx;
           const isUnder = counts[s] <= threshold;
-          const isRight = (sIdx === subjects.length - 1);
+          const isRight = (sIdx === subjects.length - 1 && revisionColumns.length === 0);
           ExcelStyler.setCell(ws, sumR, c, ExcelStyler.summaryStyle(isUnder, isRight, false));
+        });
+        revisionColumns.forEach((rc, rcIdx) => {
+          const c = 4 + subjects.length + rcIdx;
+          const isRight = (rcIdx === revisionColumns.length - 1);
+          ExcelStyler.setCell(ws, sumR, c, ExcelStyler.summaryStyle(false, isRight, false));
         });
 
         rowHeights.push({ hpt: 10 });

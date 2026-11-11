@@ -2967,11 +2967,253 @@
     // ==========================================
     // 과목 기준 데이터 정리 워크시트 생성 (공통 헬퍼)
     // ==========================================
+
+    function extractSubjectDataMapForDate(targetDate) {
+      const map = new Map();
+      if (!targetDate) return map;
+
+      const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+      const yData = acadData[targetDate] || {};
+      const curriculum = (yData['전체'] && yData['전체'].curriculum) || [];
+      const studentsByGrade = {
+        '1학년': yData['1학년']?.students || [],
+        '2학년': yData['2학년']?.students || [],
+        '3학년': yData['3학년']?.students || []
+      };
+      const classCounts = (typeof getGradeClassCounts === 'function') ? getGradeClassCounts() : { '1학년': 2, '2학년': 2, '3학년': 2 };
+
+      let rawSubjectList = [];
+      if (curriculum && curriculum.length > 0) {
+        rawSubjectList = curriculum.map(c => ({
+          semester: c.semester,
+          grade: c.grade,
+          subject: c.subject,
+          division: c.division || '',
+          teacher: c.teacher || '-',
+          status: c.status || '개설',
+          category: c.category || ''
+        }));
+      } else {
+        ['2학년', '3학년'].forEach(gradeStr => {
+          const gData = yData[gradeStr];
+          if (!gData) return;
+          [1, 2].forEach(sem => {
+            const rawSubjs = (sem === 1 ? gData.sem1Subjects : gData.sem2Subjects) || [];
+            const closedList = gData.closedSubjects?.[sem] || [];
+            rawSubjs.forEach(s => {
+              rawSubjectList.push({
+                semester: sem,
+                grade: gradeStr,
+                subject: s,
+                division: '',
+                teacher: '-',
+                status: closedList.includes(s) ? '폐강' : '개설',
+                category: '선택'
+              });
+            });
+          });
+        });
+      }
+
+      const grouped = new Map();
+      rawSubjectList.forEach(item => {
+        const normKey = `${item.semester}_${item.grade}_${normalizeSubjectKey(item.subject)}`;
+        if (!grouped.has(normKey)) grouped.set(normKey, []);
+        grouped.get(normKey).push(item);
+      });
+
+      grouped.forEach((items) => {
+        const representative = items[0];
+        const sem = representative.semester;
+        const gradeStr = representative.grade;
+        const subjName = representative.subject;
+        const normSubj = normalizeSubjectKey(subjName);
+        const baseSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(subjName) : subjName;
+        const students = studentsByGrade[gradeStr] || [];
+        const isClosed = items.every(it => it.status === '폐강');
+
+        const maxClasses = parseInt(classCounts[gradeStr] || 2, 10);
+        const isBoonban = items.some(it => (it.division || '').includes('분반')) ||
+                          (items.length > maxClasses && items.some(it => it.category === '지정' || it.category === '학교지정'));
+
+        if (isClosed) {
+          const key = `${sem}_${gradeStr}_${normSubj}_폐강`;
+          const fallback = `${sem}_${gradeStr}_${normSubj}`;
+          const val = { count: 0, teacher: representative.teacher || '폐강' };
+          map.set(key, val);
+          map.set(fallback, val);
+        } else if (isBoonban) {
+          let totalCount = 0;
+          if (students.length > 0) {
+            if (representative.category === '지정' || representative.category === '학교지정' || gradeStr === '1학년') {
+              totalCount = students.length;
+            } else {
+              totalCount = students.filter(st => {
+                const chs = (sem === 1 ? st.sem1 : st.sem2) || [];
+                return chs.some(ch => ch && (ch === subjName || ch === baseSubj || normalizeSubjectKey(ch) === normSubj));
+              }).length;
+            }
+          }
+          if (totalCount === 0) totalCount = (gradeStr === '1학년' ? 44 : (gradeStr === '2학년' ? 44 : 19));
+
+          items.forEach((it, idx) => {
+            let div = (it.division || '').trim();
+            if (!div || div === '선택' || div === '분반') div = `분반${idx + 1}`;
+            const key = `${sem}_${gradeStr}_${normSubj}_${div}`;
+            const val = { count: totalCount, teacher: it.teacher || '-' };
+            map.set(key, val);
+          });
+          map.set(`${sem}_${gradeStr}_${normSubj}`, { count: totalCount, teacher: representative.teacher || '-' });
+        } else if (gradeStr === '1학년') {
+          const priorG1 = yData['1학년']?.priorData?.students || yData['2학년']?.priorData?.students;
+          const g1Students = (priorG1 && priorG1.length > 0) ? priorG1 : students;
+          const tot = g1Students.length || 44;
+          const c1 = g1Students.filter(st => String(st.classNum).replace(/[^0-9]/g, '') === '1').length || Math.floor(tot / 2);
+          const c2 = g1Students.filter(st => String(st.classNum).replace(/[^0-9]/g, '') === '2').length || (tot - c1);
+          const t1 = items[0]?.teacher || '-';
+          const t2 = items[1]?.teacher || items[0]?.teacher || '-';
+
+          map.set(`${sem}_1학년_${normSubj}_1반`, { count: c1, teacher: t1 });
+          map.set(`${sem}_1학년_${normSubj}_2반`, { count: c2, teacher: t2 });
+          map.set(`${sem}_1학년_${normSubj}`, { count: tot, teacher: t1 });
+        } else if (
+          items.some(it => it.category === '지정' || it.category === '학교지정') ||
+          ['스포츠문화', '스포츠과학', '스포츠생활', '운동과건강'].some(k => normSubj.includes(k) || k.includes(normSubj))
+        ) {
+          const priorStudents = yData[gradeStr]?.priorData?.students;
+          const wholeStudents = (priorStudents && priorStudents.length > 0) ? priorStudents : students;
+          const tot = wholeStudents.length || (gradeStr === '2학년' ? 44 : 19);
+          const numClasses = parseInt(classCounts[gradeStr] || 2, 10) || 2;
+
+          for (let cIdx = 1; cIdx <= numClasses; cIdx++) {
+            const cNum = String(cIdx);
+            const count = wholeStudents.filter(st => String(st.classNum).replace(/[^0-9]/g, '') === cNum).length || Math.floor(tot / numClasses);
+            const it = items[cIdx - 1] || items[0];
+            const t = it?.teacher || representative.teacher || '-';
+            map.set(`${sem}_${gradeStr}_${normSubj}_${cIdx}반`, { count, teacher: t });
+          }
+          map.set(`${sem}_${gradeStr}_${normSubj}`, { count: tot, teacher: representative.teacher || '-' });
+        } else {
+          // 선택과목
+          const enrolled = students.filter(st => {
+            const chs = (sem === 1 ? st.sem1 : st.sem2) || [];
+            return chs.some(ch => ch && (ch === subjName || ch === baseSubj || normalizeSubjectKey(ch) === normSubj));
+          });
+          const tot = enrolled.length;
+
+          const classMap = new Map();
+          enrolled.forEach(st => {
+            const c = String(st.classNum || '1');
+            classMap.set(c, (classMap.get(c) || 0) + 1);
+          });
+
+          if (items.length > 1 && items.some(it => it.division && it.division !== '선택')) {
+            items.forEach(it => {
+              const cNum = it.division.replace(/[^0-9]/g, '');
+              const count = classMap.get(cNum) || 0;
+              map.set(`${sem}_${gradeStr}_${normSubj}_${it.division}`, { count, teacher: it.teacher || '-' });
+            });
+          } else {
+            const classes = Array.from(classMap.keys());
+            if (classes.length === 0) {
+              map.set(`${sem}_${gradeStr}_${normSubj}_선택`, { count: 0, teacher: representative.teacher || '-' });
+            } else {
+              classes.forEach(cNum => {
+                const count = classMap.get(cNum) || 0;
+                map.set(`${sem}_${gradeStr}_${normSubj}_${cNum}반`, { count, teacher: representative.teacher || '-' });
+              });
+            }
+          }
+          map.set(`${sem}_${gradeStr}_${normSubj}`, { count: tot, teacher: representative.teacher || '-' });
+        }
+      });
+
+      return map;
+    }
+    window.extractSubjectDataMapForDate = extractSubjectDataMapForDate;
+
+    function getSubjectRowDiff(rowKey, fallbackKey, prevMap, targetMap) {
+      if (!prevMap || !targetMap) return '-';
+      const prev = prevMap.get(rowKey) || prevMap.get(fallbackKey);
+      const target = targetMap.get(rowKey) || targetMap.get(fallbackKey);
+
+      if (!prev && !target) return '-';
+      if (!prev && target) {
+        const c = target.count || 0;
+        const t = target.teacher || '-';
+        return `신규 편성 (인원: ${c}명, 교사: ${t})`;
+      }
+      if (prev && !target) {
+        return `편성 제외 (이전: ${prev.count}명, ${prev.teacher})`;
+      }
+
+      const prevCount = prev.count;
+      const targetCount = target.count;
+      const prevTeacher = (prev.teacher || '-').trim();
+      const targetTeacher = (target.teacher || '-').trim();
+
+      const countChanged = (prevCount !== undefined && targetCount !== undefined && prevCount !== targetCount);
+      const teacherChanged = (prevTeacher !== targetTeacher && prevTeacher !== '-' && targetTeacher !== '-');
+
+      if (!countChanged && !teacherChanged) {
+        return '-';
+      }
+
+      const parts = [];
+      if (countChanged) {
+        const diff = targetCount - prevCount;
+        const sign = diff > 0 ? `▲${diff}` : `▼${Math.abs(diff)}`;
+        parts.push(`인원: ${prevCount}명 ➔ ${targetCount}명 (${sign})`);
+      }
+      if (teacherChanged) {
+        parts.push(`교사: ${prevTeacher} ➔ ${targetTeacher}`);
+      }
+      return parts.join(', ');
+    }
+    window.getSubjectRowDiff = getSubjectRowDiff;
+
     function createSubjectBasedWorksheet() {
       const acadYearStr = MultiState?.activeAcademicYear || '2027학년도';
       const curDate = MultiState?.activeYear || '2027.10.11.';
       const acadData = getAcadData();
       const yData = acadData[curDate] || {};
+
+      // 날짜 목록 및 회차 정보 수집
+      const datesList = (MultiState?.datesByAcademicYear && MultiState.datesByAcademicYear[acadYearStr]) || MultiState?.yearsList || [];
+      const curIdx = datesList.indexOf(curDate);
+      const revisionSteps = [];
+
+      if (curIdx > 0) {
+        for (let i = 1; i <= curIdx; i++) {
+          const prevDate = datesList[i - 1];
+          const targetDate = datesList[i];
+          const targetRev = (typeof parseDateRevisionInfo === 'function') 
+            ? parseDateRevisionInfo(targetDate) 
+            : { tag: `${i}차` };
+          let roundTag = targetRev.tag === '일반' ? `${i}차` : targetRev.tag;
+          const colLabel = `[${roundTag} 변경 내역]`;
+          const colId = `sub_rev_${i}_${targetDate}`;
+
+          const prevMap = extractSubjectDataMapForDate(prevDate);
+          const targetMap = extractSubjectDataMapForDate(targetDate);
+
+          revisionSteps.push({
+            colId,
+            colLabel,
+            roundTag,
+            targetDate,
+            prevDate,
+            prevMap,
+            targetMap,
+            stepIndex: i
+          });
+        }
+      }
+
+      // 최신 회차를 왼쪽에 두기 (방식 A + 역순 정렬)
+      const revColsInDisplayOrder = [...revisionSteps].reverse();
+      const revHeaders = revColsInDisplayOrder.map(r => r.colLabel);
+      const totalCols = 8 + revColsInDisplayOrder.length;
 
       // 과목 데이터 준비
       const rawSubjectList = getConsolidatedSubjectList();
@@ -3009,12 +3251,12 @@
         return String(itemA.subject).localeCompare(String(itemB.subject), 'ko');
       });
 
-      // 8개 열 구조: 학기, 학년, 과목명(총원), 반, 수강인원, 수강자 명단, 출판사, 담당 교사
+      // 8개 기본 열 + 차수별 누가 변경 열 구조
       const rows = [];
       rows.push([`${acadYearStr} 과목 기준 데이터 정리 현황 (반별 행 분리 및 셀 병합)`]);
       rows.push([`기준 날짜: ${curDate} | 출력일시: ${new Date().toLocaleString()} | 서식: 과목명(총원) 및 학급별 명렬 분리`]);
       rows.push([]);
-      rows.push(['학기', '학년', '과목명(총원)', '반', '수강인원', '수강자 명단', '출판사', '담당 교사']);
+      rows.push(['학기', '학년', '과목명(총원)', '반', '수강인원', '수강자 명단', '출판사', '담당 교사', ...revHeaders]);
 
       const rowHeights = [
         { hpt: 32 },
@@ -3024,8 +3266,8 @@
       ];
 
       const wsMerges = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
+        { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } }
       ];
 
       const courseMergeRanges = [];
@@ -3054,21 +3296,47 @@
         const isBoonban = items.some(it => (it.division || '').includes('분반')) || 
                           (items.length > maxClassesForGrade && items.some(it => it.category === '지정' || it.category === '학교지정'));
 
+        function pushRowWithDiff(semVal, grVal, titleVal, classVal, countVal, rosterVal, pubVal, teacherVal, isClosedVal = false, lineCountVal = 1) {
+          const normSubjName = normalizeSubjectKey(titleVal.replace(/\s*\([^)]*\)$/, ''));
+          const rowKey = `${semVal}_${grVal}_${normSubjName}_${classVal}`;
+          const fallbackKey = `${semVal}_${grVal}_${normSubjName}`;
+
+          const diffTexts = revColsInDisplayOrder.map(rev => {
+            return getSubjectRowDiff(rowKey, fallbackKey, rev.prevMap, rev.targetMap);
+          });
+
+          rows.push([
+            `${semVal}학기`,
+            grVal,
+            titleVal,
+            classVal,
+            countVal,
+            rosterVal,
+            pubVal,
+            teacherVal,
+            ...diffTexts
+          ]);
+
+          currentTeachers.push(teacherVal);
+          const hpt = isClosedVal ? 24 : Math.max(24, Math.min(90, 20 + lineCountVal * 13));
+          rowHeights.push({ hpt });
+          rowStyleInfo.push({ isClosed: isClosedVal, isEven });
+        }
+
         if (isClosed) {
           // 폐강 과목: 1개 행으로 표기
-          rows.push([
-            `${sem}학기`,
+          pushRowWithDiff(
+            sem,
             gradeStr,
             `${subjName} (0명)`,
             '폐강',
             '0명',
             '폐강 확정',
             publisher,
-            representative.teacher || '-'
-          ]);
-          currentTeachers.push(representative.teacher || '-');
-          rowHeights.push({ hpt: 24 });
-          rowStyleInfo.push({ isClosed: true, isEven });
+            representative.teacher || '-',
+            true,
+            1
+          );
         } else if (isBoonban) {
           // 분반 과목 (수강인원은 미기입, 총원만 과목명(총원)에서 확인)
           let totalCount = 0;
@@ -3093,19 +3361,18 @@
               divText = `분반${itIdx + 1}`;
             }
 
-            rows.push([
-              `${sem}학기`,
+            pushRowWithDiff(
+              sem,
               gradeStr,
               `${subjName} (${totalCount}명)`,
               divText,
               '', // 수강자 인원 미기입
               '', // 수강자 명단 미기입
               publisher,
-              it.teacher || '-'
-            ]);
-            currentTeachers.push(it.teacher || '-');
-            rowHeights.push({ hpt: 24 });
-            rowStyleInfo.push({ isClosed: false, isEven });
+              it.teacher || '-',
+              false,
+              1
+            );
           });
         } else if (gradeStr === '1학년') {
           // 1학년 (신입생 전원 수강): 사전데이터 우선 적용 및 학급 수 기준 행 분리
@@ -3126,39 +3393,36 @@
           const r1Roster = l1.length > 0 ? l1.join(', ') : `전원 배정 (1반 ${half1}명)`;
           const r2Roster = l2.length > 0 ? l2.join(', ') : `전원 배정 (2반 ${half2}명)`;
 
-          rows.push([
-            `${sem}학기`,
+          pushRowWithDiff(
+            sem,
             gradeStr,
             `${subjName} (${totalGrade1Students}명)`,
             '1반',
             `${half1}명`,
             r1Roster,
             publisher,
-            teacher1
-          ]);
-          currentTeachers.push(teacher1);
-          rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(r1Roster.length / 50) * 13)) });
-          rowStyleInfo.push({ isClosed: false, isEven });
+            teacher1,
+            false,
+            Math.ceil(r1Roster.length / 50)
+          );
 
-          rows.push([
-            `${sem}학기`,
+          pushRowWithDiff(
+            sem,
             gradeStr,
             `${subjName} (${totalGrade1Students}명)`,
             '2반',
             `${half2}명`,
             r2Roster,
             publisher,
-            teacher2
-          ]);
-          currentTeachers.push(teacher2);
-          rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(r2Roster.length / 50) * 13)) });
-          rowStyleInfo.push({ isClosed: false, isEven });
+            teacher2,
+            false,
+            Math.ceil(r2Roster.length / 50)
+          );
         } else if (
           items.some(it => it.category === '지정' || it.category === '학교지정') ||
           ['스포츠문화', '스포츠과학', '스포츠생활', '운동과건강'].some(k => normSubj.includes(k) || k.includes(normSubj))
         ) {
-          // 2·3학년 학교지정(공통) 및 전체 수강 과목 (스포츠 문화, 스포츠 과학 등):
-          // 전체가 듣는 과목은 수강신청 인원이 아니라 [사전데이터(priorData.students)] 기준!
+          // 2·3학년 학교지정(공통) 및 전체 수강 과목 (스포츠 문화, 스포츠 과학 등)
           const priorStudents = yData[gradeStr]?.priorData?.students;
           const wholeGradeStudents = (priorStudents && priorStudents.length > 0) ? priorStudents : students;
           const defaultTotal = (gradeStr === '2학년' ? 44 : 19);
@@ -3179,20 +3443,18 @@
               const cCount = classStudents.length > 0 ? `${classStudents.length}명` : `${Math.floor(totalCount / items.length)}명`;
               const cRoster = labels.length > 0 ? labels.join(', ') : `전원 배정 (${classTarget})`;
 
-              rows.push([
-                `${sem}학기`,
+              pushRowWithDiff(
+                sem,
                 gradeStr,
                 `${subjName} (${totalCount}명)`,
                 classTarget,
                 cCount,
                 cRoster,
                 publisher,
-                it.teacher || '-'
-              ]);
-              currentTeachers.push(it.teacher || '-');
-              const lineCount = Math.ceil((cRoster.length || 1) / 50);
-              rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + lineCount * 13)) });
-              rowStyleInfo.push({ isClosed: false, isEven });
+                it.teacher || '-',
+                false,
+                Math.ceil((cRoster.length || 1) / 50)
+              );
             });
           } else {
             // 단일 행으로 들어온 경우: 각 반(1반, 2반...)으로 분리
@@ -3206,20 +3468,18 @@
               const cRoster = labels.length > 0 ? labels.join(', ') : `전원 배정 (${cIdx}반)`;
               const tName = representative.teacher || '-';
 
-              rows.push([
-                `${sem}학기`,
+              pushRowWithDiff(
+                sem,
                 gradeStr,
                 `${subjName} (${totalCount}명)`,
                 `${cIdx}반`,
                 cCount,
                 cRoster,
                 publisher,
-                tName
-              ]);
-              currentTeachers.push(tName);
-              const lineCount = Math.ceil((cRoster.length || 1) / 50);
-              rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + lineCount * 13)) });
-              rowStyleInfo.push({ isClosed: false, isEven });
+                tName,
+                false,
+                Math.ceil((cRoster.length || 1) / 50)
+              );
             }
           }
         } else {
@@ -3238,19 +3498,18 @@
 
           if (totalEnrolled === 0) {
             const tName = representative.teacher || '-';
-            rows.push([
-              `${sem}학기`,
+            pushRowWithDiff(
+              sem,
               gradeStr,
               totalSubjText,
               representative.division || '선택',
               '0명',
               '-',
               publisher,
-              tName
-            ]);
-            currentTeachers.push(tName);
-            rowHeights.push({ hpt: 24 });
-            rowStyleInfo.push({ isClosed: false, isEven });
+              tName,
+              false,
+              1
+            );
           } else {
             // 학생들의 원적 학급별 수집 (1반, 2반, 3반...)
             const classMap = new Map();
@@ -3271,19 +3530,18 @@
 
                 const cText = `${cLabels.length}명`;
                 const rText = cLabels.length > 0 ? cLabels.join(', ') : '-';
-                rows.push([
-                  `${sem}학기`,
+                pushRowWithDiff(
+                  sem,
                   gradeStr,
                   totalSubjText,
                   it.division,
                   cText,
                   rText,
                   publisher,
-                  it.teacher || '-'
-                ]);
-                currentTeachers.push(it.teacher || '-');
-                rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(rText.length / 50) * 13)) });
-                rowStyleInfo.push({ isClosed: false, isEven });
+                  it.teacher || '-',
+                  false,
+                  Math.ceil(rText.length / 50)
+                );
               });
             } else {
               // 일반 선택과목: 1반, 2반 수강 학생별로 각각 행 분리 생성!
@@ -3295,19 +3553,18 @@
                 const cText = `${cLabels.length}명`;
                 const rText = cLabels.join(', ');
 
-                rows.push([
-                  `${sem}학기`,
+                pushRowWithDiff(
+                  sem,
                   gradeStr,
                   totalSubjText,
                   `${cNum}반`,
                   cText,
                   rText,
                   publisher,
-                  tName
-                ]);
-                currentTeachers.push(tName);
-                rowHeights.push({ hpt: Math.max(24, Math.min(90, 20 + Math.ceil(rText.length / 50) * 13)) });
-                rowStyleInfo.push({ isClosed: false, isEven });
+                  tName,
+                  false,
+                  Math.ceil(rText.length / 50)
+                );
               });
             }
           }
@@ -3349,8 +3606,8 @@
 
       ws['!merges'] = wsMerges;
 
-      // 열 너비 설정 (총 8개 열)
-      ws['!cols'] = [
+      // 열 너비 설정 (기본 8열 + 차수별 열)
+      const baseCols = [
         { wch: 10 },  // 0: 학기
         { wch: 10 },  // 1: 학년
         { wch: 26 },  // 2: 과목명(총원)
@@ -3360,17 +3617,22 @@
         { wch: 16 },  // 6: 출판사
         { wch: 14 }   // 7: 담당 교사
       ];
+      revColsInDisplayOrder.forEach(() => {
+        baseCols.push({ wch: 30 });
+      });
+      ws['!cols'] = baseCols;
 
       ws['!rows'] = rowHeights;
 
-      // 4행(학기, 학년, 과목명, 반, 수강인원, 수강자 명단, 출판사, 담당 교사) 자동 필터 적용
-      ws['!autofilter'] = { ref: `A4:H${rows.length}` };
+      // 4행 자동 필터 적용
+      const endColLetter = XLSX.utils.encode_col(totalCols - 1);
+      ws['!autofilter'] = { ref: `A4:${endColLetter}${rows.length}` };
 
       // 4행 헤더 기준 틀고정 (1~4행 고정)
       ws['!freeze'] = { ySplit: 4, topLeftCell: 'A5' };
       ws['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 4, topLeftCell: 'A5', activeCell: 'A5' }];
 
-      // 파스텔 톤 엑셀 정밀 서식 적용 (8열 확장)
+      // 파스텔 톤 엑셀 정밀 서식 적용 (확장 열 포함)
       if (typeof ExcelStyler !== 'undefined') {
         const pastelTheme = {
           titleBg: 'EEF2FF',
@@ -3397,7 +3659,7 @@
         };
 
         // Title Row (0)
-        ExcelStyler.setRange(ws, 0, 0, 0, 7, {
+        ExcelStyler.setRange(ws, 0, 0, 0, totalCols - 1, {
           font: { name: ExcelStyler.fontFamily, sz: 14, bold: true, color: { rgb: pastelTheme.titleText } },
           fill: { fgColor: { rgb: pastelTheme.titleBg } },
           alignment: { horizontal: 'center', vertical: 'center' },
@@ -3410,7 +3672,7 @@
         });
 
         // Subtitle Row (1)
-        ExcelStyler.setRange(ws, 1, 0, 1, 7, {
+        ExcelStyler.setRange(ws, 1, 0, 1, totalCols - 1, {
           font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: pastelTheme.subText } },
           fill: { fgColor: { rgb: pastelTheme.subBg } },
           alignment: { horizontal: 'center', vertical: 'center' },
@@ -3423,10 +3685,11 @@
         });
 
         // Header Row (3)
-        for (let c = 0; c < 8; c++) {
+        for (let c = 0; c < totalCols; c++) {
+          const isDiffCol = (c >= 8);
           ExcelStyler.setCell(ws, 3, c, {
-            font: { name: ExcelStyler.fontFamily, sz: 10.5, bold: true, color: { rgb: pastelTheme.headerText } },
-            fill: { fgColor: { rgb: pastelTheme.headerBg } },
+            font: { name: ExcelStyler.fontFamily, sz: 10.5, bold: true, color: { rgb: isDiffCol ? '312E81' : pastelTheme.headerText } },
+            fill: { fgColor: { rgb: isDiffCol ? 'E0E7FF' : pastelTheme.headerBg } },
             alignment: { horizontal: 'center', vertical: 'center' },
             border: {
               top: { style: 'medium', color: { rgb: pastelTheme.borderHeader } },
@@ -3508,6 +3771,27 @@
             alignment: { horizontal: 'center', vertical: 'center' },
             border: softBorder
           });
+
+          // 8~: 차수별 누가 변경 내역 (수강인원 및 담당교사 변동 시에만 기입됨)
+          for (let c = 8; c < totalCols; c++) {
+            const val = rows[r][c];
+            const hasChange = val && val !== '-';
+            if (hasChange) {
+              ExcelStyler.setCell(ws, r, c, {
+                font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: true, color: { rgb: '78350F' } },
+                fill: { fgColor: { rgb: 'FEF3C7' } },
+                alignment: { horizontal: 'left', vertical: 'center' },
+                border: softBorder
+              });
+            } else {
+              ExcelStyler.setCell(ws, r, c, {
+                font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: '94A3B8' } },
+                fill: { fgColor: { rgb: baseBg } },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: softBorder
+              });
+            }
+          }
         }
       }
 

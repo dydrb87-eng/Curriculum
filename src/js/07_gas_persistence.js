@@ -151,6 +151,215 @@
       }
     };
 
+    // ==========================================
+    // DATE REVISION INFO & AUTO-DIFF UTILITIES
+    // ==========================================
+
+    function parseDateRevisionInfo(dateStr) {
+      if (!dateStr) return { raw: '', tag: '일반', num: 0, cleanDate: '', isRevision: false };
+      const str = String(dateStr).trim();
+      
+      // 1. Bracket tag: [1차], [2차], [3차], [최종], [일반], etc.
+      const mBracket = str.match(/^\[(.*?)\]\s*(.*)$/);
+      if (mBracket) {
+        const rawTag = mBracket[1].trim();
+        const cleanDate = mBracket[2].trim() || rawTag;
+        const numMatch = rawTag.match(/([0-9]+)차/);
+        const num = rawTag === '최종' ? 999 : (numMatch ? parseInt(numMatch[1], 10) : 0);
+        return {
+          raw: str,
+          tag: rawTag,
+          num,
+          cleanDate,
+          isRevision: rawTag !== '일반'
+        };
+      }
+
+      // 2. Prefix without brackets: e.g. "1차 2026.10.11", "최종 2026.11.01", "일반 2026.10.11"
+      const mPrefix = str.match(/^(일반|[0-9]+차|최종)\s+(.*)$/);
+      if (mPrefix) {
+        const rawTag = mPrefix[1].trim();
+        const cleanDate = mPrefix[2].trim();
+        const numMatch = rawTag.match(/([0-9]+)차/);
+        const num = rawTag === '최종' ? 999 : (numMatch ? parseInt(numMatch[1], 10) : 0);
+        return {
+          raw: str,
+          tag: rawTag,
+          num,
+          cleanDate,
+          isRevision: rawTag !== '일반'
+        };
+      }
+
+      // 3. Plain date
+      return {
+        raw: str,
+        tag: '일반',
+        num: 0,
+        cleanDate: str,
+        isRevision: false
+      };
+    }
+    window.parseDateRevisionInfo = parseDateRevisionInfo;
+
+    function getRevisionBadgeHtml(tag, isTabActive = false) {
+      if (!tag) return '';
+      let badgeClasses = '';
+      if (isTabActive) {
+        if (tag.includes('최종')) {
+          badgeClasses = 'bg-emerald-400 text-emerald-950 font-black';
+        } else if (tag.includes('1차')) {
+          badgeClasses = 'bg-sky-200 text-sky-950 font-black';
+        } else if (tag.includes('2차')) {
+          badgeClasses = 'bg-indigo-200 text-indigo-950 font-black';
+        } else if (tag.includes('3차')) {
+          badgeClasses = 'bg-amber-200 text-amber-950 font-black';
+        } else if (tag.includes('일반')) {
+          badgeClasses = 'bg-white/80 text-blue-900 font-extrabold';
+        } else {
+          badgeClasses = 'bg-purple-200 text-purple-950 font-black';
+        }
+      } else {
+        if (tag.includes('최종')) {
+          badgeClasses = 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold';
+        } else if (tag.includes('1차')) {
+          badgeClasses = 'bg-sky-100 text-sky-800 border border-sky-300 font-bold';
+        } else if (tag.includes('2차')) {
+          badgeClasses = 'bg-indigo-100 text-indigo-800 border border-indigo-300 font-bold';
+        } else if (tag.includes('3차')) {
+          badgeClasses = 'bg-amber-100 text-amber-900 border border-amber-300 font-bold';
+        } else if (tag.includes('일반')) {
+          badgeClasses = 'bg-slate-100 text-slate-600 border border-slate-300 font-medium';
+        } else {
+          badgeClasses = 'bg-purple-100 text-purple-800 border border-purple-300 font-bold';
+        }
+      }
+      return `<span class="text-[10px] px-1.5 py-0.2 rounded-md shadow-2xs whitespace-nowrap ${badgeClasses}">[${tag}]</span>`;
+    }
+    window.getRevisionBadgeHtml = getRevisionBadgeHtml;
+
+    function computeStudentRevisionDiffs(activeDate, grade) {
+      if (!activeDate || !grade || grade === '전체') {
+        return { revisionColumns: [], studentDiffMap: new Map() };
+      }
+
+      const acadYear = MultiState?.activeAcademicYear || '2027학년도';
+      const datesList = (MultiState?.datesByAcademicYear && MultiState.datesByAcademicYear[acadYear]) || MultiState?.yearsList || [];
+      const curIdx = datesList.indexOf(activeDate);
+      if (curIdx < 0) {
+        return { revisionColumns: [], studentDiffMap: new Map() };
+      }
+
+      const acadData = (typeof getAcadData === 'function') ? getAcadData() : (MultiState?.data?.[acadYear] || {});
+
+      // 1. 기준 날짜 탭 순서상 현재 탭까지의 모든 회차 변동 스텝 수집
+      const revisionSteps = [];
+      for (let i = 1; i <= curIdx; i++) {
+        const prevDate = datesList[i - 1];
+        const targetDate = datesList[i];
+        const targetRev = parseDateRevisionInfo(targetDate);
+        
+        let roundLabel = targetRev.tag;
+        if (roundLabel === '일반') {
+          roundLabel = `${i}차`;
+        }
+        const colLabel = `[${roundLabel} 변경 내역]`;
+        const colId = `rev_${i}_${targetDate}`;
+
+        revisionSteps.push({
+          colId,
+          colLabel,
+          roundTag: roundLabel,
+          targetDate,
+          prevDate,
+          stepIndex: i
+        });
+      }
+
+      if (revisionSteps.length === 0) {
+        return { revisionColumns: [], studentDiffMap: new Map() };
+      }
+
+      // 최신 회차를 왼쪽에 두기 (방식 A + 역순 배치)
+      const revisionColumns = [...revisionSteps].reverse();
+
+      const activeStudents = acadData[activeDate]?.[grade]?.students || [];
+      const studentDiffMap = new Map();
+
+      function getStudentKey(st) {
+        if (!st) return '';
+        const c = String(st.classNum || '').replace(/[^0-9]/g, '');
+        const num = String(st.studentNum || '').replace(/[^0-9]/g, '');
+        const name = String(st.name || '').trim();
+        return `${c}_${num}_${name}`;
+      }
+
+      function compareChoices(prevArr = [], currArr = []) {
+        const norm = s => String(s || '').replace(/\s+/g, '').replace(/[\*★☆]/g, '').toLowerCase();
+        const prevNorms = prevArr.map(norm);
+        const currNorms = currArr.map(norm);
+
+        const canceled = prevArr.filter(p => !currNorms.includes(norm(p)));
+        const added = currArr.filter(c => !prevNorms.includes(norm(c)));
+
+        if (canceled.length === 0 && added.length === 0) {
+          return null;
+        }
+
+        if (canceled.length === 1 && added.length === 1) {
+          return `${canceled[0]} ➔ ${added[0]}`;
+        }
+        if (canceled.length === added.length && canceled.length > 1) {
+          return canceled.map((c, idx) => `${c} ➔ ${added[idx]}`).join(', ');
+        }
+        
+        const parts = [];
+        if (canceled.length > 0) parts.push(`${canceled.join(', ')} 취소`);
+        if (added.length > 0) parts.push(`${added.join(', ')} 추가`);
+        return parts.join(' ➔ ');
+      }
+
+      activeStudents.forEach(st => {
+        const stKey = getStudentKey(st);
+        const diffsByCol = {};
+
+        revisionSteps.forEach(rev => {
+          const prevStudents = acadData[rev.prevDate]?.[grade]?.students || [];
+          const targetStudents = acadData[rev.targetDate]?.[grade]?.students || [];
+
+          const pSt = prevStudents.find(s => getStudentKey(s) === stKey);
+          const tSt = targetStudents.find(s => getStudentKey(s) === stKey);
+
+          if (!tSt) {
+            diffsByCol[rev.colId] = '-';
+            return;
+          }
+          if (!pSt) {
+            diffsByCol[rev.colId] = '신규 추가';
+            return;
+          }
+
+          const sem1Diff = compareChoices(pSt.sem1 || [], tSt.sem1 || []);
+          const sem2Diff = compareChoices(pSt.sem2 || [], tSt.sem2 || []);
+
+          if (!sem1Diff && !sem2Diff) {
+            diffsByCol[rev.colId] = '-';
+          } else {
+            const diffParts = [];
+            if (sem1Diff) diffParts.push(`[1학기] ${sem1Diff}`);
+            if (sem2Diff) diffParts.push(`[2학기] ${sem2Diff}`);
+            diffsByCol[rev.colId] = diffParts.join(' | ');
+          }
+        });
+
+        studentDiffMap.set(stKey, diffsByCol);
+        if (st.id) studentDiffMap.set(st.id, diffsByCol);
+      });
+
+      return { revisionColumns, studentDiffMap };
+    }
+    window.computeStudentRevisionDiffs = computeStudentRevisionDiffs;
+
 function renderYearGradeNav() {
   try {
       const yearContainer = document.getElementById('academicYearTabs');
@@ -271,6 +480,10 @@ function renderYearGradeNav() {
               }
             });
 
+            const revInfo = parseDateRevisionInfo(y);
+            const revBadge = getRevisionBadgeHtml(revInfo.tag, isActive);
+            const displayTitle = revInfo.cleanDate || y;
+
             return `
               <div class="inline-flex items-center rounded-lg transition-all select-none h-[26px] ${
                 isActive 
@@ -287,7 +500,8 @@ function renderYearGradeNav() {
                         onclick="window.switchAcademicContext('${y}', '${MultiState.activeGrade}')"
                         class="px-2 py-0.5 text-xs flex items-center gap-1.5 focus:outline-hidden cursor-pointer"
                         title="${y} 작업으로 전환">
-                  <span>${y}</span>
+                  ${revBadge}
+                  <span>${displayTitle}</span>
                   <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                     isActive ? 'bg-white text-blue-700 shadow-2xs' : 'bg-slate-100 text-slate-500'
                   }">
@@ -670,12 +884,20 @@ window.renderYearGradeNav = renderYearGradeNav;
 
     window.handleEditAcademicYear = function(oldYear, event) {
       if (event) event.stopPropagation();
-      const input = prompt(`[${oldYear}]의 새 이름을 입력하세요:\n(숫자, 한글 등 제약 없이 입력 가능)`, oldYear);
+      const parsedOld = (typeof parseDateRevisionInfo === 'function') ? parseDateRevisionInfo(oldYear) : { tag: '일반', cleanDate: oldYear };
+      const input = prompt(
+        `[${oldYear}]의 새 이름을 입력하세요:\n(차수 권장 예: [1차] 2026.10.11, [2차] 2026.10.19, [최종] 2026.11.01 등)`,
+        oldYear
+      );
       if (!input) return;
-      const newYear = input.trim();
+      let newYear = input.trim();
       if (!newYear) {
         alert('이름을 입력해주세요.');
         return;
+      }
+      const parsedNew = (typeof parseDateRevisionInfo === 'function') ? parseDateRevisionInfo(newYear) : null;
+      if (parsedNew && parsedNew.tag !== '일반' && !newYear.startsWith('[')) {
+        newYear = `[${parsedNew.tag}] ${parsedNew.cleanDate}`;
       }
       if (newYear === oldYear) return;
       if (MultiState.yearsList.includes(newYear)) {
@@ -960,14 +1182,35 @@ window.renderYearGradeNav = renderYearGradeNav;
 
     // Add Academic Year / Reference Date button
     document.getElementById('btnAddYear')?.addEventListener('click', () => {
-      const numericYears = MultiState.yearsList.map(Number).filter(n => !isNaN(n) && n > 2000);
-      const defaultSuggest = numericYears.length > 0 ? String(Math.max(...numericYears) + 1) : '';
-      const input = prompt('추가할 기준 날짜(또는 학년도/명칭)를 입력하세요:\n(예: 2026.10.19, 2027 등 숫자, 한글 제약 없음)', defaultSuggest);
+      // 차수 자동 추론
+      let nextTag = '1차';
+      const existingInfo = (MultiState.yearsList || []).map(item => parseDateRevisionInfo(item));
+      const maxNum = Math.max(0, ...existingInfo.map(t => t.num));
+      if (maxNum > 0 && maxNum < 900) {
+        nextTag = `${maxNum + 1}차`;
+      } else if (existingInfo.some(t => t.tag === '1차')) {
+        nextTag = '2차';
+      }
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const defaultSuggest = `[${nextTag}] ${yyyy}.${mm}.${dd}.`;
+
+      const input = prompt(
+        '추가할 기준 날짜(차수 포함)를 입력하세요:\n(권장 형식: [1차] 2026.10.11, [2차] 2026.10.19, [최종] 2026.11.01 등)',
+        defaultSuggest
+      );
       if (!input) return;
-      const y = input.trim();
+      let y = input.trim();
       if (!y) {
         alert('입력 내용이 비어 있습니다.');
         return;
+      }
+      const parsed = parseDateRevisionInfo(y);
+      if (parsed.tag !== '일반' && !y.startsWith('[')) {
+        y = `[${parsed.tag}] ${parsed.cleanDate}`;
       }
       if (MultiState.yearsList.includes(y)) {
         alert(`이미 존재하는 항목입니다: ${y}`);
