@@ -2948,26 +2948,10 @@
       if (catCountEl) catCountEl.textContent = categories.length;
       if (unmappedNoticeEl) unmappedNoticeEl.textContent = '점검 대기';
 
-      const resultsContainer = document.getElementById('step3SubViewResults');
-      if (resultsContainer) {
-        resultsContainer.innerHTML = `
-          <div class="p-10 sm:p-14 text-center border-2 border-dashed border-purple-200 rounded-3xl bg-white shadow-xs space-y-4 my-4">
-            <span class="text-4xl sm:text-5xl block animate-bounce">📋</span>
-            <h3 class="text-lg sm:text-xl font-black text-slate-800">이수학점 점검 준비 완료</h3>
-            <p class="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
-              3학년 학생들의 <b>수강신청 내역(선택과목)</b> 및 1단계 <b>교과학습발달상황(2학년 1학기 선택과목)</b>을 대조하여<br>
-              교과군별 이수 기준 및 과목 중복 수강 여부를 점검합니다.<br>
-              아래 <b>[🚀 점검 시작]</b> 버튼을 누르면 점검이 시작됩니다.
-            </p>
-            <div class="pt-2">
-              <button type="button" onclick="window.runStep3Validation(true)" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 font-black text-sm rounded-2xl shadow-lg transition cursor-pointer transform hover:scale-105 ring-4 ring-amber-200">
-                <span class="text-base">🚀</span>
-                <span>점검 시작</span>
-              </button>
-            </div>
-          </div>
-        `;
-      }
+      const standbyCard = document.getElementById('step3StandbyCard');
+      const mainContainer = document.getElementById('step3ResultsMainContainer');
+      if (standbyCard) standbyCard.classList.remove('hidden');
+      if (mainContainer) mainContainer.classList.add('hidden');
     }
     window.renderStep3StandbyUI = renderStep3StandbyUI;
 
@@ -2979,11 +2963,17 @@
       const yearBadge = document.getElementById('step3ActiveYearBadge');
       if (yearBadge) yearBadge.textContent = acadYear;
 
+      const standbyCard = document.getElementById('step3StandbyCard');
+      const mainContainer = document.getElementById('step3ResultsMainContainer');
+
       if (!window._step3LastValidationResult) {
         // 아직 '점검 시작' 버튼을 누르지 않은 상태: 점검 대기 안내 화면 렌더링
         renderStep3StandbyUI();
         return;
       }
+
+      if (standbyCard) standbyCard.classList.add('hidden');
+      if (mainContainer) mainContainer.classList.remove('hidden');
 
       const val = window._step3LastValidationResult;
 

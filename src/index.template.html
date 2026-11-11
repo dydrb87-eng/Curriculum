@@ -1913,7 +1913,27 @@
         </div>
 
         <!-- RESULTS DASHBOARD (기본 메인 화면) -->
+        <!-- RESULTS DASHBOARD (기본 메인 화면) -->
         <div id="step3SubViewResults" class="space-y-4">
+          <!-- 점검 대기 안내 카드 (점검 시작 전 표시) -->
+          <div id="step3StandbyCard" class="hidden p-10 sm:p-14 text-center border-2 border-dashed border-purple-200 rounded-3xl bg-white shadow-xs space-y-4 my-4">
+            <span class="text-4xl sm:text-5xl block animate-bounce">📋</span>
+            <h3 class="text-lg sm:text-xl font-black text-slate-800">이수학점 점검 준비 완료</h3>
+            <p class="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
+              3학년 학생들의 <b>수강신청 내역(선택과목)</b> 및 1단계 <b>교과학습발달상황(2학년 1학기 선택과목)</b>을 대조하여<br>
+              교과군별 이수 기준 및 과목 중복 수강 여부를 점검합니다.<br>
+              아래 <b>[🚀 점검 시작]</b> 버튼을 누르면 점검이 시작됩니다.
+            </p>
+            <div class="pt-2">
+              <button type="button" onclick="window.runStep3Validation(true)" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 font-black text-sm rounded-2xl shadow-lg transition cursor-pointer transform hover:scale-105 ring-4 ring-amber-200">
+                <span class="text-base">🚀</span>
+                <span>점검 시작</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 실제 점검 결과 메인 컨테이너 (필터 및 학생별 명단) -->
+          <div id="step3ResultsMainContainer" class="space-y-4">
 
           <div id="step3ResultsWarningBanner" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center justify-between gap-3 text-amber-900">
             <div class="flex items-center gap-2.5">
@@ -2005,6 +2025,8 @@
               <p class="text-xs text-slate-400 mt-1">모든 학생이 교과군 선택 조건을 충족했거나 필터 조건에 부합하는 학생이 없습니다.</p>
             </div>
           </div>
+
+          </div><!-- END OF step3ResultsMainContainer -->
 
         </div>
 
