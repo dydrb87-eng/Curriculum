@@ -100,10 +100,17 @@
       const sData = getStep3Data();
       const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(subj) : String(subj || '').replace(/\s+/g, '').toLowerCase();
       
-      // 요구사항: 검증 제외는 기본적으로 모두 체크 해제(false). 사용자가 직접 체크한 경우에만 true
+      // 사용자가 수동으로 체크 또는 체크해제한 내역이 있다면 그 설정 우선
       if (sData.excludedSubjects && typeof sData.excludedSubjects[norm] === 'boolean') {
         return sData.excludedSubjects[norm];
       }
+
+      // [요구사항] 입학생 교육과정 편성표 상의 '공통' 과목인 경우 기본 검증 제외(true)
+      const neisInfo = (typeof getSubjectNeisInfo === 'function') ? getSubjectNeisInfo(subj, grade) : null;
+      if (neisInfo && (neisInfo.subjectType === '공통' || neisInfo.isCommon)) {
+        return true;
+      }
+
       return false;
     }
     window.isSubjectExcludedFromValidation = isSubjectExcludedFromValidation;
@@ -443,11 +450,11 @@
       let ruleStr = '';
       const minC = cat.minCredits ?? cat.minCount ?? 0;
       const maxC = cat.maxCredits ?? cat.maxCount ?? 0;
-      if (cat.ruleType === 'none') ruleStr = '조건 없음(자율)';
-      else if (cat.ruleType === 'min') ruleStr = `${minC}학점 이상`;
-      else if (cat.ruleType === 'max') ruleStr = `${maxC}학점 이하`;
-      else if (cat.ruleType === 'range') ruleStr = `${minC}~${maxC}학점`;
-      else if (cat.ruleType === 'exact') ruleStr = `${cat.exactCredits ?? cat.exactCount ?? 0}학점`;
+      if (cat.ruleType === 'none') ruleStr = '조건 없음';
+      else if (cat.ruleType === 'min') ruleStr = `${minC}개 이상`;
+      else if (cat.ruleType === 'max') ruleStr = `${maxC}개 이하`;
+      else if (cat.ruleType === 'range') ruleStr = `${minC}~${maxC}개`;
+      else if (cat.ruleType === 'exact') ruleStr = `${cat.exactCount ?? cat.exactCredits ?? 0}개`;
       return `[${gStr} ${semStr}] ${ruleStr}`;
     }
 
@@ -1508,35 +1515,35 @@
             isViolated = false;
             reason = '';
           } else if (cat.ruleType === 'min') {
-            const minReq = parseInt(cat.minCredits ?? cat.minCount ?? 0, 10);
-            if (totalCredits < minReq) {
+            const minReq = parseInt(cat.minCount ?? cat.minCredits ?? 0, 10);
+            if (count < minReq) {
               isViolated = true;
-              reason = `${minReq - totalCredits}학점 미달 (${totalCredits}/${minReq}학점)`;
+              reason = `${minReq - count}과목 부족 (${count}/${minReq}개)`;
             }
           } else if (cat.ruleType === 'max') {
-            const maxReq = parseInt(cat.maxCredits ?? cat.maxCount ?? 0, 10);
-            if (totalCredits > maxReq) {
+            const maxReq = parseInt(cat.maxCount ?? cat.maxCredits ?? 0, 10);
+            if (count > maxReq) {
               isViolated = true;
-              reason = `${totalCredits - maxReq}학점 초과 (${totalCredits}/${maxReq}학점)`;
+              reason = `${count - maxReq}과목 초과 (${count}/${maxReq}개)`;
             }
           } else if (cat.ruleType === 'range') {
-            const minReq = parseInt(cat.minCredits ?? cat.minCount ?? 0, 10);
-            const maxReq = parseInt(cat.maxCredits ?? cat.maxCount ?? 0, 10);
-            if (totalCredits < minReq) {
+            const minReq = parseInt(cat.minCount ?? cat.minCredits ?? 0, 10);
+            const maxReq = parseInt(cat.maxCount ?? cat.maxCredits ?? 0, 10);
+            if (count < minReq) {
               isViolated = true;
-              reason = `${minReq - totalCredits}학점 미달 (${totalCredits}/${minReq}학점)`;
-            } else if (totalCredits > maxReq) {
+              reason = `${minReq - count}과목 부족 (${count}/${minReq}개)`;
+            } else if (count > maxReq) {
               isViolated = true;
-              reason = `${totalCredits - maxReq}학점 초과 (${totalCredits}/${maxReq}학점)`;
+              reason = `${count - maxReq}과목 초과 (${count}/${maxReq}개)`;
             }
           } else if (cat.ruleType === 'exact') {
-            const exactReq = parseInt(cat.exactCredits ?? cat.exactCount ?? 0, 10);
-            if (totalCredits < exactReq) {
+            const exactReq = parseInt(cat.exactCount ?? cat.exactCredits ?? 0, 10);
+            if (count < exactReq) {
               isViolated = true;
-              reason = `${exactReq - totalCredits}학점 미달 (${totalCredits}/${exactReq}학점)`;
-            } else if (totalCredits > exactReq) {
+              reason = `${exactReq - count}과목 부족 (${count}/${exactReq}개)`;
+            } else if (count > exactReq) {
               isViolated = true;
-              reason = `${totalCredits - exactReq}학점 초과 (${totalCredits}/${exactReq}학점)`;
+              reason = `${count - exactReq}과목 초과 (${count}/${exactReq}개)`;
             }
           }
 
@@ -1948,6 +1955,7 @@
                     <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">${cs.grade} ${cs.semester}학기</span>
                     <span class="text-[10px] font-medium px-1 py-0.2 rounded border ${cs.category === '지정' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-sky-50 text-sky-700 border-sky-200'}">${cs.category || '선택'}</span>
                     ${subjTypeBadge ? `<span class="text-[9px] font-bold px-1 py-0.2 rounded ${subjTypeBadge === '공통' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}">${subjTypeBadge}</span>` : ''}
+                    ${(subjTypeBadge === '공통' || neisInfo?.isCommon) ? `<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 shadow-3xs" title="입학생 교육과정 편성표 '공통' 과목으로 검증에서 제외됩니다">검증 제외 (공통)</span>` : ''}
                     ${!neisInfo ? `<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 shadow-3xs" title="입학생 교육과정 편성표 파일에 없는 과목입니다">⚠️ 편성표 외 과목</span>` : ''}
                     ${statusBadge}
                   </div>
@@ -2046,6 +2054,7 @@
                     <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">${cs.grade} ${cs.semester}학기</span>
                     <span class="text-[10px] font-medium px-1 py-0.2 rounded border ${cs.category === '지정' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-sky-50 text-sky-700 border-sky-200'}">${cs.category || '선택'}</span>
                     ${subjTypeBadge ? `<span class="text-[9px] font-bold px-1 py-0.2 rounded ${subjTypeBadge === '공통' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}">${subjTypeBadge}</span>` : ''}
+                    ${(subjTypeBadge === '공통' || neisInfo?.isCommon) ? `<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 shadow-3xs" title="입학생 교육과정 편성표 '공통' 과목으로 검증에서 제외됩니다">검증 제외 (공통)</span>` : ''}
                     ${!neisInfo ? `<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 shadow-3xs" title="입학생 교육과정 편성표 파일에 없는 과목입니다">⚠️ 편성표 외 과목</span>` : ''}
                     ${statusBadge}
                   </div>
@@ -2343,18 +2352,18 @@
       if (!container) return;
 
       if (rType === 'none') {
-        container.innerHTML = `<span class="text-xs font-bold text-slate-500 italic py-1">선택 조건 없음 (학생 자율 선택)</span>`;
+        container.innerHTML = `<span class="text-xs font-bold text-slate-500 italic py-1">선택 조건 없음</span>`;
       } else if (rType === 'min') {
         container.innerHTML = `
           <span class="text-xs font-medium text-slate-700">최소</span>
-          <input type="number" id="scmInputMinCount" value="${window._scmFormCurRuleValues.minCredits ?? window._scmFormCurRuleValues.minCount ?? 4}" min="1" max="100" oninput="window.updateScmFormPreview()" class="w-16 text-xs border border-indigo-300 rounded px-2 py-0.5 font-bold text-center">
-          <span class="text-xs font-medium text-slate-700">학점 이상</span>
+          <input type="number" id="scmInputMinCount" value="${window._scmFormCurRuleValues.minCount ?? window._scmFormCurRuleValues.minCredits ?? 1}" min="1" max="20" oninput="window.updateScmFormPreview()" class="w-16 text-xs border border-indigo-300 rounded px-2 py-0.5 font-bold text-center">
+          <span class="text-xs font-medium text-slate-700">개 이상</span>
         `;
       } else if (rType === 'max') {
         container.innerHTML = `
           <span class="text-xs font-medium text-slate-700">최대</span>
-          <input type="number" id="scmInputMaxCount" value="${window._scmFormCurRuleValues.maxCredits ?? window._scmFormCurRuleValues.maxCount ?? 12}" min="1" max="100" oninput="window.updateScmFormPreview()" class="w-16 text-xs border border-indigo-300 rounded px-2 py-0.5 font-bold text-center">
-          <span class="text-xs font-medium text-slate-700">학점 이하</span>
+          <input type="number" id="scmInputMaxCount" value="${window._scmFormCurRuleValues.maxCount ?? window._scmFormCurRuleValues.maxCredits ?? 3}" min="1" max="20" oninput="window.updateScmFormPreview()" class="w-16 text-xs border border-indigo-300 rounded px-2 py-0.5 font-bold text-center">
+          <span class="text-xs font-medium text-slate-700">개 이하</span>
         `;
       }
 
