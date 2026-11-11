@@ -2064,9 +2064,6 @@
 
     // Prior Data Event Listeners
     // 1) 2학년 전용 (현 1학년 명부)
-    const priorFileInput = document.getElementById('priorFileInput');
-    const priorDropZone = document.getElementById('priorDropZone');
-    const btnClearPrior = document.getElementById('btnClearPrior');
     if (priorFileInput) {
       priorFileInput.addEventListener('click', () => {
         priorFileInput.value = '';
