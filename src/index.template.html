@@ -273,48 +273,150 @@
               </div>
             </div>
 
-            <!-- Prior File Upload Area (통합 등록) -->
+            <!-- Prior File Upload Area -->
             <div id="priorUploadZone" class="mt-4">
-              <div id="priorDropZone" class="relative group border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl p-5 bg-indigo-50/30 hover:bg-indigo-50/70 transition-all text-center overflow-hidden cursor-pointer">
-                <input 
-                  type="file" 
-                  id="priorFileInput" 
-                  multiple
-                  accept=".xlsx, .xls, .csv" 
-                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
-                  title="사전 데이터(학생 명부 및 기이수 과목) 파일을 클릭하거나 여러 개를 드래그하세요 (반별 파일 다중 선택 가능)"
-                />
-                <div class="pointer-events-none flex flex-col items-center justify-center space-y-1.5">
-                  <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-extrabold text-[11px] border border-indigo-200 shadow-2xs">📋 사전 데이터 파일 등록 (반별 다중 선택 가능)</span>
-                  <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform">
-                    📂
+              <!-- 2학년 모드: 단일 등록 존 (현 1학년 명부 등록용) -->
+              <div id="priorZoneG2">
+                <div id="priorDropZone" class="relative group border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl p-5 bg-indigo-50/30 hover:bg-indigo-50/70 transition-all text-center overflow-hidden cursor-pointer">
+                  <input 
+                    type="file" 
+                    id="priorFileInput" 
+                    multiple
+                    accept=".xlsx, .xls, .csv" 
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
+                    title="사전 데이터(학생 명부 및 기이수 과목) 파일을 클릭하거나 여러 개를 드래그하세요 (반별 파일 다중 선택 가능)"
+                  />
+                  <div class="pointer-events-none flex flex-col items-center justify-center space-y-1.5">
+                    <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-extrabold text-[11px] border border-indigo-200 shadow-2xs">📋 1학년 생활기록부 등록 (반별 다중 선택 가능)</span>
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform">
+                      📂
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-slate-800">
+                        사전 데이터 엑셀 파일 클릭 또는 드래그
+                      </p>
+                      <p class="text-[10px] text-slate-500 mt-0.5">
+                        반별 파일 여러 개를 한 번에 드래그하거나 순서대로 등록할 수 있습니다
+                      </p>
+                    </div>
+                    <span class="inline-flex items-center px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[11px] font-bold shadow-xs">
+                      📁 파일 선택 (다중 선택 가능)
+                    </span>
                   </div>
-                  <div>
-                    <p class="text-xs font-bold text-slate-800">
-                      사전 데이터 엑셀 파일 클릭 또는 드래그
-                    </p>
-                    <p class="text-[10px] text-slate-500 mt-0.5">
-                      반별 파일 여러 개를 한 번에 드래그하거나 순서대로 등록할 수 있습니다
-                    </p>
+                </div>
+
+                <!-- 2학년 등록 완료 정보 배너 -->
+                <div id="priorLoadedInfo" class="hidden mt-3 p-3 bg-indigo-50/90 rounded-xl border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div class="min-w-0 space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <p id="priorLoadedSummary" class="font-bold text-indigo-950 text-xs">사전 등록 학생: 0명</p>
+                      <span id="priorClassBadges" class="flex gap-1 flex-wrap"></span>
+                    </div>
+                    <p id="priorLoadedFileName" class="text-[10px] text-indigo-600 font-medium truncate max-w-md" title="">파일명.xlsx</p>
                   </div>
-                  <span class="inline-flex items-center px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[11px] font-bold shadow-xs">
-                    📁 파일 선택 (다중 선택 가능)
-                  </span>
+                  <button id="btnClearPrior" type="button" class="shrink-0 px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-md text-[11px] font-bold transition-colors cursor-pointer self-end sm:self-center">
+                    전체 삭제
+                  </button>
                 </div>
               </div>
 
-              <!-- Prior File Combined Loaded Info Banner (Shown after loaded) -->
-              <div id="priorLoadedInfo" class="hidden mt-3 p-3 bg-indigo-50/90 rounded-xl border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <div class="min-w-0 space-y-1">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <p id="priorLoadedSummary" class="font-bold text-indigo-950 text-xs">사전 등록 학생: 0명</p>
-                    <span id="priorClassBadges" class="flex gap-1 flex-wrap"></span>
+              <!-- 3학년 모드: 듀얼 등록 존 (현 2학년: 1학기 교과학습발달상황 + 2학기 학생편성현황) -->
+              <div id="priorZoneG3" class="hidden space-y-3">
+                <div class="p-2.5 bg-amber-50/90 rounded-xl border border-amber-200 text-amber-900 text-[11px] leading-relaxed flex items-start gap-2 shadow-2xs">
+                  <span class="text-sm shrink-0">💡</span>
+                  <div>
+                    <strong class="font-bold text-amber-950">현 2학년 사전 데이터 등록 안내:</strong><br />
+                    2학년 1학기까지 수강한 과목(<strong>교과학습발달상황</strong>)과 현재 2학기 수강 중인 과목(<strong>학생편성현황</strong>) 2가지를 모두 등록하여 중복 수강을 방지합니다.
                   </div>
-                  <p id="priorLoadedFileName" class="text-[10px] text-indigo-600 font-medium truncate max-w-md" title="">파일명.xlsx</p>
                 </div>
-                <button id="btnClearPrior" type="button" class="shrink-0 px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-md text-[11px] font-bold transition-colors cursor-pointer self-end sm:self-center">
-                  전체 삭제
-                </button>
+
+                <!-- 슬롯 1: 1학기 기이수 과목 (교과학습발달상황) -->
+                <div class="p-3 bg-indigo-50/30 hover:bg-indigo-50/60 rounded-xl border-2 border-dashed border-indigo-200 hover:border-indigo-400 transition-all space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center gap-1.5 font-bold text-xs text-indigo-950">
+                      <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center shadow-xs">1</span>
+                      1학기 기이수 과목 <span class="text-[11px] text-indigo-600 font-medium">(교과학습발달상황)</span>
+                    </span>
+                    <span id="badgeSem1Status" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">미등록</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500 leading-tight">NIES-학교생활기록부-교과학습발달상황-XLS data (반별 엑셀 다중 등록 지원)</p>
+
+                  <!-- 1학기 드롭존 -->
+                  <div id="priorDropZoneSem1" class="relative group border border-dashed border-indigo-300 hover:border-indigo-600 rounded-lg p-2.5 bg-white text-center transition-all cursor-pointer">
+                    <input type="file" id="priorFileInputSem1" multiple accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" title="1학기 교과학습발달상황 엑셀 파일 선택 (다중 선택 가능)" />
+                    <div class="pointer-events-none flex items-center justify-center gap-2">
+                      <span class="text-base">📂</span>
+                      <span class="text-xs font-bold text-indigo-700">1학기 교과학습발달상황 파일 선택 / 드래그</span>
+                    </div>
+                  </div>
+
+                  <!-- 1학기 등록 완료 정보 배너 -->
+                  <div id="priorLoadedInfoSem1" class="hidden p-2.5 bg-emerald-50/90 rounded-lg border border-emerald-200 flex items-center justify-between gap-2 text-xs">
+                    <div class="min-w-0">
+                      <p id="priorSummarySem1" class="font-bold text-emerald-950 text-xs">1학기 이수: 0명 / 0건</p>
+                      <p id="priorFileNameSem1" class="text-[10px] text-emerald-700 truncate max-w-xs mt-0.5" title=""></p>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button id="btnAddMoreSem1" type="button" class="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[10px] font-bold transition-colors cursor-pointer">
+                        + 반별 파일 추가
+                      </button>
+                      <button id="btnClearPriorSem1" type="button" class="px-2 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded text-[10px] font-bold transition-colors cursor-pointer">
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 슬롯 2: 2학기 수강 과목 (학생편성현황) -->
+                <div class="p-3 bg-blue-50/30 hover:bg-blue-50/60 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-400 transition-all space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center gap-1.5 font-bold text-xs text-blue-950">
+                      <span class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center shadow-xs">2</span>
+                      2학기 수강 과목 <span class="text-[11px] text-blue-600 font-medium">(학생편성현황)</span>
+                    </span>
+                    <span id="badgeSem2Status" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">미등록</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500 leading-tight">NEIS 수강생편성-학생편성현황 (1~2행 개설과목/편성학생 헤더 엑셀)</p>
+
+                  <!-- 2학기 드롭존 -->
+                  <div id="priorDropZoneSem2" class="relative group border border-dashed border-blue-300 hover:border-blue-600 rounded-lg p-2.5 bg-white text-center transition-all cursor-pointer">
+                    <input type="file" id="priorFileInputSem2" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" title="2학기 학생편성현황 엑셀 파일 선택" />
+                    <div class="pointer-events-none flex items-center justify-center gap-2">
+                      <span class="text-base">📋</span>
+                      <span class="text-xs font-bold text-blue-700">2학기 학생편성현황 파일 선택 / 드래그</span>
+                    </div>
+                  </div>
+
+                  <!-- 2학기 등록 완료 정보 배너 -->
+                  <div id="priorLoadedInfoSem2" class="hidden p-2.5 bg-emerald-50/90 rounded-lg border border-emerald-200 flex items-center justify-between gap-2 text-xs">
+                    <div class="min-w-0">
+                      <p id="priorSummarySem2" class="font-bold text-emerald-950 text-xs">2학기 편성: 0명 / 0건</p>
+                      <p id="priorFileNameSem2" class="text-[10px] text-emerald-700 truncate max-w-xs mt-0.5" title=""></p>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button id="btnChangeSem2" type="button" class="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[10px] font-bold transition-colors cursor-pointer">
+                        파일 교체
+                      </button>
+                      <button id="btnClearPriorSem2" type="button" class="px-2 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded text-[10px] font-bold transition-colors cursor-pointer">
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3학년 통합 요약 바 (1학기 또는 2학기 중 하나라도 등록 시 노출) -->
+                <div id="priorLoadedInfoG3Combined" class="hidden p-3 bg-indigo-50/90 rounded-xl border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div class="min-w-0 space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <p id="priorLoadedSummaryG3" class="font-bold text-indigo-950 text-xs">통합 등록 학생: 총 0명 | 과목 기록 0건</p>
+                      <span id="priorClassBadgesG3" class="flex gap-1 flex-wrap"></span>
+                    </div>
+                    <p id="priorLoadedFileNameG3" class="text-[10px] text-indigo-600 font-medium truncate max-w-md" title="">등록 내역</p>
+                  </div>
+                  <button id="btnClearPriorG3" type="button" class="shrink-0 px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-md text-[11px] font-bold transition-colors cursor-pointer self-end sm:self-center">
+                    전체 삭제
+                  </button>
+                </div>
               </div>
             </div>
 
