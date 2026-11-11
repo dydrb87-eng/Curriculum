@@ -43,12 +43,219 @@
       return normalizeSubject(subj);
     }
 
+    // ==========================================
+    // 1단계 파일 업로드 직전 상태 스냅샷 및 되돌리기(Undo) 매니저
+    // ==========================================
+    const Step1UndoManager = {
+      // 탭(학년)별 되돌리기 히스토리 스택
+      history: {},
+
+      saveSnapshot(type, description = '') {
+        const activeG = MultiState?.activeGrade || '2학년';
+        const activeY = MultiState?.activeYear || '2027';
+        if (!this.history[activeG]) this.history[activeG] = [];
+
+        const acadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+        const gradeState = acadData[activeY]?.[activeG] || {};
+
+        let snapshotData = null;
+        if (type === 'survey') {
+          snapshotData = {
+            fileName: AppState.fileName || gradeState.fileName || '',
+            students: JSON.parse(JSON.stringify(AppState.students || gradeState.students || [])),
+            sem1Subjects: JSON.parse(JSON.stringify(AppState.sem1Subjects || gradeState.sem1Subjects || [])),
+            sem2Subjects: JSON.parse(JSON.stringify(AppState.sem2Subjects || gradeState.sem2Subjects || [])),
+            closedSubjects: JSON.parse(JSON.stringify(AppState.closedSubjects || gradeState.closedSubjects || { 1: [], 2: [] })),
+            step1Threshold: AppState.step1Threshold || gradeState.step1Threshold || 8,
+            sem1GroupCount: AppState.sem1GroupCount || gradeState.sem1GroupCount || 3,
+            sem2GroupCount: AppState.sem2GroupCount || gradeState.sem2GroupCount || 3,
+            _surveyCleared: AppState._surveyCleared || false,
+            _cleared: AppState._cleared || false
+          };
+        } else if (type === 'prior') {
+          const p = AppState.priorData || gradeState.priorData;
+          snapshotData = {
+            priorData: p ? JSON.parse(JSON.stringify(p)) : null
+          };
+        }
+
+        const snapshot = {
+          type,
+          timestamp: new Date(),
+          grade: activeG,
+          year: activeY,
+          description: description || (type === 'survey' ? '수강신청 조사 업로드 직전' : '사전데이터 등록 직전'),
+          state: snapshotData
+        };
+
+        this.history[activeG].push(snapshot);
+        if (this.history[activeG].length > 10) {
+          this.history[activeG].shift();
+        }
+
+        this.updateUndoButtonsUI();
+      },
+
+      canUndo(type) {
+        const activeG = MultiState?.activeGrade || '2학년';
+        const list = this.history[activeG] || [];
+        return list.some(s => s.type === type);
+      },
+
+      getLastSnapshot(type) {
+        const activeG = MultiState?.activeGrade || '2학년';
+        const list = this.history[activeG] || [];
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (list[i].type === type) return list[i];
+        }
+        return null;
+      },
+
+      undo(type) {
+        const activeG = MultiState?.activeGrade || '2학년';
+        const list = this.history[activeG] || [];
+        let targetIdx = -1;
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (list[i].type === type) {
+            targetIdx = i;
+            break;
+          }
+        }
+        if (targetIdx === -1) {
+          alert('되돌릴 수 있는 이전 작업 내역이 없습니다.');
+          return false;
+        }
+
+        const snapshot = list.splice(targetIdx, 1)[0];
+        const activeY = snapshot.year || MultiState?.activeYear || '2027';
+        const curAcadData = (typeof getAcadData === 'function') ? getAcadData() : {};
+        if (!curAcadData[activeY]) curAcadData[activeY] = {};
+        if (!curAcadData[activeY][activeG]) curAcadData[activeY][activeG] = createEmptyGradeState(activeG);
+
+        if (type === 'survey') {
+          const s = snapshot.state;
+          AppState.fileName = s.fileName;
+          AppState.students = s.students;
+          AppState.sem1Subjects = s.sem1Subjects;
+          AppState.sem2Subjects = s.sem2Subjects;
+          AppState.closedSubjects = s.closedSubjects;
+          AppState.step1Threshold = s.step1Threshold;
+          AppState.sem1GroupCount = s.sem1GroupCount;
+          AppState.sem2GroupCount = s.sem2GroupCount;
+          AppState._surveyCleared = s._surveyCleared;
+          AppState._cleared = s._cleared;
+
+          curAcadData[activeY][activeG].fileName = s.fileName;
+          curAcadData[activeY][activeG].students = JSON.parse(JSON.stringify(s.students));
+          curAcadData[activeY][activeG].sem1Subjects = [...s.sem1Subjects];
+          curAcadData[activeY][activeG].sem2Subjects = [...s.sem2Subjects];
+          curAcadData[activeY][activeG].closedSubjects = JSON.parse(JSON.stringify(s.closedSubjects));
+
+          if (s.students.length > 0) {
+            if (appBody) appBody.classList.remove('hidden');
+            if (typeof renderStep1UI === 'function') renderStep1UI();
+            if (typeof renderStep1Matrix === 'function') renderStep1Matrix();
+          } else {
+            clearSurveyData();
+          }
+          updateSurveyDataUI();
+        } else if (type === 'prior') {
+          const p = snapshot.state.priorData;
+          AppState.priorData = p ? JSON.parse(JSON.stringify(p)) : null;
+          curAcadData[activeY][activeG].priorData = p ? JSON.parse(JSON.stringify(p)) : null;
+
+          const currAY = MultiState?.activeAcademicYear || '2027학년도';
+          const dateList = (MultiState?.datesByAcademicYear && MultiState.datesByAcademicYear[currAY]) || MultiState?.yearsList || [];
+          dateList.forEach(d => {
+            if (curAcadData[d] && curAcadData[d][activeG]) {
+              curAcadData[d][activeG].priorData = p ? JSON.parse(JSON.stringify(p)) : null;
+            }
+          });
+
+          updatePriorDataUI();
+          if (typeof runCrossCheckOnLoad === 'function') {
+            runCrossCheckOnLoad();
+          }
+        }
+
+        this.updateUndoButtonsUI();
+        if (typeof syncCurrentToMulti === 'function') {
+          syncCurrentToMulti();
+        }
+        return true;
+      },
+
+      updateUndoButtonsUI() {
+        const activeG = MultiState?.activeGrade || '2학년';
+        const hasSurvey = this.canUndo('survey');
+        const hasPrior = this.canUndo('prior');
+
+        const btnUndoSurvey = document.getElementById('btnUndoSurvey');
+        if (btnUndoSurvey) {
+          if (hasSurvey) {
+            btnUndoSurvey.classList.remove('hidden');
+            const snap = this.getLastSnapshot('survey');
+            btnUndoSurvey.title = snap ? `클릭하여 [${snap.description}] 상태로 되돌립니다.` : '이전 수강신청 조사 업로드 되돌리기';
+          } else {
+            btnUndoSurvey.classList.add('hidden');
+          }
+        }
+
+        const btnUndoPrior = document.getElementById('btnUndoPrior');
+        if (btnUndoPrior) {
+          if (hasPrior) {
+            btnUndoPrior.classList.remove('hidden');
+            const snap = this.getLastSnapshot('prior');
+            btnUndoPrior.title = snap ? `클릭하여 [${snap.description}] 상태로 되돌립니다.` : '이전 사전데이터 등록 되돌리기';
+          } else {
+            btnUndoPrior.classList.add('hidden');
+          }
+        }
+      }
+    };
+    window.Step1UndoManager = Step1UndoManager;
+
+    window.undoSurveyUpload = function() {
+      const snap = Step1UndoManager.getLastSnapshot('survey');
+      if (!snap) {
+        alert('되돌릴 수 있는 이전 수강신청 조사 내역이 없습니다.');
+        return;
+      }
+      const msg = `↺ 수강신청 조사 엑셀 업로드를 직전 상태로 되돌리시겠습니까?\n\n- 되돌아갈 상태: ${snap.description}\n- 대상 학년: [${snap.grade}]\n\n※ 확인을 누르면 방금 업로드된 내용이 취소되고 이전 상태로 복원됩니다.`;
+      if (confirm(msg)) {
+        if (Step1UndoManager.undo('survey')) {
+          alert('✅ 수강신청 조사 데이터가 성공적으로 이전 상태로 되돌려졌습니다!');
+        }
+      }
+    };
+
+    window.undoPriorDataUpload = function() {
+      const snap = Step1UndoManager.getLastSnapshot('prior');
+      if (!snap) {
+        alert('되돌릴 수 있는 이전 사전데이터 등록 내역이 없습니다.');
+        return;
+      }
+      const msg = `↺ 사전 데이터 등록을 직전 상태로 되돌리시겠습니까?\n\n- 되돌아갈 상태: ${snap.description}\n- 대상 학년: [${snap.grade}]\n\n※ 확인을 누르면 방금 등록된 내용이 취소되고 이전 상태로 복원됩니다.`;
+      if (confirm(msg)) {
+        if (Step1UndoManager.undo('prior')) {
+          alert('✅ 사전 데이터가 성공적으로 이전 상태로 되돌려졌습니다!');
+        }
+      }
+    };
+
     function processPriorDataFiles(fileList, targetSemester = null) {
       if (!fileList || fileList.length === 0) return;
       if (typeof XLSX === 'undefined') {
         alert('엑셀 처리 라이브러리를 준비 중입니다. 잠시 후 다시 시도해주세요.');
         return;
       }
+
+      // 사전 데이터 등록 직전 상태 스냅샷 저장 (되돌리기 지원)
+      const activeG = MultiState.activeGrade || '2학년';
+      const prevDesc = (AppState.priorData && AppState.priorData.students && AppState.priorData.students.length > 0)
+        ? `${AppState.priorData.fileName || '사전데이터'} (학생 ${AppState.priorData.students.length}명)`
+        : '비어있는 상태';
+      Step1UndoManager.saveSnapshot('prior', `[${activeG}] ${prevDesc}`);
 
       const files = Array.from(fileList);
       const semLabel = targetSemester === 1 ? ' [1학기 이력]' : (targetSemester === 2 ? ' [2학기 편성]' : '');
@@ -383,6 +590,10 @@
         if (surveyStatusBadge) surveyStatusBadge.classList.add('hidden');
         if (surveyLoadedInfo) surveyLoadedInfo.classList.add('hidden');
         if (fileInput) fileInput.value = '';
+      }
+
+      if (typeof Step1UndoManager !== 'undefined' && typeof Step1UndoManager.updateUndoButtonsUI === 'function') {
+        Step1UndoManager.updateUndoButtonsUI();
       }
     }
     window.updateSurveyDataUI = updateSurveyDataUI;
@@ -2187,6 +2398,11 @@
 
     btnClearPrior?.addEventListener('click', () => {
       if (confirm(`현재 [${MultiState.activeGrade}]의 사전 데이터를 모두 삭제하시겠습니까?`)) {
+        const activeG = MultiState.activeGrade || '2학년';
+        const prevDesc = (AppState.priorData && AppState.priorData.students)
+          ? `${AppState.priorData.fileName || '사전데이터'} (학생 ${AppState.priorData.students.length}명 삭제 전)`
+          : '비어있는 상태';
+        Step1UndoManager.saveSnapshot('prior', `[${activeG}] ${prevDesc}`);
         clearPriorData();
       }
     });
@@ -2235,6 +2451,11 @@
     }
     if (btnClearPriorSem1) {
       btnClearPriorSem1.addEventListener('click', () => {
+        const activeG = MultiState.activeGrade || '3학년';
+        const prevDesc = (AppState.priorData && AppState.priorData.students)
+          ? `${AppState.priorData.fileName || '사전데이터'} (1학기 삭제 전)`
+          : '1학기 삭제 전';
+        Step1UndoManager.saveSnapshot('prior', `[${activeG}] ${prevDesc}`);
         clearPriorSem1();
       });
     }
@@ -2283,6 +2504,11 @@
     }
     if (btnClearPriorSem2) {
       btnClearPriorSem2.addEventListener('click', () => {
+        const activeG = MultiState.activeGrade || '3학년';
+        const prevDesc = (AppState.priorData && AppState.priorData.students)
+          ? `${AppState.priorData.fileName || '사전데이터'} (2학기 삭제 전)`
+          : '2학기 삭제 전';
+        Step1UndoManager.saveSnapshot('prior', `[${activeG}] ${prevDesc}`);
         clearPriorSem2();
       });
     }
@@ -2292,6 +2518,11 @@
     if (btnClearPriorG3) {
       btnClearPriorG3.addEventListener('click', () => {
         if (confirm(`현재 [${MultiState.activeGrade}]의 사전 데이터(1학기 및 2학기)를 모두 삭제하시겠습니까?`)) {
+          const activeG = MultiState.activeGrade || '3학년';
+          const prevDesc = (AppState.priorData && AppState.priorData.students)
+            ? `${AppState.priorData.fileName || '사전데이터'} (학생 ${AppState.priorData.students.length}명 삭제 전)`
+            : '비어있는 상태';
+          Step1UndoManager.saveSnapshot('prior', `[${activeG}] ${prevDesc}`);
           clearPriorData();
         }
       });
@@ -2354,6 +2585,11 @@
 
     document.getElementById('btnClearSurvey')?.addEventListener('click', () => {
       if (confirm(`현재 [${MultiState.activeGrade}]의 수강신청 조사 데이터를 삭제하시겠습니까?\n(등록된 사전 데이터는 그대로 유지됩니다.)`)) {
+        const curGrade = MultiState.activeGrade || '2학년';
+        const prevDesc = (AppState.students && AppState.students.length > 0)
+          ? `${AppState.fileName || '수강신청 파일'} (학생 ${AppState.students.length}명 삭제 전)`
+          : '비어있는 상태';
+        Step1UndoManager.saveSnapshot('survey', `[${curGrade}] ${prevDesc}`);
         clearSurveyData();
       }
     });
@@ -2372,6 +2608,13 @@
         alert('엑셀 처리 라이브러리를 준비 중입니다. 1~2초 후 다시 시도해주세요.');
         return;
       }
+
+      // 수강신청 조사 업로드 직전 상태 스냅샷 저장 (되돌리기 지원)
+      const curGrade = MultiState.activeGrade || '2학년';
+      const prevDesc = (AppState.students && AppState.students.length > 0)
+        ? `${AppState.fileName || '수강신청 파일'} (학생 ${AppState.students.length}명)`
+        : '비어있는 상태';
+      Step1UndoManager.saveSnapshot('survey', `[${curGrade}] ${prevDesc}`);
 
       showLoading(`[${file.name}] 파일 분석 중...`);
       AppState.fileName = file.name;

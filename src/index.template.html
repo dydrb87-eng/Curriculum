@@ -266,10 +266,16 @@
                   <p id="priorCardDesc" class="text-[11px] text-slate-500 mt-0.5">NIES-학교생활기록부-교과학습발달상황-XLS data (반별 엑셀 파일 등록)</p>
                 </div>
               </div>
-              <div id="priorStatusBadge" class="hidden">
-                <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-[11px] font-bold border border-emerald-200 flex items-center gap-1 shadow-xs">
-                  <span>✅ 등록 완료</span>
-                </span>
+              <div class="flex items-center gap-2">
+                <button id="btnUndoPrior" type="button" onclick="window.undoPriorDataUpload()" class="hidden px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer select-none" title="방금 등록한 사전데이터를 취소하고 이전 상태로 되돌립니다">
+                  <span class="text-sm font-black text-amber-700">↺</span>
+                  <span>되돌리기</span>
+                </button>
+                <div id="priorStatusBadge" class="hidden">
+                  <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-[11px] font-bold border border-emerald-200 flex items-center gap-1 shadow-xs">
+                    <span>✅ 등록 완료</span>
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -465,6 +471,10 @@
                 </div>
               </div>
               <div class="flex items-center gap-2 shrink-0">
+                <button id="btnUndoSurvey" type="button" onclick="window.undoSurveyUpload()" class="hidden px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer select-none" title="방금 업로드한 수강신청 파일을 취소하고 이전 상태로 되돌립니다">
+                  <span class="text-sm font-black text-amber-700">↺</span>
+                  <span>되돌리기</span>
+                </button>
                 <div id="surveyStatusBadge" class="hidden">
                   <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-[11px] font-bold border border-emerald-200 flex items-center gap-1 shadow-xs">
                     <span>✅ 등록 완료</span>
