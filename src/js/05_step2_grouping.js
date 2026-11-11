@@ -7013,7 +7013,11 @@ function createSangjiCourseSelectionForm() {
 
       // 2학년 또는 3학년 개별 학년 선택 시
       if (allGradesSection) allGradesSection.classList.add('hidden');
-      if (uploadSection) uploadSection.classList.remove('hidden');
+      const curStep = MultiState.activeStep || 1;
+      if (uploadSection) {
+        if (curStep === 1) uploadSection.classList.remove('hidden');
+        else uploadSection.classList.add('hidden');
+      }
 
       const curAcadData = getAcadData();
       if (!curAcadData[targetYear][targetGrade]) {
@@ -7173,16 +7177,19 @@ function createSangjiCourseSelectionForm() {
           const activeStep = MultiState.activeStep || 1;
           const step3View = document.getElementById('step3View');
           if (activeStep === 1) {
+            if (uploadSection) uploadSection.classList.remove('hidden');
             if (step1View) step1View.classList.remove('hidden');
             if (step2View) step2View.classList.add('hidden');
             if (step3View) step3View.classList.add('hidden');
             renderStep1();
           } else if (activeStep === 2) {
+            if (uploadSection) uploadSection.classList.add('hidden');
             if (step2View) step2View.classList.remove('hidden');
             if (step1View) step1View.classList.add('hidden');
             if (step3View) step3View.classList.add('hidden');
             renderStep2UI();
           } else if (activeStep === 3) {
+            if (uploadSection) uploadSection.classList.add('hidden');
             if (step3View) step3View.classList.remove('hidden');
             if (step1View) step1View.classList.add('hidden');
             if (step2View) step2View.classList.add('hidden');
@@ -7224,6 +7231,8 @@ function createSangjiCourseSelectionForm() {
               renderStep3UI();
             }
           } else {
+            if (activeStep === 1 && uploadSection) uploadSection.classList.remove('hidden');
+            else if (uploadSection) uploadSection.classList.add('hidden');
             if (step3View) step3View.classList.add('hidden');
             if (step1View) step1View.classList.remove('hidden');
             if (step2View) step2View.classList.add('hidden');

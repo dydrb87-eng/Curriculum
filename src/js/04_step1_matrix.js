@@ -64,7 +64,7 @@
       } else if (step === 2) {
         // [2단계: 그룹핑 & 시간표]
         if (allGradesSection) allGradesSection.classList.add('hidden');
-        if (uploadSection && MultiState.activeGrade !== '전체') uploadSection.classList.remove('hidden');
+        if (uploadSection) uploadSection.classList.add('hidden');
         if (step3View) step3View.classList.add('hidden');
         if (step1View) step1View.classList.add('hidden');
         if (step2View) step2View.classList.remove('hidden');
