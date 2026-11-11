@@ -238,18 +238,100 @@
         </button>
       </div>
 
-      <!-- Dual Upload Zone: 1. Prior Data (Student Roster & Enrolled Subjects) | 2. Survey Data -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
-        <!-- CARD 1: Prior Data (나이스 학생 명부 & 기이수 과목) -->
+      <!-- 3-Column Upload Zone: 1. NEIS 입학생교육과정 편성표 | 2. 사전데이터 등록 | 3. 수강신청 조사 엑셀 파일 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+
+        <!-- CARD 1: NEIS 입학생교육과정 편성표 등록 -->
+        <div id="neisCurriculumCard" class="bg-white rounded-2xl border-2 border-emerald-200 hover:border-emerald-400 p-6 shadow-sm transition-all flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-emerald-100">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm shadow-xs shrink-0">1</span>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                    <span id="neisCurriculumCardTitle">[2학년] NEIS 입학생교육과정 편성표</span>
+                    <span id="neisCurriculumStatusBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">미등록</span>
+                    <div class="relative group inline-block">
+                      <span class="w-4.5 h-4.5 rounded-full bg-slate-100 hover:bg-emerald-100 text-slate-500 hover:text-emerald-700 font-black text-xs flex items-center justify-center cursor-help transition">?</span>
+                      <div class="hidden group-hover:block absolute left-0 sm:left-full top-full sm:top-0 sm:ml-2 mt-1 sm:mt-0 w-84 p-3 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl z-30 pointer-events-none">
+                        <div class="font-bold text-emerald-300 mb-1">📋 NEIS 입학생교육과정 편성표 안내</div>
+                        <ul class="list-disc list-inside space-y-0.5 text-slate-200">
+                          <li><strong>파일 양식</strong>: 나이스 [교육과정-편성및배정-입학생3개년편성표] 엑셀/CSV 원본 파일</li>
+                          <li><strong>자동 처리</strong>: 셀 병합 해제, 지정/선택 자동 분류, 1·2학기 시수(학점) 자동 산출</li>
+                          <li><strong>기준 데이터</strong>: 전체 시수종합, 1단계 과목명, 교과군 설정의 절대 기준 데이터로 작동</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </h3>
+                  <p id="neisCurriculumCardDesc" class="hidden"></p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button id="btnClearNeisCurriculum" type="button" onclick="window.clearNeisCurriculumForCurrentGrade()" class="hidden px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer select-none" title="등록된 입학생 교육과정 편성표를 삭제합니다">
+                  <span>🗑️</span>
+                  <span>삭제</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 1 Dropzone -->
+            <div class="mt-4">
+              <div id="neisCurriculumDropZone" class="relative group border-2 border-dashed border-emerald-200 hover:border-emerald-500 rounded-xl p-5 bg-emerald-50/30 hover:bg-emerald-50/70 transition-all text-center overflow-hidden cursor-pointer">
+                <input type="file" id="neisCurriculumFileInput" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" onchange="if(this.files && this.files[0]) window.handleNeisCurriculumUpload(this.files[0]); this.value='';" title="NEIS 입학생 3개년 교육과정 편성표 엑셀(.xlsx) 또는 CSV 파일을 클릭하거나 드래그하세요" />
+                <div class="pointer-events-none flex flex-col items-center justify-center space-y-2">
+                  <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform">
+                    📄
+                  </div>
+                  <div>
+                    <p class="text-xs font-bold text-slate-800">
+                      <span id="neisCurriculumFileName">NEIS 입학생교육과정 편성표 엑셀/CSV 파일을 이곳에 끌어다 놓거나 클릭하세요</span>
+                    </p>
+                    <p id="neisCurriculumFileSummary" class="text-[11px] text-slate-500 mt-0.5">
+                      나이스에서 다운로드한 엑셀(.xlsx) 또는 CSV 파일을 그대로 등록하면 셀 병합을 자동으로 풀고 정규화합니다.
+                    </p>
+                  </div>
+                  <span class="inline-flex items-center px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[11px] font-bold shadow-xs">
+                    📁 파일 선택 (.xlsx / .csv)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action buttons inside Card 1 (편성표 보기, 과목 대조 및 일치화, 교과군 설정) -->
+            <div class="mt-3 flex flex-col gap-1.5">
+              <div class="grid grid-cols-2 gap-1.5">
+                <button id="btnViewNeisCurriculum" type="button" onclick="window.openNeisCurriculumViewModal()" class="hidden px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer select-none" title="셀 병합이 모두 해제되고 정규화된 3개년 교육과정 편성표 전체를 확인합니다">
+                  <span>👁️</span>
+                  <span>편성표 보기</span>
+                </button>
+                <button id="btnOpenHarmonizeModal" type="button" onclick="window.openCurriculumHarmonizeModal()" class="hidden px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer select-none" title="입학생 교육과정 기준 과목명 대조 및 일치화 창 열기">
+                  <span>📋</span>
+                  <span>과목 대조·일치</span>
+                </button>
+              </div>
+              <button id="btnOpenCategoryFromStep1" type="button" onclick="window.openSubjectCategoryManagerModal()" class="w-full px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer select-none" title="교과군 설정 및 이수조건 관리 창 열기">
+                <span>⚙️</span>
+                <span>교과군 및 이수조건 설정</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom Footer for Card 1 -->
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-[11px] text-slate-400">3개년 편제·시수·과목명 기준</span>
+            <span class="text-[11px] text-emerald-700 font-medium">NEIS 공식 연동</span>
+          </div>
+        </div>
+
+              <!-- CARD 2: Prior Data (나이스 학생 명부 & 기이수 과목) -->
         <div class="bg-white rounded-2xl border-2 border-indigo-200 hover:border-indigo-400 p-6 shadow-sm transition-all flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between pb-3 border-b border-indigo-100">
               <div class="flex items-center space-x-2.5">
-                <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm shadow-xs">1</span>
+                <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm shadow-xs">2</span>
                 <div>
                   <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <span id="priorCardTitle">[2학년] 사전 데이터 등록</span>
+                    <span id="priorCardTitle">[2학년] 사전데이터 등록</span>
                     <span id="priorCardGradeBadge" class="hidden"></span>
                     <div class="relative group inline-block">
                       <span class="w-4.5 h-4.5 rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-700 font-black text-xs flex items-center justify-center cursor-help transition">?</span>
@@ -444,12 +526,12 @@
         </div>
       </div>
 
-      <!-- CARD 2: Survey Data (구글 폼 수강신청 결과 엑셀) -->
+      <!-- CARD 3: Survey Data (구글 폼 수강신청 결과 엑셀) -->
         <div class="bg-white rounded-2xl border-2 border-blue-200 hover:border-blue-400 p-6 shadow-sm transition-all flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between pb-3 border-b border-blue-100 flex-wrap gap-2">
               <div class="flex items-center space-x-2.5">
-                <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm shadow-xs">2</span>
+                <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm shadow-xs">3</span>
                 <div>
                   <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <span id="surveyCardTitle">[2학년] 수강신청 조사 엑셀 파일</span>
@@ -1746,7 +1828,7 @@
           <div class="flex items-center gap-2">
             <button type="button" id="step3MainTabBtnCategory" onclick="window.switchStep3MainTab('category')"
                     class="px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition cursor-pointer flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-md ring-2 ring-purple-300">
-              <span>📋 이수과목 검증</span>
+              <span>📋 이수학점 검증</span>
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white font-bold">대입·졸업 필수조건</span>
             </button>
             <button type="button" id="step3MainTabBtnCreditAudit" onclick="window.switchStep3MainTab('creditAudit')"
@@ -1773,11 +1855,11 @@
                 <span id="step3ActiveYearBadge" class="px-2.5 py-0.5 bg-white/20 text-white rounded-full text-xs font-bold">2027학년도</span>
               </div>
               <h2 class="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
-                <span>📋 이수과목 검증</span>
+                <span>📋 이수학점 검증</span>
               </h2>
               <p class="text-purple-200 text-xs sm:text-sm mt-1 max-w-3xl leading-relaxed">
                 전체 시수 종합의 전학년(1·2·3학년) 과목 목록을 바탕으로 교과군 및 선택 개수 제한 조건을 등록하고, 
-                3학년 학생들의 최종 수강신청(선택과목)이 조건에 부합하는지 정밀 검증합니다.
+                3학년 학생들의 최종 수강신청(선택과목) 및 1단계 교과학습발달상황(1·2학년 기이수 과목)이 조건에 부합하는지 정밀 검증합니다.
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2 shrink-0">
@@ -1866,7 +1948,9 @@
 
               <div class="flex flex-wrap items-center gap-2">
                 <select id="step3FilterGrade" onchange="window.setStep3ResultFilter('grade', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
-                  <option value="3학년" selected>3학년 (검증 대상)</option>
+                  <option value="all">전체 학년</option>
+                  <option value="2학년">2학년</option>
+                  <option value="3학년">3학년</option>
                 </select>
 
                 <select id="step3FilterClass" onchange="window.setStep3ResultFilter('classNum', this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400">
@@ -1905,7 +1989,7 @@
                     <th class="py-3 px-3 w-28 text-center">검증 상태</th>
                     <th class="py-3 px-4 min-w-[260px]">위반 교과군 및 불일치 사유</th>
                     <th class="py-3 px-4 min-w-[240px]">과목 중복 신청</th>
-                    <th class="py-3 px-4 min-w-[260px]">해당 교과군 선택 과목 (구체적 과목명)</th>
+                    <th class="py-3 px-4 min-w-[260px]">해당 교과군 선택 과목</th>
                     <th class="py-3 px-4 min-w-[260px]">전체 선택 과목 (1학기 / 2학기)</th>
                     <th class="py-3 px-3 w-28 text-center">기이수 관리</th>
                   </tr>
@@ -2083,6 +2167,47 @@
               </div>
             </div>
           </div>
+
+          <!-- 학기별 이수학점 점검 실행 패널 (학년별 실행 버튼) -->
+          <div class="bg-gradient-to-r from-indigo-50 via-purple-50 to-slate-50 border-2 border-indigo-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center text-xl shadow-sm shrink-0">
+                🔍
+              </div>
+              <div>
+                <h4 class="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                  <span>1단계 교과학습발달상황 기반 이수학점 점검</span>
+                  <span class="px-2 py-0.5 text-[10px] font-extrabold bg-indigo-100 text-indigo-800 rounded-full border border-indigo-300">학년별 점검 실행</span>
+                </h4>
+                <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                  아래 학년별 <strong>[점검]</strong> 버튼을 누르면 1단계에 등록된 교과학습발달상황 데이터를 기준으로 학기별 이수학점을 정밀 분석하고 충족 여부를 판정합니다.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 flex-wrap">
+              <button type="button" 
+                      id="btnRunCreditAuditG2" 
+                      onclick="window.runCreditAuditForGrade('2학년')" 
+                      class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-black rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                <span>🔍 2학년 점검</span>
+                <span class="text-[10px] opacity-80 font-normal">(1-1 이수)</span>
+              </button>
+              <button type="button" 
+                      id="btnRunCreditAuditG3" 
+                      onclick="window.runCreditAuditForGrade('3학년')" 
+                      class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs sm:text-sm font-black rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                <span>🔍 3학년 점검</span>
+                <span class="text-[10px] opacity-80 font-normal">(1-1~2-1 이수)</span>
+              </button>
+              <button type="button" 
+                      id="btnRunCreditAuditAll" 
+                      onclick="window.runCreditAuditForGrade('all')" 
+                      class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                <span>전체 점검</span>
+              </button>
+            </div>
+          </div>
+
 
           <!-- 1. 학기별 필수 이수 학점 기준 설정 & 필수 열 제목 사용자 지정 (접기/펼치기 가능, 기본값: 접기) -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -2332,17 +2457,28 @@
               </div>
             </div>
 
-            <!-- 원클릭 미충족자 필터 버튼 바 -->
-            <div class="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-              <span class="font-bold text-slate-600 px-1">🔍 미충족자 필터:</span>
-              <button type="button" id="caFilterBtn-all" onclick="window.setCreditAuditFilter('all')" class="px-2.5 py-1 rounded-lg font-black bg-indigo-600 text-white shadow-2xs transition">전체 <span id="caCnt-all" class="ml-0.5 opacity-90">0</span></button>
-              <button type="button" id="caFilterBtn-any-fail" onclick="window.setCreditAuditFilter('any-fail')" class="px-2.5 py-1 rounded-lg font-black bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 transition">🚨 전체 미충족자 <span id="caCnt-any-fail" class="ml-0.5 opacity-90">0</span></button>
-              <button type="button" id="caFilterBtn-1-1" onclick="window.setCreditAuditFilter('1-1')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">1-1 미달 <span id="caCnt-1-1" class="ml-0.5 opacity-70">0</span></button>
-              <button type="button" id="caFilterBtn-1-2" onclick="window.setCreditAuditFilter('1-2')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">1-2 미달 <span id="caCnt-1-2" class="ml-0.5 opacity-70">0</span></button>
-              <button type="button" id="caFilterBtn-2-1" onclick="window.setCreditAuditFilter('2-1')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">2-1 미달 <span id="caCnt-2-1" class="ml-0.5 opacity-70">0</span></button>
-              <button type="button" id="caFilterBtn-2-2" onclick="window.setCreditAuditFilter('2-2')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">2-2 미달 <span id="caCnt-2-2" class="ml-0.5 opacity-70">0</span></button>
-              <button type="button" id="caFilterBtn-3-1" onclick="window.setCreditAuditFilter('3-1')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">3-1 미달 <span id="caCnt-3-1" class="ml-0.5 opacity-70">0</span></button>
-              <button type="button" id="caFilterBtn-3-2" onclick="window.setCreditAuditFilter('3-2')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">3-2 미달 <span id="caCnt-3-2" class="ml-0.5 opacity-70">0</span></button>
+            <!-- 학년별 필터 & 원클릭 미충족자 필터 버튼 바 -->
+            <div class="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-black text-slate-700 px-1">🎓 학년 선택:</span>
+                <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-white shadow-2xs">
+                  <button type="button" id="caGradeFilterBtn-all" onclick="window.setCreditAuditGradeFilter('all')" class="px-2.5 py-1 rounded-md text-xs font-black bg-indigo-600 text-white transition shadow-2xs">전체 학년 <span id="caGradeCnt-all" class="opacity-80"></span></button>
+                  <button type="button" id="caGradeFilterBtn-2" onclick="window.setCreditAuditGradeFilter('2학년')" class="px-2.5 py-1 rounded-md text-xs font-bold text-slate-700 hover:bg-slate-100 transition">2학년 <span id="caGradeCnt-2" class="opacity-80"></span></button>
+                  <button type="button" id="caGradeFilterBtn-3" onclick="window.setCreditAuditGradeFilter('3학년')" class="px-2.5 py-1 rounded-md text-xs font-bold text-slate-700 hover:bg-slate-100 transition">3학년 <span id="caGradeCnt-3" class="opacity-80"></span></button>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1 flex-wrap">
+                <span class="font-bold text-slate-600 px-1">🔍 미충족자 필터:</span>
+                <button type="button" id="caFilterBtn-all" onclick="window.setCreditAuditFilter('all')" class="px-2.5 py-1 rounded-lg font-black bg-indigo-600 text-white shadow-2xs transition">전체 <span id="caCnt-all" class="ml-0.5 opacity-90">0</span></button>
+                <button type="button" id="caFilterBtn-any-fail" onclick="window.setCreditAuditFilter('any-fail')" class="px-2.5 py-1 rounded-lg font-black bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 transition">🚨 전체 미충족자 <span id="caCnt-any-fail" class="ml-0.5 opacity-90">0</span></button>
+                <button type="button" id="caFilterBtn-1-1" onclick="window.setCreditAuditFilter('1-1')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">1-1 미달 <span id="caCnt-1-1" class="ml-0.5 opacity-70">0</span></button>
+                <button type="button" id="caFilterBtn-1-2" onclick="window.setCreditAuditFilter('1-2')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">1-2 미달 <span id="caCnt-1-2" class="ml-0.5 opacity-70">0</span></button>
+                <button type="button" id="caFilterBtn-2-1" onclick="window.setCreditAuditFilter('2-1')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">2-1 미달 <span id="caCnt-2-1" class="ml-0.5 opacity-70">0</span></button>
+                <button type="button" id="caFilterBtn-2-2" onclick="window.setCreditAuditFilter('2-2')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">2-2 미달 <span id="caCnt-2-2" class="ml-0.5 opacity-70">0</span></button>
+                <button type="button" id="caFilterBtn-3-1" onclick="window.setCreditAuditFilter('3-1')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">3-1 미달 <span id="caCnt-3-1" class="ml-0.5 opacity-70">0</span></button>
+                <button type="button" id="caFilterBtn-3-2" onclick="window.setCreditAuditFilter('3-2')" class="px-2.5 py-1 rounded-lg font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition">3-2 미달 <span id="caCnt-3-2" class="ml-0.5 opacity-70">0</span></button>
+              </div>
             </div>
 
             <!-- 결과 테이블 -->
@@ -2350,6 +2486,7 @@
               <table class="w-full text-xs text-left border-collapse">
                 <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
                   <tr>
+                    <th class="p-2.5 text-center w-16 border-r border-slate-200">학년</th>
                     <th class="p-2.5 text-center w-24 border-r border-slate-200">학번/번호</th>
                     <th class="p-2.5 text-center w-24 border-r border-slate-200">학생명</th>
                     <th class="p-2.5 text-center border-r border-slate-200">1-1 <small id="caTh-1-1" class="text-indigo-600 font-normal">(기준 29)</small></th>
@@ -2367,7 +2504,7 @@
                 </tbody>
               </table>
               <div id="caResultsEmptyState" class="p-12 text-center text-slate-400 font-medium">
-                분석된 학생 데이터가 없습니다. 상단에서 <strong>[현재 학생 데이터로 즉시 분석]</strong> 버튼을 누르거나 <strong>교과학습발달상황 엑셀 파일</strong>을 드롭존에 업로드해주세요.
+                분석된 학생 데이터가 없습니다. 상단의 <strong>[🔍 2학년 점검]</strong> 또는 <strong>[🔍 3학년 점검]</strong> 버튼을 누르면 1단계 교과학습발달상황 데이터를 기준으로 학기별 이수학점이 분석됩니다.
               </div>
             </div>
           </div>
@@ -2492,26 +2629,18 @@
 
             <div class="bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-200 space-y-2">
               <label class="block text-[11px] font-black text-indigo-950">선택 개수 제한 조건 설정</label>
-              <div class="grid grid-cols-2 gap-1.5 text-xs">
-                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
+              <div class="grid grid-cols-3 gap-1.5 text-xs">
+                <label class="flex items-center gap-1 p-1.5 bg-white rounded border border-indigo-200 font-bold cursor-pointer hover:border-indigo-400">
                   <input type="radio" name="scmFormRuleType" value="none" onchange="window.updateScmFormRuleInputs()">
-                  <span>조건 없음 (자율)</span>
+                  <span>조건 없음(자율)</span>
                 </label>
-                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
+                <label class="flex items-center gap-1 p-1.5 bg-white rounded border border-indigo-200 font-bold cursor-pointer hover:border-indigo-400">
                   <input type="radio" name="scmFormRuleType" value="min" checked onchange="window.updateScmFormRuleInputs()">
-                  <span>최소 N개 이상</span>
+                  <span>(n)학점 이상</span>
                 </label>
-                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
+                <label class="flex items-center gap-1 p-1.5 bg-white rounded border border-indigo-200 font-bold cursor-pointer hover:border-indigo-400">
                   <input type="radio" name="scmFormRuleType" value="max" onchange="window.updateScmFormRuleInputs()">
-                  <span>최대 N개 이하</span>
-                </label>
-                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
-                  <input type="radio" name="scmFormRuleType" value="range" onchange="window.updateScmFormRuleInputs()">
-                  <span>N~M개 범위</span>
-                </label>
-                <label class="flex items-center gap-1 p-1 bg-white rounded border border-indigo-200 font-bold cursor-pointer">
-                  <input type="radio" name="scmFormRuleType" value="exact" onchange="window.updateScmFormRuleInputs()">
-                  <span>정확히 N개</span>
+                  <span>(n)학점 이하</span>
                 </label>
               </div>
 
@@ -2583,6 +2712,7 @@
               <option value="all">구분 (전체)</option>
               <option value="선택">선택과목만</option>
               <option value="지정">지정과목만</option>
+              <option value="nonNeis">⚠️ 편성표 외 과목만</option>
             </select>
 
             <select id="scmFilterCatStatus" onchange="window.setScmSubjectFilter('catStatus', this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-2 py-1 font-bold text-slate-700 outline-none">
@@ -2678,22 +2808,18 @@
         <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-3.5 space-y-3">
           <label class="block text-xs font-black text-indigo-950">선택 개수 제한 조건 설정 <span class="text-rose-500">*</span></label>
           
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-3 gap-2">
+            <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
+              <input type="radio" name="step3CategoryRuleType" value="none" onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
+              <span>조건 없음(자율)</span>
+            </label>
             <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
               <input type="radio" name="step3CategoryRuleType" value="min" checked onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
-              <span>최소 N과목 이상</span>
+              <span>(n)학점 이상</span>
             </label>
             <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
               <input type="radio" name="step3CategoryRuleType" value="max" onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
-              <span>최대 N과목 이하</span>
-            </label>
-            <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
-              <input type="radio" name="step3CategoryRuleType" value="range" onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
-              <span>N ~ M과목 범위</span>
-            </label>
-            <label class="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-indigo-200 text-xs font-bold cursor-pointer hover:border-indigo-400">
-              <input type="radio" name="step3CategoryRuleType" value="exact" onchange="window.updateStep3ModalRuleInputs()" class="text-indigo-600 focus:ring-indigo-500">
-              <span>정확히 N과목 선택</span>
+              <span>(n)학점 이하</span>
             </label>
           </div>
 
@@ -4023,6 +4149,47 @@
     </div>
   </div>
 
+  
+  <!-- ================= [3단계] 학생별 교과군 선택 과목 예외(카운트 제외) 관리 모달 ================= -->
+  <div id="studentCategoryExceptionModal" onclick="if(event.target.id === 'studentCategoryExceptionModal') window.closeStudentCategoryExceptionModal();" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col space-y-4">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl shadow-xs">
+            ✏️
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-slate-900">해당 교과군 선택 과목 예외 관리</h3>
+              <span id="scmExceptionStudentBadge" class="text-xs font-black px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs"></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">체크된 과목은 이 학생의 해당 교과군 이수 인정 카운트에서 제외(예외처리)됩니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeStudentCategoryExceptionModal();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer font-bold text-base">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body (교과군별 과목 리스트 & 체크박스) -->
+      <div id="scmExceptionModalBody" class="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar min-h-0 text-xs">
+        <!-- Dynamically rendered -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+        <button type="button" onclick="window.resetCurrentStudentExceptions();" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs">
+          <span>↺</span>
+          <span>이 학생의 모든 예외 해제 (전체 카운트 복원)</span>
+        </button>
+        <button type="button" onclick="window.closeStudentCategoryExceptionModal();" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-md transition cursor-pointer flex items-center gap-1">
+          <span>✓ 확인 및 닫기</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= 2단계 학생 배포 안내표 '안내 사항' 편집 모달 ================= -->
   <div id="step2NoticeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 hidden p-3 sm:p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -4134,7 +4301,423 @@
     </div>
   </div>
 
+  <div id="curriculumHarmonizeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 hidden p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-800 text-white shrink-0">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-slate-900 shadow-2xs">교육과정 기준 정규화</span>
+            <span id="chmGradeBadge" class="text-xs font-bold text-emerald-200"></span>
+          </div>
+          <h3 class="text-base sm:text-lg font-black tracking-tight mt-0.5 flex items-center gap-2">
+            <span>📋 입학생 교육과정 vs 시스템 데이터 대조 및 일치화</span>
+          </h3>
+          <p class="text-xs text-emerald-100/90 mt-0.5">나이스 공식 편성표 기준으로 띄어쓰기·시수·지정선택 차이를 확인하고 일치화합니다. (기존 배정 교사·분반·학생 선택은 100% 보존됩니다)</p>
+        </div>
+        <button type="button" onclick="window.closeCurriculumHarmonizeModal();" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Stats Bar & Filters -->
+      <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <!-- Stats Pills -->
+        <div class="flex items-center gap-1.5 flex-wrap text-xs">
+          <span id="chmStatTotal" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700 shadow-3xs">총 0과목</span>
+          <span id="chmStatMatched" class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 font-bold text-emerald-800 shadow-3xs">🟢 일치 0</span>
+          <span id="chmStatDiff" class="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-300 font-black text-amber-900 shadow-3xs">🟡 미세차이 0</span>
+          <span id="chmStatNew" class="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 font-bold text-blue-800 shadow-3xs">🔵 신규 0</span>
+          <span id="chmStatSystemOnly" class="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 font-bold text-rose-800 shadow-3xs">🔴 시수표 전용 0</span>
+        </div>
+
+        <!-- Filter & Batch Action -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="inline-flex rounded-xl p-0.5 bg-slate-200/80 text-xs font-bold">
+            <button type="button" onclick="window.setChmFilter('all')" id="chmFilterBtnAll" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs transition">전체</button>
+            <button type="button" onclick="window.setChmFilter('diff')" id="chmFilterBtnDiff" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">🟡 미세차이만</button>
+            <button type="button" onclick="window.setChmFilter('new')" id="chmFilterBtnNew" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">🔵 신규만</button>
+            <button type="button" onclick="window.setChmFilter('systemOnly')" id="chmFilterBtnSystem" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">🔴 시수표 전용만</button>
+          </div>
+          <button type="button" onclick="window.setHarmonizeAllStandard()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1 cursor-pointer">
+            <span>⚡ 전체 나이스 기준으로 일괄 선택</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Body -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/50">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-3xs">
+              <tr>
+                <th class="py-2.5 px-3 text-center w-14">상태</th>
+                <th class="py-2.5 px-3 text-center w-16">학기</th>
+                <th class="py-2.5 px-3 w-64 bg-emerald-50/50 border-r border-slate-200">
+                  <div class="flex items-center justify-between">
+                    <span>나이스 공식 편성 (기준)</span>
+                    <span class="text-[10px] text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded font-extrabold">공식 명칭</span>
+                  </div>
+                </th>
+                <th class="py-2.5 px-3 w-64 border-r border-slate-200">
+                  <div class="flex items-center justify-between">
+                    <span>기존 시스템 데이터 (시수종합 / 1단계)</span>
+                    <span class="text-[10px] text-slate-600 bg-slate-200 px-1.5 py-0.2 rounded font-semibold">현재 표기</span>
+                  </div>
+                </th>
+                <th class="py-2.5 px-3 text-center w-40">적용 결정 (클릭 전환)</th>
+              </tr>
+            </thead>
+            <tbody id="chmTableTbody" class="divide-y divide-slate-100">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+          <div id="chmTableEmpty" class="hidden py-16 text-center text-slate-400 space-y-2">
+            <div class="text-3xl">📋</div>
+            <p class="font-medium text-xs">표시할 대조 과목이 없습니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between px-6 py-3.5 bg-white border-t border-slate-200 shrink-0">
+        <button type="button" onclick="window.closeCurriculumHarmonizeModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1">
+          <span>✕ 닫기 / 취소</span>
+        </button>
+        <div class="flex items-center gap-2.5">
+          <span class="text-xs text-slate-500 font-medium hidden sm:inline">선택한 내용이 전체 시수종합, 1단계 과목명, 교과군에 동시 적용됩니다.</span>
+          <button type="button" onclick="window.applyCurriculumHarmonization();" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition cursor-pointer flex items-center gap-1.5">
+            <span>💾 선택 내용 최종 적용</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  
+
+  <!-- Modal: NEIS Curriculum Clean Unmerged Table View -->
+  <div id="neisCurriculumViewModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white flex items-center justify-between shrink-0 shadow-sm">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-300 text-slate-900 shadow-2xs">교육과정 정규화 뷰어</span>
+            <span id="ncvModalHeaderBadge" class="text-xs font-bold text-blue-100"></span>
+          </div>
+          <h3 class="text-base sm:text-lg font-black tracking-tight mt-0.5 flex items-center gap-2">
+            <span>📋 나이스 입학생 3개년 교육과정 편성표 (정규화 완료)</span>
+          </h3>
+          <p class="text-xs text-blue-100/90 mt-0.5">셀 병합을 모두 해제하고 구분·교과영역·교과(군)·과목구분·시수 데이터를 모든 행에 100% 채운 결과표입니다.</p>
+        </div>
+        <button type="button" onclick="window.closeNeisCurriculumViewModal();" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Controls & Stats Toolbar -->
+      <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <!-- Stats Pills -->
+        <div class="flex items-center gap-1.5 flex-wrap text-xs">
+          <span id="ncvStatTotal" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-extrabold text-slate-800 shadow-3xs">총 0과목</span>
+          <span id="ncvStatG1" class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 font-bold text-slate-700 shadow-3xs">1학년 0</span>
+          <span id="ncvStatG2" class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 font-bold text-slate-700 shadow-3xs">2학년 0</span>
+          <span id="ncvStatG3" class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 font-bold text-slate-700 shadow-3xs">3학년 0</span>
+          <span id="ncvStatDesignated" class="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 font-bold text-amber-800 shadow-3xs">학교지정 0</span>
+          <span id="ncvStatElective" class="px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200 font-bold text-sky-800 shadow-3xs">학생선택 0</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Grade Filter -->
+          <div class="inline-flex rounded-xl p-0.5 bg-slate-200/80 text-xs font-bold">
+            <button type="button" onclick="window.setNeisViewFilter('grade', 'all')" id="ncvFilterGradeAll" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs transition">전체</button>
+            <button type="button" onclick="window.setNeisViewFilter('grade', '1학년')" id="ncvFilterGrade1" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">1학년</button>
+            <button type="button" onclick="window.setNeisViewFilter('grade', '2학년')" id="ncvFilterGrade2" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">2학년</button>
+            <button type="button" onclick="window.setNeisViewFilter('grade', '3학년')" id="ncvFilterGrade3" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">3학년</button>
+          </div>
+
+          <!-- Type Filter -->
+          <div class="inline-flex rounded-xl p-0.5 bg-slate-200/80 text-xs font-bold">
+            <button type="button" onclick="window.setNeisViewFilter('type', 'all')" id="ncvFilterTypeAll" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs transition">전체구분</button>
+            <button type="button" onclick="window.setNeisViewFilter('type', '학교지정')" id="ncvFilterTypeDesig" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">학교지정</button>
+            <button type="button" onclick="window.setNeisViewFilter('type', '학생선택')" id="ncvFilterTypeElec" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">학생선택</button>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative">
+            <input type="text" id="ncvSearchInput" oninput="window.setNeisViewFilter('search', this.value)" placeholder="과목명/교과군 검색..." class="pl-7 pr-3 py-1 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-36 sm:w-44" />
+            <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+
+          <!-- Export Excel Button -->
+          <button type="button" onclick="window.exportNeisCurriculumCleanExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1 cursor-pointer" title="병합이 풀린 깨끗한 정규화 교육과정 편성표를 엑셀로 다운로드합니다">
+            <span>📥</span>
+            <span>정규화 엑셀 다운로드</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/50">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-3xs">
+              <tr>
+                <th class="py-2.5 px-3 text-center w-12">#</th>
+                <th class="py-2.5 px-3 text-center w-16">학년</th>
+                <th class="py-2.5 px-3 text-center w-14">학기</th>
+                <th class="py-2.5 px-3 text-center w-20">구분</th>
+                <th class="py-2.5 px-3 w-24">교과영역</th>
+                <th class="py-2.5 px-3 w-28">교과(군)</th>
+                <th class="py-2.5 px-3 w-24 text-center">과목구분</th>
+                <th class="py-2.5 px-3 w-48 font-extrabold text-slate-900">과목명</th>
+                <th class="py-2.5 px-3 text-center w-16">학점(시수)</th>
+                <th class="py-2.5 px-3">선택과목군 / 비고</th>
+              </tr>
+            </thead>
+            <tbody id="ncvTableTbody" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+          <div id="ncvTableEmpty" class="hidden py-16 text-center text-slate-400 space-y-2">
+            <div class="text-3xl">📋</div>
+            <p class="font-medium text-xs">조건에 해당하는 과목이 없습니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between px-6 py-3.5 bg-white border-t border-slate-200 shrink-0">
+        <div class="text-xs text-slate-500 font-medium">
+          <span id="ncvFooterCount">표시 중: 0과목</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.closeNeisCurriculumViewModal(); window.openCurriculumHarmonizeModal();" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
+            <span>📋 과목 대조 및 일치화 열기</span>
+          </button>
+          <button type="button" onclick="window.closeNeisCurriculumViewModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1">
+            <span>✕ 닫기</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ================= APPLICATION JAVASCRIPT ================= -->
+  <div id="curriculumHarmonizeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 hidden p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-800 text-white shrink-0">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-slate-900 shadow-2xs">교육과정 기준 정규화</span>
+            <span id="chmGradeBadge" class="text-xs font-bold text-emerald-200"></span>
+          </div>
+          <h3 class="text-base sm:text-lg font-black tracking-tight mt-0.5 flex items-center gap-2">
+            <span>📋 입학생 교육과정 vs 시스템 데이터 대조 및 일치화</span>
+          </h3>
+          <p class="text-xs text-emerald-100/90 mt-0.5">나이스 공식 편성표 기준으로 띄어쓰기·시수·지정선택 차이를 확인하고 일치화합니다. (기존 배정 교사·분반·학생 선택은 100% 보존됩니다)</p>
+        </div>
+        <button type="button" onclick="window.closeCurriculumHarmonizeModal();" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Stats Bar & Filters -->
+      <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <!-- Stats Pills -->
+        <div class="flex items-center gap-1.5 flex-wrap text-xs">
+          <span id="chmStatTotal" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700 shadow-3xs">총 0과목</span>
+          <span id="chmStatMatched" class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 font-bold text-emerald-800 shadow-3xs">🟢 일치 0</span>
+          <span id="chmStatDiff" class="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-300 font-black text-amber-900 shadow-3xs">🟡 미세차이 0</span>
+          <span id="chmStatNew" class="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 font-bold text-blue-800 shadow-3xs">🔵 신규 0</span>
+          <span id="chmStatSystemOnly" class="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 font-bold text-rose-800 shadow-3xs">🔴 시수표 전용 0</span>
+        </div>
+
+        <!-- Filter & Batch Action -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="inline-flex rounded-xl p-0.5 bg-slate-200/80 text-xs font-bold">
+            <button type="button" onclick="window.setChmFilter('all')" id="chmFilterBtnAll" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs transition">전체</button>
+            <button type="button" onclick="window.setChmFilter('diff')" id="chmFilterBtnDiff" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">🟡 미세차이만</button>
+            <button type="button" onclick="window.setChmFilter('new')" id="chmFilterBtnNew" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">🔵 신규만</button>
+            <button type="button" onclick="window.setChmFilter('systemOnly')" id="chmFilterBtnSystem" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">🔴 시수표 전용만</button>
+          </div>
+          <button type="button" onclick="window.setHarmonizeAllStandard()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1 cursor-pointer">
+            <span>⚡ 전체 나이스 기준으로 일괄 선택</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Body -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/50">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-3xs">
+              <tr>
+                <th class="py-2.5 px-3 text-center w-14">상태</th>
+                <th class="py-2.5 px-3 text-center w-16">학기</th>
+                <th class="py-2.5 px-3 w-64 bg-emerald-50/50 border-r border-slate-200">
+                  <div class="flex items-center justify-between">
+                    <span>나이스 공식 편성 (기준)</span>
+                    <span class="text-[10px] text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded font-extrabold">공식 명칭</span>
+                  </div>
+                </th>
+                <th class="py-2.5 px-3 w-64 border-r border-slate-200">
+                  <div class="flex items-center justify-between">
+                    <span>기존 시스템 데이터 (시수종합 / 1단계)</span>
+                    <span class="text-[10px] text-slate-600 bg-slate-200 px-1.5 py-0.2 rounded font-semibold">현재 표기</span>
+                  </div>
+                </th>
+                <th class="py-2.5 px-3 text-center w-40">적용 결정 (클릭 전환)</th>
+              </tr>
+            </thead>
+            <tbody id="chmTableTbody" class="divide-y divide-slate-100">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+          <div id="chmTableEmpty" class="hidden py-16 text-center text-slate-400 space-y-2">
+            <div class="text-3xl">📋</div>
+            <p class="font-medium text-xs">표시할 대조 과목이 없습니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between px-6 py-3.5 bg-white border-t border-slate-200 shrink-0">
+        <button type="button" onclick="window.closeCurriculumHarmonizeModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1">
+          <span>✕ 닫기 / 취소</span>
+        </button>
+        <div class="flex items-center gap-2.5">
+          <span class="text-xs text-slate-500 font-medium hidden sm:inline">선택한 내용이 전체 시수종합, 1단계 과목명, 교과군에 동시 적용됩니다.</span>
+          <button type="button" onclick="window.applyCurriculumHarmonization();" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition cursor-pointer flex items-center gap-1.5">
+            <span>💾 선택 내용 최종 적용</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  
+
+  <!-- Modal: NEIS Curriculum Clean Unmerged Table View -->
+  <div id="neisCurriculumViewModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white flex items-center justify-between shrink-0 shadow-sm">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-300 text-slate-900 shadow-2xs">교육과정 정규화 뷰어</span>
+            <span id="ncvModalHeaderBadge" class="text-xs font-bold text-blue-100"></span>
+          </div>
+          <h3 class="text-base sm:text-lg font-black tracking-tight mt-0.5 flex items-center gap-2">
+            <span>📋 나이스 입학생 3개년 교육과정 편성표 (정규화 완료)</span>
+          </h3>
+          <p class="text-xs text-blue-100/90 mt-0.5">셀 병합을 모두 해제하고 구분·교과영역·교과(군)·과목구분·시수 데이터를 모든 행에 100% 채운 결과표입니다.</p>
+        </div>
+        <button type="button" onclick="window.closeNeisCurriculumViewModal();" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Controls & Stats Toolbar -->
+      <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <!-- Stats Pills -->
+        <div class="flex items-center gap-1.5 flex-wrap text-xs">
+          <span id="ncvStatTotal" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-extrabold text-slate-800 shadow-3xs">총 0과목</span>
+          <span id="ncvStatG1" class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 font-bold text-slate-700 shadow-3xs">1학년 0</span>
+          <span id="ncvStatG2" class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 font-bold text-slate-700 shadow-3xs">2학년 0</span>
+          <span id="ncvStatG3" class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 font-bold text-slate-700 shadow-3xs">3학년 0</span>
+          <span id="ncvStatDesignated" class="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 font-bold text-amber-800 shadow-3xs">학교지정 0</span>
+          <span id="ncvStatElective" class="px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200 font-bold text-sky-800 shadow-3xs">학생선택 0</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Grade Filter -->
+          <div class="inline-flex rounded-xl p-0.5 bg-slate-200/80 text-xs font-bold">
+            <button type="button" onclick="window.setNeisViewFilter('grade', 'all')" id="ncvFilterGradeAll" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs transition">전체</button>
+            <button type="button" onclick="window.setNeisViewFilter('grade', '1학년')" id="ncvFilterGrade1" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">1학년</button>
+            <button type="button" onclick="window.setNeisViewFilter('grade', '2학년')" id="ncvFilterGrade2" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">2학년</button>
+            <button type="button" onclick="window.setNeisViewFilter('grade', '3학년')" id="ncvFilterGrade3" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">3학년</button>
+          </div>
+
+          <!-- Type Filter -->
+          <div class="inline-flex rounded-xl p-0.5 bg-slate-200/80 text-xs font-bold">
+            <button type="button" onclick="window.setNeisViewFilter('type', 'all')" id="ncvFilterTypeAll" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs transition">전체구분</button>
+            <button type="button" onclick="window.setNeisViewFilter('type', '학교지정')" id="ncvFilterTypeDesig" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">학교지정</button>
+            <button type="button" onclick="window.setNeisViewFilter('type', '학생선택')" id="ncvFilterTypeElec" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">학생선택</button>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative">
+            <input type="text" id="ncvSearchInput" oninput="window.setNeisViewFilter('search', this.value)" placeholder="과목명/교과군 검색..." class="pl-7 pr-3 py-1 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-36 sm:w-44" />
+            <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+
+          <!-- Export Excel Button -->
+          <button type="button" onclick="window.exportNeisCurriculumCleanExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition flex items-center gap-1 cursor-pointer" title="병합이 풀린 깨끗한 정규화 교육과정 편성표를 엑셀로 다운로드합니다">
+            <span>📥</span>
+            <span>정규화 엑셀 다운로드</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/50">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-3xs">
+              <tr>
+                <th class="py-2.5 px-3 text-center w-12">#</th>
+                <th class="py-2.5 px-3 text-center w-16">학년</th>
+                <th class="py-2.5 px-3 text-center w-14">학기</th>
+                <th class="py-2.5 px-3 text-center w-20">구분</th>
+                <th class="py-2.5 px-3 w-24">교과영역</th>
+                <th class="py-2.5 px-3 w-28">교과(군)</th>
+                <th class="py-2.5 px-3 w-24 text-center">과목구분</th>
+                <th class="py-2.5 px-3 w-48 font-extrabold text-slate-900">과목명</th>
+                <th class="py-2.5 px-3 text-center w-16">학점(시수)</th>
+                <th class="py-2.5 px-3">선택과목군 / 비고</th>
+              </tr>
+            </thead>
+            <tbody id="ncvTableTbody" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+          <div id="ncvTableEmpty" class="hidden py-16 text-center text-slate-400 space-y-2">
+            <div class="text-3xl">📋</div>
+            <p class="font-medium text-xs">조건에 해당하는 과목이 없습니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between px-6 py-3.5 bg-white border-t border-slate-200 shrink-0">
+        <div class="text-xs text-slate-500 font-medium">
+          <span id="ncvFooterCount">표시 중: 0과목</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.closeNeisCurriculumViewModal(); window.openCurriculumHarmonizeModal();" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
+            <span>📋 과목 대조 및 일치화 열기</span>
+          </button>
+          <button type="button" onclick="window.closeNeisCurriculumViewModal();" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1">
+            <span>✕ 닫기</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ================= APPLICATION JAVASCRIPT ================= -->
   <script>
 <!-- INJECT_SCRIPTS -->

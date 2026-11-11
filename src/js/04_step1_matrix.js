@@ -35,7 +35,7 @@
         if (step2View) step2View.classList.add('hidden');
         if (step3View) step3View.classList.remove('hidden');
 
-        // 3단계 진입 시 필터 초기화 (3단계는 3학년 전용 검증이므로 3학년으로 고정)
+        // 3단계 진입 시 필터 초기화 (학년별 확인 지원: 2학년, 3학년, 또는 전체)
         if (typeof _step3ResultFilters !== 'undefined' && _step3ResultFilters) {
           _step3ResultFilters.grade = '3학년';
           _step3ResultFilters.status = 'all';
@@ -2680,5 +2680,1322 @@
       alert('1단계 현황표 엑셀 다운로드 중 오류가 발생했습니다: ' + err.message);
     }
   }
+
+    // ==========================================
+    // NEIS 입학생 3개년 교육과정 편성표 파서 & 대조/일치화(Harmonization) 모듈
+    // ==========================================
+
+    function chmEscapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // CSV 텍스트 한 줄씩 파싱 (따옴표 및 쉼표 정밀 처리)
+    function parseNeisCsvRows(text) {
+      if (!text) return [];
+      const lines = text.split(/\r\n|\n|\r/);
+      const rows = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const cells = [];
+        let inQuotes = false;
+        let token = '';
+        for (let c = 0; c < line.length; c++) {
+          const ch = line[c];
+          if (ch === '"') {
+            inQuotes = !inQuotes;
+          } else if (ch === ',' && !inQuotes) {
+            cells.push(token.trim());
+            token = '';
+          } else {
+            token += ch;
+          }
+        }
+        cells.push(token.trim());
+        rows.push(cells);
+      }
+      return rows;
+    }
+    window.parseNeisCsvRows = parseNeisCsvRows;
+
+    // 나이스 입학생 교육과정 편성표 2차원 배열 동적 파서 (헤더 자동 감지, 셀 병합 해제 및 forward-fill, 시수/지정선택 자동 산출)
+    function parseNeisCurriculumRows(rawRows, academicYear = '') {
+      if (!Array.isArray(rawRows) || rawRows.length === 0) return { subjects: [], academicYear, totalCount: 0 };
+
+      // 1. 헤더 행 탐색을 통한 컬럼 인덱스 동적 감지 (여백 컬럼이나 컬럼 이동에 100% 대응)
+      const colMap = {
+        gubun: -1,
+        domain: -1,
+        category: -1,
+        subjType: -1,
+        subjName: -1,
+        g1_s1: -1,
+        g1_s2: -1,
+        g2_s1: -1,
+        g2_s2: -1,
+        g3_s1: -1,
+        g3_s2: -1
+      };
+
+      for (let r = 0; r < Math.min(rawRows.length, 25); r++) {
+        const rCells = (rawRows[r] || []).map(c => String(c || '').trim().replace(/"/g, ''));
+        const rCompact = rCells.map(c => c.replace(/\s+/g, ''));
+        if (rCompact.some(c => /^과목명$|^과목$|^개설과목$|^교과목$/.test(c))) {
+          rCompact.forEach((c, idx) => {
+            if (/^구분$/.test(c)) colMap.gubun = idx;
+            else if (/^교과영역$|^교과$/.test(c)) colMap.domain = idx;
+            else if (c.includes('교과(군)') || c === '교과군' || c === '교과') colMap.category = idx;
+            else if (/^과목구분$/.test(c)) colMap.subjType = idx;
+            else if (/^과목명$|^과목$|^개설과목$|^교과목$/.test(c)) colMap.subjName = idx;
+          });
+
+          // 다음 행에서 학기(1학기, 2학기) 컬럼 인덱스 감지
+          if (r + 1 < rawRows.length) {
+            const nextCells = (rawRows[r + 1] || []).map(c => String(c || '').trim());
+            const semIndices = [];
+            nextCells.forEach((c, idx) => {
+              if (c.includes('학기')) semIndices.push(idx);
+            });
+            if (semIndices.length >= 6) {
+              colMap.g1_s1 = semIndices[0];
+              colMap.g1_s2 = semIndices[1];
+              colMap.g2_s1 = semIndices[2];
+              colMap.g2_s2 = semIndices[3];
+              colMap.g3_s1 = semIndices[4];
+              colMap.g3_s2 = semIndices[5];
+            }
+          }
+          break;
+        }
+      }
+
+      // 감지되지 않은 컬럼은 나이스 표준 기본값으로 fallback
+      if (colMap.subjName === -1) colMap.subjName = 6;
+      if (colMap.gubun === -1) colMap.gubun = 1;
+      if (colMap.domain === -1) colMap.domain = 2;
+      if (colMap.category === -1) colMap.category = 4;
+      if (colMap.subjType === -1) colMap.subjType = 5;
+      if (colMap.g1_s1 === -1) colMap.g1_s1 = 8;
+      if (colMap.g1_s2 === -1) colMap.g1_s2 = 11;
+      if (colMap.g2_s1 === -1) colMap.g2_s1 = 13;
+      if (colMap.g2_s2 === -1) colMap.g2_s2 = 14;
+      if (colMap.g3_s1 === -1) colMap.g3_s1 = 16;
+      if (colMap.g3_s2 === -1) colMap.g3_s2 = 17;
+
+      let currentType = '';        // 학교지정 / 학생선택
+      let currentDomain = '';      // 교과영역 (기초, 탐구, 체육·예술, 생활·교양 등)
+      let currentCategory = '';    // 교과(군) (국어, 수학, 영어, 사회, 과학 등)
+      let currentSubjType = '';    // 과목구분 (공통, 일반 선택, 진로 선택, 융합 선택)
+      let currentElectiveGroup = null; // 학생선택 그룹 블록
+
+      const subjects = [];
+      const seenKeySet = new Set();
+
+      for (let r = 0; r < rawRows.length; r++) {
+        const row = rawRows[r] || [];
+        const rowStr = row.map(c => String(c || '').trim()).filter(Boolean).join(' ');
+        if (!rowStr) continue;
+
+        // 1. 페이지 머리글, 문서 제목, 학교명, 헤더 반복행 필터링
+        if (rowStr.includes('교육과정 편성표') || rowStr.includes('상지대관령고등학교')) continue;
+        if (rowStr.includes('구분') && (rowStr.includes('과목명') || rowStr.includes('과목') || rowStr.includes('과 목'))) continue;
+        if (/소계|합계|총이수학점|필수이수학점|선택이수학점/.test(rowStr)) continue;
+
+        const rawGubun = (colMap.gubun >= 0 && colMap.gubun < row.length) ? String(row[colMap.gubun] || '').trim() : '';
+        const rawDomain = (colMap.domain >= 0 && colMap.domain < row.length) ? String(row[colMap.domain] || '').trim() : '';
+        const rawCat = (colMap.category >= 0 && colMap.category < row.length) ? String(row[colMap.category] || '').trim() : '';
+        const rawSType = (colMap.subjType >= 0 && colMap.subjType < row.length) ? String(row[colMap.subjType] || '').trim() : '';
+        const rawSName = (colMap.subjName >= 0 && colMap.subjName < row.length) ? String(row[colMap.subjName] || '').trim() : '';
+
+        // 2. 구분(학교지정 / 학생선택) Forward-Fill
+        if (rawGubun.includes('학교지정') || rawGubun.includes('지정')) {
+          currentType = '학교지정';
+          currentElectiveGroup = null;
+        } else if (rawGubun.includes('학생선택') || rawGubun.includes('선택')) {
+          currentType = '학생선택';
+        }
+
+        // 3. 교과영역 Forward-Fill
+        if (rawDomain && !/^\d+$/.test(rawDomain)) {
+          currentDomain = rawDomain;
+        }
+
+        // 4. 학생선택 블록 헤더 감지 ("2학년 1학기 선택과목(3)", "택 12학점", "3과목선택")
+        // 나이스 편성표에서는 교과(군) 열 또는 과목명 열에 선택과목 그룹명이 배치됨
+        const mGroup = rawCat.match(/([123])학년\s*([12])학기\s*선택과목(?:\s*\((\d+)\))?/) ||
+                       rawSName.match(/([123])학년\s*([12])학기\s*선택과목(?:\s*\((\d+)\))?/);
+
+        if (mGroup) {
+          const targetG = parseInt(mGroup[1], 10);
+          const targetS = parseInt(mGroup[2], 10);
+          const pickCnt = mGroup[3] ? parseInt(mGroup[3], 10) : 3;
+
+          let totalCredit = 0;
+          for (let ci = 0; ci < row.length; ci++) {
+            const mCr = String(row[ci] || '').match(/택\s*(\d+)학점/);
+            if (mCr) {
+              totalCredit = parseInt(mCr[1], 10);
+              break;
+            }
+          }
+          const creditPerSubj = (pickCnt > 0 && totalCredit > 0) ? Math.round(totalCredit / pickCnt) : 4;
+
+          currentElectiveGroup = {
+            name: mGroup[0],
+            grade: targetG,
+            sem: targetS,
+            pickCount: pickCnt,
+            totalCredit: totalCredit,
+            creditPerSubject: creditPerSubj
+          };
+        } else {
+          // 일반 교과(군) Forward-Fill
+          if (rawCat && !rawCat.includes('선택과목') && !/^\d+$/.test(rawCat)) {
+            currentCategory = rawCat;
+          }
+        }
+
+        // 5. 과목구분 Forward-Fill
+        if (rawSType && !/^\d+$/.test(rawSType)) {
+          currentSubjType = rawSType;
+        }
+
+        // 6. 유효 과목명 검증
+        if (!rawSName || rawSName.includes('선택과목') || /^과목명$|^과목$/.test(rawSName.replace(/\s+/g, ''))) continue;
+        if (['공통', '일반 선택', '진로 선택', '융합 선택', '보통교과', '학교지정', '학생선택'].includes(rawSName)) continue;
+
+        const cleanSubj = (typeof window.getBaseSubjectName === 'function')
+          ? window.getBaseSubjectName(rawSName)
+          : rawSName.replace(/[\(\[].*?[\)\]]/g, '').trim();
+
+        if (!cleanSubj) continue;
+
+        const isCommon = (currentSubjType === '공통') || /^공통국어|^공통수학|^공통영어|^한국사|^통합사회|^통합과학|^과학탐구실험/.test(cleanSubj);
+
+        if (currentType === '학교지정') {
+          // 학교지정 학년/학기 컬럼 시수 추출
+          const pairs = [
+            { grade: 1, sem: 1, col: colMap.g1_s1 },
+            { grade: 1, sem: 2, col: colMap.g1_s2 },
+            { grade: 2, sem: 1, col: colMap.g2_s1 },
+            { grade: 2, sem: 2, col: colMap.g2_s2 },
+            { grade: 3, sem: 1, col: colMap.g3_s1 },
+            { grade: 3, sem: 2, col: colMap.g3_s2 },
+          ];
+
+          pairs.forEach(p => {
+            if (p.col >= 0 && p.col < row.length) {
+              const val = parseFloat(row[p.col]);
+              if (!isNaN(val) && val > 0) {
+                const dedupeKey = `${p.grade}::${p.sem}::${cleanSubj}`;
+                if (!seenKeySet.has(dedupeKey)) {
+                  seenKeySet.add(dedupeKey);
+                  subjects.push({
+                    grade: p.grade,
+                    gradeStr: `${p.grade}학년`,
+                    semester: p.sem,
+                    type: '학교지정',
+                    domain: currentDomain || '기초',
+                    category: currentCategory || '교과',
+                    subjectType: currentSubjType || (isCommon ? '공통' : '일반 선택'),
+                    subject: cleanSubj,
+                    hours: val,
+                    isCommon: isCommon,
+                    electiveGroupName: ''
+                  });
+                }
+              }
+            }
+          });
+        } else {
+          // 학생선택 과목 파싱
+          let targetGrade = currentElectiveGroup ? currentElectiveGroup.grade : 2;
+          let targetSem = currentElectiveGroup ? currentElectiveGroup.sem : 1;
+          let credit = currentElectiveGroup ? currentElectiveGroup.creditPerSubject : 4;
+
+          const dedupeKey = `${targetGrade}::${targetSem}::${cleanSubj}`;
+          if (!seenKeySet.has(dedupeKey)) {
+            seenKeySet.add(dedupeKey);
+            subjects.push({
+              grade: targetGrade,
+              gradeStr: `${targetGrade}학년`,
+              semester: targetSem,
+              type: '학생선택',
+              domain: currentDomain || '탐구',
+              category: currentCategory || '교과',
+              subjectType: currentSubjType || '일반 선택',
+              subject: cleanSubj,
+              hours: credit,
+              isCommon: isCommon,
+              electiveGroupName: currentElectiveGroup ? currentElectiveGroup.name : ''
+            });
+          }
+        }
+      }
+
+      return {
+        academicYear: academicYear,
+        totalCount: subjects.length,
+        subjects: subjects,
+        uploadedAt: new Date().toISOString()
+      };
+    }
+    window.parseNeisCurriculumRows = parseNeisCurriculumRows;
+
+    // CARD 0 UI 업데이트 (작업 탭 학년 전환 시 실시간 갱신)
+    function updateNeisCurriculumCardUI() {
+      const activeGrade = MultiState?.activeGrade || '2학년';
+      const activeYear = MultiState?.activeAcademicYear || '2027학년도';
+      const card = document.getElementById('neisCurriculumCard');
+      if (!card) return;
+
+      if (activeGrade === '전체') {
+        card.classList.add('hidden');
+        return;
+      }
+      card.classList.remove('hidden');
+
+      const titleEl = document.getElementById('neisCurriculumCardTitle');
+      const badgeEl = document.getElementById('neisCurriculumStatusBadge');
+      const fileSummaryEl = document.getElementById('neisCurriculumFileSummary');
+      const fileNameEl = document.getElementById('neisCurriculumFileName');
+      const btnView = document.getElementById('btnViewNeisCurriculum');
+      const btnHarmonize = document.getElementById('btnOpenHarmonizeModal');
+      const btnClear = document.getElementById('btnClearNeisCurriculum');
+      const dropZone = document.getElementById('neisCurriculumDropZone');
+
+      if (titleEl) {
+        titleEl.textContent = `[${activeGrade}] NEIS 입학생교육과정 편성표`;
+      }
+
+      // 현재 학년도 및 학년의 NEIS 교육과정 데이터 확인
+      const neisMap = MultiState?.neisCurriculumsByAcademicYear?.[activeYear] || {};
+      const neisData = AppState?.neisCurriculum || neisMap[activeGrade];
+
+      if (neisData && Array.isArray(neisData.subjects) && neisData.subjects.length > 0) {
+        // 등록 완료 상태
+        const numGrade = parseInt(activeGrade.replace(/[^0-9]/g, '') || '2', 10);
+        const gradeSubjs = neisData.subjects.filter(s => s.grade === numGrade);
+        const designatedCount = gradeSubjs.filter(s => s.type === '학교지정').length;
+        const electiveCount = gradeSubjs.filter(s => s.type === '학생선택').length;
+
+        if (badgeEl) {
+          badgeEl.textContent = `✅ 등록 완료 (${gradeSubjs.length}과목)`;
+          badgeEl.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs';
+        }
+        if (fileNameEl) {
+          fileNameEl.textContent = `${neisData.fileName || 'NEIS 입학생교육과정 편성표'} [${activeGrade} ${gradeSubjs.length}과목: 지정 ${designatedCount}, 선택 ${electiveCount}]`;
+        }
+        if (fileSummaryEl) {
+          fileSummaryEl.textContent = `공식 편성표가 성공적으로 분석되었습니다. [👁️ 편성표 보기] 또는 [📋 과목 대조 및 일치화]를 클릭해 확인하세요.`;
+        }
+        if (btnView) btnView.classList.remove('hidden');
+        if (btnHarmonize) btnHarmonize.classList.remove('hidden');
+        if (btnClear) btnClear.classList.remove('hidden');
+        if (dropZone) {
+          dropZone.classList.add('border-emerald-400', 'bg-emerald-50/50');
+          dropZone.classList.remove('border-slate-300');
+        }
+      } else {
+        // 미등록 상태
+        if (badgeEl) {
+          badgeEl.textContent = '미등록';
+          badgeEl.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
+        }
+        if (fileNameEl) {
+          fileNameEl.textContent = `NEIS 입학생교육과정 편성표 엑셀/CSV 파일을 이곳에 끌어다 놓거나 클릭하세요`;
+        }
+        if (fileSummaryEl) {
+          fileSummaryEl.textContent = `나이스에서 다운로드한 엑셀(.xlsx) 또는 CSV 파일을 그대로 등록하면 셀 병합을 자동으로 풀고 정규화합니다.`;
+        }
+        if (btnView) btnView.classList.add('hidden');
+        if (btnHarmonize) btnHarmonize.classList.add('hidden');
+        if (btnClear) btnClear.classList.add('hidden');
+        if (dropZone) {
+          dropZone.classList.remove('border-emerald-400', 'bg-emerald-50/50');
+          dropZone.classList.add('border-emerald-300');
+        }
+      }
+    }
+    window.updateNeisCurriculumCardUI = updateNeisCurriculumCardUI;
+
+    function initNeisDropZone() {
+      const dropZone = document.getElementById('neisCurriculumDropZone');
+      if (!dropZone) return;
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-emerald-600', 'bg-emerald-100/60');
+      });
+      dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-emerald-600', 'bg-emerald-100/60');
+      });
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('border-emerald-600', 'bg-emerald-100/60');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          window.handleNeisCurriculumUpload(e.dataTransfer.files[0]);
+        }
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initNeisDropZone);
+    } else {
+      initNeisDropZone();
+    }
+
+    // CARD 0 파일 업로드 핸들러
+    window.handleNeisCurriculumUpload = function(file) {
+      if (!file) return;
+      const activeGrade = MultiState?.activeGrade || '2학년';
+      const activeYear = MultiState?.activeAcademicYear || '2027학년도';
+
+      if (typeof showLoading === 'function') {
+        showLoading(`[${file.name}] 입학생 교육과정 편성표 분석 중...`);
+      }
+
+      const reader = new FileReader();
+      const isCsv = file.name.toLowerCase().endsWith('.csv');
+
+      reader.onload = function(e) {
+        setTimeout(() => {
+          try {
+            let parsed = null;
+            if (isCsv) {
+              let csvText = '';
+              try {
+                const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+                csvText = utf8Decoder.decode(e.target.result);
+              } catch (utfErr) {
+                csvText = new TextDecoder('euc-kr').decode(e.target.result);
+              }
+              const rawRows = parseNeisCsvRows(csvText);
+              parsed = parseNeisCurriculumRows(rawRows, activeYear);
+            } else {
+              if (typeof XLSX === 'undefined') {
+                alert('엑셀 라이브러리(XLSX)를 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+              }
+              const data = new Uint8Array(e.target.result);
+              const wb = XLSX.read(data, { type: 'array' });
+              const sheetName = wb.SheetNames[0];
+              const sheet = wb.Sheets[sheetName];
+              const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+              parsed = parseNeisCurriculumRows(rawRows, activeYear);
+            }
+
+            if (!parsed || parsed.subjects.length === 0) {
+              alert('편성표에서 유효한 과목 데이터를 찾지 못했습니다. 나이스 [입학생 3개년 편성표] 양식인지 확인해주세요.');
+              return;
+            }
+
+            parsed.fileName = file.name;
+            parsed.academicYear = activeYear;
+
+            // 1. 현재 학년 상태 및 MultiState에 저장
+            AppState.neisCurriculum = parsed;
+            if (!MultiState.neisCurriculumsByAcademicYear) MultiState.neisCurriculumsByAcademicYear = {};
+            if (!MultiState.neisCurriculumsByAcademicYear[activeYear]) MultiState.neisCurriculumsByAcademicYear[activeYear] = {};
+            MultiState.neisCurriculumsByAcademicYear[activeYear][activeGrade] = parsed;
+
+            // 현재 날짜 컨텍스트에도 저장
+            const curDate = MultiState?.activeYear;
+            if (curDate && MultiState.data?.[activeYear]?.[curDate]?.[activeGrade]) {
+              MultiState.data[activeYear][curDate][activeGrade].neisCurriculum = parsed;
+            }
+
+            // 2. UI 갱신 및 상태 저장
+            updateNeisCurriculumCardUI();
+            if (typeof saveAllState === 'function') saveAllState();
+
+            // 3. 과목 대조 및 일치화 모달 즉시 열기
+            setTimeout(() => {
+              window.openCurriculumHarmonizeModal();
+            }, 150);
+
+          } catch (err) {
+            console.error('handleNeisCurriculumUpload error:', err);
+            alert('입학생 교육과정 파일 분석 중 오류가 발생했습니다: ' + err.message);
+          } finally {
+            if (typeof hideLoading === 'function') hideLoading();
+          }
+        }, 50);
+      };
+
+      reader.onerror = function() {
+        if (typeof hideLoading === 'function') hideLoading();
+        alert('파일을 읽는 데 실패했습니다.');
+      };
+
+      reader.readAsArrayBuffer(file);
+    };
+
+    // 입학생 교육과정 데이터 삭제
+    window.clearNeisCurriculumForCurrentGrade = function() {
+      const activeGrade = MultiState?.activeGrade || '2학년';
+      const activeYear = MultiState?.activeAcademicYear || '2027학년도';
+
+      if (!confirm(`현재 [${activeGrade}]의 입학생 교육과정 편성표 데이터를 삭제하시겠습니까?\n(기존 전체 시수종합 및 수강신청 데이터는 그대로 유지됩니다.)`)) {
+        return;
+      }
+
+      AppState.neisCurriculum = null;
+      if (MultiState.neisCurriculumsByAcademicYear?.[activeYear]) {
+        delete MultiState.neisCurriculumsByAcademicYear[activeYear][activeGrade];
+      }
+      const curDate = MultiState?.activeYear;
+      if (curDate && MultiState.data?.[activeYear]?.[curDate]?.[activeGrade]) {
+        MultiState.data[activeYear][curDate][activeGrade].neisCurriculum = null;
+      }
+
+      updateNeisCurriculumCardUI();
+      if (typeof saveAllState === 'function') saveAllState();
+      alert(`[${activeGrade}] 입학생 교육과정 데이터가 삭제되었습니다.`);
+    };
+
+    // ==========================================
+    // 대조 및 일치화(Harmonize) 모달 엔진
+    // ==========================================
+    window._chmWorkingList = [];
+    window._chmCurrentFilter = 'all';
+
+    window.openCurriculumHarmonizeModal = function() {
+      const modal = document.getElementById('curriculumHarmonizeModal');
+      if (!modal) return;
+
+      const activeGrade = MultiState?.activeGrade || '2학년';
+      const activeYear = MultiState?.activeAcademicYear || '2027학년도';
+      const numGrade = parseInt(activeGrade.replace(/[^0-9]/g, '') || '2', 10);
+
+      // 나이스 데이터 조회
+      const neisMap = MultiState?.neisCurriculumsByAcademicYear?.[activeYear] || {};
+      const neisData = AppState?.neisCurriculum || neisMap[activeGrade];
+
+      if (!neisData || !Array.isArray(neisData.subjects) || neisData.subjects.length === 0) {
+        alert(`현재 [${activeGrade}]에 등록된 나이스 입학생 교육과정 편성표가 없습니다.\n먼저 0번 카드에 엑셀/CSV 파일을 등록해주세요.`);
+        return;
+      }
+
+      // 모달 상단 뱃지
+      const badgeEl = document.getElementById('chmGradeBadge');
+      if (badgeEl) {
+        badgeEl.textContent = `[${activeYear} ${activeGrade} 기준]`;
+      }
+
+      // 1. NEIS 해당 학년 과목 필터링 (2학년은 2학년 과목, 3학년은 3학년 과목)
+      const neisGradeSubjects = neisData.subjects.filter(s => s.grade === numGrade);
+
+      // 2. 기존 시스템 데이터 수집
+      // 2-1) 전체 시수종합 (curriculumByAcademicYear)
+      const allCurric = (typeof getAllGradesCurriculum === 'function') ? getAllGradesCurriculum() : (MultiState?.curriculumByAcademicYear?.[activeYear] || []);
+      const systemCurricGrade = allCurric.filter(c => {
+        const cg = String(c.grade || '').trim();
+        return cg.includes(String(numGrade));
+      });
+
+      // 2-2) 1단계 선택 과목 (AppState.sem1Subjects, sem2Subjects)
+      const step1Sem1 = Array.isArray(AppState?.sem1Subjects) ? AppState.sem1Subjects : [];
+      const step1Sem2 = Array.isArray(AppState?.sem2Subjects) ? AppState.sem2Subjects : [];
+
+      // 3. 대조 비교 알고리즘
+      const workingList = [];
+      const matchedSystemIds = new Set();
+      const matchedSystemKeys = new Set();
+
+      // NEIS 과목 순회
+      neisGradeSubjects.forEach((nSubj, idx) => {
+        const normNeis = (typeof window.normalizeSubject === 'function')
+          ? window.normalizeSubject(nSubj.subject)
+          : nSubj.subject.replace(/\s+/g, '').toLowerCase();
+
+        // 시스템 시수표에서 학기와 정규화 과목명이 일치하는 항목 탐색
+        const sysMatches = systemCurricGrade.filter(c => {
+          const cSem = parseInt(c.semester || 1, 10);
+          if (cSem !== nSubj.semester) return false;
+          const normSys = (typeof window.normalizeSubject === 'function')
+            ? window.normalizeSubject(c.subject)
+            : String(c.subject || '').replace(/\s+/g, '').toLowerCase();
+          return normSys === normNeis;
+        });
+
+        // 1단계 과목 목록에서도 포함 여부 확인
+        const inStep1 = (nSubj.semester === 1 ? step1Sem1 : step1Sem2).some(s => {
+          const norm = (typeof window.normalizeSubject === 'function') ? window.normalizeSubject(s) : String(s).replace(/\s+/g, '').toLowerCase();
+          return norm === normNeis;
+        });
+
+        if (sysMatches.length > 0) {
+          // 일치 또는 미세 차이 발견
+          sysMatches.forEach(sysMatch => {
+            matchedSystemIds.add(sysMatch.id);
+            matchedSystemKeys.add(`${sysMatch.semester}::${normNeis}`);
+
+            const isExactName = (sysMatch.subject === nSubj.subject);
+            const isExactHours = (Number(sysMatch.hours) === Number(nSubj.hours));
+            const isExactCat = (sysMatch.category === (nSubj.type === '학교지정' ? '지정' : '선택'));
+
+            const diffReasons = [];
+            if (!isExactName) diffReasons.push(`띄어쓰기/표기 차이 ("${sysMatch.subject}" vs "${nSubj.subject}")`);
+            if (!isExactHours) diffReasons.push(`시수 상이 (기존 ${sysMatch.hours}h vs 나이스 ${nSubj.hours}h)`);
+            if (!isExactCat) diffReasons.push(`구분 상이 (기존 ${sysMatch.category} vs 나이스 ${nSubj.type})`);
+
+            const isMatched = (diffReasons.length === 0);
+
+            workingList.push({
+              id: `item_${idx}_${sysMatch.id}`,
+              status: isMatched ? 'MATCHED' : 'DIFF',
+              grade: activeGrade,
+              semester: nSubj.semester,
+              neisItem: nSubj,
+              systemItem: {
+                id: sysMatch.id,
+                subject: sysMatch.subject,
+                hours: sysMatch.hours,
+                category: sysMatch.category,
+                division: sysMatch.division,
+                teacher: sysMatch.teacher,
+                originalTeacher: sysMatch.originalTeacher,
+                inCurriculum: true,
+                inStep1: inStep1
+              },
+              diffReasons: diffReasons,
+              selectedStandard: 'NEIS' // 기본값: 나이스 기준 적용
+            });
+          });
+        } else {
+          // 시스템 시수표에는 없으나 1단계 선택과목에만 있는 경우
+          if (inStep1) {
+            matchedSystemKeys.add(`${nSubj.semester}::${normNeis}`);
+            workingList.push({
+              id: `item_${idx}_step1`,
+              status: 'DIFF',
+              grade: activeGrade,
+              semester: nSubj.semester,
+              neisItem: nSubj,
+              systemItem: {
+                subject: nSubj.subject,
+                hours: nSubj.hours,
+                category: '선택(1단계)',
+                teacher: '',
+                inCurriculum: false,
+                inStep1: true
+              },
+              diffReasons: ['시수종합 미등록 (1단계 선택과목에는 존재)'],
+              selectedStandard: 'NEIS'
+            });
+          } else {
+            // 나이스에만 존재하는 신규 / 미개설 과목
+            workingList.push({
+              id: `item_${idx}_new`,
+              status: 'NEIS_ONLY',
+              grade: activeGrade,
+              semester: nSubj.semester,
+              neisItem: nSubj,
+              systemItem: null,
+              diffReasons: ['시스템에 미등록된 신규 과목'],
+              selectedStandard: 'NEIS' // 신규 과목도 나이스 기준 추가가 기본
+            });
+          }
+        }
+      });
+
+      // 시스템 시수표에만 있고 나이스에는 없는 과목 수집 (SYSTEM_ONLY)
+      systemCurricGrade.forEach(c => {
+        if (matchedSystemIds.has(c.id)) return;
+        const normSys = (typeof window.normalizeSubject === 'function')
+          ? window.normalizeSubject(c.subject)
+          : String(c.subject || '').replace(/\s+/g, '').toLowerCase();
+        const sem = parseInt(c.semester || 1, 10);
+        if (matchedSystemKeys.has(`${sem}::${normSys}`)) return;
+
+        workingList.push({
+          id: `item_sys_${c.id}`,
+          status: 'SYSTEM_ONLY',
+          grade: activeGrade,
+          semester: sem,
+          neisItem: null,
+          systemItem: {
+            id: c.id,
+            subject: c.subject,
+            hours: c.hours,
+            category: c.category,
+            division: c.division,
+            teacher: c.teacher,
+            originalTeacher: c.originalTeacher,
+            inCurriculum: true,
+            inStep1: false
+          },
+          diffReasons: ['나이스 편성표에 없음 (시수표 전용/자체 개설)'],
+          selectedStandard: 'KEEP_SYSTEM' // 시스템 과목은 기존 유지 기본
+        });
+      });
+
+      window._chmWorkingList = workingList;
+      window._chmCurrentFilter = 'all';
+
+      renderChmModal();
+      modal.classList.remove('hidden');
+    };
+
+    window.closeCurriculumHarmonizeModal = function() {
+      const modal = document.getElementById('curriculumHarmonizeModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    // 대조 모달 필터 변경
+    window.setChmFilter = function(filterType) {
+      window._chmCurrentFilter = filterType;
+      const btns = {
+        all: document.getElementById('chmFilterBtnAll'),
+        diff: document.getElementById('chmFilterBtnDiff'),
+        new: document.getElementById('chmFilterBtnNew'),
+        systemOnly: document.getElementById('chmFilterBtnSystem')
+      };
+      Object.keys(btns).forEach(k => {
+        const btn = btns[k];
+        if (!btn) return;
+        if (k === filterType) {
+          btn.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs font-extrabold transition';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 font-bold transition';
+        }
+      });
+      renderChmModal();
+    };
+
+    // 항목 결정 토글 (나이스 기준 vs 기존 유지)
+    window.toggleHarmonizeItemChoice = function(index) {
+      const item = window._chmWorkingList[index];
+      if (!item) return;
+
+      if (item.status === 'SYSTEM_ONLY') {
+        item.selectedStandard = (item.selectedStandard === 'KEEP_SYSTEM') ? 'IGNORE' : 'KEEP_SYSTEM';
+      } else if (item.status === 'NEIS_ONLY') {
+        item.selectedStandard = (item.selectedStandard === 'NEIS') ? 'IGNORE' : 'NEIS';
+      } else {
+        item.selectedStandard = (item.selectedStandard === 'NEIS') ? 'KEEP_SYSTEM' : 'NEIS';
+      }
+      renderChmModal();
+    };
+
+    // 전체 나이스 기준으로 일괄 선택
+    window.setHarmonizeAllStandard = function() {
+      (window._chmWorkingList || []).forEach(item => {
+        if (item.status === 'SYSTEM_ONLY') {
+          item.selectedStandard = 'KEEP_SYSTEM';
+        } else {
+          item.selectedStandard = 'NEIS';
+        }
+      });
+      renderChmModal();
+    };
+
+    // 대조 모달 테이블 렌더링
+    function renderChmModal() {
+      const tbody = document.getElementById('chmTableTbody');
+      const emptyEl = document.getElementById('chmTableEmpty');
+      if (!tbody) return;
+
+      const items = window._chmWorkingList || [];
+
+      // 통계 계산
+      const countTotal = items.length;
+      const countMatched = items.filter(it => it.status === 'MATCHED').length;
+      const countDiff = items.filter(it => it.status === 'DIFF').length;
+      const countNew = items.filter(it => it.status === 'NEIS_ONLY').length;
+      const countSysOnly = items.filter(it => it.status === 'SYSTEM_ONLY').length;
+
+      const statTotalEl = document.getElementById('chmStatTotal');
+      const statMatchedEl = document.getElementById('chmStatMatched');
+      const statDiffEl = document.getElementById('chmStatDiff');
+      const statNewEl = document.getElementById('chmStatNew');
+      const statSysEl = document.getElementById('chmStatSystemOnly');
+
+      if (statTotalEl) statTotalEl.textContent = `총 ${countTotal}과목`;
+      if (statMatchedEl) statMatchedEl.textContent = `🟢 일치 ${countMatched}`;
+      if (statDiffEl) statDiffEl.textContent = `🟡 미세차이 ${countDiff}`;
+      if (statNewEl) statNewEl.textContent = `🔵 신규 ${countNew}`;
+      if (statSysEl) statSysEl.textContent = `🔴 시수표 전용 ${countSysOnly}`;
+
+      // 필터 적용
+      const filter = window._chmCurrentFilter || 'all';
+      const visibleItems = items.filter((it, idx) => {
+        it._origIdx = idx;
+        if (filter === 'diff') return it.status === 'DIFF';
+        if (filter === 'new') return it.status === 'NEIS_ONLY';
+        if (filter === 'systemOnly') return it.status === 'SYSTEM_ONLY';
+        return true;
+      });
+
+      if (visibleItems.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+      }
+      if (emptyEl) emptyEl.classList.add('hidden');
+
+      tbody.innerHTML = visibleItems.map(it => {
+        const origIdx = it._origIdx;
+        const n = it.neisItem;
+        const s = it.systemItem;
+
+        // 상태 뱃지
+        let statusBadge = '';
+        if (it.status === 'MATCHED') {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 일치</span>';
+        } else if (it.status === 'DIFF') {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">🟡 차이</span>';
+        } else if (it.status === 'NEIS_ONLY') {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 border border-blue-300">🔵 신규</span>';
+        } else {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">🔴 전용</span>';
+        }
+
+        // NEIS 컬럼 내용
+        let neisContent = '';
+        if (n) {
+          neisContent = `
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-extrabold text-xs sm:text-sm text-slate-900">${chmEscapeHtml(n.subject)}</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${n.type === '학교지정' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}">${n.type}</span>
+                ${n.subjectType ? `<span class="text-[10px] px-1 py-0.2 rounded font-medium bg-slate-100 text-slate-600">${n.subjectType}</span>` : ''}
+              </div>
+              <div class="text-[11px] text-slate-500 flex items-center gap-2">
+                <span>시수: <strong class="text-emerald-700 font-bold">${n.hours}시수</strong></span>
+                <span>교과(군): ${chmEscapeHtml(n.category)}</span>
+              </div>
+            </div>
+          `;
+        } else {
+          neisContent = '<span class="text-slate-400 italic text-[11px]">나이스 편성표에 없음</span>';
+        }
+
+        // 시스템 컬럼 내용
+        let sysContent = '';
+        if (s) {
+          sysContent = `
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-extrabold text-xs sm:text-sm text-slate-900">${chmEscapeHtml(s.subject)}</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${s.category === '지정' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}">${s.category || '선택'}</span>
+                ${s.division ? `<span class="text-[10px] px-1.5 py-0.2 rounded font-bold bg-indigo-100 text-indigo-700">${s.division}</span>` : ''}
+              </div>
+              <div class="text-[11px] text-slate-500 flex items-center gap-2 flex-wrap">
+                <span>시수: <strong class="text-slate-700 font-bold">${s.hours}시수</strong></span>
+                <span>담당 교사: <strong class="text-indigo-700">${s.teacher || '미배정'}</strong></span>
+              </div>
+            </div>
+          `;
+        } else {
+          sysContent = '<span class="text-blue-500 italic text-[11px] font-bold">미개설 (신규 추가 가능)</span>';
+        }
+
+        // 차이 사유 태그
+        const diffText = (it.diffReasons && it.diffReasons.length > 0)
+          ? `<div class="mt-1 flex flex-wrap gap-1">${it.diffReasons.map(r => `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200 font-medium">⚠️ ${chmEscapeHtml(r)}</span>`).join('')}</div>`
+          : '';
+
+        // 결정 토글 버튼
+        let actionBtn = '';
+        if (it.status === 'MATCHED') {
+          actionBtn = '<span class="text-xs font-bold text-emerald-700 flex items-center justify-center gap-1"><span>✅</span><span>일치 (완료)</span></span>';
+        } else if (it.status === 'SYSTEM_ONLY') {
+          const isKeep = (it.selectedStandard === 'KEEP_SYSTEM');
+          actionBtn = `
+            <button type="button" onclick="window.toggleHarmonizeItemChoice(${origIdx})" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer w-full ${isKeep ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
+              <span>${isKeep ? '📌 기존 유지' : '🚫 제외'}</span>
+            </button>
+          `;
+        } else if (it.status === 'NEIS_ONLY') {
+          const isAdd = (it.selectedStandard === 'NEIS');
+          actionBtn = `
+            <button type="button" onclick="window.toggleHarmonizeItemChoice(${origIdx})" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer w-full ${isAdd ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-2xs font-extrabold' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
+              <span>${isAdd ? '➕ 나이스 추가' : '추가 안 함'}</span>
+            </button>
+          `;
+        } else {
+          // DIFF
+          const isNeis = (it.selectedStandard === 'NEIS');
+          actionBtn = `
+            <button type="button" onclick="window.toggleHarmonizeItemChoice(${origIdx})" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer w-full ${isNeis ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs font-extrabold' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}">
+              <span>${isNeis ? '✓ 나이스 기준' : '기존 표기 유지'}</span>
+            </button>
+          `;
+        }
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="py-2.5 px-3 text-center align-middle">${statusBadge}</td>
+            <td class="py-2.5 px-3 text-center align-middle font-bold text-slate-600">${it.semester}학기</td>
+            <td class="py-2.5 px-3 align-middle bg-emerald-50/20 border-r border-slate-200">
+              ${neisContent}
+            </td>
+            <td class="py-2.5 px-3 align-middle border-r border-slate-200">
+              ${sysContent}
+              ${diffText}
+            </td>
+            <td class="py-2.5 px-3 text-center align-middle">
+              ${actionBtn}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 최종 대조 결과 시스템 전체 반영 (교사·분반·학생선택 100% 보존)
+    window.applyCurriculumHarmonization = function() {
+      const items = window._chmWorkingList || [];
+      if (items.length === 0) {
+        window.closeCurriculumHarmonizeModal();
+        return;
+      }
+
+      const activeGrade = MultiState?.activeGrade || '2학년';
+      const activeYear = MultiState?.activeAcademicYear || '2027학년도';
+      const numGrade = parseInt(activeGrade.replace(/[^0-9]/g, '') || '2', 10);
+
+      // 1. 과목명 치환 맵 (oldName -> newName) 구성
+      const renameMap = {};
+      let updatedCount = 0;
+      let newAddedCount = 0;
+
+      items.forEach(it => {
+        if (it.status === 'DIFF' && it.selectedStandard === 'NEIS' && it.systemItem && it.neisItem) {
+          const oldName = it.systemItem.subject;
+          const newName = it.neisItem.subject;
+          if (oldName !== newName) {
+            renameMap[oldName] = newName;
+          }
+        }
+      });
+
+      // 2. 전체 시수종합 (MultiState.curriculumByAcademicYear) 업데이트
+      if (!MultiState.curriculumByAcademicYear) MultiState.curriculumByAcademicYear = {};
+      if (!Array.isArray(MultiState.curriculumByAcademicYear[activeYear])) {
+        MultiState.curriculumByAcademicYear[activeYear] = [];
+      }
+      const curricList = MultiState.curriculumByAcademicYear[activeYear];
+
+      // 2-1) 기존 시수표 과목명/시수 업데이트 (교사·분반 유지)
+      curricList.forEach(c => {
+        if (!c) return;
+        const cg = String(c.grade || '').trim();
+        if (!cg.includes(String(numGrade))) return;
+
+        // 치환 맵 적용
+        if (renameMap[c.subject]) {
+          c.subject = renameMap[c.subject];
+          c.baseSubject = (typeof window.getBaseSubjectName === 'function') ? window.getBaseSubjectName(c.subject) : c.subject;
+          c.isModified = true;
+          updatedCount++;
+        }
+
+        // DIFF 중 시수 일치화 적용
+        const matchItem = items.find(it => it.systemItem && it.systemItem.id === c.id);
+        if (matchItem && matchItem.selectedStandard === 'NEIS' && matchItem.neisItem) {
+          c.hours = Number(matchItem.neisItem.hours);
+          c.subject = matchItem.neisItem.subject;
+          c.baseSubject = (typeof window.getBaseSubjectName === 'function') ? window.getBaseSubjectName(c.subject) : c.subject;
+          c.isModified = true;
+          updatedCount++;
+        }
+      });
+
+      // 2-2) 신규 과목(NEIS_ONLY) 시수표 추가 (선택한 경우)
+      items.forEach(it => {
+        if (it.status === 'NEIS_ONLY' && it.selectedStandard === 'NEIS' && it.neisItem) {
+          const n = it.neisItem;
+          const isDesignated = (n.type === '학교지정');
+
+          // 지정과목인 경우 기본 1반 등록 (학급수가 2이면 2반도 함께 등록)
+          const classCount = MultiState?.gradeClassCounts?.[activeGrade] || 2;
+          if (isDesignated) {
+            for (let b = 1; b <= classCount; b++) {
+              curricList.push({
+                id: 'curr_neis_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                grade: activeGrade,
+                semester: n.semester,
+                category: '지정',
+                division: `${b}반`,
+                subject: n.subject,
+                baseSubject: (typeof window.getBaseSubjectName === 'function') ? window.getBaseSubjectName(n.subject) : n.subject,
+                hours: n.hours,
+                teacher: '',
+                originalTeacher: '',
+                status: '개설',
+                isModified: true
+              });
+            }
+          } else {
+            // 선택과목
+            curricList.push({
+              id: 'curr_neis_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+              grade: activeGrade,
+              semester: n.semester,
+              category: '선택',
+              division: '',
+              subject: n.subject,
+              baseSubject: (typeof window.getBaseSubjectName === 'function') ? window.getBaseSubjectName(n.subject) : n.subject,
+              hours: n.hours,
+              teacher: '',
+              originalTeacher: '',
+              status: '개설',
+              isModified: true
+            });
+          }
+          newAddedCount++;
+        }
+      });
+
+      // 3. 1단계 선택과목(sem1Subjects, sem2Subjects) 과목명 일치화 및 신규 선택과목 등록
+      ['sem1Subjects', 'sem2Subjects'].forEach((semKey, sIdx) => {
+        const sem = sIdx + 1;
+        let subjects = Array.isArray(AppState[semKey]) ? [...AppState[semKey]] : [];
+
+        // 치환 적용
+        subjects = subjects.map(s => renameMap[s] || s);
+
+        // 신규 선택과목 중 해당 학기 과목 추가
+        items.forEach(it => {
+          if (it.status === 'NEIS_ONLY' && it.selectedStandard === 'NEIS' && it.semester === sem && it.neisItem && it.neisItem.type === '학생선택') {
+            if (!subjects.includes(it.neisItem.subject)) {
+              subjects.push(it.neisItem.subject);
+            }
+          }
+        });
+
+        AppState[semKey] = subjects;
+      });
+
+      // 4. 학생 수강신청 선택 내역 과목명 치환 (AppState.students)
+      if (Array.isArray(AppState.students) && Object.keys(renameMap).length > 0) {
+        AppState.students.forEach(st => {
+          if (Array.isArray(st.sem1)) {
+            st.sem1 = st.sem1.map(s => renameMap[s] || s);
+          }
+          if (Array.isArray(st.sem2)) {
+            st.sem2 = st.sem2.map(s => renameMap[s] || s);
+          }
+        });
+      }
+
+      // 5. 2단계 그룹핑 배치(currentPlans, savedPlans) 과목명 치환
+      const updatePlansList = (plans) => {
+        if (!Array.isArray(plans)) return;
+        plans.forEach(plan => {
+          if (!plan || !Array.isArray(plan.groups)) return;
+          plan.groups.forEach(g => {
+            if (Array.isArray(g.subjects)) {
+              g.subjects = g.subjects.map(s => renameMap[s] || s);
+            }
+          });
+        });
+      };
+      if (AppState.savedPlans) updatePlansList(AppState.savedPlans);
+      if (AppState.currentPlans) {
+        [1, 2].forEach(sem => {
+          if (AppState.currentPlans[sem]) updatePlansList([AppState.currentPlans[sem]]);
+        });
+      }
+      if (AppState.currentPlan) updatePlansList([AppState.currentPlan]);
+
+      // 6. 3단계 교과군 자동 연동 및 공통과목 검증 제외 자동 세팅
+      if (typeof getStep3Data === 'function') {
+        const sData = getStep3Data();
+        if (!sData.excludedSubjects) sData.excludedSubjects = {};
+
+        // 나이스 편성표 과목들 중 '공통' 과목구분은 기본 검증 제외 등록
+        items.forEach(it => {
+          const n = it.neisItem;
+          if (n) {
+            const norm = (typeof window.normalizeSubject === 'function') ? window.normalizeSubject(n.subject) : n.subject;
+            if (n.isCommon || n.subjectType === '공통') {
+              if (sData.excludedSubjects[norm] === undefined) {
+                sData.excludedSubjects[norm] = true;
+              }
+            }
+          }
+        });
+        if (typeof saveStep3Data === 'function') saveStep3Data(sData);
+      }
+
+      // 7. 전체 상태 저장 및 화면 리프레시
+      if (typeof saveAllState === 'function') saveAllState();
+      updateNeisCurriculumCardUI();
+
+      if (typeof renderStep1 === 'function') renderStep1();
+      if (typeof renderAllGradesCurriculumTable === 'function') renderAllGradesCurriculumTable();
+
+      window.closeCurriculumHarmonizeModal();
+
+      const renameSummary = Object.keys(renameMap).length > 0
+        ? `\n- 과목명 정규화(띄어쓰기 등): ${Object.keys(renameMap).length}건`
+        : '';
+      const newSummary = newAddedCount > 0
+        ? `\n- 신규 과목 편성: ${newAddedCount}건`
+        : '';
+
+      alert(`✅ [${activeGrade}] 나이스 교육과정 기준 일치화가 완료되었습니다!${renameSummary}${newSummary}\n(기존 배정 교사, 분반, 학생 선택 내역이 100% 보존되었습니다.)`);
+    };
+
+    // ==========================================
+    // 나이스 입학생 3개년 교육과정 편성표 '정규화 뷰어' 모달 엔진
+    // ==========================================
+    window._ncvFilters = { grade: 'all', type: 'all', search: '' };
+
+    window.openNeisCurriculumViewModal = function() {
+      const modal = document.getElementById('neisCurriculumViewModal');
+      if (!modal) return;
+
+      const activeGrade = MultiState?.activeGrade || '2학년';
+      const activeYear = MultiState?.activeAcademicYear || '2027학년도';
+
+      const neisMap = MultiState?.neisCurriculumsByAcademicYear?.[activeYear] || {};
+      const neisData = AppState?.neisCurriculum || neisMap[activeGrade];
+
+      if (!neisData || !Array.isArray(neisData.subjects) || neisData.subjects.length === 0) {
+        alert(`현재 등록된 나이스 입학생 교육과정 편성표가 없습니다.\n먼저 0번 카드에 엑셀/CSV 파일을 등록해주세요.`);
+        return;
+      }
+
+      const badgeEl = document.getElementById('ncvModalHeaderBadge');
+      if (badgeEl) {
+        badgeEl.textContent = `[${activeYear} ${activeGrade} 등록 파일: ${neisData.fileName || '원본'}]`;
+      }
+
+      window._ncvFilters = { grade: 'all', type: 'all', search: '' };
+      const searchInput = document.getElementById('ncvSearchInput');
+      if (searchInput) searchInput.value = '';
+
+      renderNeisCurriculumViewModal();
+      modal.classList.remove('hidden');
+    };
+
+    window.closeNeisCurriculumViewModal = function() {
+      const modal = document.getElementById('neisCurriculumViewModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.setNeisViewFilter = function(filterKey, filterVal) {
+      if (!window._ncvFilters) window._ncvFilters = { grade: 'all', type: 'all', search: '' };
+      window._ncvFilters[filterKey] = filterVal;
+
+      // Grade button styles
+      if (filterKey === 'grade') {
+        const gradeMap = {
+          all: document.getElementById('ncvFilterGradeAll'),
+          '1학년': document.getElementById('ncvFilterGrade1'),
+          '2학년': document.getElementById('ncvFilterGrade2'),
+          '3학년': document.getElementById('ncvFilterGrade3')
+        };
+        Object.keys(gradeMap).forEach(k => {
+          const btn = gradeMap[k];
+          if (!btn) return;
+          if (k === filterVal) {
+            btn.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs font-extrabold transition';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 font-bold transition';
+          }
+        });
+      }
+
+      // Type button styles
+      if (filterKey === 'type') {
+        const typeMap = {
+          all: document.getElementById('ncvFilterTypeAll'),
+          '학교지정': document.getElementById('ncvFilterTypeDesig'),
+          '학생선택': document.getElementById('ncvFilterTypeElec')
+        };
+        Object.keys(typeMap).forEach(k => {
+          const btn = typeMap[k];
+          if (!btn) return;
+          if (k === filterVal) {
+            btn.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-2xs font-extrabold transition';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 font-bold transition';
+          }
+        });
+      }
+
+      renderNeisCurriculumViewModal();
+    };
+
+    function renderNeisCurriculumViewModal() {
+      const tbody = document.getElementById('ncvTableTbody');
+      const emptyEl = document.getElementById('ncvTableEmpty');
+      const footerCount = document.getElementById('ncvFooterCount');
+      if (!tbody) return;
+
+      const activeGrade = MultiState?.activeGrade || '2학년';
+      const activeYear = MultiState?.activeAcademicYear || '2027학년도';
+      const neisMap = MultiState?.neisCurriculumsByAcademicYear?.[activeYear] || {};
+      const neisData = AppState?.neisCurriculum || neisMap[activeGrade];
+
+      if (!neisData || !Array.isArray(neisData.subjects)) {
+        tbody.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+      }
+
+      const allSubjs = neisData.subjects;
+
+      // Stats
+      const countTotal = allSubjs.length;
+      const countG1 = allSubjs.filter(s => s.grade === 1).length;
+      const countG2 = allSubjs.filter(s => s.grade === 2).length;
+      const countG3 = allSubjs.filter(s => s.grade === 3).length;
+      const countDesig = allSubjs.filter(s => s.type === '학교지정').length;
+      const countElec = allSubjs.filter(s => s.type === '학생선택').length;
+
+      const statTotalEl = document.getElementById('ncvStatTotal');
+      const statG1El = document.getElementById('ncvStatG1');
+      const statG2El = document.getElementById('ncvStatG2');
+      const statG3El = document.getElementById('ncvStatG3');
+      const statDesigEl = document.getElementById('ncvStatDesignated');
+      const statElecEl = document.getElementById('ncvStatElective');
+
+      if (statTotalEl) statTotalEl.textContent = `총 ${countTotal}과목`;
+      if (statG1El) statG1El.textContent = `1학년 ${countG1}`;
+      if (statG2El) statG2El.textContent = `2학년 ${countG2}`;
+      if (statG3El) statG3El.textContent = `3학년 ${countG3}`;
+      if (statDesigEl) statDesigEl.textContent = `학교지정 ${countDesig}`;
+      if (statElecEl) statElecEl.textContent = `학생선택 ${countElec}`;
+
+      const f = window._ncvFilters || { grade: 'all', type: 'all', search: '' };
+
+      const filtered = allSubjs.filter(s => {
+        if (f.grade !== 'all' && s.gradeStr !== f.grade && `${s.grade}학년` !== f.grade) return false;
+        if (f.type !== 'all' && s.type !== f.type) return false;
+        if (f.search && f.search.trim()) {
+          const q = f.search.trim().toLowerCase();
+          const matchSubj = (s.subject || '').toLowerCase().includes(q);
+          const matchCat = (s.category || '').toLowerCase().includes(q);
+          const matchDom = (s.domain || '').toLowerCase().includes(q);
+          const matchSType = (s.subjectType || '').toLowerCase().includes(q);
+          const matchGrp = (s.electiveGroupName || '').toLowerCase().includes(q);
+          if (!matchSubj && !matchCat && !matchDom && !matchSType && !matchGrp) return false;
+        }
+        return true;
+      });
+
+      if (footerCount) {
+        footerCount.textContent = `표시 중: ${filtered.length}과목 (전체 ${countTotal}과목)`;
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+      }
+      if (emptyEl) emptyEl.classList.add('hidden');
+
+      tbody.innerHTML = filtered.map((s, idx) => {
+        // Badges
+        const typeBadge = s.type === '학교지정'
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300">학교지정</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-100 text-sky-900 border border-sky-300">학생선택</span>';
+
+        let stBadge = '';
+        if (s.subjectType === '공통') {
+          stBadge = '<span class="px-1.5 py-0.2 rounded font-black text-[10px] bg-purple-100 text-purple-800 border border-purple-200">공통</span>';
+        } else if (s.subjectType === '일반 선택') {
+          stBadge = '<span class="px-1.5 py-0.2 rounded font-bold text-[10px] bg-blue-100 text-blue-800 border border-blue-200">일반 선택</span>';
+        } else if (s.subjectType === '진로 선택') {
+          stBadge = '<span class="px-1.5 py-0.2 rounded font-bold text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200">진로 선택</span>';
+        } else if (s.subjectType === '융합 선택') {
+          stBadge = '<span class="px-1.5 py-0.2 rounded font-bold text-[10px] bg-indigo-100 text-indigo-800 border border-indigo-200">융합 선택</span>';
+        } else if (s.subjectType) {
+          stBadge = `<span class="px-1.5 py-0.2 rounded font-bold text-[10px] bg-slate-100 text-slate-700 border border-slate-200">${chmEscapeHtml(s.subjectType)}</span>`;
+        }
+
+        const noteText = s.electiveGroupName
+          ? `<span class="text-[11px] text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">${chmEscapeHtml(s.electiveGroupName)}</span>`
+          : '<span class="text-slate-300">-</span>';
+
+        return `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="py-2 px-3 text-center text-slate-400 font-mono text-[11px]">${idx + 1}</td>
+            <td class="py-2 px-3 text-center font-bold text-slate-800">${s.gradeStr || (s.grade + '학년')}</td>
+            <td class="py-2 px-3 text-center font-bold text-slate-600">${s.semester}학기</td>
+            <td class="py-2 px-3 text-center">${typeBadge}</td>
+            <td class="py-2 px-3 text-slate-700 font-medium">${chmEscapeHtml(s.domain || '-')}</td>
+            <td class="py-2 px-3 font-bold text-slate-800">${chmEscapeHtml(s.category || '-')}</td>
+            <td class="py-2 px-3 text-center">${stBadge}</td>
+            <td class="py-2 px-3 font-black text-slate-900 text-xs sm:text-sm">${chmEscapeHtml(s.subject)}</td>
+            <td class="py-2 px-3 text-center font-extrabold text-emerald-700 bg-emerald-50/30">${s.hours}</td>
+            <td class="py-2 px-3">${noteText}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+    window.renderNeisCurriculumViewModal = renderNeisCurriculumViewModal;
+
+    // 정규화 완료된 깨끗한 교육과정 편성표 엑셀 다운로드
+    window.exportNeisCurriculumCleanExcel = function() {
+      const activeGrade = MultiState?.activeGrade || '2학년';
+      const activeYear = MultiState?.activeAcademicYear || '2027학년도';
+      const neisMap = MultiState?.neisCurriculumsByAcademicYear?.[activeYear] || {};
+      const neisData = AppState?.neisCurriculum || neisMap[activeGrade];
+
+      if (!neisData || !Array.isArray(neisData.subjects) || neisData.subjects.length === 0) {
+        alert('다운로드할 교육과정 데이터가 없습니다.');
+        return;
+      }
+
+      if (typeof XLSX === 'undefined') {
+        alert('엑셀 라이브러리가 로드되지 않았습니다.');
+        return;
+      }
+
+      const rows = [
+        ['순번', '학년', '학기', '구분', '교과영역', '교과(군)', '과목구분', '과목명', '학점(시수)', '선택과목군/비고']
+      ];
+
+      neisData.subjects.forEach((s, idx) => {
+        rows.push([
+          idx + 1,
+          s.gradeStr || `${s.grade}학년`,
+          `${s.semester}학기`,
+          s.type,
+          s.domain || '',
+          s.category || '',
+          s.subjectType || '',
+          s.subject,
+          s.hours,
+          s.electiveGroupName || ''
+        ]);
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+
+      ws['!cols'] = [
+        { wch: 6 },  // 순번
+        { wch: 8 },  // 학년
+        { wch: 8 },  // 학기
+        { wch: 10 }, // 구분
+        { wch: 12 }, // 교과영역
+        { wch: 15 }, // 교과(군)
+        { wch: 12 }, // 과목구분
+        { wch: 22 }, // 과목명
+        { wch: 10 }, // 학점(시수)
+        { wch: 30 }  // 비고
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, '입학생교육과정_정규화');
+
+      const fileName = `${activeYear}_입학생_3개년_교육과정_편성표_정규화완료.xlsx`;
+      if (typeof window.saveExcelFile === 'function') {
+        window.saveExcelFile(wb, fileName);
+      } else {
+        XLSX.writeFile(wb, fileName);
+      }
+    };
 
     // ==========================================

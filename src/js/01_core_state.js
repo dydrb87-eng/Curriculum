@@ -52,6 +52,7 @@
         step2Memos: { 1: '', 2: '' },
         step2NoticeList: [],
         step2ChangePeriod: { enabled: false, round: '1차', period: '' },
+        neisCurriculum: null,
         priorData: null,
         crossCheckResult: {
           missingStudents: [],
@@ -116,6 +117,8 @@
       curriculumByAcademicYear: {
         '2027학년도': [] // '전체 시수 종합' 기초 데이터 (해당 학년도 하위 모든 날짜 탭에서 100% 공유)
       },
+      neisCurriculumsByAcademicYear: {}, // 학년도별 나이스 입학생 교육과정 원본 ({ [acadYear]: { '2학년': {...}, '3학년': {...} } })
+      sharedSubjectGroups: { categories: [], mappings: {}, excludedSubjects: {}, studentCategoryExceptions: {} }, // 교과군 및 이수조건 설정 전역 공유 저장소 (모든 학년도/기준날짜 공유)
       subjectGroupsByAcademicYear: {}, // 교과군 설정 및 과목별 교과군 배정 데이터 (학년도별 영구 보존)
       customTeacherOrder: [], // 교사별 요약표 출력 순서 (모든 탭에서 영구 전역 공유)
       activeYear: '2027.10.11.', // 하위: 현재 활성 기준 날짜

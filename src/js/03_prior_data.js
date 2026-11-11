@@ -42,6 +42,9 @@
     function normalizeSubjectKey(subj) {
       return normalizeSubject(subj);
     }
+    window.getBaseSubjectName = getBaseSubjectName;
+    window.normalizeSubject = normalizeSubject;
+    window.normalizeSubjectKey = normalizeSubjectKey;
 
     // ==========================================
     // 1단계 파일 업로드 직전 상태 스냅샷 및 되돌리기(Undo) 매니저
@@ -409,7 +412,7 @@
       const surveyCardTitle = document.getElementById('surveyCardTitle');
       const surveyCardGradeBadge = document.getElementById('surveyCardGradeBadge');
 
-      if (priorCardTitle) priorCardTitle.textContent = `[${activeG}] 사전 데이터 등록`;
+      if (priorCardTitle) priorCardTitle.textContent = `[${activeG}] 사전데이터 등록`;
       if (priorCardGradeBadge) { priorCardGradeBadge.textContent = ""; priorCardGradeBadge.classList.add("hidden"); }
       if (surveyCardTitle) surveyCardTitle.textContent = `[${activeG}] 수강신청 조사 엑셀 파일`;
       if (surveyCardGradeBadge) { surveyCardGradeBadge.textContent = ""; surveyCardGradeBadge.classList.add("hidden"); }
@@ -926,20 +929,20 @@
             else if (/^반$|^학급$|^반\(|학급반/.test(h)) tempClass = idx;
             else if (/^학년$|^학년\(|이수학년/.test(h)) tempGrade = idx;
             else if (/^학기$|^학기\(|이수학기/.test(h)) tempSem = idx;
-            else if (/교과목|^과목$|과목명|개설과목|교과·과목|교과\/과목/.test(h)) tempSubj = idx;
+            else if (/과목|교과목|개설과목|이수과목/.test(h) && !/과목구분|선택과목수/.test(h)) tempSubj = idx;
             else if (/학점|단위수|^단위$|이수학점|이수단위|시수|단위\(학점\)/.test(h)) tempCredit = idx;
-            else if (/^교과$|^교과군$/.test(h)) tempCat = idx;
+            else if (/^교과$|^교과군$|교과\(군\)|교과구분|이수교과/.test(h)) tempCat = idx;
           });
 
           // 다중 행 헤더 지원: 다음 행(r+1)에 과목명이나 단위수가 있는 경우 병합 감지
           if (tempNum !== -1 && tempName !== -1 && tempSubj === -1 && r + 1 < rows.length) {
             const nextRow = (rows[r + 1] || []).map(c => String(c || '').replace(/\s+/g, ''));
             nextRow.forEach((h, idx) => {
-              if (tempSubj === -1 && /교과목|^과목$|과목명|개설과목|교과·과목|교과\/과목/.test(h)) tempSubj = idx;
+              if (tempSubj === -1 && (/과목|교과목|개설과목|이수과목/.test(h) && !/과목구분|선택과목수/.test(h))) tempSubj = idx;
               if (tempCredit === -1 && /학점|단위수|^단위$|이수학점|이수단위|시수|단위\(학점\)/.test(h)) tempCredit = idx;
               if (tempSem === -1 && /^학기$|^학기\(|이수학기/.test(h)) tempSem = idx;
               if (tempGrade === -1 && /^학년$|^학년\(|이수학년/.test(h)) tempGrade = idx;
-              if (tempCat === -1 && /^교과$|^교과군$/.test(h)) tempCat = idx;
+              if (tempCat === -1 && /^교과$|^교과군$|교과\(군\)|교과구분|이수교과/.test(h)) tempCat = idx;
               if (tempClass === -1 && /^반$|^학급$|^반\(|학급반/.test(h)) tempClass = idx;
             });
             if (tempSubj !== -1) {
@@ -1064,11 +1067,11 @@
             if (gNum) currGrade = `${gNum}학년`;
           }
 
-          // Forward-fill 학기
+          // Forward-fill 학기 (연도 '2026' 등의 숫자 2와 혼동되지 않도록 정규식 매칭)
           if (colSem !== -1 && row[colSem] !== undefined && String(row[colSem]).trim() !== '') {
             const sStr = String(row[colSem]).trim();
-            if (sStr.includes('2')) currSem = 2;
-            else if (sStr.includes('1')) currSem = 1;
+            if (/2\s*학기|(?:^|[^\d])2(?:$|[^\d])/.test(sStr)) currSem = 2;
+            else if (/1\s*학기|(?:^|[^\d])1(?:$|[^\d])/.test(sStr)) currSem = 1;
           }
 
           if (!currNum || !currName) return;
@@ -1322,10 +1325,10 @@
       dateList.forEach(d => {
         if (!curAcadData[d]) curAcadData[d] = {};
         if (!curAcadData[d][activeG]) curAcadData[d][activeG] = createEmptyGradeState(activeG);
-        curAcadData[d][activeG].priorData = JSON.parse(JSON.stringify(priorDataObj));
+        curAcadData[d][activeG].priorData = priorDataObj;
         if (activeG === '2학년') {
           if (!curAcadData[d]['1학년']) curAcadData[d]['1학년'] = createEmptyGradeState('1학년');
-          curAcadData[d]['1학년'].priorData = JSON.parse(JSON.stringify(priorDataObj));
+          curAcadData[d]['1학년'].priorData = priorDataObj;
         }
       });
 

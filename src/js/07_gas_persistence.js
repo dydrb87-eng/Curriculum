@@ -417,7 +417,7 @@ function renderYearGradeNav() {
           if (isAllGrades) {
             currentWorkText.textContent = `${MultiState.activeYear} 전체 (전학년 교육과정 및 교사 시수)`;
           } else if (isStep3Mode) {
-            currentWorkText.textContent = `${MultiState.activeYear} · 3단계: 이수과목 검증 · ${MultiState.activeGrade}`;
+            currentWorkText.textContent = `${MultiState.activeYear} · 3단계: 이수 검증 · ${MultiState.activeGrade}`;
           } else {
             currentWorkText.textContent = `${MultiState.activeYear} · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'} · ${MultiState.activeGrade} · ${curSem}학기`;
           }
@@ -735,10 +735,10 @@ function renderYearGradeNav() {
                         ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-xs ring-2 ring-purple-400' 
                         : 'bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200'
                     }"
-                    title="3단계: 이수과목 검증 화면으로 전환">
+                    title="3단계: 교과 이수 점검 화면으로 전환">
               <div class="flex items-center gap-1.5 whitespace-nowrap">
                 <span>📋</span>
-                <span>이수과목 검증</span>
+                <span>교과 이수 점검</span>
               </div>
               ${step3BadgeHtml}
             </button>
@@ -1084,8 +1084,28 @@ window.renderYearGradeNav = renderYearGradeNav;
       if (externalData.publisherSubjectNamesByAcademicYear && typeof externalData.publisherSubjectNamesByAcademicYear === 'object') {
         MultiState.publisherSubjectNamesByAcademicYear = JSON.parse(JSON.stringify(externalData.publisherSubjectNamesByAcademicYear));
       }
+      if (externalData.sharedSubjectGroups && typeof externalData.sharedSubjectGroups === 'object') {
+        MultiState.sharedSubjectGroups = JSON.parse(JSON.stringify(externalData.sharedSubjectGroups));
+      }
       if (externalData.subjectGroupsByAcademicYear && typeof externalData.subjectGroupsByAcademicYear === 'object') {
         MultiState.subjectGroupsByAcademicYear = JSON.parse(JSON.stringify(externalData.subjectGroupsByAcademicYear));
+        if (!MultiState.sharedSubjectGroups) {
+          for (const y of Object.keys(MultiState.subjectGroupsByAcademicYear)) {
+            const cand = MultiState.subjectGroupsByAcademicYear[y];
+            if (cand && Array.isArray(cand.categories) && cand.categories.length > 0) {
+              MultiState.sharedSubjectGroups = JSON.parse(JSON.stringify(cand));
+              break;
+            }
+          }
+        }
+      }
+      if (externalData.neisCurriculumsByAcademicYear && typeof externalData.neisCurriculumsByAcademicYear === 'object') {
+        MultiState.neisCurriculumsByAcademicYear = JSON.parse(JSON.stringify(externalData.neisCurriculumsByAcademicYear));
+      }
+      if (externalData.neisCurriculum && typeof externalData.neisCurriculum === 'object') {
+        if (!MultiState.neisCurriculumsByAcademicYear) MultiState.neisCurriculumsByAcademicYear = {};
+        if (!MultiState.neisCurriculumsByAcademicYear[curAY]) MultiState.neisCurriculumsByAcademicYear[curAY] = {};
+        MultiState.neisCurriculumsByAcademicYear[curAY][MultiState.activeGrade || '2학년'] = JSON.parse(JSON.stringify(externalData.neisCurriculum));
       }
       if (externalData.gradeClassCounts && typeof externalData.gradeClassCounts === 'object') {
         MultiState.gradeClassCounts = {
@@ -1098,12 +1118,9 @@ window.renderYearGradeNav = renderYearGradeNav;
       if (typeof updatePublisherButtonUI === 'function') updatePublisherButtonUI();
       if (typeof updateGradeClassCountBadge === 'function') updateGradeClassCountBadge();
 
-      // 7. 화면 및 UI 갱신 (3단계 검증 캐시 초기화 및 재검증 포함)
+      // 7. 화면 및 UI 갱신 (3단계 검증은 진입 시 동적 계산되도록 캐시만 초기화하여 로드 지연 0초 실현)
       window._step3LastValidationResult = null;
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
-      if (typeof runStep3Validation === 'function') {
-        runStep3Validation(false);
-      }
       saveAllState();
       renderYearGradeNav();
       updateModalStats();

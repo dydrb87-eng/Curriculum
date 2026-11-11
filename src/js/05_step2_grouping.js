@@ -6902,6 +6902,7 @@ function createSangjiCourseSelectionForm() {
         step2NoticeList: JSON.parse(JSON.stringify(AppState.step2NoticeList || [])),
         step2ChangePeriod: JSON.parse(JSON.stringify(AppState.step2ChangePeriod || { enabled: false, round: '1차', period: '' })),
         priorData: AppState.priorData ? JSON.parse(JSON.stringify(AppState.priorData)) : null,
+        neisCurriculum: AppState.neisCurriculum ? JSON.parse(JSON.stringify(AppState.neisCurriculum)) : null,
         crossCheckResult: AppState.crossCheckResult ? JSON.parse(JSON.stringify(AppState.crossCheckResult)) : null,
         savedPlans: JSON.parse(JSON.stringify(AppState.savedPlans || [])),
         targetConflictN: JSON.parse(JSON.stringify(AppState.targetConflictN || { 1: null, 2: null })),
@@ -7036,9 +7037,26 @@ function createSangjiCourseSelectionForm() {
       if ((!mergedData.priorData || !mergedData.priorData.students || mergedData.priorData.students.length === 0) && !curAcadData[targetYear][targetGrade]?._cleared) {
         for (const otherDate of dateList) {
           if (curAcadData[otherDate]?.[targetGrade]?.priorData?.students?.length > 0) {
-            mergedData.priorData = JSON.parse(JSON.stringify(curAcadData[otherDate][targetGrade].priorData));
-            curAcadData[targetYear][targetGrade].priorData = JSON.parse(JSON.stringify(mergedData.priorData));
+            const inheritedPrior = curAcadData[otherDate][targetGrade].priorData;
+            mergedData.priorData = inheritedPrior;
+            curAcadData[targetYear][targetGrade].priorData = inheritedPrior;
             break;
+          }
+        }
+      }
+
+      // 동일 학년도 내 다른 기준 날짜 또는 MultiState.neisCurriculumsByAcademicYear에 입학생 편성표가 있다면 자동 상속/공유
+      if (!mergedData.neisCurriculum && !curAcadData[targetYear][targetGrade]?._cleared) {
+        if (MultiState.neisCurriculumsByAcademicYear?.[currAY]?.[targetGrade]) {
+          mergedData.neisCurriculum = JSON.parse(JSON.stringify(MultiState.neisCurriculumsByAcademicYear[currAY][targetGrade]));
+          curAcadData[targetYear][targetGrade].neisCurriculum = JSON.parse(JSON.stringify(mergedData.neisCurriculum));
+        } else {
+          for (const otherDate of dateList) {
+            if (curAcadData[otherDate]?.[targetGrade]?.neisCurriculum) {
+              mergedData.neisCurriculum = JSON.parse(JSON.stringify(curAcadData[otherDate][targetGrade].neisCurriculum));
+              curAcadData[targetYear][targetGrade].neisCurriculum = JSON.parse(JSON.stringify(mergedData.neisCurriculum));
+              break;
+            }
           }
         }
       }
@@ -7251,6 +7269,9 @@ function createSangjiCourseSelectionForm() {
         renderYearGradeNav();
         updateModalStats();
         updateStep2ContextMemoUI();
+        if (typeof window.updateNeisCurriculumCardUI === 'function') {
+          window.updateNeisCurriculumCardUI();
+        }
       }
     }
 
