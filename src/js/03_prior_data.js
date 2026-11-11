@@ -219,7 +219,7 @@
         if (priorZoneG2) priorZoneG2.classList.remove('hidden');
         if (priorZoneG3) priorZoneG3.classList.add('hidden');
         if (priorCardDesc) {
-          priorCardDesc.textContent = 'NIES-학교생활기록부-교과학습발달상황-XLS data (반별 엑셀 파일 다중 등록)';
+          priorCardDesc.textContent = 'NIES-학교생활기록부-교과학습발달상황-XLS data (반별 엑셀 파일 등록)';
         }
 
         if (hasPrior) {
