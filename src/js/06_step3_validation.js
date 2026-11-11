@@ -1394,41 +1394,66 @@
 
         if (st.grade === '3학년') {
           // [사용자 요구사항]:
-          // 1. 교과학습발달상황에서 '2학년 1학기' 이수 과목 확인
-          // 2. 입학생교육과정 편제표 기준 '선택'에 해당하는 과목만 확인 (공통/지정 제외)
-          const targetPrior = matchedG3 || matchedCur || matchedG2;
-          if (targetPrior && Array.isArray(targetPrior.courseDetails)) {
-            targetPrior.courseDetails.forEach(cd => {
-              if (!cd || !cd.subject) return;
+          // 1. 교과학습발달상황에서 '2학년 1학기' 이수 과목 확인 (입학생교육과정 편제표 기준 '선택' 과목만, 공통/지정 제외)
+          // 2. 학생편성현황 데이터에서 '2학년 2학기' 선택 과목 확인 (입학생교육과정 편제표 기준 '선택' 과목만, 공통/지정 제외)
+          // 3. 3학년 수강신청 조사 데이터와 대조하여 중복 신청 및 교과군설정 상세 조건 기준 적용 점검
+          const priorCandidates = [matchedG3, matchedCur, matchedG2].filter(Boolean);
+          priorCandidates.forEach(targetPrior => {
+            if (targetPrior && Array.isArray(targetPrior.courseDetails)) {
+              targetPrior.courseDetails.forEach(cd => {
+                if (!cd || !cd.subject) return;
 
-              // 2학년 1학기 과목인지 판별 (1학년 과목 제외, 2학기 과목 제외)
-              const gStr = String(cd.grade || '');
-              const isG2 = gStr.includes('2') || (!gStr.includes('1') && !gStr.includes('3'));
-              const isS1 = Number(cd.semester || 1) === 1 && cd.uploadSem !== 2 && cd.source !== '학생편성현황';
-              if (!isG2 || !isS1) return;
+                // 2학년 과목인지 판별 (1학년·3학년 과목 제외)
+                const gStr = String(cd.grade || '');
+                const isG2 = gStr.includes('2') || (!gStr.includes('1') && !gStr.includes('3'));
+                if (!isG2) return;
 
-              const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(cd.subject) : cd.subject;
-              const normS = cd.normSubject || (typeof normalizeSubject === 'function' ? normalizeSubject(cleanS) : cleanS);
+                const isS2 = (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || Number(cd.semester) === 2);
+                const isS1 = !isS2 && (Number(cd.semester || 1) === 1);
 
-              // 입학생교육과정 편제표 기준 '선택'에 해당하는 과목만 확인 ('지정', '공통' 과목 및 검증제외 과목 제외!)
-              if (isDesignatedSubject(cleanS, '2학년', 1, cd.category)) return;
-              if (typeof isSubjectExcludedFromValidation === 'function' && isSubjectExcludedFromValidation(cleanS, '2학년')) return;
+                const cleanS = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(cd.subject) : cd.subject;
+                const normS = cd.normSubject || (typeof normalizeSubject === 'function' ? normalizeSubject(cleanS) : cleanS);
 
-              const cKey = `2-1::${normS}`;
-              if (!seenCourseKeys.has(cKey)) {
-                seenCourseKeys.add(cKey);
-                combinedCourseDetails.push({
-                  ...cd,
-                  subject: cleanS,
-                  normSubject: normS,
-                  semester: 1,
-                  uploadSem: 1,
-                  grade: '2학년',
-                  source: '교과학습발달상황(2-1선택)'
-                });
-              }
-            });
-          }
+                if (isS1) {
+                  // 2학년 1학기: 교과학습발달상황 기준 '선택' 과목만 확인 ('지정', '공통' 및 검증제외 제외)
+                  if (isDesignatedSubject(cleanS, '2학년', 1, cd.category)) return;
+                  if (typeof isSubjectExcludedFromValidation === 'function' && isSubjectExcludedFromValidation(cleanS, '2학년')) return;
+
+                  const cKey = `2-1::${normS}`;
+                  if (!seenCourseKeys.has(cKey)) {
+                    seenCourseKeys.add(cKey);
+                    combinedCourseDetails.push({
+                      ...cd,
+                      subject: cleanS,
+                      normSubject: normS,
+                      semester: 1,
+                      uploadSem: 1,
+                      grade: '2학년',
+                      source: '교과학습발달상황(2-1선택)'
+                    });
+                  }
+                } else if (isS2) {
+                  // 2학년 2학기: 학생편성현황 기준 '선택' 과목만 확인 ('지정', '공통' 및 검증제외 제외)
+                  if (isDesignatedSubject(cleanS, '2학년', 2, cd.category)) return;
+                  if (typeof isSubjectExcludedFromValidation === 'function' && isSubjectExcludedFromValidation(cleanS, '2학년')) return;
+
+                  const cKey = `2-2::${normS}`;
+                  if (!seenCourseKeys.has(cKey)) {
+                    seenCourseKeys.add(cKey);
+                    combinedCourseDetails.push({
+                      ...cd,
+                      subject: cleanS,
+                      normSubject: normS,
+                      semester: 2,
+                      uploadSem: 2,
+                      grade: '2학년',
+                      source: '학생편성현황(2-2선택)'
+                    });
+                  }
+                }
+              });
+            }
+          });
         } else {
           collectDetails(matchedG2);
           collectDetails(matchedCur);
@@ -3070,7 +3095,7 @@
         } else if (hasPriorData) {
           const g3PriorCount = (priorG3 && priorG3.students) ? priorG3.students.length : 0;
           const g2PriorCount = (priorG2 && priorG2.students) ? priorG2.students.length : 0;
-          warnText.innerHTML = `<span class="flex items-center gap-1.5"><span class="text-sm">📌</span><span><b>사전 데이터 연동 완료:</b> 3학년(${g3PriorCount}명)·2학년(${g2PriorCount}명)의 사전 등록 기이수 과목이 [전학년 누적] 교과군 선택 조건 검증에 정상 반영되고 있습니다.</span></span>`;
+          warnText.innerHTML = `<span class="flex items-center gap-1.5"><span class="text-sm">📌</span><span><b>사전 데이터 연동 완료:</b> 3학년 학생들의 2학년 1학기(교과학습발달상황 선택) 및 2학년 2학기(학생편성현황 선택) 과목이 검증에 정상 반영되고 있습니다.</span></span>`;
           warnBanner.className = 'p-3 rounded-xl bg-indigo-50/80 border border-indigo-200 text-indigo-950 text-xs font-bold flex items-center justify-between gap-2 shadow-2xs';
           warnBanner.classList.remove('hidden');
         } else {
@@ -3276,11 +3301,11 @@
                 <span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded ${cColor.badge} border shadow-2xs" title="3학년 수강신청 선택과목">${s}</span>
               `).join('');
               const priorPills = (v.priorSubjects || []).map(s => {
-                const isSem2 = (item.priorDetails || []).some(cd => (cd.subject === s || cd.normSubject === s) && (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2));
+                const isSem2 = (item.priorDetails || []).some(cd => (cd.subject === s || cd.normSubject === s) && (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || String(cd.source).includes('학생편성현황') || Number(cd.semester) === 2));
                 const badgeStyle = isSem2
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                   : 'bg-sky-50 text-sky-800 border-sky-300';
-                const label = isSem2 ? '[2학기수강]' : '[1학기이수(선택)]';
+                const label = isSem2 ? '[2-2편성(선택)]' : '[2-1이수(선택)]';
                 return `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded border shadow-2xs ${badgeStyle}" title="1단계 사전데이터 인정 과목">${label} ${s}</span>`;
               }).join('');
 
@@ -3337,11 +3362,11 @@
                 <span class="text-[11px] font-extrabold px-1.5 py-0.5 rounded ${cColor.badge} border shadow-2xs" title="3학년 수강신청 선택과목">${s}</span>
               `).join('');
               const priorPills = (v.priorSubjects || []).map(s => {
-                const isSem2 = (item.priorDetails || []).some(cd => (cd.subject === s || cd.normSubject === s) && (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2));
+                const isSem2 = (item.priorDetails || []).some(cd => (cd.subject === s || cd.normSubject === s) && (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || String(cd.source).includes('학생편성현황') || Number(cd.semester) === 2));
                 const badgeStyle = isSem2
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                   : 'bg-sky-50 text-sky-800 border-sky-300';
-                const label = isSem2 ? '[2학기수강]' : '[1학기이수(선택)]';
+                const label = isSem2 ? '[2-2편성(선택)]' : '[2-1이수(선택)]';
                 return `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs ${badgeStyle}" title="1단계 사전데이터 인정 과목">${label} ${s}</span>`;
               }).join('');
 
