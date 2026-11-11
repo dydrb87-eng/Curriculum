@@ -166,9 +166,7 @@
       if (priorCardTitle) priorCardTitle.textContent = `[${activeG}] 사전 데이터 등록`;
       if (priorCardGradeBadge) { priorCardGradeBadge.textContent = ""; priorCardGradeBadge.classList.add("hidden"); }
       if (priorCardDesc) {
-        priorCardDesc.textContent = (activeG === '2학년')
-          ? '1학년 학생 명부 등록 (반별 엑셀 파일 다중 등록 지원)'
-          : '2학년 학생 명부 및 기이수 과목 등록 (반별 엑셀 파일 다중 등록 지원)';
+        priorCardDesc.textContent = 'NIES-학교생활기록부-교과학습발달상황-XLS data (반별 엑셀 파일 다중 등록)';
       }
       if (surveyCardTitle) surveyCardTitle.textContent = `[${activeG}] 수강신청 조사 엑셀 파일`;
       if (surveyCardGradeBadge) { surveyCardGradeBadge.textContent = ""; surveyCardGradeBadge.classList.add("hidden"); }

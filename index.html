@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.12_08:49)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.12_09:13)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.12_08:49)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.12_09:13)</span></p>
         </div>
       </div>
 
@@ -263,7 +263,7 @@
                       </div>
                     </div>
                   </h3>
-                  <p id="priorCardDesc" class="text-[11px] text-slate-500 mt-0.5">학생 명부 및 이수 이력 (반별 엑셀 다중 등록 지원)</p>
+                  <p id="priorCardDesc" class="text-[11px] text-slate-500 mt-0.5">NIES-학교생활기록부-교과학습발달상황-XLS data (반별 엑셀 파일 다중 등록)</p>
                 </div>
               </div>
               <div id="priorStatusBadge" class="hidden">
@@ -4655,9 +4655,7 @@
       if (priorCardTitle) priorCardTitle.textContent = `[${activeG}] 사전 데이터 등록`;
       if (priorCardGradeBadge) { priorCardGradeBadge.textContent = ""; priorCardGradeBadge.classList.add("hidden"); }
       if (priorCardDesc) {
-        priorCardDesc.textContent = (activeG === '2학년')
-          ? '1학년 학생 명부 등록 (반별 엑셀 파일 다중 등록 지원)'
-          : '2학년 학생 명부 및 기이수 과목 등록 (반별 엑셀 파일 다중 등록 지원)';
+        priorCardDesc.textContent = 'NIES-학교생활기록부-교과학습발달상황-XLS data (반별 엑셀 파일 다중 등록)';
       }
       if (surveyCardTitle) surveyCardTitle.textContent = `[${activeG}] 수강신청 조사 엑셀 파일`;
       if (surveyCardGradeBadge) { surveyCardGradeBadge.textContent = ""; surveyCardGradeBadge.classList.add("hidden"); }
