@@ -6907,8 +6907,16 @@ function createSangjiCourseSelectionForm() {
         savedPlans: JSON.parse(JSON.stringify(AppState.savedPlans || [])),
         targetConflictN: JSON.parse(JSON.stringify(AppState.targetConflictN || { 1: null, 2: null })),
         simulationHistory: JSON.parse(JSON.stringify(AppState.simulationHistory || { 1: { runCount: 0, minConflictEver: null, minConflictPlan: null }, 2: { runCount: 0, minConflictEver: null, minConflictPlan: null } })),
+        step3LastValidationResult: (window._step3LastValidationResult ? JSON.parse(JSON.stringify(window._step3LastValidationResult)) : (AppState.step3LastValidationResult || null)),
         lastUpdated: new Date().toISOString()
       };
+
+      if (window._step3LastValidationResult && typeof MultiState !== 'undefined') {
+        MultiState.step3LastValidationResult = JSON.parse(JSON.stringify(window._step3LastValidationResult));
+        const curAY = MultiState.activeAcademicYear || '2027학년도';
+        if (!MultiState.step3ValidationResultsByAcademicYear) MultiState.step3ValidationResultsByAcademicYear = {};
+        MultiState.step3ValidationResultsByAcademicYear[curAY] = MultiState.step3LastValidationResult;
+      }
     }
 
     function saveAllState() {
@@ -6919,6 +6927,12 @@ function createSangjiCourseSelectionForm() {
         const curAY = MultiState.activeAcademicYear || '2027학년도';
         if (!MultiState.datesByAcademicYear) MultiState.datesByAcademicYear = {};
         MultiState.datesByAcademicYear[curAY] = [...MultiState.yearsList];
+
+        if (window._step3LastValidationResult && typeof MultiState !== 'undefined') {
+          MultiState.step3LastValidationResult = JSON.parse(JSON.stringify(window._step3LastValidationResult));
+          if (!MultiState.step3ValidationResultsByAcademicYear) MultiState.step3ValidationResultsByAcademicYear = {};
+          MultiState.step3ValidationResultsByAcademicYear[curAY] = MultiState.step3LastValidationResult;
+        }
 
         MultiState.lastUpdated = new Date().toISOString();
         // 메모리 상에서만 안전하게 상태를 유지 (웹상/브라우저 영구 보관 배제, 사용자가 JSON 파일로 내보내기/불러오기 전담)
@@ -7099,6 +7113,11 @@ function createSangjiCourseSelectionForm() {
       Object.assign(AppState, mergedData);
       AppState.detectedGrade = targetGrade;
 
+      // 3단계 점검 결과 복원 (저장된 점검 결과가 있다면 상태로부터 즉시 로드)
+      if (typeof restoreStep3ValidationResultFromState === 'function') {
+        restoreStep3ValidationResultFromState();
+      }
+
       // 현재 화면에 눌려진 학기 및 단계를 그대로 유지 (과거 탭 흔적 기억 방지)
       AppState.currentSemester = preservedSemester;
       MultiState.activeStep = preservedStep;
@@ -7220,9 +7239,7 @@ function createSangjiCourseSelectionForm() {
               }
             }
 
-            if (typeof runStep3Validation === 'function') {
-              runStep3Validation(false);
-            } else if (typeof renderStep3UI === 'function') {
+            if (typeof renderStep3UI === 'function') {
               renderStep3UI();
             }
           }
@@ -7243,9 +7260,7 @@ function createSangjiCourseSelectionForm() {
             if (step1View) step1View.classList.add('hidden');
             if (step2View) step2View.classList.add('hidden');
             if (step3View) step3View.classList.remove('hidden');
-            if (typeof runStep3Validation === 'function') {
-              runStep3Validation(false);
-            } else if (typeof renderStep3UI === 'function') {
+            if (typeof renderStep3UI === 'function') {
               renderStep3UI();
             }
           } else {

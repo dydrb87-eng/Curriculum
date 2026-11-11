@@ -28,6 +28,62 @@
     let _step3SelectedSubjectIds = new Set();
     window._step3LastValidationResult = null;
 
+    function syncStep3ValidationResultToState() {
+      if (!window._step3LastValidationResult) return;
+      try {
+        const snapshot = JSON.parse(JSON.stringify(window._step3LastValidationResult));
+        if (typeof AppState !== 'undefined' && AppState) {
+          AppState.step3LastValidationResult = snapshot;
+        }
+        if (typeof MultiState !== 'undefined' && MultiState) {
+          MultiState.step3LastValidationResult = snapshot;
+          const curAY = MultiState.activeAcademicYear || '2027학년도';
+          if (!MultiState.step3ValidationResultsByAcademicYear) {
+            MultiState.step3ValidationResultsByAcademicYear = {};
+          }
+          MultiState.step3ValidationResultsByAcademicYear[curAY] = snapshot;
+
+          const acadData = (typeof getAcadData === 'function') ? getAcadData() : (MultiState.data?.[curAY] || {});
+          const curDate = MultiState.activeYear;
+          if (acadData && curDate && acadData[curDate]) {
+            if (acadData[curDate]['3학년']) {
+              acadData[curDate]['3학년'].step3LastValidationResult = snapshot;
+            }
+            if (acadData[curDate][MultiState.activeGrade]) {
+              acadData[curDate][MultiState.activeGrade].step3LastValidationResult = snapshot;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('syncStep3ValidationResultToState error:', err);
+      }
+    }
+    window.syncStep3ValidationResultToState = syncStep3ValidationResultToState;
+
+    function restoreStep3ValidationResultFromState() {
+      try {
+        const curAY = (typeof MultiState !== 'undefined' && MultiState && MultiState.activeAcademicYear) ? MultiState.activeAcademicYear : '2027학년도';
+        const acadData = (typeof getAcadData === 'function') ? getAcadData() : (MultiState?.data?.[curAY] || {});
+        const curDate = MultiState?.activeYear;
+        const curDateData = (acadData && curDate) ? acadData[curDate] : null;
+
+        const candidate = (typeof AppState !== 'undefined' && AppState && AppState.step3LastValidationResult)
+          || (typeof MultiState !== 'undefined' && MultiState && MultiState.step3LastValidationResult)
+          || (typeof MultiState !== 'undefined' && MultiState && MultiState.step3ValidationResultsByAcademicYear && MultiState.step3ValidationResultsByAcademicYear[curAY])
+          || curDateData?.['3학년']?.step3LastValidationResult
+          || curDateData?.[MultiState?.activeGrade]?.step3LastValidationResult;
+
+        if (candidate && candidate.results && Array.isArray(candidate.results)) {
+          window._step3LastValidationResult = JSON.parse(JSON.stringify(candidate));
+          return window._step3LastValidationResult;
+        }
+      } catch (err) {
+        console.warn('restoreStep3ValidationResultFromState error:', err);
+      }
+      return null;
+    }
+    window.restoreStep3ValidationResultFromState = restoreStep3ValidationResultFromState;
+
     function getStep3Data(acadYear = null) {
       // 모든 학년도 및 모든 기준 날짜에서 교과군 및 이수조건 설정값을 전역 공유(sharedSubjectGroups)
       if (!MultiState.sharedSubjectGroups || typeof MultiState.sharedSubjectGroups !== 'object') {
@@ -1776,6 +1832,9 @@
         timestamp: new Date()
       };
 
+      // 점검 결과를 상태에 즉시 동기화 (JSON 백업 파일 저장 시 포함)
+      syncStep3ValidationResultToState();
+
       renderStep3UI();
 
       const addedCount = results.filter(r => r.student && r.student.isNewlyAdded).length;
@@ -3023,6 +3082,10 @@
 
       const standbyCard = document.getElementById('step3StandbyCard');
       const mainContainer = document.getElementById('step3ResultsMainContainer');
+
+      if (!window._step3LastValidationResult) {
+        restoreStep3ValidationResultFromState();
+      }
 
       if (!window._step3LastValidationResult) {
         // 아직 '점검 시작' 버튼을 누르지 않은 상태: 점검 대기 안내 화면 렌더링

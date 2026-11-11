@@ -67,6 +67,7 @@
           1: { runCount: 0, minConflictEver: null, minConflictPlan: null },
           2: { runCount: 0, minConflictEver: null, minConflictPlan: null }
         },
+        step3LastValidationResult: null,
         lastUpdated: new Date().toISOString()
       };
     }
@@ -125,6 +126,8 @@
       activeGrade: '2학년', // 기본 2학년 ('2학년' | '3학년' | '전체')
       activeStep: 1, // 1: 1단계(수강신청 매트릭스), 2: 2단계(과목 그룹핑 & 분반)
       yearsList: ['2027.10.11.'], // 현재 학년도의 기준 날짜 목록
+      step3LastValidationResult: null, // 3단계 교과군 선택 조건 검증 결과 (최신 점검 결과)
+      step3ValidationResultsByAcademicYear: {}, // 학년도별 3단계 검증 결과
       data: {
         '2027학년도': {
           '2027.10.11.': {

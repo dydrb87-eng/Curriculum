@@ -981,6 +981,11 @@ window.renderYearGradeNav = renderYearGradeNav;
         MultiState.data[ay][d][detectedG] = JSON.parse(JSON.stringify(externalData));
         MultiState.activeGrade = detectedG;
 
+        if (externalData.step3LastValidationResult) {
+          window._step3LastValidationResult = JSON.parse(JSON.stringify(externalData.step3LastValidationResult));
+          MultiState.step3LastValidationResult = window._step3LastValidationResult;
+        }
+
         switchAcademicContext(d, detectedG, false);
         saveAllState();
         renderYearGradeNav();
@@ -1118,12 +1123,41 @@ window.renderYearGradeNav = renderYearGradeNav;
       if (typeof updatePublisherButtonUI === 'function') updatePublisherButtonUI();
       if (typeof updateGradeClassCountBadge === 'function') updateGradeClassCountBadge();
 
-      // 7. 화면 및 UI 갱신 (3단계 검증은 진입 시 동적 계산되도록 캐시만 초기화하여 로드 지연 0초 실현)
-      window._step3LastValidationResult = null;
+      // 7. 3단계 검증 결과 복원 (JSON 파일 저장 당시 점검했던 결과 내용도 함께 불러오기)
+      let restoredStep3Result = null;
+      if (externalData.step3LastValidationResult && typeof externalData.step3LastValidationResult === 'object') {
+        restoredStep3Result = externalData.step3LastValidationResult;
+      } else if (externalData.step3ValidationResultsByAcademicYear && externalData.step3ValidationResultsByAcademicYear[curAY]) {
+        restoredStep3Result = externalData.step3ValidationResultsByAcademicYear[curAY];
+      } else if (curDateData['3학년']?.step3LastValidationResult) {
+        restoredStep3Result = curDateData['3학년'].step3LastValidationResult;
+      } else if (curDateData[MultiState.activeGrade]?.step3LastValidationResult) {
+        restoredStep3Result = curDateData[MultiState.activeGrade].step3LastValidationResult;
+      } else if (externalData.data?.[curAY]?.[MultiState.activeYear]?.['3학년']?.step3LastValidationResult) {
+        restoredStep3Result = externalData.data[curAY][MultiState.activeYear]['3학년'].step3LastValidationResult;
+      }
+
+      if (restoredStep3Result) {
+        window._step3LastValidationResult = JSON.parse(JSON.stringify(restoredStep3Result));
+        MultiState.step3LastValidationResult = window._step3LastValidationResult;
+        if (!MultiState.step3ValidationResultsByAcademicYear) MultiState.step3ValidationResultsByAcademicYear = {};
+        MultiState.step3ValidationResultsByAcademicYear[curAY] = window._step3LastValidationResult;
+        if (typeof AppState !== 'undefined' && AppState) {
+          AppState.step3LastValidationResult = window._step3LastValidationResult;
+        }
+      } else {
+        window._step3LastValidationResult = null;
+      }
+
       switchAcademicContext(MultiState.activeYear, MultiState.activeGrade, false);
       saveAllState();
       renderYearGradeNav();
       updateModalStats();
+
+      // 점검 결과가 복원된 경우 3단계 UI 즉시 동기화
+      if (window._step3LastValidationResult && typeof renderStep3UI === 'function') {
+        renderStep3UI();
+      }
 
       if (showSuccessMsg) {
         let totalCount = 0;
@@ -1282,6 +1316,9 @@ window.renderYearGradeNav = renderYearGradeNav;
     // ==========================================
 
     window.generateFullBackupJsonString = function() {
+      if (typeof syncStep3ValidationResultToState === 'function') {
+        syncStep3ValidationResultToState();
+      }
       syncCurrentToMulti();
       return JSON.stringify(MultiState, null, 2);
     };
