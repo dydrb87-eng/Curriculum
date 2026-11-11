@@ -417,9 +417,9 @@ function renderYearGradeNav() {
           if (isAllGrades) {
             currentWorkText.textContent = `${MultiState.activeYear} 전체 (전학년 교육과정 및 교사 시수)`;
           } else if (isStep3Mode) {
-            currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · 3단계: 이수과목 검증`;
+            currentWorkText.textContent = `${MultiState.activeYear} · 3단계: 이수과목 검증 · ${MultiState.activeGrade}`;
           } else {
-            currentWorkText.textContent = `${MultiState.activeYear} ${MultiState.activeGrade} · ${curSem}학기 · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'}`;
+            currentWorkText.textContent = `${MultiState.activeYear} · ${curStep === 2 ? '2단계: 그룹핑' : '1단계: 매트릭스'} · ${MultiState.activeGrade} · ${curSem}학기`;
           }
         } catch (e) {
           console.warn('Error updating currentWorkText:', e);
@@ -638,18 +638,11 @@ function renderYearGradeNav() {
         console.error('Error rendering academicSemesterTabs:', err3);
       }
 
-      // 4. Render Step Tabs (1단계 / 2단계 2행 - 학년별 수강신청/시간표) - 잠금 상태 완벽 적용!
+      // 2. Render Step Tabs (대안 1: 단계 ➔ 학년 ➔ 학기) - 언제든 즉시 1·2단계로 전환 가능
       try {
         if (stepNavWrapper) {
-          if (isLockedMode) {
-            stepNavWrapper.classList.add('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-            stepNavWrapper.title = isStep3Mode 
-              ? '이수과목 검증 모드에서는 1·2단계가 비활성화(잠금)됩니다.' 
-              : '전체(교원 수급 종합) 모드에서는 학기 및 단계가 비활성화됩니다.';
-          } else {
-            stepNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
-            stepNavWrapper.title = '';
-          }
+          stepNavWrapper.classList.remove('opacity-40', 'pointer-events-none', 'select-none', 'cursor-not-allowed');
+          stepNavWrapper.title = '';
         }
 
         if (stepContainer) {
@@ -685,7 +678,6 @@ function renderYearGradeNav() {
             return `
               <button type="button" 
                       onclick="window.switchStepView(${item.step})"
-                      ${isLockedMode ? 'disabled' : ''}
                       class="px-2.5 py-1 rounded-lg text-xs font-black flex items-center justify-between gap-1.5 transition cursor-pointer select-none h-[26px] ${
                         isActive
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xs ring-2 ring-blue-400'
