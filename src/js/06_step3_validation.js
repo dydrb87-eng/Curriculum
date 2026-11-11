@@ -164,8 +164,8 @@
 
     function getStudentExceptionKey(grade, classNum, studentNum, name) {
       const g = String(grade || '').replace(/[^0-9]/g, '');
-      const c = String(classNum || '').replace(/[^0-9]/g, '');
-      const s = String(studentNum || '').replace(/[^0-9]/g, '');
+      const c = String(parseInt(String(classNum || '').replace(/[^0-9]/g, ''), 10) || String(classNum || '').trim());
+      const s = String(parseInt(String(studentNum || '').replace(/[^0-9]/g, ''), 10) || String(studentNum || '').trim());
       const n = String(name || '').trim().replace(/\s+/g, '');
       return `${g}_${c}_${s}_${n}`;
     }
@@ -176,16 +176,19 @@
       const sData = getStep3Data();
       if (!sData.studentCategoryExceptions) return false;
       const stKey = getStudentExceptionKey(grade, classNum, studentNum, name);
-      const normSubj = (typeof normalizeSubject === 'function') ? normalizeSubject(subj) : String(subj || '').replace(/\s+/g, '').toLowerCase();
+      const cleanSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(subj) : subj;
+      const normSubj = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanSubj) : String(cleanSubj || '').replace(/\s+/g, '').toLowerCase();
 
-      // 카테고리별 예외 확인
+      // 1. 카테고리별 예외 확인 (정규화 과목명, 기본 과목명, 원본 과목명 모두 확인)
       if (catId) {
-        const catKey = `${stKey}::${catId}::${normSubj}`;
-        if (sData.studentCategoryExceptions[catKey] === true) return true;
+        if (sData.studentCategoryExceptions[`${stKey}::${catId}::${normSubj}`] === true) return true;
+        if (sData.studentCategoryExceptions[`${stKey}::${catId}::${cleanSubj}`] === true) return true;
+        if (sData.studentCategoryExceptions[`${stKey}::${catId}::${subj}`] === true) return true;
       }
-      // 학생 전체 교과군 공통 예외 확인
-      const anyKey = `${stKey}::*::${normSubj}`;
-      if (sData.studentCategoryExceptions[anyKey] === true) return true;
+      // 2. 학생 전체 교과군 공통 예외 확인 (* 와일드카드)
+      if (sData.studentCategoryExceptions[`${stKey}::*::${normSubj}`] === true) return true;
+      if (sData.studentCategoryExceptions[`${stKey}::*::${cleanSubj}`] === true) return true;
+      if (sData.studentCategoryExceptions[`${stKey}::*::${subj}`] === true) return true;
 
       return false;
     }
@@ -195,7 +198,8 @@
       const sData = getStep3Data();
       if (!sData.studentCategoryExceptions) sData.studentCategoryExceptions = {};
       const stKey = getStudentExceptionKey(grade, classNum, studentNum, name);
-      const normSubj = (typeof normalizeSubject === 'function') ? normalizeSubject(subj) : String(subj || '').replace(/\s+/g, '').toLowerCase();
+      const cleanSubj = (typeof getBaseSubjectName === 'function') ? getBaseSubjectName(subj) : subj;
+      const normSubj = (typeof normalizeSubject === 'function') ? normalizeSubject(cleanSubj) : String(cleanSubj || '').replace(/\s+/g, '').toLowerCase();
       const targetCatId = catId || '*';
       const catKey = `${stKey}::${targetCatId}::${normSubj}`;
 
@@ -203,11 +207,19 @@
         sData.studentCategoryExceptions[catKey] = true;
       } else {
         delete sData.studentCategoryExceptions[catKey];
+        delete sData.studentCategoryExceptions[`${stKey}::${targetCatId}::${cleanSubj}`];
+        delete sData.studentCategoryExceptions[`${stKey}::${targetCatId}::${subj}`];
       }
 
       saveStep3Data(sData);
-      // window._step3LastValidationResult = null;
+
+      // 모달 내부 상태 갱신
       renderStudentCategoryExceptionModal(grade, classNum, studentNum, name, catId);
+
+      // ★ 핵심: 즉시 검증을 다시 실행하여 메인 화면 테이블과 학생의 교과군 과목 수, 위반 상태를 실시간 반영!
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
     }
     window.toggleStudentCategorySubjectException = toggleStudentCategorySubjectException;
 
@@ -226,8 +238,12 @@
       });
 
       saveStep3Data(sData);
-      // window._step3LastValidationResult = null;
       renderStudentCategoryExceptionModal(grade, classNum, studentNum, name, catId);
+
+      // 초기화 시에도 즉시 재검증 및 화면 반영
+      if (typeof runStep3Validation === 'function') {
+        runStep3Validation(false);
+      }
     }
     window.resetCurrentStudentExceptions = resetCurrentStudentExceptions;
 
@@ -250,6 +266,11 @@
       const modal = document.getElementById('studentCategoryExceptionModal');
       if (modal) modal.classList.add('hidden');
       _currentExceptionEditingStudent = null;
+
+      // 모달 닫힐 때 최신 검증 결과를 메인 화면에 갱신
+      if (typeof renderStep3UI === 'function') {
+        renderStep3UI();
+      }
     }
     window.closeStudentCategoryExceptionModal = closeStudentCategoryExceptionModal;
 
@@ -260,12 +281,19 @@
       const sData = getStep3Data();
       const categories = sData.categories || [];
       const valResult = window._step3LastValidationResult;
-      const stRes = valResult?.results?.find(r => 
-        String(r.grade).includes(String(grade).replace(/[^0-9]/g, '')) &&
-        String(r.classNum).replace(/[^0-9]/g, '') === String(classNum).replace(/[^0-9]/g, '') &&
-        String(r.studentNum).replace(/[^0-9]/g, '') === String(studentNum).replace(/[^0-9]/g, '') &&
-        (r.name || '').trim() === (name || '').trim()
-      );
+
+      const targetG = String(grade || '').replace(/[^0-9]/g, '');
+      const targetC = parseInt(String(classNum || '').replace(/[^0-9]/g, ''), 10);
+      const targetS = parseInt(String(studentNum || '').replace(/[^0-9]/g, ''), 10);
+      const targetN = (name || '').trim();
+
+      const stRes = valResult?.results?.find(r => {
+        const rg = String(r.grade || '').replace(/[^0-9]/g, '');
+        const rc = parseInt(String(r.classNum || '').replace(/[^0-9]/g, ''), 10);
+        const rs = parseInt(String(r.studentNum || '').replace(/[^0-9]/g, ''), 10);
+        const rn = (r.name || '').trim();
+        return (!targetG || rg === targetG) && rc === targetC && rs === targetS && rn === targetN;
+      });
 
       if (!stRes) {
         body.innerHTML = '<div class="p-8 text-center text-slate-400">해당 학생의 검증 데이터를 찾을 수 없습니다.</div>';
@@ -1485,9 +1513,14 @@
               if (!cId) cId = getSubjectCategory(pSubj, '1학년');
 
               // 기이수 과목은 교과군 매칭에 온전히 반영
-
-              if (cId === cat.id && !priorSubjectsInCat.includes(pSubj)) {
-                priorSubjectsInCat.push(pSubj);
+              if (cId === cat.id) {
+                if (isStudentExcluded(pSubj)) {
+                  if (!excludedSubjectsInCat.includes(pSubj)) excludedSubjectsInCat.push(pSubj);
+                  return;
+                }
+                if (!priorSubjectsInCat.includes(pSubj)) {
+                  priorSubjectsInCat.push(pSubj);
+                }
               }
             });
           }
@@ -3278,7 +3311,7 @@
           item.violations.forEach(v => {
             const cat = v.category;
             const cColor = cat ? (STEP3_COLOR_SCHEMES[cat.color] || STEP3_COLOR_SCHEMES.blue) : STEP3_COLOR_SCHEMES.blue;
-            const totalInCat = (v.allSubjects && v.allSubjects.length > 0) ? v.allSubjects.length : v.subjects.length;
+            const totalInCat = Array.isArray(v.allSubjects) ? v.allSubjects.length : (v.count || 0);
             if (totalInCat === 0) {
               const excludedPills = (v.excludedSubjects || []).map(s => 
                 `<span class="text-[10px] font-bold line-through text-slate-400 bg-slate-100 border border-slate-300 px-1.5 py-0.2 rounded shadow-3xs" title="예외처리되어 카운트 제외됨">${s} (제외)</span>`
