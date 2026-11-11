@@ -146,8 +146,8 @@
 
       // 1순위: 반 + 번호 + 성명 모두 일치
       let match = priorStudents.find(p => {
-        const pcMatch = String(p.classNum || '').replace(/[^0-9]/g, '') === cNum;
-        const pnMatch = String(p.studentNum || '').replace(/[^0-9]/g, '') === sNum;
+        const pcMatch = (parseInt(String(p.classNum || '').replace(/[^0-9]/g, ''), 10) || 0) === (parseInt(cNum, 10) || 0);
+        const pnMatch = (parseInt(String(p.studentNum || '').replace(/[^0-9]/g, ''), 10) || 0) === (parseInt(sNum, 10) || 0);
         return pcMatch && pnMatch && (p.name || '').trim() === cleanSName;
       });
       if (match) {
@@ -156,7 +156,7 @@
 
       // 2순위: 반 + 성명 일치 (번호 오기재 대비)
       match = priorStudents.find(p => {
-        const pcMatch = String(p.classNum || '').replace(/[^0-9]/g, '') === cNum;
+        const pcMatch = (parseInt(String(p.classNum || '').replace(/[^0-9]/g, ''), 10) || 0) === (parseInt(cNum, 10) || 0);
         return pcMatch && (p.name || '').trim() === cleanSName;
       });
       if (match) {
@@ -656,19 +656,41 @@
 
           const chosenSubjectsInCat = [];
           const priorSubjectsInCat = [];
+          const priorSem1SubjectsInCat = [];
+          const priorSem2SubjectsInCat = [];
 
           // 1단계: 사전 데이터(기이수 과목) 중 '선택' 과목만 해당 교과군 과목 탐색 ('지정' 제외)
-          studentPriorSubjs.forEach(pSubj => {
-            if (isDesignatedSubject(pSubj)) return; // 지정 과목 제외
-            // 기이수 과목은 교과군 대상 학년뿐만 아니라 전체/2학년/1학년 매핑에서도 교과군 인식
-            let cId = getSubjectCategory(pSubj, cat.targetGrade);
-            if (!cId) cId = getSubjectCategory(pSubj, null);
-            if (!cId) cId = getSubjectCategory(pSubj, '2학년');
-            if (!cId) cId = getSubjectCategory(pSubj, '1학년');
-            if (cId === cat.id && !priorSubjectsInCat.includes(pSubj)) {
-              priorSubjectsInCat.push(pSubj);
-            }
-          });
+          // 1학기/2학기 세부 이력(studentPriorCourseDetails)이 있으면 학기별로 분명하게 분류
+          if (studentPriorCourseDetails && studentPriorCourseDetails.length > 0) {
+            studentPriorCourseDetails.forEach(cd => {
+              const pSubj = cd.subject;
+              if (!pSubj || isDesignatedSubject(pSubj)) return; // 지정 과목 제외
+              let cId = getSubjectCategory(pSubj, cat.targetGrade);
+              if (!cId) cId = getSubjectCategory(pSubj, null);
+              if (!cId) cId = getSubjectCategory(pSubj, '2학년');
+              if (!cId) cId = getSubjectCategory(pSubj, '1학년');
+              if (cId === cat.id) {
+                if (!priorSubjectsInCat.includes(pSubj)) priorSubjectsInCat.push(pSubj);
+                const isSem2 = (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2 || Number(cd.semester) === 2);
+                if (isSem2) {
+                  if (!priorSem2SubjectsInCat.includes(pSubj)) priorSem2SubjectsInCat.push(pSubj);
+                } else {
+                  if (!priorSem1SubjectsInCat.includes(pSubj)) priorSem1SubjectsInCat.push(pSubj);
+                }
+              }
+            });
+          } else {
+            studentPriorSubjs.forEach(pSubj => {
+              if (isDesignatedSubject(pSubj)) return; // 지정 과목 제외
+              let cId = getSubjectCategory(pSubj, cat.targetGrade);
+              if (!cId) cId = getSubjectCategory(pSubj, null);
+              if (!cId) cId = getSubjectCategory(pSubj, '2학년');
+              if (!cId) cId = getSubjectCategory(pSubj, '1학년');
+              if (cId === cat.id && !priorSubjectsInCat.includes(pSubj)) {
+                priorSubjectsInCat.push(pSubj);
+              }
+            });
+          }
 
           // 2단계: 수강신청 조사 파일 중 '선택' 과목만 해당 교과군 과목 탐색 ('지정' 제외)
           let surveyPool = [];
@@ -688,9 +710,23 @@
           let allSubjectsInCat = [];
           let poolType = 'cumulative';
 
-          if (cat.targetSemester === '1' || cat.targetSemester === '2') {
-            // 특정 학기(1학기 또는 2학기) 지정 조건: 당해 학년 수강신청 조사의 해당 학기 과목 기준
-            allSubjectsInCat = [...chosenSubjectsInCat];
+          if (cat.targetSemester === '1') {
+            const combinedSet = new Set(chosenSubjectsInCat);
+            priorSem1SubjectsInCat.forEach(pSubj => {
+              const normP = (typeof normalizeSubject === 'function') ? normalizeSubject(pSubj) : pSubj;
+              const alreadyHas = Array.from(combinedSet).some(cs => ((typeof normalizeSubject === 'function') ? normalizeSubject(cs) : cs) === normP);
+              if (!alreadyHas) combinedSet.add(pSubj);
+            });
+            allSubjectsInCat = Array.from(combinedSet);
+            poolType = 'current';
+          } else if (cat.targetSemester === '2') {
+            const combinedSet = new Set(chosenSubjectsInCat);
+            priorSem2SubjectsInCat.forEach(pSubj => {
+              const normP = (typeof normalizeSubject === 'function') ? normalizeSubject(pSubj) : pSubj;
+              const alreadyHas = Array.from(combinedSet).some(cs => ((typeof normalizeSubject === 'function') ? normalizeSubject(cs) : cs) === normP);
+              if (!alreadyHas) combinedSet.add(pSubj);
+            });
+            allSubjectsInCat = Array.from(combinedSet);
             poolType = 'current';
           } else {
             // 연간/전체 조건: 사전 데이터(기이수) + 수강신청 조사(선택) 모두 합산 인정!
@@ -748,15 +784,18 @@
           }
 
           const dynamicRuleDesc = formatStep3RuleDesc(cat);
+          const effectivePriorCount = (cat.targetSemester === '1' ? priorSem1SubjectsInCat.length : (cat.targetSemester === '2' ? priorSem2SubjectsInCat.length : priorSubjectsInCat.length));
+          const effectivePriorSubjs = (cat.targetSemester === '1' ? priorSem1SubjectsInCat : (cat.targetSemester === '2' ? priorSem2SubjectsInCat : priorSubjectsInCat));
+
           const evalItem = {
             category: cat,
             poolType: poolType,
             ruleDesc: dynamicRuleDesc,
             count: count,
             chosenCount: chosenSubjectsInCat.length,
-            priorCount: priorSubjectsInCat.length,
+            priorCount: effectivePriorCount,
             subjects: chosenSubjectsInCat,
-            priorSubjects: priorSubjectsInCat,
+            priorSubjects: effectivePriorSubjs,
             allSubjects: allSubjectsInCat,
             isViolated: isViolated,
             reason: reason
@@ -2455,16 +2494,17 @@
           if (norm) designatedSubjNormSet.add(norm);
         }
       });
-      const isDesignated = (s, org) => {
+      const isDesignated = (s, org, source) => {
         if (!s) return false;
-        if (org && (org.includes('지정') || org.includes('학교지정'))) return true;
+        // 학생편성현황은 편제명(organization)에 '필수이수' 등이 기재될 수 있으므로, 순수 편제표상 학교지정 과목명으로만 판별
+        if (source !== '학생편성현황' && org && (org.includes('학교지정') || org === '지정')) return true;
         const norm = (typeof normalizeSubject === 'function') ? normalizeSubject(s) : s;
         return designatedSubjNormSet.has(norm);
       };
 
       // 기이수 과목 중 '지정' 과목은 화면에 표시하지 않고 보존, '선택' 과목만 편집 목록에 노출
-      const visibleElectiveDetails = allDetails.filter(cd => !isDesignated(cd.subject || cd.rawSubject, cd.organization));
-      const preservedDesignatedDetails = allDetails.filter(cd => isDesignated(cd.subject || cd.rawSubject, cd.organization));
+      const visibleElectiveDetails = allDetails.filter(cd => !isDesignated(cd.subject || cd.rawSubject, cd.organization, cd.source));
+      const preservedDesignatedDetails = allDetails.filter(cd => isDesignated(cd.subject || cd.rawSubject, cd.organization, cd.source));
 
       _currentPriorEditingStudent = {
         grade: stGrade,
@@ -4379,11 +4419,15 @@
 
         if (priorSt && Array.isArray(priorSt.courseDetails)) {
           priorSt.courseDetails.forEach(cd => {
-            const g = (cd.grade || '').replace(/[^1-3]/g, '') || '2';
-            const s = String(cd.semester || '1').replace(/[^1-2]/g, '') || '1';
+            let g = (cd.grade || '').replace(/[^1-3]/g, '') || '2';
+            let s = String(cd.semester || '1').replace(/[^1-2]/g, '') || '1';
+            if (cd.uploadSem === 2 || cd.source === '학생편성현황') {
+              g = '2';
+              s = '2';
+            }
             const key = `${g}-${s}`;
             if (credits[key] !== undefined) {
-              credits[key] += (parseFloat(cd.credit) || 4);
+              credits[key] += (parseFloat(cd.credit) || (creditMap.get(cd.subject) || 4));
             }
           });
         }

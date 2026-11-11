@@ -131,8 +131,8 @@
         if (Array.isArray(st.courseDetails) && st.courseDetails.length > 0) {
           st.courseDetails.forEach(cd => {
             if (!cd) return;
-            const sNum = Number(cd.uploadSem || cd.semester || 1);
-            if (sNum === 2 || cd.source === '학생편성현황') {
+            const isSem2 = (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2);
+            if (isSem2) {
               sem2Rec++;
               sem2StSet.add(stKey);
             } else {
@@ -457,14 +457,13 @@
           }
         });
 
-        if (details.length > 0) {
-          cleanedStudents.push({
-            ...st,
-            subjects: Array.from(normSet),
-            rawSubjects: rawList,
-            courseDetails: details
-          });
-        }
+        // 세부 과목 기록이 없더라도 등록된 학생(명부)은 절대 누락/탈락시키지 않고 보존
+        cleanedStudents.push({
+          ...st,
+          subjects: Array.from(normSet),
+          rawSubjects: rawList,
+          courseDetails: details
+        });
       });
 
       const coursesList = Array.from(courseCatalogMap.values());
@@ -475,10 +474,10 @@
       return {
         fileName: fileParts.join(' + ') || meta.fallbackFileName || '사전데이터.xlsx',
         sem1FileName: meta.sem1FileName || '',
-        sem1StudentCount: meta.sem1StudentCount || 0,
+        sem1StudentCount: meta.sem1StudentCount || cleanedStudents.length,
         sem1RecordCount: meta.sem1RecordCount || 0,
         sem2FileName: meta.sem2FileName || '',
-        sem2StudentCount: meta.sem2StudentCount || 0,
+        sem2StudentCount: meta.sem2StudentCount || cleanedStudents.length,
         sem2RecordCount: meta.sem2RecordCount || 0,
         students: cleanedStudents,
         totalRecords,
@@ -500,13 +499,14 @@
         }
       }
 
-      // 2) 2행의 단일 헤더 항목 확인
+      // 2) 2행의 단일 헤더 항목 확인 (편제/개설강의실/계열/학과 등 학생편성현황 고유 열 항목 확인)
+      // 주의: '학년도'는 일반 교과학습발달상황에도 포함되므로 placement 식별용으로는 제외
       for (let r = 0; r < Math.min(rows.length, 10); r++) {
         const row = (rows[r] || []).map(c => String(c || '').replace(/\s+/g, ''));
         const hasCourse = row.some(c => /개설과목|과목명|^과목$/.test(c));
         const hasStudent = row.some(c => /^성명$|^이름$/.test(c));
         const hasClass = row.some(c => /^반$|^반\(/.test(c));
-        const hasPlacementField = row.some(c => /편제|개설강의실|강의실|계열.*학과|학년도/.test(c));
+        const hasPlacementField = row.some(c => /편제명|편제|개설강의실|강의실|계열.*학과/.test(c));
 
         if (hasCourse && hasStudent && hasClass && hasPlacementField) {
           return { isPlacement: true, headerRowIdx: r };
@@ -584,8 +584,6 @@
             sem2Courses: []
           });
         }
-
-        if (activeG === '2학년') return; // 현 1학년 대상 명부는 학생 정보만 취합
 
         if (subjectVal) {
           let creditVal = 0;
@@ -702,9 +700,10 @@
           }
         }
 
-        // 헤더 행 탐색 (상단 35행까지 유연 탐색)
+        // 헤더 행 탐색 (상단 35행까지 유연 탐색 및 2행 결합 헤더 지원)
         let headerRowIndex = -1;
         let colNum = -1, colName = -1, colClass = -1, colGrade = -1, colSem = -1, colCat = -1, colSubj = -1, colCredit = -1;
+        let fallbackHeader = null;
 
         for (let r = 0; r < Math.min(rows.length, 35); r++) {
           const row = (rows[r] || []).map(c => String(c || '').replace(/\s+/g, ''));
@@ -713,16 +712,41 @@
           row.forEach((h, idx) => {
             if (/번호|학번|순번|연번/.test(h) && !/주민|전화|핸드폰|휴대/.test(h)) tempNum = idx;
             else if (/성명|이름|학생명/.test(h)) tempName = idx;
-            else if (/^반$|^학급$|^반\(/.test(h)) tempClass = idx;
-            else if (/^학년$|^학년\(/.test(h)) tempGrade = idx;
-            else if (/^학기$|^학기\(/.test(h)) tempSem = idx;
-            else if (/교과목|^과목$|과목명|개설과목/.test(h)) tempSubj = idx;
-            else if (/학점|단위수|^단위$|이수학점|이수단위|시수/.test(h)) tempCredit = idx;
+            else if (/^반$|^학급$|^반\(|학급반/.test(h)) tempClass = idx;
+            else if (/^학년$|^학년\(|이수학년/.test(h)) tempGrade = idx;
+            else if (/^학기$|^학기\(|이수학기/.test(h)) tempSem = idx;
+            else if (/교과목|^과목$|과목명|개설과목|교과·과목|교과\/과목/.test(h)) tempSubj = idx;
+            else if (/학점|단위수|^단위$|이수학점|이수단위|시수|단위\(학점\)/.test(h)) tempCredit = idx;
             else if (/^교과$|^교과군$/.test(h)) tempCat = idx;
           });
 
-          // 번호와 성명(또는 이름) 열이 함께 있으면 명부/교과학습발달상황 헤더로 확정!
-          if (tempNum !== -1 && tempName !== -1) {
+          // 다중 행 헤더 지원: 다음 행(r+1)에 과목명이나 단위수가 있는 경우 병합 감지
+          if (tempNum !== -1 && tempName !== -1 && tempSubj === -1 && r + 1 < rows.length) {
+            const nextRow = (rows[r + 1] || []).map(c => String(c || '').replace(/\s+/g, ''));
+            nextRow.forEach((h, idx) => {
+              if (tempSubj === -1 && /교과목|^과목$|과목명|개설과목|교과·과목|교과\/과목/.test(h)) tempSubj = idx;
+              if (tempCredit === -1 && /학점|단위수|^단위$|이수학점|이수단위|시수|단위\(학점\)/.test(h)) tempCredit = idx;
+              if (tempSem === -1 && /^학기$|^학기\(|이수학기/.test(h)) tempSem = idx;
+              if (tempGrade === -1 && /^학년$|^학년\(|이수학년/.test(h)) tempGrade = idx;
+              if (tempCat === -1 && /^교과$|^교과군$/.test(h)) tempCat = idx;
+              if (tempClass === -1 && /^반$|^학급$|^반\(|학급반/.test(h)) tempClass = idx;
+            });
+            if (tempSubj !== -1) {
+              headerRowIndex = r + 1;
+              colNum = tempNum;
+              colName = tempName;
+              colClass = tempClass;
+              colGrade = tempGrade;
+              colSem = tempSem;
+              colSubj = tempSubj;
+              colCredit = tempCredit;
+              colCat = tempCat;
+              break;
+            }
+          }
+
+          // 단일 행에서 번호 + 성명 + 과목명이 모두 있는 완전한 헤더 발견 시 즉시 확정
+          if (tempNum !== -1 && tempName !== -1 && tempSubj !== -1) {
             headerRowIndex = r;
             colNum = tempNum;
             colName = tempName;
@@ -734,21 +758,45 @@
             colCat = tempCat;
             break;
           }
+
+          // 번호와 성명만 있는 행은 후보로 기록하고 계속 탐색 (과목명이 포함된 더 적합한 헤더 행 탐색)
+          if (tempNum !== -1 && tempName !== -1 && !fallbackHeader) {
+            fallbackHeader = {
+              r, tempNum, tempName, tempClass, tempGrade, tempSem, tempSubj, tempCredit, tempCat
+            };
+          }
+        }
+
+        // 과목명이 포함된 완전한 헤더를 찾지 못한 경우 번호+성명 후보 행 적용
+        if (headerRowIndex === -1 && fallbackHeader) {
+          headerRowIndex = fallbackHeader.r;
+          colNum = fallbackHeader.tempNum;
+          colName = fallbackHeader.tempName;
+          colClass = fallbackHeader.tempClass;
+          colGrade = fallbackHeader.tempGrade;
+          colSem = fallbackHeader.tempSem;
+          colSubj = fallbackHeader.tempSubj;
+          colCredit = fallbackHeader.tempCredit;
+          colCat = fallbackHeader.tempCat;
         }
 
         // 헤더를 못 찾았을 경우 시트 전체에서 번호+성명 탐색 폴백
         if (headerRowIndex === -1) {
           for (let r = 0; r < rows.length; r++) {
             const row = (rows[r] || []).map(c => String(c || '').replace(/\s+/g, ''));
-            let tempNum = -1, tempName = -1;
+            let tempNum = -1, tempName = -1, tempSubj = -1, tempCredit = -1;
             row.forEach((h, idx) => {
               if (/번호|학번|순번/.test(h) && !/주민|전화/.test(h)) tempNum = idx;
               else if (/성명|이름/.test(h)) tempName = idx;
+              else if (/교과목|^과목$|과목명|개설과목/.test(h)) tempSubj = idx;
+              else if (/학점|단위수|^단위$|이수학점|이수단위|시수/.test(h)) tempCredit = idx;
             });
             if (tempNum !== -1 && tempName !== -1) {
               headerRowIndex = r;
               colNum = tempNum;
               colName = tempName;
+              colSubj = tempSubj;
+              colCredit = tempCredit;
               break;
             }
           }
@@ -894,13 +942,16 @@
       let containsSem2 = false;
       allParsedStudents.forEach(st => {
         (st.courseDetails || []).forEach(cd => {
-          if (cd.uploadSem === 2 || cd.source === '학생편성현황') containsSem2 = true;
+          if (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2) containsSem2 = true;
           else containsSem1 = true;
         });
       });
       if (targetSemester === 1) containsSem1 = true;
       if (targetSemester === 2) containsSem2 = true;
       if (!containsSem1 && !containsSem2) containsSem1 = true;
+
+      const isSem2Course = cd => (cd.source === '학생편성현황' || Number(cd.uploadSem) === 2);
+      const isSem1Course = cd => !isSem2Course(cd);
 
       const mergedStudentsMap = new Map();
 
@@ -913,14 +964,14 @@
 
           if (activeG === '3학년') {
             // 3학년 모드:
-            // 1학기 업로드 시 해당 반의 기존 1학기 이력만 교체하고 2학기 편성은 완벽 보존!
+            // 1학기 업로드 시 해당 반의 기존 1학기 이력만 교체하고 2학기 편성은 완벽 보존! (업로드되지 않은 반은 1·2학기 모두 온전 보존!)
             if (containsSem1 && !containsSem2 && uploadedClasses.has(String(stClone.classNum))) {
-              stClone.courseDetails = (stClone.courseDetails || []).filter(cd => Number(cd.uploadSem || cd.semester || 1) === 2 || cd.source === '학생편성현황');
+              stClone.courseDetails = (stClone.courseDetails || []).filter(isSem2Course);
               stClone.sem1Courses = [];
             }
-            // 2학기 업로드 시 기존 2학기 편성을 교체하고 1학기 이력은 완벽 보존!
-            if (containsSem2 && !containsSem1) {
-              stClone.courseDetails = (stClone.courseDetails || []).filter(cd => Number(cd.uploadSem || cd.semester || 1) !== 2 && cd.source !== '학생편성현황');
+            // 2학기 업로드 시 해당 반의 기존 2학기 편성을 교체하고 1학기 이력은 완벽 보존! (업로드되지 않은 반은 1·2학기 모두 온전 보존!)
+            if (containsSem2 && !containsSem1 && uploadedClasses.has(String(stClone.classNum))) {
+              stClone.courseDetails = (stClone.courseDetails || []).filter(isSem1Course);
               stClone.sem2Courses = [];
             }
             // 1·2학기 동시 업로드된 경우: 해당 반의 1·2학기 모두 교체
