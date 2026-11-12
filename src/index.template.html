@@ -1689,6 +1689,13 @@
                 <button id="btnUndoSubjectSwap" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="방금 수행한 과목 맞교환을 되돌립니다">
                   <span>↩️ 교환 취소</span>
                 </button>
+                <!-- Student Choice Batch Edit Mode Toggle Button -->
+                <button id="btnToggleStudentBatchEdit" type="button" onclick="window.toggleStudentBatchEditMode();" class="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="클릭 시 렉 없이 과목을 자유롭게 수강신청/취소할 수 있는 수강 변경 모드를 시작합니다">
+                  <span>✏️ 수강 변경</span>
+                </button>
+                <button id="btnCancelStudentBatchEdit" type="button" onclick="window.cancelStudentBatchEditMode();" class="hidden px-2 py-1.5 text-xs font-bold text-slate-600 hover:text-rose-700 bg-slate-100 hover:bg-rose-50 border border-slate-200 rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer" title="변경 중인 내용을 적용하지 않고 원래대로 되돌립니다">
+                  <span>✕ 취소</span>
+                </button>
                 <!-- Reset Filter/Sort Button -->
                 <button id="btnResetTableFilterSort" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 shadow-2xs transition" title="필터 및 정렬 초기화">
                   필터/정렬 초기화 ✕
@@ -1728,6 +1735,30 @@
               </button>
               <button id="btnExitSwapMode" type="button" class="px-2.5 py-1 text-xs font-bold bg-white text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-300 shadow-2xs transition">
                 교환 모드 종료 ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- Student Batch Edit Mode Status Banner (Hidden by default) -->
+          <div id="studentBatchEditBanner" class="hidden bg-emerald-50 border-2 border-emerald-400 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-xs transition-all">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl shrink-0 animate-pulse">⚡</span>
+              <div>
+                <p class="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                  <span>[수강 변경 모드 진행 중]</span>
+                  <span id="studentBatchEditCountBadge" class="px-2 py-0.2 rounded-full text-[10px] font-black bg-emerald-200 text-emerald-900 border border-emerald-300">0건 변경 대기 중</span>
+                </p>
+                <p class="text-[11px] text-emerald-800 mt-0.5">
+                  연동 연산이 멈춰 있어 <strong>지체(렉) 없이 즉시</strong> 과목을 클릭하여 수정할 수 있습니다. 수정을 마치신 후 <strong>[✅ 변경 완료]</strong>를 누르면 한 번에 계산되어 적용됩니다.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="window.commitStudentBatchEditMode();" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-lg shadow-xs transition cursor-pointer flex items-center gap-1">
+                <span>✅ 변경 완료 (적용)</span>
+              </button>
+              <button type="button" onclick="window.cancelStudentBatchEditMode();" class="px-2.5 py-1.5 bg-white hover:bg-rose-50 text-rose-700 text-xs font-bold rounded-lg border border-rose-300 shadow-2xs transition cursor-pointer">
+                <span>✕ 취소</span>
               </button>
             </div>
           </div>

@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.12_04:39)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.13_10:50)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.11_16:15)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.13_10:50)</span></p>
         </div>
       </div>
 
@@ -1689,6 +1689,13 @@
                 <button id="btnUndoSubjectSwap" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="방금 수행한 과목 맞교환을 되돌립니다">
                   <span>↩️ 교환 취소</span>
                 </button>
+                <!-- Student Choice Batch Edit Mode Toggle Button -->
+                <button id="btnToggleStudentBatchEdit" type="button" onclick="window.toggleStudentBatchEditMode();" class="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="클릭 시 렉 없이 과목을 자유롭게 수강신청/취소할 수 있는 수강 변경 모드를 시작합니다">
+                  <span>✏️ 수강 변경</span>
+                </button>
+                <button id="btnCancelStudentBatchEdit" type="button" onclick="window.cancelStudentBatchEditMode();" class="hidden px-2 py-1.5 text-xs font-bold text-slate-600 hover:text-rose-700 bg-slate-100 hover:bg-rose-50 border border-slate-200 rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer" title="변경 중인 내용을 적용하지 않고 원래대로 되돌립니다">
+                  <span>✕ 취소</span>
+                </button>
                 <!-- Reset Filter/Sort Button -->
                 <button id="btnResetTableFilterSort" type="button" class="hidden px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 shadow-2xs transition" title="필터 및 정렬 초기화">
                   필터/정렬 초기화 ✕
@@ -1728,6 +1735,30 @@
               </button>
               <button id="btnExitSwapMode" type="button" class="px-2.5 py-1 text-xs font-bold bg-white text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-300 shadow-2xs transition">
                 교환 모드 종료 ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- Student Batch Edit Mode Status Banner (Hidden by default) -->
+          <div id="studentBatchEditBanner" class="hidden bg-emerald-50 border-2 border-emerald-400 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-xs transition-all">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl shrink-0 animate-pulse">⚡</span>
+              <div>
+                <p class="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                  <span>[수강 변경 모드 진행 중]</span>
+                  <span id="studentBatchEditCountBadge" class="px-2 py-0.2 rounded-full text-[10px] font-black bg-emerald-200 text-emerald-900 border border-emerald-300">0건 변경 대기 중</span>
+                </p>
+                <p class="text-[11px] text-emerald-800 mt-0.5">
+                  연동 연산이 멈춰 있어 <strong>지체(렉) 없이 즉시</strong> 과목을 클릭하여 수정할 수 있습니다. 수정을 마치신 후 <strong>[✅ 변경 완료]</strong>를 누르면 한 번에 계산되어 적용됩니다.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="window.commitStudentBatchEditMode();" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-lg shadow-xs transition cursor-pointer flex items-center gap-1">
+                <span>✅ 변경 완료 (적용)</span>
+              </button>
+              <button type="button" onclick="window.cancelStudentBatchEditMode();" class="px-2.5 py-1.5 bg-white hover:bg-rose-50 text-rose-700 text-xs font-bold rounded-lg border border-rose-300 shadow-2xs transition cursor-pointer">
+                <span>✕ 취소</span>
               </button>
             </div>
           </div>
@@ -8308,6 +8339,11 @@
         MultiState._lastStep1Or2 = step;
       }
 
+      // 다른 단계로 이동 시 수강 변경 모드가 활성화되어 있다면 자동 커밋하여 변경사항 안전 보존
+      if (window._studentBatchEditMode && typeof window.commitStudentBatchEditMode === 'function') {
+        window.commitStudentBatchEditMode();
+      }
+
       // '전체 시수종합' 상태에서 단계(1·2·3단계) 전환 시 마지막 학년(기본 2학년) 컨텍스트를 먼저 복원
       if (MultiState.activeGrade === '전체') {
         const restoreGrade = (MultiState._lastActiveGrade === '3학년') ? '3학년' : '2학년';
@@ -8628,6 +8664,11 @@
       const st = (AppState.students || []).find(s => s.id === studentId);
       if (!st) return;
 
+      // 2단계 시간표에서 과목 클릭 시 변경 모드가 꺼져있다면 자동 진입하여 멈춤(렉) 원천 방지
+      if (AppState.activeStep === 2 && !window._studentBatchEditMode && typeof window.enterStudentBatchEditMode === 'function') {
+        window.enterStudentBatchEditMode(true);
+      }
+
       // Ensure orig baseline is initialized
       if (!st.origSem1) st.origSem1 = [...(st.sem1 || [])];
       if (!st.origSem2) st.origSem2 = [...(st.sem2 || [])];
@@ -8653,6 +8694,18 @@
             custom[g] = custom[g].filter(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) !== normTarget);
           });
         }
+      }
+
+      // [수강 변경 모드 활성화 상태]: 연동 연산(로컬저장, 교차분석, 1·3단계 렌더링)을 배제하고 즉시 2단계 화면만 갱신 (지체 0초)
+      if (window._studentBatchEditMode) {
+        window._batchEditChangesCount = (window._batchEditChangesCount || 0) + 1;
+        if (typeof window.updateStudentBatchEditUI === 'function') {
+          window.updateStudentBatchEditUI();
+        }
+        if (AppState.currentPlan) {
+          renderStep2Results();
+        }
+        return;
       }
 
       runCrossCheckAnalysis();
@@ -8694,6 +8747,17 @@
 
       if (AppState.currentPlan && AppState.currentPlan.customAssignments) {
         delete AppState.currentPlan.customAssignments[studentId];
+      }
+
+      if (window._studentBatchEditMode) {
+        window._batchEditChangesCount = (window._batchEditChangesCount || 0) + 1;
+        if (typeof window.updateStudentBatchEditUI === 'function') {
+          window.updateStudentBatchEditUI();
+        }
+        if (AppState.currentPlan) {
+          renderStep2Results();
+        }
+        return;
       }
 
       runCrossCheckAnalysis();
@@ -14348,6 +14412,115 @@
         }
       }
     }
+
+    // ==========================================
+    // 2단계 학생 수강 변경 일괄 편집 모드 (Batch Edit Mode)
+    // ==========================================
+    window._studentBatchEditMode = false;
+    window._batchEditChangesCount = 0;
+    window._batchEditInitialSnapshot = null;
+    window._batchEditInitialCustomAssignments = null;
+
+    window.enterStudentBatchEditMode = function(silent = false) {
+      if (window._studentBatchEditMode) return;
+      window._studentBatchEditMode = true;
+      window._batchEditChangesCount = 0;
+      window._batchEditInitialSnapshot = JSON.parse(JSON.stringify(AppState.students || []));
+      if (AppState.currentPlan && AppState.currentPlan.customAssignments) {
+        window._batchEditInitialCustomAssignments = JSON.parse(JSON.stringify(AppState.currentPlan.customAssignments));
+      } else {
+        window._batchEditInitialCustomAssignments = null;
+      }
+      window.updateStudentBatchEditUI();
+      if (!silent) {
+        const banner = document.getElementById('studentBatchEditBanner');
+        if (banner) {
+          banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    };
+
+    window.commitStudentBatchEditMode = function() {
+      const count = window._batchEditChangesCount || 0;
+      window._studentBatchEditMode = false;
+      window._batchEditInitialSnapshot = null;
+      window._batchEditInitialCustomAssignments = null;
+      window._batchEditChangesCount = 0;
+      window.updateStudentBatchEditUI();
+
+      if (count > 0) {
+        // 단 1번만 일괄 연동 연산 및 영구 저장 실행
+        if (typeof runCrossCheckAnalysis === 'function') runCrossCheckAnalysis();
+        if (typeof saveAllState === 'function') saveAllState();
+        if (typeof renderStep1 === 'function') renderStep1();
+        if (AppState.currentPlan) renderStep2Results();
+        window._step3LastValidationResult = null;
+        if (typeof runStep3Validation === 'function') runStep3Validation(false);
+        if (typeof renderYearGradeNav === 'function') renderYearGradeNav();
+
+        alert(`✅ 총 ${count}건의 수강 변경 사항이 한 번에 성공적으로 반영되었습니다!`);
+      } else {
+        if (AppState.currentPlan) renderStep2Results();
+      }
+    };
+
+    window.cancelStudentBatchEditMode = function() {
+      const count = window._batchEditChangesCount || 0;
+      if (count > 0) {
+        if (!confirm(`수강 변경 모드에서 수정한 내용(${count}건)을 모두 취소하고 원래 상태로 되돌리시겠습니까?`)) {
+          return;
+        }
+        if (window._batchEditInitialSnapshot) {
+          AppState.students = JSON.parse(JSON.stringify(window._batchEditInitialSnapshot));
+        }
+        if (AppState.currentPlan && window._batchEditInitialCustomAssignments) {
+          AppState.currentPlan.customAssignments = JSON.parse(JSON.stringify(window._batchEditInitialCustomAssignments));
+        }
+      }
+
+      window._studentBatchEditMode = false;
+      window._batchEditInitialSnapshot = null;
+      window._batchEditInitialCustomAssignments = null;
+      window._batchEditChangesCount = 0;
+      window.updateStudentBatchEditUI();
+
+      if (AppState.currentPlan) renderStep2Results();
+    };
+
+    window.toggleStudentBatchEditMode = function() {
+      if (window._studentBatchEditMode) {
+        window.commitStudentBatchEditMode();
+      } else {
+        window.enterStudentBatchEditMode(false);
+      }
+    };
+
+    window.updateStudentBatchEditUI = function() {
+      const btnToggle = document.getElementById('btnToggleStudentBatchEdit');
+      const btnCancel = document.getElementById('btnCancelStudentBatchEdit');
+      const banner = document.getElementById('studentBatchEditBanner');
+      const bannerCount = document.getElementById('studentBatchEditCountBadge');
+
+      if (!btnToggle) return;
+
+      if (window._studentBatchEditMode) {
+        const count = window._batchEditChangesCount || 0;
+        btnToggle.className = 'px-3 py-1.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 border-2 border-emerald-500 rounded-lg shadow-xs transition flex items-center gap-1.5 ring-2 ring-emerald-300 cursor-pointer animate-pulse';
+        btnToggle.innerHTML = `<span>✅ 변경 완료</span>${count > 0 ? `<span class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-white text-emerald-800 shadow-2xs">${count}건</span>` : ''}`;
+        btnToggle.title = '수강 변경 작업을 마치고 모든 연동 데이터에 한 번에 적용합니다.';
+
+        if (btnCancel) btnCancel.classList.remove('hidden');
+        if (banner) banner.classList.remove('hidden');
+        if (bannerCount) bannerCount.textContent = `${count}건 변경 대기 중`;
+      } else {
+        btnToggle.className = 'px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer';
+        btnToggle.innerHTML = '<span>✏️ 수강 변경</span>';
+        btnToggle.title = '클릭 시 렉 없이 과목을 자유롭게 수강신청/취소할 수 있는 수강 변경 모드를 시작합니다.';
+
+        if (btnCancel) btnCancel.classList.add('hidden');
+        if (banner) banner.classList.add('hidden');
+      }
+    };
 
     window.handleSubjectSwapClick = function(sName, gIdx) {
       const plan = AppState.currentPlan;

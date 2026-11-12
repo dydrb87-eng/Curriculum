@@ -16,6 +16,11 @@
         MultiState._lastStep1Or2 = step;
       }
 
+      // 다른 단계로 이동 시 수강 변경 모드가 활성화되어 있다면 자동 커밋하여 변경사항 안전 보존
+      if (window._studentBatchEditMode && typeof window.commitStudentBatchEditMode === 'function') {
+        window.commitStudentBatchEditMode();
+      }
+
       // '전체 시수종합' 상태에서 단계(1·2·3단계) 전환 시 마지막 학년(기본 2학년) 컨텍스트를 먼저 복원
       if (MultiState.activeGrade === '전체') {
         const restoreGrade = (MultiState._lastActiveGrade === '3학년') ? '3학년' : '2학년';
@@ -336,6 +341,11 @@
       const st = (AppState.students || []).find(s => s.id === studentId);
       if (!st) return;
 
+      // 2단계 시간표에서 과목 클릭 시 변경 모드가 꺼져있다면 자동 진입하여 멈춤(렉) 원천 방지
+      if (AppState.activeStep === 2 && !window._studentBatchEditMode && typeof window.enterStudentBatchEditMode === 'function') {
+        window.enterStudentBatchEditMode(true);
+      }
+
       // Ensure orig baseline is initialized
       if (!st.origSem1) st.origSem1 = [...(st.sem1 || [])];
       if (!st.origSem2) st.origSem2 = [...(st.sem2 || [])];
@@ -361,6 +371,18 @@
             custom[g] = custom[g].filter(s => normalizeSubject(s.replace(/-[A-Z]$/, '')) !== normTarget);
           });
         }
+      }
+
+      // [수강 변경 모드 활성화 상태]: 연동 연산(로컬저장, 교차분석, 1·3단계 렌더링)을 배제하고 즉시 2단계 화면만 갱신 (지체 0초)
+      if (window._studentBatchEditMode) {
+        window._batchEditChangesCount = (window._batchEditChangesCount || 0) + 1;
+        if (typeof window.updateStudentBatchEditUI === 'function') {
+          window.updateStudentBatchEditUI();
+        }
+        if (AppState.currentPlan) {
+          renderStep2Results();
+        }
+        return;
       }
 
       runCrossCheckAnalysis();
@@ -402,6 +424,17 @@
 
       if (AppState.currentPlan && AppState.currentPlan.customAssignments) {
         delete AppState.currentPlan.customAssignments[studentId];
+      }
+
+      if (window._studentBatchEditMode) {
+        window._batchEditChangesCount = (window._batchEditChangesCount || 0) + 1;
+        if (typeof window.updateStudentBatchEditUI === 'function') {
+          window.updateStudentBatchEditUI();
+        }
+        if (AppState.currentPlan) {
+          renderStep2Results();
+        }
+        return;
       }
 
       runCrossCheckAnalysis();

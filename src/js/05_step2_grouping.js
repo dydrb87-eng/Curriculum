@@ -2056,6 +2056,115 @@
       }
     }
 
+    // ==========================================
+    // 2단계 학생 수강 변경 일괄 편집 모드 (Batch Edit Mode)
+    // ==========================================
+    window._studentBatchEditMode = false;
+    window._batchEditChangesCount = 0;
+    window._batchEditInitialSnapshot = null;
+    window._batchEditInitialCustomAssignments = null;
+
+    window.enterStudentBatchEditMode = function(silent = false) {
+      if (window._studentBatchEditMode) return;
+      window._studentBatchEditMode = true;
+      window._batchEditChangesCount = 0;
+      window._batchEditInitialSnapshot = JSON.parse(JSON.stringify(AppState.students || []));
+      if (AppState.currentPlan && AppState.currentPlan.customAssignments) {
+        window._batchEditInitialCustomAssignments = JSON.parse(JSON.stringify(AppState.currentPlan.customAssignments));
+      } else {
+        window._batchEditInitialCustomAssignments = null;
+      }
+      window.updateStudentBatchEditUI();
+      if (!silent) {
+        const banner = document.getElementById('studentBatchEditBanner');
+        if (banner) {
+          banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    };
+
+    window.commitStudentBatchEditMode = function() {
+      const count = window._batchEditChangesCount || 0;
+      window._studentBatchEditMode = false;
+      window._batchEditInitialSnapshot = null;
+      window._batchEditInitialCustomAssignments = null;
+      window._batchEditChangesCount = 0;
+      window.updateStudentBatchEditUI();
+
+      if (count > 0) {
+        // 단 1번만 일괄 연동 연산 및 영구 저장 실행
+        if (typeof runCrossCheckAnalysis === 'function') runCrossCheckAnalysis();
+        if (typeof saveAllState === 'function') saveAllState();
+        if (typeof renderStep1 === 'function') renderStep1();
+        if (AppState.currentPlan) renderStep2Results();
+        window._step3LastValidationResult = null;
+        if (typeof runStep3Validation === 'function') runStep3Validation(false);
+        if (typeof renderYearGradeNav === 'function') renderYearGradeNav();
+
+        alert(`✅ 총 ${count}건의 수강 변경 사항이 한 번에 성공적으로 반영되었습니다!`);
+      } else {
+        if (AppState.currentPlan) renderStep2Results();
+      }
+    };
+
+    window.cancelStudentBatchEditMode = function() {
+      const count = window._batchEditChangesCount || 0;
+      if (count > 0) {
+        if (!confirm(`수강 변경 모드에서 수정한 내용(${count}건)을 모두 취소하고 원래 상태로 되돌리시겠습니까?`)) {
+          return;
+        }
+        if (window._batchEditInitialSnapshot) {
+          AppState.students = JSON.parse(JSON.stringify(window._batchEditInitialSnapshot));
+        }
+        if (AppState.currentPlan && window._batchEditInitialCustomAssignments) {
+          AppState.currentPlan.customAssignments = JSON.parse(JSON.stringify(window._batchEditInitialCustomAssignments));
+        }
+      }
+
+      window._studentBatchEditMode = false;
+      window._batchEditInitialSnapshot = null;
+      window._batchEditInitialCustomAssignments = null;
+      window._batchEditChangesCount = 0;
+      window.updateStudentBatchEditUI();
+
+      if (AppState.currentPlan) renderStep2Results();
+    };
+
+    window.toggleStudentBatchEditMode = function() {
+      if (window._studentBatchEditMode) {
+        window.commitStudentBatchEditMode();
+      } else {
+        window.enterStudentBatchEditMode(false);
+      }
+    };
+
+    window.updateStudentBatchEditUI = function() {
+      const btnToggle = document.getElementById('btnToggleStudentBatchEdit');
+      const btnCancel = document.getElementById('btnCancelStudentBatchEdit');
+      const banner = document.getElementById('studentBatchEditBanner');
+      const bannerCount = document.getElementById('studentBatchEditCountBadge');
+
+      if (!btnToggle) return;
+
+      if (window._studentBatchEditMode) {
+        const count = window._batchEditChangesCount || 0;
+        btnToggle.className = 'px-3 py-1.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 border-2 border-emerald-500 rounded-lg shadow-xs transition flex items-center gap-1.5 ring-2 ring-emerald-300 cursor-pointer animate-pulse';
+        btnToggle.innerHTML = `<span>✅ 변경 완료</span>${count > 0 ? `<span class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-white text-emerald-800 shadow-2xs">${count}건</span>` : ''}`;
+        btnToggle.title = '수강 변경 작업을 마치고 모든 연동 데이터에 한 번에 적용합니다.';
+
+        if (btnCancel) btnCancel.classList.remove('hidden');
+        if (banner) banner.classList.remove('hidden');
+        if (bannerCount) bannerCount.textContent = `${count}건 변경 대기 중`;
+      } else {
+        btnToggle.className = 'px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer';
+        btnToggle.innerHTML = '<span>✏️ 수강 변경</span>';
+        btnToggle.title = '클릭 시 렉 없이 과목을 자유롭게 수강신청/취소할 수 있는 수강 변경 모드를 시작합니다.';
+
+        if (btnCancel) btnCancel.classList.add('hidden');
+        if (banner) banner.classList.add('hidden');
+      }
+    };
+
     window.handleSubjectSwapClick = function(sName, gIdx) {
       const plan = AppState.currentPlan;
       if (!plan) return;
