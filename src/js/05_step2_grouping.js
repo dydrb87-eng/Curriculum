@@ -4013,7 +4013,7 @@
         pageSetUpPr: { fitToPage: true }
       };
 
-      // 2. 보기 방식: '페이지 레이아웃' 및 E6 기준 틀고정 (행 1~5, 열 A~D 고정)
+      // 2. E6 기준 틀고정 (행 1~5, 열 A~D 고정: 스크롤 시 반/번호/이름 및 상단 헤더 고정 유지)
       wsTT['!freeze'] = {
         xSplit: 4,
         ySplit: 5,
@@ -4021,7 +4021,6 @@
       };
       wsTT['!views'] = [
         {
-          view: 'pageLayout',
           state: 'frozen',
           xSplit: 4,
           ySplit: 5,

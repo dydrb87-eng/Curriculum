@@ -1490,13 +1490,12 @@ window.renderYearGradeNav = renderYearGradeNav;
               }
             }
 
-            // 2. sheetView (보기 방식: 페이지 레이아웃, 틀고정: E6 등 xSplit/ySplit 동시 지원)
+            // 2. sheetView & 틀고정 (E6: xSplit=4, ySplit=5)
             const freeze = sheet['!freeze'];
-            const viewMode = sheet['!views']?.[0]?.view || (sheet['!view'] === 'pageLayout' ? 'pageLayout' : null);
-            if (freeze || viewMode) {
-              const xSplit = freeze?.xSplit || sheet['!views']?.[0]?.xSplit || 0;
-              const ySplit = freeze?.ySplit || sheet['!views']?.[0]?.ySplit || 0;
-              let topLeft = freeze?.topLeftCell || sheet['!views']?.[0]?.topLeftCell || '';
+            if (freeze) {
+              const xSplit = freeze?.xSplit || 0;
+              const ySplit = freeze?.ySplit || 0;
+              let topLeft = freeze?.topLeftCell || '';
               if (!topLeft) {
                 if (xSplit > 0 && ySplit > 0) {
                   topLeft = `${XLSX.utils.encode_col(xSplit)}${ySplit + 1}`;
@@ -1522,8 +1521,7 @@ window.renderYearGradeNav = renderYearGradeNav;
                 paneInnerXml = `<pane ${splitAttrs.join(' ')}/><selection pane="${activePane}" activeCell="${topLeft}" sqref="${topLeft}"/>`;
               }
 
-              const viewAttr = viewMode ? ` view="${viewMode}"` : '';
-              const newSheetView = `<sheetView workbookViewId="0"${viewAttr}>${paneInnerXml}</sheetView>`;
+              const newSheetView = `<sheetView workbookViewId="0">${paneInnerXml}</sheetView>`;
 
               if (sheetXml.includes('<sheetView workbookViewId="0"/>')) {
                 sheetXml = sheetXml.replace('<sheetView workbookViewId="0"/>', newSheetView);
@@ -1537,27 +1535,24 @@ window.renderYearGradeNav = renderYearGradeNav;
               }
             }
 
-            // 3. pageSetup (용지: B4=12, 가로: landscape, 한페이지 맞춤 등)
+            // 3. pageMargins & pageSetup (반드시 ignoredErrors 앞에 위치해야 유효한 OOXML 스키마 순서 충족)
             if (sheet['!pageSetup']) {
               const ps = sheet['!pageSetup'];
-              const paperSize = ps.paperSize || 12; // B4 표준
+              const paperSize = ps.paperSize || 12; // JIS B4 표준
               const orientation = ps.orientation || 'landscape';
               const fitW = ps.fitToWidth != null ? ps.fitToWidth : 1;
               const fitH = ps.fitToHeight != null ? ps.fitToHeight : 1;
-              const bw = ps.blackAndWhite === true ? '1' : '0';
 
-              if (!sheetXml.includes('<pageMargins')) {
-                const marginsXml = '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>';
-                sheetXml = sheetXml.replace('</worksheet>', `${marginsXml}</worksheet>`);
-              }
+              // 기존 pageMargins/pageSetup 제거 (위치 순서 보장용)
+              sheetXml = sheetXml.replace(/<pageMargins[^>]*\/>/g, '');
+              sheetXml = sheetXml.replace(/<pageSetup[^>]*\/>/g, '');
 
-              const pageSetupXml = `<pageSetup paperSize="${paperSize}" orientation="${orientation}" fitToWidth="${fitW}" fitToHeight="${fitH}" blackAndWhite="${bw}"/>`;
-              if (sheetXml.includes('<pageSetup')) {
-                sheetXml = sheetXml.replace(/<pageSetup[^>]*\/>/, pageSetupXml);
-              } else if (sheetXml.includes('<pageMargins')) {
-                sheetXml = sheetXml.replace(/(<pageMargins[^>]*\/>)/, `$1${pageSetupXml}`);
+              const marginsAndSetupXml = `<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/><pageSetup paperSize="${paperSize}" orientation="${orientation}" fitToWidth="${fitW}" fitToHeight="${fitH}"/>`;
+
+              if (sheetXml.includes('<ignoredErrors')) {
+                sheetXml = sheetXml.replace('<ignoredErrors', `${marginsAndSetupXml}<ignoredErrors`);
               } else {
-                sheetXml = sheetXml.replace('</worksheet>', `${pageSetupXml}</worksheet>`);
+                sheetXml = sheetXml.replace('</worksheet>', `${marginsAndSetupXml}</worksheet>`);
               }
               sheetModified = true;
             }
