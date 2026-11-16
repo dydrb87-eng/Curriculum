@@ -1557,6 +1557,18 @@ window.renderYearGradeNav = renderYearGradeNav;
               sheetModified = true;
             }
 
+            // 4. 1행, 2행 '선택 영역의 가운데로' 정렬을 위해 B1.. 및 B2.. 셀의 빈 문자열 데이터 완전 제거 (순수 서식만 유지하여 가운데 정렬 활성화)
+            if (sheetXml.includes('<row r="1"') || sheetXml.includes('<row r="2"')) {
+              sheetXml = sheetXml.replace(/(<row r="[12]"[^>]*>)([\s\S]*?)(<\/row>)/g, (match, openRow, rowContent, closeRow) => {
+                const cleanedContent = rowContent.replace(/<c r="(?!A[12]\b)([A-Z0-9]+)"([^>]*)>[\s\S]*?<\/c>/g, (cMatch, cellRef, attrs) => {
+                  const cleanAttrs = attrs.replace(/\s*t="[^"]*"/g, '');
+                  return `<c r="${cellRef}"${cleanAttrs}/>`;
+                });
+                return `${openRow}${cleanedContent}${closeRow}`;
+              });
+              sheetModified = true;
+            }
+
             if (sheetModified) {
               zip.file(targetXmlName, sheetXml);
               modified = true;

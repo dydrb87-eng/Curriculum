@@ -2858,7 +2858,7 @@
           const isBlockShaded = Math.floor(idx / 5) % 2 === 1;
           const rowBg = isBlockShaded ? 'bg-slate-100/70' : 'bg-white';
           const isBlockBoundary = (idx + 1) % 5 === 0 && (idx + 1) < filteredAssignments.length;
-          const rowBorderCls = isBlockBoundary ? 'border-b-2 border-dotted border-slate-400' : 'border-b border-slate-200';
+          const rowBorderCls = isBlockBoundary ? 'border-b-4 border-double border-slate-400' : 'border-b border-slate-200';
           const overlaps = asgn.groupSubjects || {};
           let hasAnyConflict = false;
           const conflictGroups = [];
@@ -3785,7 +3785,7 @@
         const r = 5 + sIdx;
         const isShaded = Math.floor(sIdx / 5) % 2 === 1;
         const isBlockEnd = (sIdx + 1) % 5 === 0 && (sIdx + 1) < AppState.students.length;
-        const bottomBorder = isBlockEnd ? 'dotted' : 'thin';
+        const bottomBorder = isBlockEnd ? 'double' : 'thin';
         rowHeights.push({ hpt: 22 });
         const overlaps = expOverlaps[st.id] || {};
 

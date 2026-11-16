@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.17_09:58)</title>
+  <title>상지대관령고등학교 - 선택과목 그룹핑 & 수강신청 업무 도우미 (2026.11.17_10:17)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS with Excel Cell Styling (xlsx-js-style) -->
@@ -83,7 +83,7 @@
               📂 이전 작업 복원됨
             </span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.17_09:58)</span></p>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium">선택과목 그룹핑 & 수강신청 업무 도우미 <span id="appVersionDateText">(2026.11.17_10:17)</span></p>
         </div>
       </div>
 
@@ -15215,7 +15215,7 @@
           const isBlockShaded = Math.floor(idx / 5) % 2 === 1;
           const rowBg = isBlockShaded ? 'bg-slate-100/70' : 'bg-white';
           const isBlockBoundary = (idx + 1) % 5 === 0 && (idx + 1) < filteredAssignments.length;
-          const rowBorderCls = isBlockBoundary ? 'border-b-2 border-dotted border-slate-400' : 'border-b border-slate-200';
+          const rowBorderCls = isBlockBoundary ? 'border-b-4 border-double border-slate-400' : 'border-b border-slate-200';
           const overlaps = asgn.groupSubjects || {};
           let hasAnyConflict = false;
           const conflictGroups = [];
@@ -16142,7 +16142,7 @@
         const r = 5 + sIdx;
         const isShaded = Math.floor(sIdx / 5) % 2 === 1;
         const isBlockEnd = (sIdx + 1) % 5 === 0 && (sIdx + 1) < AppState.students.length;
-        const bottomBorder = isBlockEnd ? 'dotted' : 'thin';
+        const bottomBorder = isBlockEnd ? 'double' : 'thin';
         rowHeights.push({ hpt: 22 });
         const overlaps = expOverlaps[st.id] || {};
 
@@ -28412,6 +28412,18 @@ window.renderYearGradeNav = renderYearGradeNav;
               } else {
                 sheetXml = sheetXml.replace('</worksheet>', `${marginsAndSetupXml}</worksheet>`);
               }
+              sheetModified = true;
+            }
+
+            // 4. 1행, 2행 '선택 영역의 가운데로' 정렬을 위해 B1.. 및 B2.. 셀의 빈 문자열 데이터 완전 제거 (순수 서식만 유지하여 가운데 정렬 활성화)
+            if (sheetXml.includes('<row r="1"') || sheetXml.includes('<row r="2"')) {
+              sheetXml = sheetXml.replace(/(<row r="[12]"[^>]*>)([\s\S]*?)(<\/row>)/g, (match, openRow, rowContent, closeRow) => {
+                const cleanedContent = rowContent.replace(/<c r="(?!A[12]\b)([A-Z0-9]+)"([^>]*)>[\s\S]*?<\/c>/g, (cMatch, cellRef, attrs) => {
+                  const cleanAttrs = attrs.replace(/\s*t="[^"]*"/g, '');
+                  return `<c r="${cellRef}"${cleanAttrs}/>`;
+                });
+                return `${openRow}${cleanedContent}${closeRow}`;
+              });
               sheetModified = true;
             }
 
