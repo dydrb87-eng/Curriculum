@@ -3511,7 +3511,7 @@
       ];
 
       const h1 = ['반', '번호', '이름', '진로/관심학과'];
-      const h2 = ['', '', '', ''];
+      const h2 = ['반', '번호', '이름', '진로/관심학과'];
       const merges = [
         { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // 반
         { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // 번호
@@ -3554,13 +3554,13 @@
       });
 
       h1.push('배정 상태');
-      h2.push('');
+      h2.push('배정 상태');
       merges.push({ s: { r: 3, c: colIdx }, e: { r: 4, c: colIdx } });
       colWidths.push({ wch: 14 });
       colIdx++;
 
       h1.push('추천/상담 메모');
-      h2.push('');
+      h2.push('추천/상담 메모');
       merges.push({ s: { r: 3, c: colIdx }, e: { r: 4, c: colIdx } });
       colWidths.push({ wch: 25 });
       colIdx++;
@@ -4032,6 +4032,12 @@
       // 3. 인쇄 제목: A~C열 반복 인쇄 설정
       wsTT['!printTitles'] = {
         repeatingColumns: '$A:$C'
+      };
+
+      // 4. 과목행(5행) 기준 자동 필터 설정 (학생 데이터 범위 전체 적용)
+      const lastColLetter = XLSX.utils.encode_col(totalCols - 1);
+      wsTT['!autofilter'] = {
+        ref: `A5:${lastColLetter}${lastStudentRowExcel}`
       };
 
       XLSX.utils.book_append_sheet(wb, wsTT, ttSheetName);
