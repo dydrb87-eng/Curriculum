@@ -11,7 +11,7 @@
         slateDark: '0F172A',
         slateText: '1E293B',
         slateMuted: '475569',
-        slateBg: 'F8FAFC',
+        slateBg: 'F1F5F9', // 5행 단위 밴딩 음영에 선명하고 부드러운 소프트 슬레이트-100
         slateHeaderBg: 'F1F5F9',
         borderGrid: '94A3B8', // 명확하고 선명한 슬레이트 그리드 테두리
         borderThick: '1E293B', // 그룹 간 굵은 구분선 테두리
@@ -99,39 +99,39 @@
         };
       },
 
-      dataCenter(isEven, isGroupRight = false, isGroupLeft = false) {
+      dataCenter(isEven, isGroupRight = false, isGroupLeft = false, topStyle = 'thin', bottomStyle = 'thin') {
         return {
           font: { name: this.fontFamily, sz: 10, color: { rgb: this.colors.slateText } },
           fill: { fgColor: { rgb: isEven ? this.colors.slateBg : 'FFFFFF' } },
           alignment: { horizontal: 'center', vertical: 'center' },
-          border: this.getBorder(isGroupRight, isGroupLeft)
+          border: this.getBorder(isGroupRight, isGroupLeft, topStyle, bottomStyle)
         };
       },
 
-      dataLeft(isEven, isGroupRight = false, isGroupLeft = false) {
+      dataLeft(isEven, isGroupRight = false, isGroupLeft = false, topStyle = 'thin', bottomStyle = 'thin') {
         return {
           font: { name: this.fontFamily, sz: 10, color: { rgb: this.colors.slateText } },
           fill: { fgColor: { rgb: isEven ? this.colors.slateBg : 'FFFFFF' } },
           alignment: { horizontal: 'left', vertical: 'center' },
-          border: this.getBorder(isGroupRight, isGroupLeft)
+          border: this.getBorder(isGroupRight, isGroupLeft, topStyle, bottomStyle)
         };
       },
 
-      dataText(isEven, isGroupRight = false, isGroupLeft = false) {
+      dataText(isEven, isGroupRight = false, isGroupLeft = false, topStyle = 'thin', bottomStyle = 'thin') {
         return {
           font: { name: this.fontFamily, sz: 10, color: { rgb: this.colors.slateText } },
           fill: { fgColor: { rgb: isEven ? this.colors.slateBg : 'FFFFFF' } },
           alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
-          border: this.getBorder(isGroupRight, isGroupLeft)
+          border: this.getBorder(isGroupRight, isGroupLeft, topStyle, bottomStyle)
         };
       },
 
-      dataBold(isEven, isGroupRight = false, isGroupLeft = false) {
+      dataBold(isEven, isGroupRight = false, isGroupLeft = false, topStyle = 'thin', bottomStyle = 'thin') {
         return {
           font: { name: this.fontFamily, sz: 10, bold: true, color: { rgb: this.colors.slateDark } },
           fill: { fgColor: { rgb: isEven ? this.colors.slateBg : 'FFFFFF' } },
           alignment: { horizontal: 'center', vertical: 'center' },
-          border: this.getBorder(isGroupRight, isGroupLeft)
+          border: this.getBorder(isGroupRight, isGroupLeft, topStyle, bottomStyle)
         };
       },
 

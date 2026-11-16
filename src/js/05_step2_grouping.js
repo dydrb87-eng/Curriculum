@@ -2854,7 +2854,11 @@
         </td></tr>`;
       } else {
         filteredAssignments.forEach((asgn, idx) => {
-          const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
+          // 학생 명단 기준 5행씩 번갈아 음영 교차 적용 (5-row block banding)
+          const isBlockShaded = Math.floor(idx / 5) % 2 === 1;
+          const rowBg = isBlockShaded ? 'bg-slate-100/70' : 'bg-white';
+          const isBlockBoundary = (idx + 1) % 5 === 0 && (idx + 1) < filteredAssignments.length;
+          const rowBorderCls = isBlockBoundary ? 'border-b-2 border-slate-300' : 'border-b border-slate-200';
           const overlaps = asgn.groupSubjects || {};
           let hasAnyConflict = false;
           const conflictGroups = [];
@@ -2879,7 +2883,7 @@
             : null;
           const dupItemsThisSem = dupSt ? (dupSt.dupList || []).filter(d => d.semester === sem) : [];
 
-          tbody += `<tr id="step2-student-row-${asgn.id}" class="${rowBg} hover:bg-indigo-50/50 transition-colors">`;
+          tbody += `<tr id="step2-student-row-${asgn.id}" class="${rowBg} ${rowBorderCls} hover:bg-indigo-50/50 transition-colors">`;
           tbody += `<td style="position: sticky; left: 0px; min-width: 44px; max-width: 44px; z-index: 10;" class="p-2 text-center border-r border-slate-200 font-medium ${rowBg} shadow-[1px_0_0_0_#e2e8f0]">${asgn.classNum}</td>`;
           tbody += `<td style="position: sticky; left: 44px; min-width: 44px; max-width: 44px; z-index: 10;" class="p-2 text-center border-r border-slate-200 font-medium ${rowBg} shadow-[1px_0_0_0_#e2e8f0]">${asgn.studentNum}</td>`;
           tbody += `<td style="position: sticky; left: 88px; min-width: 115px; max-width: 135px; z-index: 10;" class="p-2 border-r-2 border-slate-300 whitespace-nowrap ${rowBg} shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]">
@@ -3776,17 +3780,19 @@
         });
       }
 
-      // Student rows styling
+      // Student rows styling (학생 명단 기준 5행씩 번갈아 음영 교차 적용)
       AppState.students.forEach((st, sIdx) => {
         const r = 5 + sIdx;
-        const isEven = sIdx % 2 === 1;
+        const isShaded = Math.floor(sIdx / 5) % 2 === 1;
+        const isBlockEnd = (sIdx + 1) % 5 === 0 && (sIdx + 1) < AppState.students.length;
+        const bottomBorder = isBlockEnd ? 'medium' : 'thin';
         rowHeights.push({ hpt: 22 });
         const overlaps = expOverlaps[st.id] || {};
 
-        ExcelStyler.setCell(wsTT, r, 0, ExcelStyler.dataCenter(isEven, false, true));
-        ExcelStyler.setCell(wsTT, r, 1, ExcelStyler.dataCenter(isEven, false, false));
-        ExcelStyler.setCell(wsTT, r, 2, ExcelStyler.dataBold(isEven, false, false));
-        ExcelStyler.setCell(wsTT, r, 3, ExcelStyler.dataLeft(isEven, true, false));
+        ExcelStyler.setCell(wsTT, r, 0, ExcelStyler.dataCenter(isShaded, false, true, 'thin', bottomBorder));
+        ExcelStyler.setCell(wsTT, r, 1, ExcelStyler.dataCenter(isShaded, false, false, 'thin', bottomBorder));
+        ExcelStyler.setCell(wsTT, r, 2, ExcelStyler.dataBold(isShaded, false, false, 'thin', bottomBorder));
+        ExcelStyler.setCell(wsTT, r, 3, ExcelStyler.dataLeft(isShaded, true, false, 'thin', bottomBorder));
 
         let curC = 4;
         let hasConflict = false;
@@ -3795,7 +3801,7 @@
           const isGrpConf = inGrp.length > 1;
 
           if (groupSubjs.length === 0) {
-            ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataCenter(isEven, true, true));
+            ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataCenter(isShaded, true, true, 'thin', bottomBorder));
             curC++;
           } else {
             groupSubjs.forEach((sName, sIdx) => {
@@ -3809,18 +3815,18 @@
                     font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: 'DC2626' } },
                     fill: { fgColor: { rgb: 'FEE2E2' } },
                     alignment: { horizontal: 'center', vertical: 'center' },
-                    border: ExcelStyler.getBorder(isGroupRight, isGroupLeft)
+                    border: ExcelStyler.getBorder(isGroupRight, isGroupLeft, 'thin', bottomBorder)
                   });
                 } else {
                   ExcelStyler.setCell(wsTT, r, curC, {
                     font: { name: ExcelStyler.fontFamily, sz: 10, bold: true, color: { rgb: '1D4ED8' } },
                     fill: { fgColor: { rgb: 'EFF6FF' } },
                     alignment: { horizontal: 'center', vertical: 'center' },
-                    border: ExcelStyler.getBorder(isGroupRight, isGroupLeft)
+                    border: ExcelStyler.getBorder(isGroupRight, isGroupLeft, 'thin', bottomBorder)
                   });
                 }
               } else {
-                ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataCenter(isEven, isGroupRight, isGroupLeft));
+                ExcelStyler.setCell(wsTT, r, curC, ExcelStyler.dataCenter(isShaded, isGroupRight, isGroupLeft, 'thin', bottomBorder));
               }
               curC++;
             });
@@ -3830,18 +3836,18 @@
         // 상태
         ExcelStyler.setCell(wsTT, r, curC, {
           font: { name: ExcelStyler.fontFamily, sz: 9.5, bold: hasConflict, color: { rgb: hasConflict ? 'DC2626' : '15803D' } },
-          fill: { fgColor: { rgb: hasConflict ? 'FEE2E2' : (isEven ? 'F8FAFC' : 'FFFFFF') } },
+          fill: { fgColor: { rgb: hasConflict ? 'FEE2E2' : (isShaded ? ExcelStyler.colors.slateBg : 'FFFFFF') } },
           alignment: { horizontal: 'center', vertical: 'center' },
-          border: ExcelStyler.getBorder(true, true)
+          border: ExcelStyler.getBorder(true, true, 'thin', bottomBorder)
         });
         curC++;
 
         // 추천/상담 메모
         ExcelStyler.setCell(wsTT, r, curC, {
           font: { name: ExcelStyler.fontFamily, sz: 9, color: { rgb: '475569' } },
-          fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
+          fill: { fgColor: { rgb: isShaded ? ExcelStyler.colors.slateBg : 'FFFFFF' } },
           alignment: { horizontal: 'left', vertical: 'center' },
-          border: ExcelStyler.getBorder(true, false)
+          border: ExcelStyler.getBorder(true, false, 'thin', bottomBorder)
         });
       });
 
