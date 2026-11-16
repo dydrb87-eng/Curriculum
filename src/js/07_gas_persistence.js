@@ -1454,41 +1454,156 @@ window.renderYearGradeNav = renderYearGradeNav;
     window.saveExcelFile = async function(wb, filename) {
       let excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-      // 틀고정(freeze panes) 적용 (JSZip 후처리)
+      // JSZip 고급 후처리 (틀고정, 페이지 레이아웃 보기, 인쇄 설정, 인쇄 제목 반복열, 1페이지 맞춤)
       if (typeof JSZip !== 'undefined') {
         try {
-          let hasFreeze = false;
-          (wb.SheetNames || []).forEach(name => {
-            const sheet = wb.Sheets[name];
-            if (sheet && (sheet['!freeze'] || sheet['!views'])) hasFreeze = true;
-          });
+          const zip = await JSZip.loadAsync(excelBuffer);
+          let modified = false;
 
-          if (hasFreeze) {
-            const zip = await JSZip.loadAsync(excelBuffer);
+          for (let idx = 0; idx < (wb.SheetNames || []).length; idx++) {
+            const sName = wb.SheetNames[idx];
+            const sheet = wb.Sheets[sName];
+            if (!sheet) continue;
+
+            const targetXmlName = `xl/worksheets/sheet${idx + 1}.xml`;
+            const zipFile = zip.file(targetXmlName);
+            if (!zipFile) continue;
+
+            let sheetXml = await zipFile.async('text');
+            let sheetModified = false;
+
+            // 1. sheetPr (1페이지 맞춤 등)
+            if (sheet['!sheetPr']?.pageSetUpPr?.fitToPage) {
+              if (!sheetXml.includes('<sheetPr>')) {
+                const prXml = '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>';
+                if (sheetXml.includes('<dimension')) {
+                  sheetXml = sheetXml.replace('<dimension', `${prXml}<dimension`);
+                } else if (sheetXml.includes('<sheetViews')) {
+                  sheetXml = sheetXml.replace('<sheetViews', `${prXml}<sheetViews`);
+                } else {
+                  sheetXml = sheetXml.replace(/(<worksheet[^>]*>)/, `$1${prXml}`);
+                }
+                sheetModified = true;
+              } else if (!sheetXml.includes('fitToPage="1"')) {
+                sheetXml = sheetXml.replace('<sheetPr>', '<sheetPr><pageSetUpPr fitToPage="1"/>');
+                sheetModified = true;
+              }
+            }
+
+            // 2. sheetView (보기 방식: 페이지 레이아웃, 틀고정: E6 등 xSplit/ySplit 동시 지원)
+            const freeze = sheet['!freeze'];
+            const viewMode = sheet['!views']?.[0]?.view || (sheet['!view'] === 'pageLayout' ? 'pageLayout' : null);
+            if (freeze || viewMode) {
+              const xSplit = freeze?.xSplit || sheet['!views']?.[0]?.xSplit || 0;
+              const ySplit = freeze?.ySplit || sheet['!views']?.[0]?.ySplit || 0;
+              let topLeft = freeze?.topLeftCell || sheet['!views']?.[0]?.topLeftCell || '';
+              if (!topLeft) {
+                if (xSplit > 0 && ySplit > 0) {
+                  topLeft = `${XLSX.utils.encode_col(xSplit)}${ySplit + 1}`;
+                } else if (xSplit > 0) {
+                  topLeft = `${XLSX.utils.encode_col(xSplit)}1`;
+                } else {
+                  topLeft = `A${ySplit + 1}`;
+                }
+              }
+
+              let activePane = 'bottomLeft';
+              if (xSplit > 0 && ySplit > 0) activePane = 'bottomRight';
+              else if (xSplit > 0) activePane = 'topRight';
+
+              let paneInnerXml = '';
+              if (xSplit > 0 || ySplit > 0) {
+                const splitAttrs = [];
+                if (xSplit > 0) splitAttrs.push(`xSplit="${xSplit}"`);
+                if (ySplit > 0) splitAttrs.push(`ySplit="${ySplit}"`);
+                splitAttrs.push(`topLeftCell="${topLeft}"`);
+                splitAttrs.push(`activePane="${activePane}"`);
+                splitAttrs.push(`state="frozen"`);
+                paneInnerXml = `<pane ${splitAttrs.join(' ')}/><selection pane="${activePane}" activeCell="${topLeft}" sqref="${topLeft}"/>`;
+              }
+
+              const viewAttr = viewMode ? ` view="${viewMode}"` : '';
+              const newSheetView = `<sheetView workbookViewId="0"${viewAttr}>${paneInnerXml}</sheetView>`;
+
+              if (sheetXml.includes('<sheetView workbookViewId="0"/>')) {
+                sheetXml = sheetXml.replace('<sheetView workbookViewId="0"/>', newSheetView);
+                sheetModified = true;
+              } else if (sheetXml.includes('<sheetView workbookViewId="0">')) {
+                sheetXml = sheetXml.replace(/<sheetView workbookViewId="0"[^>]*>[\s\S]*?<\/sheetView>/, newSheetView);
+                sheetModified = true;
+              } else if (sheetXml.includes('<sheetViews>')) {
+                sheetXml = sheetXml.replace('<sheetViews>', `<sheetViews>${newSheetView}`);
+                sheetModified = true;
+              }
+            }
+
+            // 3. pageSetup (용지: B4=12, 가로: landscape, 한페이지 맞춤 등)
+            if (sheet['!pageSetup']) {
+              const ps = sheet['!pageSetup'];
+              const paperSize = ps.paperSize || 12; // B4 표준
+              const orientation = ps.orientation || 'landscape';
+              const fitW = ps.fitToWidth != null ? ps.fitToWidth : 1;
+              const fitH = ps.fitToHeight != null ? ps.fitToHeight : 1;
+              const bw = ps.blackAndWhite === true ? '1' : '0';
+
+              if (!sheetXml.includes('<pageMargins')) {
+                const marginsXml = '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>';
+                sheetXml = sheetXml.replace('</worksheet>', `${marginsXml}</worksheet>`);
+              }
+
+              const pageSetupXml = `<pageSetup paperSize="${paperSize}" orientation="${orientation}" fitToWidth="${fitW}" fitToHeight="${fitH}" blackAndWhite="${bw}"/>`;
+              if (sheetXml.includes('<pageSetup')) {
+                sheetXml = sheetXml.replace(/<pageSetup[^>]*\/>/, pageSetupXml);
+              } else if (sheetXml.includes('<pageMargins')) {
+                sheetXml = sheetXml.replace(/(<pageMargins[^>]*\/>)/, `$1${pageSetupXml}`);
+              } else {
+                sheetXml = sheetXml.replace('</worksheet>', `${pageSetupXml}</worksheet>`);
+              }
+              sheetModified = true;
+            }
+
+            if (sheetModified) {
+              zip.file(targetXmlName, sheetXml);
+              modified = true;
+            }
+          }
+
+          // 4. xl/workbook.xml 확인 및 인쇄 반복 열(_xlnm.Print_Titles) 주입/보완
+          const wbXmlFile = zip.file('xl/workbook.xml');
+          if (wbXmlFile) {
+            let wbXml = await wbXmlFile.async('text');
+            let wbModified = false;
+
             for (let idx = 0; idx < (wb.SheetNames || []).length; idx++) {
               const sName = wb.SheetNames[idx];
               const sheet = wb.Sheets[sName];
-              if (!sheet || (!sheet['!freeze'] && !sheet['!views'])) continue;
-              const ySplit = sheet['!freeze']?.ySplit || sheet['!views']?.[0]?.ySplit || 4;
-              const topLeftCell = sheet['!freeze']?.topLeftCell || sheet['!views']?.[0]?.topLeftCell || `A${ySplit + 1}`;
-              const targetXmlName = `xl/worksheets/sheet${idx + 1}.xml`;
-              const zipFile = zip.file(targetXmlName);
-              if (zipFile) {
-                const sheetXml = await zipFile.async('text');
-                const paneXml = `<sheetView workbookViewId="0"><pane ySplit="${ySplit}" topLeftCell="${topLeftCell}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="${topLeftCell}" sqref="${topLeftCell}"/></sheetView>`;
-                let newXml = sheetXml;
-                if (newXml.includes('<sheetView workbookViewId="0"/>')) {
-                  newXml = newXml.replace('<sheetView workbookViewId="0"/>', paneXml);
-                } else if (newXml.includes('<sheetView workbookViewId="0">') && !newXml.includes('state="frozen"')) {
-                  newXml = newXml.replace('<sheetView workbookViewId="0">', `<sheetView workbookViewId="0"><pane ySplit="${ySplit}" topLeftCell="${topLeftCell}" activePane="bottomLeft" state="frozen"/>`);
+              if (!sheet || !sheet['!printTitles']) continue;
+
+              const repCols = sheet['!printTitles'].repeatingColumns; // e.g. '$A:$C'
+              if (repCols) {
+                const defEntry = `<definedName name="_xlnm.Print_Titles" localSheetId="${idx}">&apos;${sName}&apos;!${repCols}</definedName>`;
+                if (!wbXml.includes(`name="_xlnm.Print_Titles" localSheetId="${idx}"`)) {
+                  if (wbXml.includes('<definedNames>')) {
+                    wbXml = wbXml.replace('<definedNames>', `<definedNames>${defEntry}`);
+                  } else {
+                    wbXml = wbXml.replace('</workbook>', `<definedNames>${defEntry}</definedNames></workbook>`);
+                  }
+                  wbModified = true;
                 }
-                zip.file(targetXmlName, newXml);
               }
             }
+
+            if (wbModified) {
+              zip.file('xl/workbook.xml', wbXml);
+              modified = true;
+            }
+          }
+
+          if (modified) {
             excelBuffer = await zip.generateAsync({ type: 'arraybuffer' });
           }
         } catch (zErr) {
-          console.warn('JSZip freeze pane injection skipped:', zErr);
+          console.warn('JSZip advanced post-processing skipped:', zErr);
         }
       }
 

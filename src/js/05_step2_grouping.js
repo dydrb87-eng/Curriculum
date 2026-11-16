@@ -2858,7 +2858,7 @@
           const isBlockShaded = Math.floor(idx / 5) % 2 === 1;
           const rowBg = isBlockShaded ? 'bg-slate-100/70' : 'bg-white';
           const isBlockBoundary = (idx + 1) % 5 === 0 && (idx + 1) < filteredAssignments.length;
-          const rowBorderCls = isBlockBoundary ? 'border-b-2 border-slate-300' : 'border-b border-slate-200';
+          const rowBorderCls = isBlockBoundary ? 'border-b-2 border-dotted border-slate-400' : 'border-b border-slate-200';
           const overlaps = asgn.groupSubjects || {};
           let hasAnyConflict = false;
           const conflictGroups = [];
@@ -3524,7 +3524,7 @@
         { wch: 6 },
         { wch: 6 },
         { wch: 11 },
-        { wch: 18 }
+        { wch: 18, hidden: true } // D열(진로/관심학과) 숨기기 설정
       ];
 
       const groupColSpans = [];
@@ -3566,6 +3566,9 @@
       colIdx++;
 
       const totalCols = colIdx;
+      // 1행, 2행은 셀 병합 없이 '선택 영역의 가운데로' 정렬을 위해 전체 열 너비만큼 빈 셀 패딩
+      while (ttRows[0].length < totalCols) ttRows[0].push('');
+      while (ttRows[1].length < totalCols) ttRows[1].push('');
       ttRows.push(h1);
       ttRows.push(h2);
 
@@ -3684,10 +3687,7 @@
       }
 
       const wsTT = XLSX.utils.aoa_to_sheet(ttRows);
-      merges.unshift(
-        { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } }
-      );
+      // 1행, 2행은 셀 병합 없이 '선택 영역의 가운데로' 설정을 적용하므로 merges에서 제외
       wsTT['!merges'] = merges;
       wsTT['!cols'] = colWidths;
 
@@ -3699,11 +3699,11 @@
         { hpt: 24 }
       ];
 
-      // Style TT Sheet Title & Subtitle
+      // Style TT Sheet Title & Subtitle ('선택 영역의 가운데로' horizontal: 'centerContinuous' 적용)
       ExcelStyler.setRange(wsTT, 0, 0, 0, totalCols - 1, {
         font: { name: ExcelStyler.fontFamily, sz: 14, bold: true, color: { rgb: '1E3A8A' } },
         fill: { fgColor: { rgb: 'EEF2FF' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
+        alignment: { horizontal: 'centerContinuous', vertical: 'center' },
         border: {
           top: { style: 'medium', color: { rgb: '93C5FD' } },
           bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
@@ -3714,7 +3714,7 @@
       ExcelStyler.setRange(wsTT, 1, 0, 1, totalCols - 1, {
         font: { name: ExcelStyler.fontFamily, sz: 9.5, color: { rgb: '64748B' } },
         fill: { fgColor: { rgb: 'F8FAFC' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
+        alignment: { horizontal: 'centerContinuous', vertical: 'center' },
         border: {
           top: { style: 'thin', color: { rgb: 'CBD5E1' } },
           bottom: { style: 'medium', color: { rgb: '93C5FD' } },
@@ -3785,7 +3785,7 @@
         const r = 5 + sIdx;
         const isShaded = Math.floor(sIdx / 5) % 2 === 1;
         const isBlockEnd = (sIdx + 1) % 5 === 0 && (sIdx + 1) < AppState.students.length;
-        const bottomBorder = isBlockEnd ? 'medium' : 'thin';
+        const bottomBorder = isBlockEnd ? 'dotted' : 'thin';
         rowHeights.push({ hpt: 22 });
         const overlaps = expOverlaps[st.id] || {};
 
@@ -3999,7 +3999,53 @@
       }
 
       wsTT['!rows'] = rowHeights;
+
+      // 1. 인쇄 설정: 가로 방향, JIS B4 규격(12), 한페이지에 시트 맞춤, 칼라인쇄
+      wsTT['!pageSetup'] = {
+        orientation: 'landscape',
+        paperSize: 12,           // JIS B4 (257mm x 364mm 표준)
+        fitToWidth: 1,           // 가로 1페이지 맞춤
+        fitToHeight: 1,          // 세로 1페이지 맞춤
+        fitToPage: true,         // 페이지 맞춤 인쇄 플래그
+        blackAndWhite: false     // 칼라인쇄
+      };
+      wsTT['!sheetPr'] = {
+        pageSetUpPr: { fitToPage: true }
+      };
+
+      // 2. 보기 방식: '페이지 레이아웃' 및 E6 기준 틀고정 (행 1~5, 열 A~D 고정)
+      wsTT['!freeze'] = {
+        xSplit: 4,
+        ySplit: 5,
+        topLeftCell: 'E6'
+      };
+      wsTT['!views'] = [
+        {
+          view: 'pageLayout',
+          state: 'frozen',
+          xSplit: 4,
+          ySplit: 5,
+          topLeftCell: 'E6',
+          activeCell: 'E6'
+        }
+      ];
+
+      // 3. 인쇄 제목: A~C열 반복 인쇄 설정
+      wsTT['!printTitles'] = {
+        repeatingColumns: '$A:$C'
+      };
+
       XLSX.utils.book_append_sheet(wb, wsTT, ttSheetName);
+
+      // 워크북 전역 정의된 이름(_xlnm.Print_Titles) 등록 (A~C열 반복 인쇄 보장)
+      const currentSheetIdx = (wb.SheetNames || []).indexOf(ttSheetName);
+      wb.Workbook = wb.Workbook || {};
+      wb.Workbook.Names = wb.Workbook.Names || [];
+      wb.Workbook.Names.push({
+        Name: '_xlnm.Print_Titles',
+        Ref: `'${ttSheetName}'!$A:$C`,
+        Sheet: currentSheetIdx >= 0 ? currentSheetIdx : 0
+      });
     }
 
     // Helper to build Single Plan Placement Sheet
